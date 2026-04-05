@@ -265,3 +265,11 @@ At the start of each new session fetch this file to restore context.
 Share GitHub file URLs, paste code, or describe what was built.
 Update this file after every major decision or completed phase.
 Last updated: 2026-04-05
+
+
+Rules:
+- Follow all design rules in CLAUDE.md
+- No emojis, use Lucide icons
+- Use sonner for all toasts (never @/components/ui/toast)
+- Touch targets 48px minimum
+- Confirm when done and list files changed

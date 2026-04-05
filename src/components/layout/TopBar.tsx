@@ -85,7 +85,7 @@ export default function TopBar() {
   });
 
   const members = membersData?.members ?? [];
-  const householdName = membersData?.household.name ?? "";
+  const householdName = membersData?.household?.name ?? "";
   const weather = weatherData?.current_weather;
   const visibleMembers = members.slice(0, 4);
   const overflow = members.length > 4 ? members.length - 4 : 0;

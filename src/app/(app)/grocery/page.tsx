@@ -289,7 +289,14 @@ export default function GroceryPage() {
 
   const listsQuery = useQuery<ListsResponse>({
     queryKey: ["grocery-lists"],
-    queryFn: () => fetch("/api/grocery/lists").then((r) => r.json()),
+    queryFn: async () => {
+      const r = await fetch("/api/grocery/lists");
+      if (!r.ok) {
+        const d = await r.json().catch(() => ({}));
+        throw new Error(d.error ?? "Failed to load lists");
+      }
+      return r.json();
+    },
     staleTime: 10_000,
     refetchInterval: 10_000,
   });
@@ -307,8 +314,14 @@ export default function GroceryPage() {
 
   const itemsQuery = useQuery<ItemsResponse>({
     queryKey: ["grocery-items", activeListId],
-    queryFn: () =>
-      fetch(`/api/grocery/lists/${activeListId}/items`).then((r) => r.json()),
+    queryFn: async () => {
+      const r = await fetch(`/api/grocery/lists/${activeListId}/items`);
+      if (!r.ok) {
+        const d = await r.json().catch(() => ({}));
+        throw new Error(d.error ?? "Failed to load items");
+      }
+      return r.json();
+    },
     enabled: !!activeListId,
     staleTime: 10_000,
     refetchInterval: 10_000,

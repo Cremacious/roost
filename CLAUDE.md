@@ -476,7 +476,21 @@ Designer brief (send this when hiring):
 At the start of each new session fetch this file to restore context.
 Share GitHub file URLs, paste code, or describe what was built.
 Update this file after every major decision or completed phase.
-Last updated: 2026-04-05 (grocery module + activity feed complete)
+Last updated: 2026-04-05 (grocery module + activity feed complete; grocery diagnostic bugs fixed)
+
+## Bugs Found and Fixed (2026-04-05)
+- No default grocery list created on household signup: `GET /api/grocery/lists` now
+  auto-creates a "Shopping List" (is_default=true) when the household has no lists.
+  Previously new households could never see the quick-add bar because activeListId
+  stayed null.
+- `household_activity` table missing from Neon DB: schema file existed but
+  `npx drizzle-kit push --force` had never been run. logActivity() was silently
+  failing. Fixed by running db:push.
+- `listsQuery` and `itemsQuery` in grocery/page.tsx used `.then(r => r.json())`
+  without checking `r.ok`, so server errors appeared as silent bad data. Both
+  now throw on non-OK responses so TanStack Query surfaces them correctly.
+- POST body parse catch block in `grocery/lists/[id]/items/route.ts` had no
+  console.error. Added for visibility in server logs.
 
 
 Rules:

@@ -126,7 +126,8 @@ export async function POST(
   let body: { name?: string; quantity?: string };
   try {
     body = await request.json();
-  } catch {
+  } catch (err) {
+    console.error("[POST /api/grocery/lists/[id]/items] Failed to parse body:", err);
     return Response.json({ error: "Invalid request body" }, { status: 400 });
   }
 

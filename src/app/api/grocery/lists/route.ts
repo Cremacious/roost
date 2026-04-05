@@ -45,6 +45,30 @@ export async function GET(request: NextRequest): Promise<Response> {
       )
     );
 
+  // Auto-create the default list for households that don't have one yet
+  if (listsRaw.length === 0) {
+    const [defaultList] = await db
+      .insert(grocery_lists)
+      .values({
+        household_id: householdId,
+        name: "Shopping List",
+        is_default: true,
+        created_by: session.user.id,
+      })
+      .returning({
+        id: grocery_lists.id,
+        name: grocery_lists.name,
+        is_default: grocery_lists.is_default,
+        created_at: grocery_lists.created_at,
+      });
+
+    return Response.json({
+      lists: [{ ...defaultList, item_count: 0 }],
+      isPremium,
+      isAdmin,
+    });
+  }
+
   const itemCounts = await db
     .select({
       list_id: grocery_items.list_id,
@@ -125,7 +149,8 @@ export async function POST(request: NextRequest): Promise<Response> {
   let body: { name?: string };
   try {
     body = await request.json();
-  } catch {
+  } catch (err) {
+    console.error("[POST /api/grocery/lists] Failed to parse body:", err);
     return Response.json({ error: "Invalid request body" }, { status: 400 });
   }
 

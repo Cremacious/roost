@@ -213,6 +213,41 @@ src/components/layout/     Shell, nav, sidebar
 src/components/dashboard/  Home screen components
 src/components/shared/     Reused across features
 
+## Files Built So Far
+src/proxy.ts                                   Route protection (Next.js 16 middleware)
+src/lib/auth/index.ts                          better-auth server config
+src/lib/auth/client.ts                         better-auth client (signIn, signUp, signOut, useSession)
+src/lib/auth/helpers.ts                        requireSession, requireHouseholdMember, requireHouseholdAdmin, requirePremium, blockChild
+src/lib/constants/colors.ts                    All 8 section colors — always import from here
+src/lib/db/index.ts                            Neon + Drizzle instance
+src/db/schema/auth.ts                          better-auth tables (user, session, account, verification)
+src/db/schema/households.ts
+src/db/schema/users.ts                         App user table (separate from better-auth user table)
+src/db/schema/members.ts                       household_members, member_permissions
+src/db/schema/chores.ts                        chores, chore_completions, chore_streaks
+src/db/schema/grocery.ts                       grocery_lists, grocery_items
+src/db/schema/tasks.ts
+src/db/schema/calendar.ts                      calendar_events, event_attendees
+src/db/schema/notes.ts
+src/db/schema/expenses.ts                      expenses, expense_splits
+src/db/schema/notifications.ts                 notification_queue
+src/db/schema/index.ts                         Re-exports all tables
+src/app/(auth)/login/page.tsx
+src/app/(auth)/signup/page.tsx                 Email/password + strength meter + confirm field
+src/app/(auth)/child-login/page.tsx            Household code + PIN, 64px inputs
+src/app/(app)/layout.tsx                       App shell — TopBar + Sidebar + BottomNav + QueryProvider
+src/app/(app)/onboarding/page.tsx              3-step create/join household flow
+src/app/(app)/dashboard/page.tsx               Tile grid + activity feed
+src/app/api/auth/[...all]/route.ts             better-auth catch-all handler
+src/app/api/auth/child-login/route.ts          PIN auth — creates session via internalAdapter
+src/app/api/household/create/route.ts          POST — create household, generate unique code
+src/app/api/household/join/route.ts            POST — join by code, premium multi-household check
+src/app/api/household/members/route.ts         GET — household info + member list with user data
+src/components/layout/TopBar.tsx               Household name, weather (Open-Meteo), clock, avatars
+src/components/layout/BottomNav.tsx            Mobile 5-tab nav with chore badge
+src/components/layout/Sidebar.tsx              Desktop icon-only 72px sidebar
+src/components/shared/QueryProvider.tsx        TanStack Query client provider
+
 ## API Rules
 - All routes validate session + household membership before DB
 - Child accounts: financial endpoints always return 403
@@ -222,11 +257,11 @@ src/components/shared/     Reused across features
 - Schema entry point: src/db/schema/index.ts re-exports all tables
 
 ## Build Phases
-Phase 1 — Foundation (start here)
-  Schema: all tables defined before any UI
-  Auth: signup, login, child PIN login
-  Household: create, join by code, invite flow
-  Middleware: session guard on (app) routes
+Phase 1 — Foundation (COMPLETE)
+  Schema: DONE — all tables in src/db/schema/, pushed to Neon
+  Auth: DONE — better-auth, email/password + child PIN login
+  Household: DONE — create, join by code, onboarding flow
+  Middleware: DONE — src/proxy.ts (Next.js 16 renamed middleware to proxy)
 
 Phase 2 — Daily Use
   Chores: assign, recurring schedule, complete, streaks

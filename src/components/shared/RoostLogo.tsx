@@ -14,10 +14,10 @@ const SIZE_CONFIG = {
 } as const;
 
 const VARIANT_CONFIG = {
-  dark:  { wordmark: "#1A1714" },
+  dark:  { wordmark: "var(--roost-text-primary)" },
   light: { wordmark: "#F5F0E8" },
-  red:   { wordmark: "#1A1714" },
-} as const;
+  red:   { wordmark: "var(--roost-text-primary)" },
+};
 
 interface RoostLogoProps {
   size?: keyof typeof SIZE_CONFIG;

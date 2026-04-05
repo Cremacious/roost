@@ -16,9 +16,9 @@ import {
 import { SECTION_COLORS } from "@/lib/constants/colors";
 import { relativeTime } from "@/lib/utils/time";
 import MemberAvatar from "@/components/shared/MemberAvatar";
-import GroceryItemSheet, {
-  type GroceryItemData,
-} from "@/components/grocery/GroceryItemSheet";
+import ErrorState from "@/components/shared/ErrorState";
+import { Skeleton } from "@/components/ui/skeleton";
+import GroceryItemSheet from "@/components/grocery/GroceryItemSheet";
 import GroceryListSheet, {
   type GroceryListData,
 } from "@/components/grocery/GroceryListSheet";
@@ -214,7 +214,7 @@ function ItemRow({
       <button
         type="button"
         onClick={() => onDelete(item.id)}
-        className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl transition-opacity opacity-100 md:opacity-0 md:group-hover:opacity-100"
+        className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl transition-opacity opacity-100 md:opacity-0 md:group-hover:opacity-100"
         style={{ color: "var(--roost-text-muted)" }}
         aria-label="Remove item"
       >
@@ -584,14 +584,22 @@ export default function GroceryPage() {
 
   if (listsQuery.isLoading) {
     return (
-      <div
-        className="flex min-h-screen items-center justify-center"
-        style={{ backgroundColor: "var(--roost-bg)" }}
-      >
-        <Loader2
-          className="size-6 animate-spin"
-          style={{ color: "var(--roost-text-muted)" }}
-        />
+      <div className="flex flex-col gap-4 p-4 pb-28 md:p-6" style={{ backgroundColor: "var(--roost-bg)" }}>
+        <Skeleton className="h-9 w-48 rounded-2xl" />
+        <Skeleton className="h-14 rounded-xl" />
+        <div className="space-y-2">
+          {Array.from({ length: 5 }).map((_, i) => (
+            <Skeleton key={i} className="h-16 rounded-2xl" />
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  if (listsQuery.isError) {
+    return (
+      <div className="p-4 md:p-6" style={{ backgroundColor: "var(--roost-bg)" }}>
+        <ErrorState onRetry={() => listsQuery.refetch()} />
       </div>
     );
   }
@@ -771,14 +779,13 @@ export default function GroceryPage() {
               className="text-base"
               style={{ color: "var(--roost-text-primary)", fontWeight: 800 }}
             >
-              Nothing to buy?
+              The fridge is on its own.
             </p>
             <p
               className="mt-1 text-sm"
               style={{ color: "var(--roost-text-secondary)", fontWeight: 600 }}
             >
-              The fridge must be full. Add something before someone eats the
-              condiments.
+              No items on the list. Add something before someone eats a condiment for dinner.
             </p>
           </div>
         </div>

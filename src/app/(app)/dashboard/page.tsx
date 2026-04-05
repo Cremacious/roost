@@ -15,6 +15,8 @@ import {
   UtensilsCrossed,
 } from "lucide-react";
 import EmptyState from "@/components/shared/EmptyState";
+import ErrorState from "@/components/shared/ErrorState";
+import { Skeleton } from "@/components/ui/skeleton";
 import { formatDistanceToNow } from "date-fns";
 import { motion } from "framer-motion";
 import { SECTION_COLORS, type SectionKey } from "@/lib/constants/colors";
@@ -108,6 +110,30 @@ const TILES: Tile[] = [
   { key: "reminders", label: "Reminders", href: "/reminders", icon: Bell,            count: 0, statusText: "Nothing pending" },
 ];
 
+// ---- Skeletons --------------------------------------------------------------
+
+function DashboardSkeleton() {
+  return (
+    <div className="flex flex-col gap-5 p-4 pb-24 md:p-6">
+      <div className="space-y-1">
+        <Skeleton className="h-8 w-48 rounded-xl" />
+        <Skeleton className="h-4 w-64 rounded-lg" />
+      </div>
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+        {Array.from({ length: 8 }).map((_, i) => (
+          <Skeleton key={i} className="h-24 rounded-2xl" />
+        ))}
+      </div>
+      <div className="space-y-2">
+        <Skeleton className="h-5 w-32 rounded-lg" />
+        {Array.from({ length: 4 }).map((_, i) => (
+          <Skeleton key={i} className="h-14 rounded-2xl" />
+        ))}
+      </div>
+    </div>
+  );
+}
+
 // ---- Sub-components ---------------------------------------------------------
 
 function TileCard({ tile, index }: { tile: Tile; index: number }) {
@@ -130,7 +156,6 @@ function TileCard({ tile, index }: { tile: Tile; index: number }) {
         borderBottom: "4px solid var(--roost-border-bottom)",
       }}
     >
-      {/* Badge */}
       {tile.count > 0 && (
         <span
           className="absolute right-3 top-3 flex h-5 min-w-5 items-center justify-center rounded-full px-1 text-[11px] text-white"
@@ -139,8 +164,6 @@ function TileCard({ tile, index }: { tile: Tile; index: number }) {
           {tile.count}
         </span>
       )}
-
-      {/* Icon */}
       <div
         className="flex h-9 w-9 items-center justify-center rounded-xl"
         style={{
@@ -151,19 +174,11 @@ function TileCard({ tile, index }: { tile: Tile; index: number }) {
       >
         <Icon className="size-4" style={{ color }} />
       </div>
-
-      {/* Text */}
       <div>
-        <p
-          className="text-sm leading-tight"
-          style={{ color: "var(--roost-text-primary)", fontWeight: 700 }}
-        >
+        <p className="text-sm leading-tight" style={{ color: "var(--roost-text-primary)", fontWeight: 700 }}>
           {tile.label}
         </p>
-        <p
-          className="mt-0.5 text-xs"
-          style={{ color: "var(--roost-text-muted)", fontWeight: 600 }}
-        >
+        <p className="mt-0.5 text-xs" style={{ color: "var(--roost-text-muted)", fontWeight: 600 }}>
           {tile.statusText}
         </p>
       </div>
@@ -172,22 +187,14 @@ function TileCard({ tile, index }: { tile: Tile; index: number }) {
 }
 
 function abbrev(name: string): string {
-  return name
-    .split(" ")
-    .slice(0, 2)
-    .map((w) => w[0])
-    .join("")
-    .toUpperCase();
+  return name.split(" ").slice(0, 2).map((w) => w[0]).join("").toUpperCase();
 }
 
 function ActivityFeed({ items }: { items: ActivityItem[] }) {
   if (items.length === 0) {
     return (
       <div>
-        <h2
-          className="mb-3 text-base"
-          style={{ color: "var(--roost-text-primary)", fontWeight: 800 }}
-        >
+        <h2 className="mb-3 text-base" style={{ color: "var(--roost-text-primary)", fontWeight: 800 }}>
           Recent Activity
         </h2>
         <div
@@ -198,17 +205,11 @@ function ActivityFeed({ items }: { items: ActivityItem[] }) {
             borderBottom: "4px solid var(--roost-border-bottom)",
           }}
         >
-          <p
-            className="text-sm"
-            style={{ color: "var(--roost-text-secondary)", fontWeight: 700 }}
-          >
-            No activity yet.
+          <p className="text-sm" style={{ color: "var(--roost-text-secondary)", fontWeight: 700 }}>
+            Your household has been very quiet.
           </p>
-          <p
-            className="text-sm"
-            style={{ color: "var(--roost-text-muted)", fontWeight: 600 }}
-          >
-            Complete a chore or add something to the grocery list.
+          <p className="text-sm" style={{ color: "var(--roost-text-muted)", fontWeight: 600 }}>
+            Or everyone just got here.
           </p>
         </div>
       </div>
@@ -217,10 +218,7 @@ function ActivityFeed({ items }: { items: ActivityItem[] }) {
 
   return (
     <div>
-      <h2
-        className="mb-3 text-base"
-        style={{ color: "var(--roost-text-primary)", fontWeight: 800 }}
-      >
+      <h2 className="mb-3 text-base" style={{ color: "var(--roost-text-primary)", fontWeight: 800 }}>
         Recent Activity
       </h2>
       <div
@@ -237,15 +235,9 @@ function ActivityFeed({ items }: { items: ActivityItem[] }) {
             <div
               key={item.id}
               className="flex min-h-14 items-center gap-3 px-4 py-3"
-              style={{
-                borderTop:
-                  i > 0 ? "1px solid var(--roost-border)" : undefined,
-              }}
+              style={{ borderTop: i > 0 ? "1px solid var(--roost-border)" : undefined }}
             >
-              <span
-                className="size-2 shrink-0 rounded-full"
-                style={{ backgroundColor: color }}
-              />
+              <span className="size-2 shrink-0 rounded-full" style={{ backgroundColor: color }} />
               <div
                 className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[10px] text-white"
                 style={{ backgroundColor: color, fontWeight: 700 }}
@@ -253,21 +245,11 @@ function ActivityFeed({ items }: { items: ActivityItem[] }) {
                 {abbrev(item.memberName)}
               </div>
               <div className="min-w-0 flex-1">
-                <p
-                  className="truncate text-sm"
-                  style={{
-                    color: "var(--roost-text-primary)",
-                    fontWeight: 600,
-                  }}
-                >
-                  <span style={{ fontWeight: 700 }}>{item.memberName}</span>{" "}
-                  {item.action}
+                <p className="truncate text-sm" style={{ color: "var(--roost-text-primary)", fontWeight: 600 }}>
+                  <span style={{ fontWeight: 700 }}>{item.memberName}</span>{" "}{item.action}
                 </p>
               </div>
-              <span
-                className="shrink-0 text-xs"
-                style={{ color: "var(--roost-text-muted)", fontWeight: 600 }}
-              >
+              <span className="shrink-0 text-xs" style={{ color: "var(--roost-text-muted)", fontWeight: 600 }}>
                 {formatDistanceToNow(item.timestamp, { addSuffix: true })}
               </span>
             </div>
@@ -281,10 +263,16 @@ function ActivityFeed({ items }: { items: ActivityItem[] }) {
 // ---- Page -------------------------------------------------------------------
 
 export default function DashboardPage() {
+  const router = useRouter();
   const { data: sessionData } = useSession();
   const userName = sessionData?.user?.name ?? "";
 
-  const { data: membersData } = useQuery<MembersResponse>({
+  const {
+    data: membersData,
+    isLoading: membersLoading,
+    isError: membersError,
+    refetch: refetchMembers,
+  } = useQuery<MembersResponse>({
     queryKey: ["household-members"],
     queryFn: async () => {
       const r = await fetch("/api/household/members");
@@ -294,19 +282,41 @@ export default function DashboardPage() {
       }
       return r.json();
     },
-    staleTime: 60_000,
-    retry: false,
-  });
-
-  const { data: activityData } = useQuery<ActivityResponse>({
-    queryKey: ["household-activity"],
-    queryFn: () => fetch("/api/household/activity").then((r) => r.json()),
     staleTime: 10_000,
     refetchInterval: 10_000,
-    retry: false,
+    retry: 2,
   });
 
-  // Guard: user has no household yet (e.g. mid-onboarding or fresh signup)
+  const {
+    data: activityData,
+    isError: activityError,
+    refetch: refetchActivity,
+  } = useQuery<ActivityResponse>({
+    queryKey: ["household-activity"],
+    queryFn: async () => {
+      const r = await fetch("/api/household/activity");
+      if (!r.ok) {
+        const d = await r.json().catch(() => ({}));
+        throw new Error(d.error ?? "Failed to load activity");
+      }
+      return r.json();
+    },
+    staleTime: 10_000,
+    refetchInterval: 10_000,
+    retry: 2,
+  });
+
+  if (membersLoading) return <DashboardSkeleton />;
+
+  if (membersError) {
+    return (
+      <div className="p-4 md:p-6" style={{ backgroundColor: "var(--roost-bg)" }}>
+        <ErrorState onRetry={refetchMembers} />
+      </div>
+    );
+  }
+
+  // Guard: user has no household yet
   if (membersData && !membersData.household) {
     return (
       <div className="p-4 md:p-6" style={{ backgroundColor: "var(--roost-bg)" }}>
@@ -335,7 +345,6 @@ export default function DashboardPage() {
     >
       {/* Main column */}
       <div className="min-w-0 flex-1 space-y-5">
-        {/* Greeting */}
         {userName && (
           <div>
             <h1
@@ -344,32 +353,33 @@ export default function DashboardPage() {
             >
               {getGreeting(userName)}
             </h1>
-            <p
-              className="mt-0.5 text-sm"
-              style={{ color: "var(--roost-text-muted)", fontWeight: 600 }}
-            >
+            <p className="mt-0.5 text-sm" style={{ color: "var(--roost-text-muted)", fontWeight: 600 }}>
               {formatDate()}
               {householdName && ` · ${householdName}`}
             </p>
           </div>
         )}
 
-        {/* Tile grid */}
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
           {TILES.map((tile, i) => (
             <TileCard key={tile.key} tile={tile} index={i} />
           ))}
         </div>
 
-        {/* Activity feed: mobile/tablet (below tiles) */}
         <div className="lg:hidden">
-          <ActivityFeed items={activityItems} />
+          {activityError
+            ? <ErrorState onRetry={refetchActivity} />
+            : <ActivityFeed items={activityItems} />
+          }
         </div>
       </div>
 
-      {/* Activity feed: desktop sidebar */}
+      {/* Activity feed: desktop */}
       <div className="hidden w-80 shrink-0 lg:block">
-        <ActivityFeed items={activityItems} />
+        {activityError
+          ? <ErrorState onRetry={refetchActivity} />
+          : <ActivityFeed items={activityItems} />
+        }
       </div>
     </motion.div>
   );

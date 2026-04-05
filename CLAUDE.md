@@ -347,6 +347,7 @@ src/lib/utils/time.ts                          relativeTime(date) -- returns "Ju
 src/components/shared/RoostLogo.tsx            Centralized logo: sizes xs/sm/md/lg/xl, variants dark/light/red
 src/components/shared/SlabCard.tsx             Base card: rounded-2xl, border + 4px slab bottom, press effect
 src/components/shared/EmptyState.tsx           Sassy empty state: dashed slab card, icon, title, body, optional button
+src/components/shared/ErrorState.tsx           Network error state: WifiOff icon, "Something went wrong.", optional "Try again" button (onRetry)
 src/components/shared/StatCard.tsx             Stat tile: big number + label, slab card
 src/components/shared/PageHeader.tsx           Page title + subtitle + optional badge + action
 src/components/shared/SectionColorBadge.tsx    Inline color badge pill: bg color+18, border color+30
@@ -495,7 +496,7 @@ Designer brief (send this when hiring):
 At the start of each new session fetch this file to restore context.
 Share GitHub file URLs, paste code, or describe what was built.
 Update this file after every major decision or completed phase.
-Last updated: 2026-04-05 (grocery: quick-add + button fixed; item rows show added_by/checked_by with avatar + relative time)
+Last updated: 2026-04-05 (code quality sweep: ErrorState, skeletons, r.ok checks, query config, touch targets, empty state copy)
 
 ## Bugs Found and Fixed (2026-04-05)
 - No default grocery list created on household signup: `GET /api/grocery/lists` now
@@ -510,6 +511,21 @@ Last updated: 2026-04-05 (grocery: quick-add + button fixed; item rows show adde
   now throw on non-OK responses so TanStack Query surfaces them correctly.
 - POST body parse catch block in `grocery/lists/[id]/items/route.ts` had no
   console.error. Added for visibility in server logs.
+
+## Code Quality Sweep (2026-04-05)
+- Created `ErrorState.tsx`: shared WifiOff error card with optional "Try again" button.
+  Used on dashboard, chores, and grocery pages.
+- dashboard/page.tsx: added DashboardSkeleton, ErrorState for membersError, fixed query
+  config (staleTime/refetchInterval 10s, retry 2), added r.ok checks, fixed activity
+  empty state copy, added missing router declaration.
+- chores/page.tsx: added r.ok checks to both queryFns, replaced "Loading chores..." text
+  with Skeleton rows, added ErrorState, fixed membersData staleTime (60s -> 10s) + retry: 2,
+  fixed edit button touch target (h-8 w-8 -> h-12 w-12).
+- grocery/page.tsx: replaced Loader2 spinner with Skeleton loading state, added ErrorState
+  for listsQuery.isError, fixed empty state copy to match spec, fixed delete button touch
+  target (h-10 w-10 -> h-12 w-12), removed unused GroceryItemData import.
+- RoostLogo.tsx: replaced hardcoded "#1A1714" in dark/red variants with
+  "var(--roost-text-primary)" so wordmark adapts to all 8 themes.
 
 
 Rules:

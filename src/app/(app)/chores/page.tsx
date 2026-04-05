@@ -27,6 +27,8 @@ import {
 } from "@/components/ui/dialog";
 import StatCard from "@/components/shared/StatCard";
 import SectionColorBadge from "@/components/shared/SectionColorBadge";
+import ErrorState from "@/components/shared/ErrorState";
+import { Skeleton } from "@/components/ui/skeleton";
 
 // ---- Types ------------------------------------------------------------------
 
@@ -99,17 +101,38 @@ export default function ChoresPage() {
 
   // ---- Data ----------------------------------------------------------------
 
-  const { data: choresData, isLoading: choresLoading } = useQuery<ChoresResponse>({
+  const {
+    data: choresData,
+    isLoading: choresLoading,
+    isError: choresError,
+    refetch: refetchChores,
+  } = useQuery<ChoresResponse>({
     queryKey: ["chores"],
-    queryFn: () => fetch("/api/chores").then((r) => r.json()),
+    queryFn: async () => {
+      const r = await fetch("/api/chores");
+      if (!r.ok) {
+        const d = await r.json().catch(() => ({}));
+        throw new Error(d.error ?? "Failed to load chores");
+      }
+      return r.json();
+    },
     staleTime: 10_000,
     refetchInterval: 10_000,
+    retry: 2,
   });
 
   const { data: membersData } = useQuery<MembersResponse>({
     queryKey: ["household-members"],
-    queryFn: () => fetch("/api/household/members").then((r) => r.json()),
-    staleTime: 60_000,
+    queryFn: async () => {
+      const r = await fetch("/api/household/members");
+      if (!r.ok) {
+        const d = await r.json().catch(() => ({}));
+        throw new Error(d.error ?? "Failed to load members");
+      }
+      return r.json();
+    },
+    staleTime: 10_000,
+    retry: 2,
   });
 
   // ---- Mutations -----------------------------------------------------------
@@ -263,9 +286,16 @@ export default function ChoresPage() {
 
       {/* Loading */}
       {choresLoading && (
-        <div className="flex items-center justify-center py-12 text-sm" style={{ color: "var(--roost-text-muted)" }}>
-          Loading chores...
+        <div className="space-y-2">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <Skeleton key={i} className="h-16 rounded-2xl" />
+          ))}
         </div>
+      )}
+
+      {/* Error */}
+      {choresError && !choresLoading && (
+        <ErrorState onRetry={refetchChores} />
       )}
 
       {/* Empty state */}
@@ -554,10 +584,10 @@ function ChoreItem({
           <button
             type="button"
             onClick={onEdit}
-            className="flex h-8 w-8 items-center justify-center rounded-lg transition-colors hover:bg-accent"
+            className="flex h-12 w-12 items-center justify-center rounded-xl"
             style={{ color: "var(--roost-text-muted)" }}
           >
-            <Pencil className="size-3.5" />
+            <Pencil className="size-4" />
           </button>
         )}
       </div>

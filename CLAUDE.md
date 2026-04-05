@@ -209,6 +209,13 @@ Tasks: one-off to-dos
 - Auto-purge: Vercel cron cleans deleted_at > 30 days old
 - Timezone: stored per user, used for chore reset scheduling
 - Former members: anonymized display, expense history preserved
+- households.subscription_status: 'free' | 'premium', default 'free'.
+  This is the single source of truth for premium status. Never check
+  premium status anywhere except by reading this column.
+  requirePremium() in helpers.ts is the server-side gate.
+  useHousehold().isPremium is the client-side gate.
+- Always run npm run db:push after any schema change to sync Neon.
+  No migration files used; db:push is the only migration path.
 
 ## Design System
 - Theme system provides all background, surface, border, and text colors
@@ -565,7 +572,7 @@ Designer brief (send this when hiring):
 At the start of each new session fetch this file to restore context.
 Share GitHub file URLs, paste code, or describe what was built.
 Update this file after every major decision or completed phase.
-Last updated: 2026-04-05 (useHousehold hook, /api/household/me, PremiumGate component, MockExpensesPreview, DevTools dev toolbar, /api/dev/toggle-premium)
+Last updated: 2026-04-05 (premium stack verified: schema sync confirmed, requirePremium returns JSON 403, db:push clean)
 
 ## Bugs Found and Fixed (2026-04-05)
 - No default grocery list created on household signup: `GET /api/grocery/lists` now

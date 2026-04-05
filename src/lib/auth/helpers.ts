@@ -82,7 +82,7 @@ export async function requirePremium(
     .limit(1);
 
   if (!household || household.subscription_status !== "premium") {
-    throw new Response("Premium required", { status: 403 });
+    throw Response.json({ error: "Premium required" }, { status: 403 });
   }
 
   return result;

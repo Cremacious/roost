@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import EmptyState from "@/components/shared/EmptyState";
 import ErrorState from "@/components/shared/ErrorState";
+import { useHousehold } from "@/lib/hooks/useHousehold";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatDistanceToNow } from "date-fns";
 import { motion } from "framer-motion";
@@ -30,7 +31,6 @@ interface MembersResponse {
 
 interface ExpensesSummaryResponse {
   myBalance: number;
-  isPremium: boolean;
 }
 
 interface ActivityAPIItem {
@@ -271,6 +271,7 @@ export default function DashboardPage() {
   const router = useRouter();
   const { data: sessionData } = useSession();
   const userName = sessionData?.user?.name ?? "";
+  const { isPremium } = useHousehold();
 
   const {
     data: membersData,
@@ -296,13 +297,14 @@ export default function DashboardPage() {
     queryKey: ["expenses-summary"],
     queryFn: async () => {
       const r = await fetch("/api/expenses");
-      if (!r.ok) return { myBalance: 0, isPremium: false };
+      if (!r.ok) return { myBalance: 0 };
       const d = await r.json();
-      return { myBalance: d.myBalance ?? 0, isPremium: d.isPremium ?? false };
+      return { myBalance: d.myBalance ?? 0 };
     },
     staleTime: 10_000,
     refetchInterval: 10_000,
     retry: 1,
+    enabled: isPremium,
   });
 
   const {
@@ -354,12 +356,13 @@ export default function DashboardPage() {
   const activityItems = (activityData?.activity ?? []).map(mapActivity);
 
   function expensesStatusText(): string {
-    if (!expensesSummary?.isPremium) return "Premium feature";
-    const bal = expensesSummary.myBalance;
+    if (!isPremium) return "Premium feature";
+    const bal = expensesSummary?.myBalance ?? 0;
     if (bal > 0.01) return `Owed $${bal.toFixed(2)}`;
     if (bal < -0.01) return `You owe $${Math.abs(bal).toFixed(2)}`;
     return "All settled";
   }
+
 
   const tiles = TILES.map((t) =>
     t.key === "expenses" ? { ...t, statusText: expensesStatusText() } : t

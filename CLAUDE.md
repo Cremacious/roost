@@ -344,6 +344,7 @@ src/components/providers/ThemeProvider.tsx     Applies theme CSS vars; exports u
 src/components/shared/QueryProvider.tsx        TanStack Query client provider
 src/lib/utils/activity.ts                      logActivity(params) helper -- wraps insert, never throws, safe to call from any route
 src/lib/utils/time.ts                          relativeTime(date) -- returns "Just now", "Xm ago", "Xh ago", "Yesterday", "Xd ago"
+src/lib/hooks/useHousehold.ts                  Client hook: returns { household, role, permissions, isPremium, isLoading, error } via /api/household/me
 src/components/shared/RoostLogo.tsx            Centralized logo: sizes xs/sm/md/lg/xl, variants dark/light/red
 src/components/shared/SlabCard.tsx             Base card: rounded-2xl, border + 4px slab bottom, press effect
 src/components/shared/EmptyState.tsx           Sassy empty state: dashed slab card, icon, title, body, optional button
@@ -352,6 +353,8 @@ src/components/shared/StatCard.tsx             Stat tile: big number + label, sl
 src/components/shared/PageHeader.tsx           Page title + subtitle + optional badge + action
 src/components/shared/SectionColorBadge.tsx    Inline color badge pill: bg color+18, border color+30
 src/components/shared/MemberAvatar.tsx         Initials avatar, sizes sm/md/lg, color prop
+src/components/shared/PremiumGate.tsx          Premium upgrade prompt: icon, copy, price card, upgrade button, blurred feature preview
+src/components/dev/DevTools.tsx                Dev-only floating toolbar: premium toggle switch, user info, household info
 src/components/chores/ChoreSheet.tsx           Add/edit sheet: slab inputs, slab freq toggles, slab day buttons
 src/components/chores/LeaderboardSheet.tsx     Weekly leaderboard: slab cards, gold/silver/bronze rank badges
 src/components/grocery/GroceryItemSheet.tsx    Add/edit item sheet: name + quantity slab inputs, amber save button
@@ -377,6 +380,9 @@ src/app/api/expenses/[id]/settle/route.ts     POST: mark single split as settled
 src/app/api/expenses/settle-all/route.ts      POST: settle all unsettled splits between two users
 src/components/expenses/ExpenseSheet.tsx      Create/edit/view expense: amount, paid_by, category pills, 3 split methods (equal/custom/payer-only)
 src/components/expenses/SettleSheet.tsx       Settle-up confirmation: shows debt summary, two-step confirm, calls settle-all API
+src/components/expenses/MockExpensesPreview.tsx  Static non-functional expenses preview used in PremiumGate blurred background
+src/app/api/household/me/route.ts             GET: current user's household + role + permissions (most recently joined)
+src/app/api/dev/toggle-premium/route.ts       POST: dev-only, toggles household subscription_status between free and premium
 
 ## Expense UX Patterns
 - Premium-gated: free tier sees blurred mock expense list with upgrade CTA overlay
@@ -458,6 +464,13 @@ src/components/expenses/SettleSheet.tsx       Settle-up confirmation: shows debt
 - Dashboard household guard: always check membersData?.household before rendering dashboard content.
   If household is undefined after data loads, render NoHouseholdState (EmptyState with Home icon,
   redirect to /onboarding). User may land on dashboard without a household during early onboarding.
+- DevTools component only renders in development (process.env.NODE_ENV === 'development').
+  Never ship DevTools or /api/dev/* routes to production. The route self-guards with a 403.
+- Use useHousehold() hook for all client-side premium checks. Never derive isPremium from
+  individual feature API responses. Import from src/lib/hooks/useHousehold.ts.
+- PremiumGate component handles all premium feature gates. Props: feature (string union).
+  Each variant has its own copy, icon, and optional blurred preview component.
+  Link upgrade button to /settings/billing.
 - Add flow pattern per feature page:
     Grocery: quick add bar at top for fast adds (h-14, amber border, cycling placeholder).
       Top-right + opens GroceryItemSheet for detailed add with name + quantity.
@@ -552,7 +565,7 @@ Designer brief (send this when hiring):
 At the start of each new session fetch this file to restore context.
 Share GitHub file URLs, paste code, or describe what was built.
 Update this file after every major decision or completed phase.
-Last updated: 2026-04-05 (toast restyle: roost-toast-* CSS classes, slab border-bottom per type, richColors false, improved error descriptions)
+Last updated: 2026-04-05 (useHousehold hook, /api/household/me, PremiumGate component, MockExpensesPreview, DevTools dev toolbar, /api/dev/toggle-premium)
 
 ## Bugs Found and Fixed (2026-04-05)
 - No default grocery list created on household signup: `GET /api/grocery/lists` now

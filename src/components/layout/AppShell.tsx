@@ -4,6 +4,9 @@ import { usePathname } from "next/navigation";
 import TopBar from "@/components/layout/TopBar";
 import Sidebar from "@/components/layout/Sidebar";
 import BottomNav from "@/components/layout/BottomNav";
+import dynamic from "next/dynamic";
+
+const DevTools = dynamic(() => import("@/components/dev/DevTools"), { ssr: false });
 
 const HIDE_NAV_ROUTES = ["/onboarding"];
 
@@ -27,6 +30,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       </main>
 
       {!hideNav && <BottomNav />}
+      {process.env.NODE_ENV === "development" && <DevTools />}
     </>
   );
 }

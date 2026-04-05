@@ -3,12 +3,14 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useSession } from "@/lib/auth/client";
+import { useHousehold } from "@/lib/hooks/useHousehold";
 import { motion } from "framer-motion";
 import { DollarSign, Plus, TrendingDown, TrendingUp } from "lucide-react";
 import { relativeTime } from "@/lib/utils/time";
 import PageHeader from "@/components/shared/PageHeader";
 import EmptyState from "@/components/shared/EmptyState";
 import ErrorState from "@/components/shared/ErrorState";
+import PremiumGate from "@/components/shared/PremiumGate";
 import { Skeleton } from "@/components/ui/skeleton";
 import MemberAvatar from "@/components/shared/MemberAvatar";
 import ExpenseSheet, { type ExpenseData } from "@/components/expenses/ExpenseSheet";
@@ -40,14 +42,6 @@ interface MembersResponse {
   household: { id: string; name: string };
   members: { userId: string; name: string; avatarColor: string | null; role: string }[];
 }
-
-// ---- Mock data for premium gate blurred preview ----------------------------
-
-const MOCK_EXPENSES: Partial<ExpenseData>[] = [
-  { id: "1", title: "Groceries", total_amount: "84.50", payer_name: "Alex", payer_avatar: null, category: "Food", created_at: new Date(Date.now() - 86400000).toISOString(), splits: [] },
-  { id: "2", title: "Electric bill", total_amount: "120.00", payer_name: "Jordan", payer_avatar: null, category: "Utilities", created_at: new Date(Date.now() - 172800000).toISOString(), splits: [] },
-  { id: "3", title: "Netflix", total_amount: "18.00", payer_name: "Alex", payer_avatar: null, category: "Entertainment", created_at: new Date(Date.now() - 259200000).toISOString(), splits: [] },
-];
 
 // ---- Loading skeleton -------------------------------------------------------
 
@@ -219,77 +213,12 @@ function DebtCard({
   );
 }
 
-// ---- Premium gate -----------------------------------------------------------
-
-function PremiumGate({ onUpgrade }: { onUpgrade: () => void }) {
-  return (
-    <div className="relative">
-      {/* Blurred mock list */}
-      <div className="pointer-events-none select-none space-y-3" style={{ filter: "blur(6px)", opacity: 0.5 }}>
-        {MOCK_EXPENSES.map((e, i) => (
-          <div
-            key={i}
-            className="flex items-center gap-3 rounded-2xl px-4 py-3"
-            style={{
-              backgroundColor: "var(--roost-surface)",
-              border: "1.5px solid var(--roost-border)",
-              borderBottom: `4px solid ${COLOR_DARK}30`,
-              minHeight: 64,
-            }}
-          >
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl" style={{ backgroundColor: `${COLOR}18` }}>
-              <DollarSign className="size-5" style={{ color: COLOR }} />
-            </div>
-            <div className="flex-1">
-              <p className="text-sm" style={{ color: "var(--roost-text-primary)", fontWeight: 700 }}>{e.title}</p>
-              <p className="text-xs" style={{ color: "var(--roost-text-muted)", fontWeight: 600 }}>{e.payer_name} · just now</p>
-            </div>
-            <p className="text-sm" style={{ color: "var(--roost-text-primary)", fontWeight: 800 }}>${e.total_amount}</p>
-          </div>
-        ))}
-      </div>
-
-      {/* Overlay */}
-      <div
-        className="absolute inset-0 flex flex-col items-center justify-center rounded-2xl p-6 text-center"
-        style={{ background: "linear-gradient(to bottom, transparent, var(--roost-bg) 40%)" }}
-      >
-        <div
-          className="mb-3 flex h-14 w-14 items-center justify-center rounded-2xl"
-          style={{ backgroundColor: `${COLOR}18`, border: `1.5px solid ${COLOR}30` }}
-        >
-          <DollarSign className="size-7" style={{ color: COLOR }} />
-        </div>
-        <p className="mb-1 text-lg" style={{ color: "var(--roost-text-primary)", fontWeight: 800 }}>
-          Expense tracking is a premium feature
-        </p>
-        <p className="mb-5 text-sm" style={{ color: "var(--roost-text-secondary)", fontWeight: 600 }}>
-          Track who paid what, split bills, and see who owes who at a glance.
-        </p>
-        <motion.button
-          type="button"
-          whileTap={{ y: 2 }}
-          onClick={onUpgrade}
-          className="flex h-12 items-center gap-2 rounded-xl px-6 text-sm text-white"
-          style={{
-            backgroundColor: COLOR,
-            border: `1.5px solid ${COLOR}`,
-            borderBottom: `3px solid ${COLOR_DARK}`,
-            fontWeight: 800,
-          }}
-        >
-          Upgrade to Premium
-        </motion.button>
-      </div>
-    </div>
-  );
-}
-
 // ---- Page -------------------------------------------------------------------
 
 export default function ExpensesPage() {
   const { data: sessionData } = useSession();
   const currentUserId = sessionData?.user?.id ?? "";
+  const { isPremium, isLoading: householdLoading } = useHousehold();
   const [sheetOpen, setSheetOpen] = useState(false);
   const [sheetMode, setSheetMode] = useState<"create" | "edit" | "view">("create");
   const [selectedExpense, setSelectedExpense] = useState<ExpenseData | null>(null);
@@ -334,7 +263,6 @@ export default function ExpensesPage() {
   const allExpenses = expensesData?.expenses ?? [];
   const debts = expensesData?.debts ?? [];
   const myBalance = expensesData?.myBalance ?? 0;
-  const isPremium = expensesData?.isPremium ?? false;
   const members = membersData?.members ?? [];
   const currentMember = members.find((m) => m.userId === currentUserId);
   const isAdmin = currentMember?.role === "admin";
@@ -396,18 +324,18 @@ export default function ExpensesPage() {
       />
 
       {/* Loading */}
-      {isLoading && <ExpensesSkeleton />}
+      {(isLoading || householdLoading) && <ExpensesSkeleton />}
 
       {/* Error */}
-      {isError && !isLoading && <ErrorState onRetry={refetch} />}
+      {isError && !isLoading && !householdLoading && <ErrorState onRetry={refetch} />}
 
       {/* Premium gate */}
-      {!isLoading && !isError && !isPremium && (
-        <PremiumGate onUpgrade={() => window.location.href = "/settings"} />
+      {!isLoading && !householdLoading && !isError && !isPremium && (
+        <PremiumGate feature="expenses" />
       )}
 
       {/* Premium content */}
-      {!isLoading && !isError && isPremium && (
+      {!isLoading && !householdLoading && !isError && isPremium && (
         <>
           {/* Balance summary */}
           {myBalance !== 0 && (

@@ -17,6 +17,13 @@ import { formatDistanceToNow, isPast } from "date-fns";
 import ChoreSheet, { type ChoreData } from "@/components/chores/ChoreSheet";
 import LeaderboardSheet from "@/components/chores/LeaderboardSheet";
 import { SECTION_COLORS } from "@/lib/constants/colors";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
 
 // ---- Types ------------------------------------------------------------------
 
@@ -90,6 +97,7 @@ export default function ChoresPage() {
   const [sheetOpen, setSheetOpen] = useState(false);
   const [editingChore, setEditingChore] = useState<ChoreData | null>(null);
   const [leaderboardOpen, setLeaderboardOpen] = useState(false);
+  const [pendingCompleteId, setPendingCompleteId] = useState<string | null>(null);
 
   // ---- Data fetching --------------------------------------------------------
 
@@ -139,6 +147,45 @@ export default function ChoresPage() {
       toast.error("Failed to complete chore");
     },
     onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ["chores"] });
+    },
+  });
+
+  const uncheckMutation = useMutation({
+    mutationFn: (choreId: string) =>
+      fetch(`/api/chores/${choreId}/complete`, { method: "DELETE" }).then((r) => {
+        if (!r.ok) throw new Error("Failed to uncheck chore");
+        return r.json();
+      }),
+    onMutate: async (choreId) => {
+      await queryClient.cancelQueries({ queryKey: ["chores"] });
+      const previous = queryClient.getQueryData<ChoresResponse>(["chores"]);
+      queryClient.setQueryData<ChoresResponse>(["chores"], (old) => {
+        if (!old) return old;
+        return {
+          ...old,
+          chores: old.chores.map((c) =>
+            c.id === choreId
+              ? { ...c, is_complete_today: false, completed_today_by_me: false }
+              : c
+          ),
+        };
+      });
+      return { previous };
+    },
+    onError: (_err, _choreId, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(["chores"], context.previous);
+      }
+      toast.error("Failed to uncheck chore");
+    },
+    onSuccess: (_data, choreId) => {
+      toast("Chore unmarked", {
+        action: {
+          label: "Undo",
+          onClick: () => completeMutation.mutate(choreId),
+        },
+      });
       queryClient.invalidateQueries({ queryKey: ["chores"] });
     },
   });
@@ -294,7 +341,7 @@ export default function ChoresPage() {
               chore={chore}
               currentUserId={currentUserId}
               isAdmin={isAdmin}
-              onComplete={() => completeMutation.mutate(chore.id)}
+              onComplete={() => setPendingCompleteId(chore.id)}
               onEdit={() => openEdit(chore)}
               completing={completeMutation.isPending && completeMutation.variables === chore.id}
             />
@@ -326,9 +373,9 @@ export default function ChoresPage() {
                   chore={chore}
                   currentUserId={currentUserId}
                   isAdmin={isAdmin}
-                  onComplete={() => {}}
+                  onComplete={() => uncheckMutation.mutate(chore.id)}
                   onEdit={() => openEdit(chore)}
-                  completing={false}
+                  completing={uncheckMutation.isPending && uncheckMutation.variables === chore.id}
                   done
                 />
               ))}
@@ -349,6 +396,43 @@ export default function ChoresPage() {
           <Plus className="size-6 text-white" />
         </button>
       )}
+
+      {/* Complete confirmation dialog */}
+      <Dialog
+        open={!!pendingCompleteId}
+        onOpenChange={(v) => !v && setPendingCompleteId(null)}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Mark chore complete?</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">
+            {allChores.find((c) => c.id === pendingCompleteId)?.title}
+          </p>
+          <DialogFooter className="mt-2 gap-2">
+            <button
+              type="button"
+              onClick={() => setPendingCompleteId(null)}
+              className="flex h-11 flex-1 items-center justify-center rounded-lg border border-border text-sm font-medium"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                if (pendingCompleteId) {
+                  completeMutation.mutate(pendingCompleteId);
+                  setPendingCompleteId(null);
+                }
+              }}
+              className="flex h-11 flex-1 items-center justify-center rounded-lg text-sm font-semibold text-white"
+              style={{ backgroundColor: COLOR }}
+            >
+              Mark complete
+            </button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Sheets */}
       <ChoreSheet
@@ -402,9 +486,9 @@ function ChoreRow({
       <button
         type="button"
         onClick={onComplete}
-        disabled={done || completing}
+        disabled={completing}
         className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full"
-        aria-label={done ? "Completed" : "Mark complete"}
+        aria-label={done ? "Unmark complete" : "Mark complete"}
       >
         <CheckCircle2
           className="size-7 transition-colors"

@@ -2,7 +2,7 @@ import { NextRequest } from "next/server";
 import { requireSession } from "@/lib/auth/helpers";
 import { db } from "@/lib/db";
 import { chores, chore_completions, chore_streaks, household_members } from "@/db/schema";
-import { and, desc, eq, isNull } from "drizzle-orm";
+import { and, desc, eq, gte, isNull, lt } from "drizzle-orm";
 import { getUserHousehold, calcNextDueAt } from "../../route";
 import { startOfDay, startOfWeek, subDays, format } from "date-fns";
 
@@ -153,4 +153,131 @@ export async function POST(
     .returning();
 
   return Response.json({ completion, streak });
+}
+
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+): Promise<Response> {
+  const { id } = await params;
+
+  let session;
+  try {
+    session = await requireSession(request);
+  } catch (r) {
+    return r as Response;
+  }
+
+  const membership = await getUserHousehold(session.user.id);
+  if (!membership) {
+    return Response.json({ error: "No household found" }, { status: 404 });
+  }
+  const { householdId } = membership;
+
+  // Verify chore belongs to this household
+  const [chore] = await db
+    .select()
+    .from(chores)
+    .where(
+      and(
+        eq(chores.id, id),
+        eq(chores.household_id, householdId),
+        isNull(chores.deleted_at)
+      )
+    )
+    .limit(1);
+
+  if (!chore) {
+    return Response.json({ error: "Chore not found" }, { status: 404 });
+  }
+
+  const now = new Date();
+  const todayStart = startOfDay(now);
+  const tomorrowStart = startOfDay(new Date(now.getTime() + 86400000));
+
+  // Find today's completion by this user
+  const [todayCompletion] = await db
+    .select()
+    .from(chore_completions)
+    .where(
+      and(
+        eq(chore_completions.chore_id, id),
+        eq(chore_completions.completed_by, session.user.id),
+        gte(chore_completions.completed_at, todayStart),
+        lt(chore_completions.completed_at, tomorrowStart)
+      )
+    )
+    .orderBy(desc(chore_completions.completed_at))
+    .limit(1);
+
+  if (!todayCompletion) {
+    return Response.json({ error: "No completion found for today" }, { status: 404 });
+  }
+
+  // Delete the completion
+  await db.delete(chore_completions).where(eq(chore_completions.id, todayCompletion.id));
+
+  // Find the previous completion (before today) to restore last_completed_at
+  const [prevCompletion] = await db
+    .select()
+    .from(chore_completions)
+    .where(
+      and(
+        eq(chore_completions.chore_id, id),
+        lt(chore_completions.completed_at, todayStart)
+      )
+    )
+    .orderBy(desc(chore_completions.completed_at))
+    .limit(1);
+
+  // Restore last_completed_at and recalculate next_due_at
+  const restoredLastCompleted = prevCompletion?.completed_at ?? null;
+  const customDays = chore.custom_days
+    ? (JSON.parse(chore.custom_days) as number[])
+    : null;
+  const next_due_at = restoredLastCompleted
+    ? calcNextDueAt(chore.frequency, customDays, restoredLastCompleted)
+    : calcNextDueAt(chore.frequency, customDays, chore.created_at ?? now);
+
+  await db
+    .update(chores)
+    .set({ last_completed_at: restoredLastCompleted, next_due_at })
+    .where(eq(chores.id, id));
+
+  // Subtract 10 pts from streak (min 0)
+  const weekStart = format(startOfWeek(now, { weekStartsOn: 1 }), "yyyy-MM-dd");
+
+  const [existingStreak] = await db
+    .select()
+    .from(chore_streaks)
+    .where(
+      and(
+        eq(chore_streaks.household_id, householdId),
+        eq(chore_streaks.user_id, session.user.id),
+        eq(chore_streaks.week_start, weekStart)
+      )
+    )
+    .limit(1);
+
+  if (existingStreak) {
+    const newPoints = Math.max(0, existingStreak.points - 10);
+    // Reset current_streak to 0 since we removed today's only completion
+    // (streak is rebuilt on next completion)
+    await db
+      .update(chore_streaks)
+      .set({
+        points: newPoints,
+        current_streak: Math.max(0, existingStreak.current_streak - 1),
+        updated_at: now,
+      })
+      .where(
+        and(
+          eq(chore_streaks.household_id, householdId),
+          eq(chore_streaks.user_id, session.user.id),
+          eq(chore_streaks.week_start, weekStart)
+        )
+      );
+  }
+
+  return Response.json({ ok: true });
 }

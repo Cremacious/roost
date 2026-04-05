@@ -469,7 +469,7 @@ export default function GroceryPage() {
           ctx.previous
         );
       }
-      toast.error("Failed to update item");
+      toast.error("Could not update item", { description: "Something went wrong. Try again." });
     },
     onSettled: () => {
       queryClient.invalidateQueries({

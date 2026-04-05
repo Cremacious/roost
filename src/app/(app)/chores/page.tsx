@@ -153,7 +153,7 @@ export default function ChoresPage() {
     },
     onError: (_err, _id, context) => {
       if (context?.previous) queryClient.setQueryData(["chores"], context.previous);
-      toast.error("Failed to complete chore");
+      toast.error("Could not complete chore", { description: "Something went wrong. Try again." });
     },
     onSettled: () => queryClient.invalidateQueries({ queryKey: ["chores"] }),
   });
@@ -174,7 +174,7 @@ export default function ChoresPage() {
     },
     onError: (_err, _id, context) => {
       if (context?.previous) queryClient.setQueryData(["chores"], context.previous);
-      toast.error("Failed to uncheck chore");
+      toast.error("Could not uncheck chore", { description: "Something went wrong. Try again." });
     },
     onSuccess: (_data, choreId) => {
       toast("Chore unmarked", { action: { label: "Undo", onClick: () => completeMutation.mutate(choreId) } });

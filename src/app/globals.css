@@ -137,3 +137,101 @@
     font-family: var(--font-nunito), sans-serif;
   }
 }
+
+/* ---- Roost toast styles -------------------------------------------------- */
+
+.roost-toast {
+  background: var(--roost-surface) !important;
+  border: 1.5px solid var(--roost-border) !important;
+  border-bottom: 4px solid var(--roost-border-bottom) !important;
+  border-radius: 16px !important;
+  box-shadow: none !important;
+  font-family: var(--font-nunito) !important;
+}
+
+.roost-toast-title {
+  color: var(--roost-text-primary) !important;
+  font-weight: 700 !important;
+  font-size: 14px !important;
+}
+
+.roost-toast-description {
+  color: var(--roost-text-secondary) !important;
+  font-weight: 600 !important;
+  font-size: 13px !important;
+}
+
+.roost-toast-success {
+  border-bottom-color: #159040 !important;
+}
+
+.roost-toast-success [data-icon] {
+  color: #22C55E !important;
+}
+
+.roost-toast-error {
+  border-bottom-color: #C93B3B !important;
+}
+
+.roost-toast-error [data-icon] {
+  color: #EF4444 !important;
+}
+
+.roost-toast-warning {
+  border-bottom-color: #C87D00 !important;
+}
+
+.roost-toast-warning [data-icon] {
+  color: #F59E0B !important;
+}
+
+.roost-toast-info {
+  border-bottom-color: #1A5CB5 !important;
+}
+
+.roost-toast-info [data-icon] {
+  color: #3B82F6 !important;
+}
+
+.roost-toast-action {
+  background: var(--roost-text-primary) !important;
+  color: var(--roost-surface) !important;
+  border: none !important;
+  border-radius: 10px !important;
+  font-family: var(--font-nunito) !important;
+  font-weight: 700 !important;
+  font-size: 12px !important;
+  padding: 6px 12px !important;
+  height: 32px !important;
+}
+
+.roost-toast-action:hover {
+  opacity: 0.85 !important;
+}
+
+.roost-toast-cancel {
+  background: transparent !important;
+  color: var(--roost-text-secondary) !important;
+  border: 1.5px solid var(--roost-border) !important;
+  border-radius: 10px !important;
+  font-family: var(--font-nunito) !important;
+  font-weight: 700 !important;
+  font-size: 12px !important;
+  padding: 6px 12px !important;
+  height: 32px !important;
+}
+
+.roost-toast-close {
+  color: var(--roost-text-muted) !important;
+  opacity: 1 !important;
+}
+
+.roost-toast-close:hover {
+  color: var(--roost-text-primary) !important;
+}
+
+[data-theme="midnight"] .roost-toast,
+[data-theme="charcoal"] .roost-toast {
+  background: var(--roost-surface) !important;
+  border-color: var(--roost-border) !important;
+}

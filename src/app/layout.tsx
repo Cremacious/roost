@@ -58,7 +58,36 @@ export default async function RootLayout({
         <ThemeProvider initialTheme={initialTheme}>
           {children}
         </ThemeProvider>
-        <Toaster richColors position="top-right" />
+        <Toaster
+          position="top-right"
+          richColors={false}
+          toastOptions={{
+            style: {
+              background: 'var(--roost-surface)',
+              border: '1.5px solid var(--roost-border)',
+              borderBottom: '4px solid var(--roost-border-bottom)',
+              borderRadius: '16px',
+              color: 'var(--roost-text-primary)',
+              fontFamily: 'var(--font-nunito)',
+              fontWeight: '700',
+              fontSize: '14px',
+              padding: '14px 16px',
+              boxShadow: 'none',
+            },
+            classNames: {
+              toast: 'roost-toast',
+              title: 'roost-toast-title',
+              description: 'roost-toast-description',
+              actionButton: 'roost-toast-action',
+              cancelButton: 'roost-toast-cancel',
+              closeButton: 'roost-toast-close',
+              success: 'roost-toast-success',
+              error: 'roost-toast-error',
+              warning: 'roost-toast-warning',
+              info: 'roost-toast-info',
+            },
+          }}
+        />
       </body>
     </html>
   );

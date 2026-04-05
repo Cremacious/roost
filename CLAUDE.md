@@ -438,6 +438,9 @@ src/components/expenses/SettleSheet.tsx       Settle-up confirmation: shows debt
 ## Key Rules
 - Toasts: use sonner only. Import { toast } from "sonner" in client components.
   Import Toaster from @/components/ui/sonner in root layout. Never use @/components/ui/toast.
+  richColors: false — we control all colors via .roost-toast-* CSS classes in globals.css.
+  Toast styles use slab border-bottom matching the toast type (success green, error red, etc.).
+  All toast.error() calls must include a description explaining what went wrong, never just a bare "Error" or "Failed".
 - Section colors: always import from src/lib/constants/colors.ts, never hardcode hex values
 - Theme colors: always use CSS variables (--roost-bg, --roost-surface, etc.), never hardcode
   background or text colors on any component. Use inline style={{ color: 'var(--roost-text-primary)' }}.
@@ -549,7 +552,7 @@ Designer brief (send this when hiring):
 At the start of each new session fetch this file to restore context.
 Share GitHub file URLs, paste code, or describe what was built.
 Update this file after every major decision or completed phase.
-Last updated: 2026-04-05 (expenses module: API routes, ExpenseSheet, SettleSheet, expenses page, dashboard dynamic tile)
+Last updated: 2026-04-05 (toast restyle: roost-toast-* CSS classes, slab border-bottom per type, richColors false, improved error descriptions)
 
 ## Bugs Found and Fixed (2026-04-05)
 - No default grocery list created on household signup: `GET /api/grocery/lists` now

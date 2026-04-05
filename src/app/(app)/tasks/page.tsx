@@ -437,7 +437,7 @@ export default function TasksPage() {
     },
     onError: (_err, _id, ctx) => {
       if (ctx?.previous) queryClient.setQueryData(["tasks"], ctx.previous);
-      toast.error("Failed to complete task");
+      toast.error("Could not complete task", { description: "Something went wrong. Try again." });
     },
     onSettled: () => queryClient.invalidateQueries({ queryKey: ["tasks"] }),
   });
@@ -471,7 +471,7 @@ export default function TasksPage() {
     },
     onError: (_err, _id, ctx) => {
       if (ctx?.previous) queryClient.setQueryData(["tasks"], ctx.previous);
-      toast.error("Failed to uncheck task");
+      toast.error("Could not uncheck task", { description: "Something went wrong. Try again." });
     },
     onSettled: () => queryClient.invalidateQueries({ queryKey: ["tasks"] }),
     onSuccess: (_data, taskId) => {

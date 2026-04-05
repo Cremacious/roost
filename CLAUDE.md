@@ -285,7 +285,9 @@ src/components/ui/          shadcn primitives
 src/components/layout/      Shell, nav, sidebar
 src/components/providers/   Client providers (ThemeProvider)
 src/components/dashboard/   Home screen components
+src/lib/utils/              Shared utilities, NO DOM dependencies (activity.ts, etc.)
 src/components/shared/      Reused across features (SlabCard, QueryProvider, EmptyState, StatCard, PageHeader, SectionColorBadge, MemberAvatar)
+src/components/grocery/     Grocery-specific components (GroceryItemSheet, GroceryListSheet)
 
 ## Files Built So Far
 src/proxy.ts                                   Route protection (Next.js 16 middleware)
@@ -307,6 +309,7 @@ src/db/schema/calendar.ts                      calendar_events, event_attendees
 src/db/schema/notes.ts
 src/db/schema/expenses.ts                      expenses, expense_splits
 src/db/schema/notifications.ts                 notification_queue
+src/db/schema/activity.ts                      household_activity table (id, household_id, user_id, type, entity_id, entity_type, description, created_at)
 src/db/schema/index.ts                         Re-exports all tables
 src/app/(auth)/login/page.tsx
 src/app/(auth)/signup/page.tsx                 Email/password + strength meter + confirm field
@@ -314,7 +317,7 @@ src/app/(auth)/child-login/page.tsx            Household code + PIN, 64px inputs
 src/app/(app)/layout.tsx                       App shell: TopBar + Sidebar + BottomNav + QueryProvider
 src/app/(app)/onboarding/page.tsx              3-step create/join household flow
 src/app/(app)/dashboard/page.tsx               Tile grid + activity feed, all CSS variable colors
-src/app/(app)/settings/page.tsx                Appearance section with 8-theme grid picker
+src/app/(app)/settings/page.tsx                Appearance + Profile sections; 8-theme grid picker
 src/app/(app)/chores/page.tsx                  Chores list, summary bar, view toggle, optimistic completion + uncheck
 src/app/layout.tsx                             Root layout: Nunito font, ThemeProvider with server-side theme
 src/app/globals.css                            Tailwind + shadcn vars + --roost-* CSS variable defaults
@@ -328,11 +331,18 @@ src/app/api/chores/route.ts                    GET (list with joins) + POST (cre
 src/app/api/chores/[id]/route.ts               PATCH (update) + DELETE (soft delete)
 src/app/api/chores/[id]/complete/route.ts      POST: complete chore + streak; DELETE: uncheck, reverse streak
 src/app/api/chores/leaderboard/route.ts        GET: weekly leaderboard sorted by points
+src/app/api/grocery/lists/route.ts             GET: all lists with item counts + isPremium + isAdmin; POST: create list (premium check)
+src/app/api/grocery/lists/[id]/route.ts        PATCH: rename (non-default, non-child); DELETE: soft delete (admin, non-default)
+src/app/api/grocery/lists/[id]/items/route.ts  GET: all items with user data; POST: add item + log activity
+src/app/api/grocery/lists/[id]/clear/route.ts  POST: soft delete all checked items in list
+src/app/api/grocery/items/[id]/route.ts        PATCH: check/uncheck + edit name/qty + log check activity; DELETE: soft delete
+src/app/api/household/activity/route.ts        GET: last 20 activity items joined with users, ordered by created_at desc
 src/components/layout/TopBar.tsx               Household name, weather, clock, avatars -- all CSS variable colors
 src/components/layout/BottomNav.tsx            Mobile 4-tab nav + More sheet (Profile, Settings)
 src/components/layout/Sidebar.tsx              Desktop 220px sidebar with icon+label for all 9 nav items
 src/components/providers/ThemeProvider.tsx     Applies theme CSS vars; exports useTheme() hook
 src/components/shared/QueryProvider.tsx        TanStack Query client provider
+src/lib/utils/activity.ts                      logActivity(params) helper -- wraps insert, never throws, safe to call from any route
 src/components/shared/RoostLogo.tsx            Centralized logo: sizes xs/sm/md/lg/xl, variants dark/light/red
 src/components/shared/SlabCard.tsx             Base card: rounded-2xl, border + 4px slab bottom, press effect
 src/components/shared/EmptyState.tsx           Sassy empty state: dashed slab card, icon, title, body, optional button
@@ -342,6 +352,9 @@ src/components/shared/SectionColorBadge.tsx    Inline color badge pill: bg color
 src/components/shared/MemberAvatar.tsx         Initials avatar, sizes sm/md/lg, color prop
 src/components/chores/ChoreSheet.tsx           Add/edit sheet: slab inputs, slab freq toggles, slab day buttons
 src/components/chores/LeaderboardSheet.tsx     Weekly leaderboard: slab cards, gold/silver/bronze rank badges
+src/components/grocery/GroceryItemSheet.tsx    Add/edit item sheet: name + quantity slab inputs, amber save button
+src/components/grocery/GroceryListSheet.tsx    Create/rename list sheet; shows premium upgrade prompt for free tier
+src/app/(app)/grocery/page.tsx                 Full grocery module: list pills, quick add bar, item rows, checked collapsible, amber FAB
 
 ## API Rules
 - All routes validate session + household membership before DB
@@ -355,6 +368,12 @@ src/components/chores/LeaderboardSheet.tsx     Weekly leaderboard: slab cards, g
 - Streaks use week_start (Monday, YYYY-MM-DD) as partition key in chore_streaks table
 - Completing a chore: insert chore_completions, update next_due_at, upsert chore_streaks (+10 pts)
 - Unchecking a chore: delete today's completion, restore last_completed_at, subtract 10 pts (min 0)
+- Activity logging: call logActivity() from src/lib/utils/activity.ts after successful writes
+  Activity types live: chore_completed, item_added, item_checked
+  Activity types reserved: task_completed, event_added, note_added, expense_added, member_joined
+- Dashboard activity feed queries /api/household/activity (last 20, real-time via 10s refetch)
+- Grocery lists: GET /api/grocery/lists returns isPremium + isAdmin for conditional UI
+- Free tier: max 1 grocery list enforced server-side; GroceryListSheet shows upgrade prompt
 
 ## Key Rules
 - Toasts: use sonner only. Import { toast } from "sonner" in client components.
@@ -382,7 +401,8 @@ Phase 2: Daily Use
   Design system pass: DONE, all auth+app pages, ChoreSheet, LeaderboardSheet, Sidebar (220px), BottomNav (4 tabs + More sheet), shared components
   Theme system: DONE, 8 themes, per-user, instant apply, settings picker
   Chores: DONE, list, create, edit, complete, uncheck, streaks, leaderboard, optimistic UI
-  Grocery: shared list, optimistic check/uncheck
+  Grocery: DONE, lists (free: 1, premium: multiple), items, check/uncheck optimistic, clear checked, activity logging
+  Activity feed: DONE, household_activity table, logged for chores + grocery, dashboard reads real data
   Calendar: events, shared view
   Tasks: create, assign, due date, priority
   Notes: create, view
@@ -456,7 +476,7 @@ Designer brief (send this when hiring):
 At the start of each new session fetch this file to restore context.
 Share GitHub file URLs, paste code, or describe what was built.
 Update this file after every major decision or completed phase.
-Last updated: 2026-04-05 (logo system added)
+Last updated: 2026-04-05 (grocery module + activity feed complete)
 
 
 Rules:

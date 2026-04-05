@@ -24,6 +24,20 @@ interface MembersResponse {
   members: { userId: string; name: string; avatarColor: string | null }[];
 }
 
+interface ActivityAPIItem {
+  id: string;
+  type: string;
+  description: string;
+  user_id: string;
+  user_name: string;
+  user_avatar: string | null;
+  created_at: string;
+}
+
+interface ActivityResponse {
+  activity: ActivityAPIItem[];
+}
+
 interface ActivityItem {
   id: string;
   section: SectionKey;
@@ -58,26 +72,38 @@ function formatDate(): string {
   });
 }
 
+const TYPE_TO_SECTION: Record<string, SectionKey> = {
+  chore_completed: "chores",
+  item_added: "grocery",
+  item_checked: "grocery",
+  task_completed: "tasks",
+  event_added: "calendar",
+  note_added: "notes",
+  expense_added: "expenses",
+  member_joined: "tasks",
+};
+
+function mapActivity(item: ActivityAPIItem): ActivityItem {
+  return {
+    id: item.id,
+    section: (TYPE_TO_SECTION[item.type] ?? "tasks") as SectionKey,
+    memberName: item.user_name,
+    action: item.description,
+    timestamp: new Date(item.created_at),
+  };
+}
+
 // ---- Constants --------------------------------------------------------------
 
-const MOCK_ACTIVITY: ActivityItem[] = [
-  { id: "1", section: "chores",   memberName: "Alex",   action: "completed dishes",    timestamp: new Date(Date.now() - 2 * 60_000) },
-  { id: "2", section: "grocery",  memberName: "Jordan", action: "added milk to the list", timestamp: new Date(Date.now() - 15 * 60_000) },
-  { id: "3", section: "tasks",    memberName: "Sam",    action: "completed a task",    timestamp: new Date(Date.now() - 3600_000) },
-  { id: "4", section: "calendar", memberName: "Alex",   action: "added a dinner event", timestamp: new Date(Date.now() - 3 * 3600_000) },
-  { id: "5", section: "expenses", memberName: "Jordan", action: "added a $42 expense",  timestamp: new Date(Date.now() - 5 * 3600_000) },
-  { id: "6", section: "chores",   memberName: "Sam",    action: "completed vacuuming", timestamp: new Date(Date.now() - 24 * 3600_000) },
-];
-
 const TILES: Tile[] = [
-  { key: "chores",    label: "Chores",    href: "/chores",    icon: CheckSquare,     count: 3,  statusText: "3 left today" },
-  { key: "grocery",   label: "Grocery",   href: "/grocery",   icon: ShoppingCart,    count: 12, statusText: "12 items" },
-  { key: "calendar",  label: "Calendar",  href: "/calendar",  icon: Calendar,        count: 2,  statusText: "2 events today" },
-  { key: "expenses",  label: "Expenses",  href: "/expenses",  icon: DollarSign,      count: 0,  statusText: "All settled" },
-  { key: "tasks",     label: "Tasks",     href: "/tasks",     icon: CheckCircle2,    count: 4,  statusText: "4 open" },
-  { key: "notes",     label: "Notes",     href: "/notes",     icon: FileText,        count: 0,  statusText: "No notes yet" },
-  { key: "meals",     label: "Meals",     href: "/meals",     icon: UtensilsCrossed, count: 0,  statusText: "Plan this week" },
-  { key: "reminders", label: "Reminders", href: "/reminders", icon: Bell,            count: 1,  statusText: "1 upcoming" },
+  { key: "chores",    label: "Chores",    href: "/chores",    icon: CheckSquare,     count: 0, statusText: "View chores" },
+  { key: "grocery",   label: "Grocery",   href: "/grocery",   icon: ShoppingCart,    count: 0, statusText: "Shopping list" },
+  { key: "calendar",  label: "Calendar",  href: "/calendar",  icon: Calendar,        count: 0, statusText: "View calendar" },
+  { key: "expenses",  label: "Expenses",  href: "/expenses",  icon: DollarSign,      count: 0, statusText: "All settled" },
+  { key: "tasks",     label: "Tasks",     href: "/tasks",     icon: CheckCircle2,    count: 0, statusText: "View tasks" },
+  { key: "notes",     label: "Notes",     href: "/notes",     icon: FileText,        count: 0, statusText: "No notes yet" },
+  { key: "meals",     label: "Meals",     href: "/meals",     icon: UtensilsCrossed, count: 0, statusText: "Plan this week" },
+  { key: "reminders", label: "Reminders", href: "/reminders", icon: Bell,            count: 0, statusText: "Nothing pending" },
 ];
 
 // ---- Sub-components ---------------------------------------------------------
@@ -144,10 +170,49 @@ function TileCard({ tile, index }: { tile: Tile; index: number }) {
 }
 
 function abbrev(name: string): string {
-  return name.split(" ").slice(0, 2).map((w) => w[0]).join("").toUpperCase();
+  return name
+    .split(" ")
+    .slice(0, 2)
+    .map((w) => w[0])
+    .join("")
+    .toUpperCase();
 }
 
 function ActivityFeed({ items }: { items: ActivityItem[] }) {
+  if (items.length === 0) {
+    return (
+      <div>
+        <h2
+          className="mb-3 text-base"
+          style={{ color: "var(--roost-text-primary)", fontWeight: 800 }}
+        >
+          Recent Activity
+        </h2>
+        <div
+          className="flex flex-col items-center gap-2 rounded-2xl px-6 py-10 text-center"
+          style={{
+            backgroundColor: "var(--roost-surface)",
+            border: "1.5px solid var(--roost-border)",
+            borderBottom: "4px solid var(--roost-border-bottom)",
+          }}
+        >
+          <p
+            className="text-sm"
+            style={{ color: "var(--roost-text-secondary)", fontWeight: 700 }}
+          >
+            No activity yet.
+          </p>
+          <p
+            className="text-sm"
+            style={{ color: "var(--roost-text-muted)", fontWeight: 600 }}
+          >
+            Complete a chore or add something to the grocery list.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div>
       <h2
@@ -171,10 +236,14 @@ function ActivityFeed({ items }: { items: ActivityItem[] }) {
               key={item.id}
               className="flex min-h-14 items-center gap-3 px-4 py-3"
               style={{
-                borderTop: i > 0 ? "1px solid var(--roost-border)" : undefined,
+                borderTop:
+                  i > 0 ? "1px solid var(--roost-border)" : undefined,
               }}
             >
-              <span className="size-2 shrink-0 rounded-full" style={{ backgroundColor: color }} />
+              <span
+                className="size-2 shrink-0 rounded-full"
+                style={{ backgroundColor: color }}
+              />
               <div
                 className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[10px] text-white"
                 style={{ backgroundColor: color, fontWeight: 700 }}
@@ -184,7 +253,10 @@ function ActivityFeed({ items }: { items: ActivityItem[] }) {
               <div className="min-w-0 flex-1">
                 <p
                   className="truncate text-sm"
-                  style={{ color: "var(--roost-text-primary)", fontWeight: 600 }}
+                  style={{
+                    color: "var(--roost-text-primary)",
+                    fontWeight: 600,
+                  }}
                 >
                   <span style={{ fontWeight: 700 }}>{item.memberName}</span>{" "}
                   {item.action}
@@ -217,7 +289,16 @@ export default function DashboardPage() {
     retry: false,
   });
 
+  const { data: activityData } = useQuery<ActivityResponse>({
+    queryKey: ["household-activity"],
+    queryFn: () => fetch("/api/household/activity").then((r) => r.json()),
+    staleTime: 10_000,
+    refetchInterval: 10_000,
+    retry: false,
+  });
+
   const householdName = membersData?.household.name ?? "";
+  const activityItems = (activityData?.activity ?? []).map(mapActivity);
 
   return (
     <motion.div
@@ -257,13 +338,13 @@ export default function DashboardPage() {
 
         {/* Activity feed: mobile/tablet (below tiles) */}
         <div className="lg:hidden">
-          <ActivityFeed items={MOCK_ACTIVITY} />
+          <ActivityFeed items={activityItems} />
         </div>
       </div>
 
       {/* Activity feed: desktop sidebar */}
       <div className="hidden w-80 shrink-0 lg:block">
-        <ActivityFeed items={MOCK_ACTIVITY} />
+        <ActivityFeed items={activityItems} />
       </div>
     </motion.div>
   );

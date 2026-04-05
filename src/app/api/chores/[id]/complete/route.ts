@@ -5,6 +5,7 @@ import { chores, chore_completions, chore_streaks, household_members } from "@/d
 import { and, desc, eq, gte, isNull, lt } from "drizzle-orm";
 import { getUserHousehold, calcNextDueAt } from "../../route";
 import { startOfDay, startOfWeek, subDays, format } from "date-fns";
+import { logActivity } from "@/lib/utils/activity";
 
 export async function POST(
   request: NextRequest,
@@ -151,6 +152,15 @@ export async function POST(
       },
     })
     .returning();
+
+  await logActivity({
+    householdId,
+    userId: session.user.id,
+    type: "chore_completed",
+    description: `completed ${chore.title}`,
+    entityId: chore.id,
+    entityType: "chore",
+  });
 
   return Response.json({ completion, streak });
 }

@@ -9,3 +9,4 @@ export * from "./calendar";
 export * from "./notes";
 export * from "./expenses";
 export * from "./notifications";
+export * from "./activity";

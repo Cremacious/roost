@@ -1,0 +1,286 @@
+import { NextRequest } from "next/server";
+import { requireSession } from "@/lib/auth/helpers";
+import { db } from "@/lib/db";
+import { expenses, expense_splits, users, households } from "@/db/schema";
+import { and, desc, eq, inArray, isNull } from "drizzle-orm";
+import { getUserHousehold } from "@/app/api/chores/route";
+import { logActivity } from "@/lib/utils/activity";
+
+// ---- Debt simplification ----------------------------------------------------
+
+interface Balance {
+  userId: string;
+  name: string;
+  avatarColor: string | null;
+  net: number; // positive = owed money, negative = owes money
+}
+
+interface Debt {
+  fromUserId: string;
+  fromName: string;
+  toUserId: string;
+  toName: string;
+  amount: number;
+}
+
+function simplifyDebts(balances: Balance[]): Debt[] {
+  const debts: Debt[] = [];
+  const creditors = balances.filter((b) => b.net > 0.005).map((b) => ({ ...b }));
+  const debtors = balances.filter((b) => b.net < -0.005).map((b) => ({ ...b }));
+
+  let ci = 0;
+  let di = 0;
+
+  while (ci < creditors.length && di < debtors.length) {
+    const creditor = creditors[ci];
+    const debtor = debtors[di];
+    const amount = Math.min(creditor.net, -debtor.net);
+
+    debts.push({
+      fromUserId: debtor.userId,
+      fromName: debtor.name,
+      toUserId: creditor.userId,
+      toName: creditor.name,
+      amount: Math.round(amount * 100) / 100,
+    });
+
+    creditor.net -= amount;
+    debtor.net += amount;
+
+    if (Math.abs(creditor.net) < 0.005) ci++;
+    if (Math.abs(debtor.net) < 0.005) di++;
+  }
+
+  return debts;
+}
+
+// ---- GET --------------------------------------------------------------------
+
+export async function GET(request: NextRequest): Promise<Response> {
+  let session;
+  try {
+    session = await requireSession(request);
+  } catch (r) {
+    return r as Response;
+  }
+
+  const membership = await getUserHousehold(session.user.id);
+  if (!membership) {
+    return Response.json({ error: "No household found" }, { status: 404 });
+  }
+  if (membership.role === "child") {
+    return Response.json({ error: "Forbidden" }, { status: 403 });
+  }
+  const { householdId } = membership;
+
+  // Check premium
+  const [household] = await db
+    .select({ subscription_status: households.subscription_status })
+    .from(households)
+    .where(eq(households.id, householdId))
+    .limit(1);
+
+  const isPremium = household?.subscription_status === "premium";
+
+  // Fetch expenses with payer info
+  const expenseRows = await db
+    .select({
+      id: expenses.id,
+      title: expenses.title,
+      total_amount: expenses.total_amount,
+      paid_by: expenses.paid_by,
+      category: expenses.category,
+      created_at: expenses.created_at,
+      updated_at: expenses.updated_at,
+      payer_name: users.name,
+      payer_avatar: users.avatar_color,
+    })
+    .from(expenses)
+    .leftJoin(users, eq(expenses.paid_by, users.id))
+    .where(and(eq(expenses.household_id, householdId), isNull(expenses.deleted_at)))
+    .orderBy(desc(expenses.created_at));
+
+  // Fetch splits for all expenses
+  const expenseIds = expenseRows.map((e) => e.id);
+  let allSplits: {
+    id: string;
+    expense_id: string;
+    user_id: string;
+    amount: string;
+    settled: boolean;
+    settled_at: Date | null;
+    user_name: string | null;
+    user_avatar: string | null;
+  }[] = [];
+
+  if (expenseIds.length > 0) {
+    allSplits = await db
+      .select({
+        id: expense_splits.id,
+        expense_id: expense_splits.expense_id,
+        user_id: expense_splits.user_id,
+        amount: expense_splits.amount,
+        settled: expense_splits.settled,
+        settled_at: expense_splits.settled_at,
+        user_name: users.name,
+        user_avatar: users.avatar_color,
+      })
+      .from(expense_splits)
+      .leftJoin(users, eq(expense_splits.user_id, users.id))
+      .where(inArray(expense_splits.expense_id, expenseIds));
+  }
+
+  // Group splits by expense
+  const splitsByExpense: Record<string, typeof allSplits> = {};
+  for (const split of allSplits) {
+    if (!splitsByExpense[split.expense_id]) splitsByExpense[split.expense_id] = [];
+    splitsByExpense[split.expense_id].push(split);
+  }
+
+  // Assemble full expense objects
+  const expensesWithSplits = expenseRows.map((e) => ({
+    ...e,
+    total_amount: e.total_amount, // keep as string, client will parseFloat
+    splits: splitsByExpense[e.id] ?? [],
+  }));
+
+  // Compute balances (per-person net)
+  // net > 0 means others owe them; net < 0 means they owe others
+  const balanceMap: Record<string, { userId: string; name: string; avatarColor: string | null; net: number }> = {};
+
+  function ensureBalance(userId: string, name: string, avatarColor: string | null) {
+    if (!balanceMap[userId]) balanceMap[userId] = { userId, name, avatarColor, net: 0 };
+  }
+
+  for (const expense of expensesWithSplits) {
+    const payerId = expense.paid_by;
+    const payerName = expense.payer_name ?? "Unknown";
+    const payerAvatar = expense.payer_avatar ?? null;
+    ensureBalance(payerId, payerName, payerAvatar);
+
+    for (const split of expense.splits) {
+      const splitUserId = split.user_id;
+      const splitName = split.user_name ?? "Unknown";
+      const splitAvatar = split.user_avatar ?? null;
+      ensureBalance(splitUserId, splitName, splitAvatar);
+
+      if (split.settled) continue;
+      if (splitUserId === payerId) continue; // payer's own share, skip
+
+      const amt = parseFloat(split.amount);
+      balanceMap[payerId].net += amt;     // payer is owed
+      balanceMap[splitUserId].net -= amt; // split person owes
+    }
+  }
+
+  const balanceList = Object.values(balanceMap);
+  const debts = simplifyDebts(balanceList);
+
+  // Current user's summary
+  const myBalance = balanceMap[session.user.id]?.net ?? 0;
+
+  return Response.json({
+    expenses: expensesWithSplits,
+    balances: balanceList,
+    debts,
+    myBalance: Math.round(myBalance * 100) / 100,
+    isPremium,
+  });
+}
+
+// ---- POST -------------------------------------------------------------------
+
+export async function POST(request: NextRequest): Promise<Response> {
+  let session;
+  try {
+    session = await requireSession(request);
+  } catch (r) {
+    return r as Response;
+  }
+
+  const membership = await getUserHousehold(session.user.id);
+  if (!membership) {
+    return Response.json({ error: "No household found" }, { status: 404 });
+  }
+  if (membership.role === "child") {
+    return Response.json({ error: "Forbidden" }, { status: 403 });
+  }
+  const { householdId } = membership;
+
+  // Premium check
+  const [household] = await db
+    .select({ subscription_status: households.subscription_status })
+    .from(households)
+    .where(eq(households.id, householdId))
+    .limit(1);
+
+  if (!household || household.subscription_status !== "premium") {
+    return Response.json({ error: "Premium required" }, { status: 403 });
+  }
+
+  let body: {
+    title?: string;
+    total_amount?: number;
+    paid_by?: string;
+    category?: string;
+    splits?: { user_id: string; amount: number }[];
+  };
+  try {
+    body = await request.json();
+  } catch (err) {
+    console.error("[POST /api/expenses] Failed to parse body:", err);
+    return Response.json({ error: "Invalid request body" }, { status: 400 });
+  }
+
+  if (!body.title?.trim()) {
+    return Response.json({ error: "Title is required" }, { status: 400 });
+  }
+  if (!body.total_amount || body.total_amount <= 0) {
+    return Response.json({ error: "Amount must be greater than 0" }, { status: 400 });
+  }
+  if (!body.paid_by) {
+    return Response.json({ error: "Paid by is required" }, { status: 400 });
+  }
+  if (!body.splits || body.splits.length === 0) {
+    return Response.json({ error: "At least one split is required" }, { status: 400 });
+  }
+
+  // Validate splits sum to total
+  const splitsSum = body.splits.reduce((acc, s) => acc + s.amount, 0);
+  const diff = Math.abs(splitsSum - body.total_amount);
+  if (diff > 0.02) {
+    return Response.json({ error: "Splits must add up to the total amount" }, { status: 400 });
+  }
+
+  const [expense] = await db
+    .insert(expenses)
+    .values({
+      household_id: householdId,
+      title: body.title.trim(),
+      total_amount: body.total_amount.toFixed(2),
+      paid_by: body.paid_by,
+      category: body.category?.trim() || null,
+    })
+    .returning();
+
+  if (body.splits.length > 0) {
+    await db.insert(expense_splits).values(
+      body.splits.map((s) => ({
+        expense_id: expense.id,
+        user_id: s.user_id,
+        amount: s.amount.toFixed(2),
+      }))
+    );
+  }
+
+  await logActivity({
+    householdId,
+    userId: session.user.id,
+    type: "expense_added",
+    description: `added an expense: ${expense.title}`,
+    entityId: expense.id,
+    entityType: "expense",
+  });
+
+  return Response.json({ expense }, { status: 201 });
+}

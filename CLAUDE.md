@@ -370,6 +370,25 @@ src/app/(app)/notes/page.tsx                  Notes module: quick add bar, mason
 src/app/api/notes/route.ts                    GET (newest first, creator join) + POST (1000 char limit, activity log)
 src/app/api/notes/[id]/route.ts               PATCH + DELETE (creator or admin, soft delete)
 src/components/notes/NoteSheet.tsx            Create/edit/view note: title optional, 1000 char limit, char counter
+src/app/(app)/expenses/page.tsx               Expenses module: premium gate with blurred preview, balance summary, debt cards, settle flow
+src/app/api/expenses/route.ts                 GET (expenses + splits + debt simplification + myBalance + isPremium) + POST (premium, splits validation)
+src/app/api/expenses/[id]/route.ts            PATCH (title/category only, paid_by or admin) + DELETE (soft delete)
+src/app/api/expenses/[id]/settle/route.ts     POST: mark single split as settled (payer or admin)
+src/app/api/expenses/settle-all/route.ts      POST: settle all unsettled splits between two users
+src/components/expenses/ExpenseSheet.tsx      Create/edit/view expense: amount, paid_by, category pills, 3 split methods (equal/custom/payer-only)
+src/components/expenses/SettleSheet.tsx       Settle-up confirmation: shows debt summary, two-step confirm, calls settle-all API
+
+## Expense UX Patterns
+- Premium-gated: free tier sees blurred mock expense list with upgrade CTA overlay
+- Balance summary card shown when myBalance != 0 (green = owed, red = you owe)
+- Debt simplification algorithm: net balance per person, greedy creditor/debtor matching
+- Settle cards shown for current user's debts only (filtered from all household debts)
+- SettleSheet uses two-step confirm before calling settle-all API
+- ExpenseSheet: 3 split methods: Equal (auto-divide), Custom (per-member inputs), Just me (payer pays all)
+- Amount field is disabled in edit mode (can only edit title and category)
+- numeric columns from Drizzle return as strings, always parseFloat() before arithmetic
+- paid_by is the creator for permission checks (no separate created_by column on expenses)
+- Dashboard expenses tile: statusText is dynamic ("You owe $X" / "Owed $X" / "All settled" / "Premium feature")
 
 ## Calendar UX Patterns
 - Two views: Month grid (default) and Agenda list (next 60 days from today)
@@ -463,8 +482,8 @@ Phase 2: Daily Use
   Push notification setup (Expo)
 
 Phase 3: Money (premium)
-  Expenses: manual entry, who owes whom
-  Bill splitting: debt simplification
+  Expenses: DONE, manual entry, split 3 ways, settle up, debt simplification, premium gate
+  Bill splitting: DONE (part of expenses module)
   Receipt scanning: Google Vision, editable line items
 
 Phase 4: Polish
@@ -530,7 +549,7 @@ Designer brief (send this when hiring):
 At the start of each new session fetch this file to restore context.
 Share GitHub file URLs, paste code, or describe what was built.
 Update this file after every major decision or completed phase.
-Last updated: 2026-04-05 (notes module complete: quick add bar, masonry grid, NoteSheet, API routes)
+Last updated: 2026-04-05 (expenses module: API routes, ExpenseSheet, SettleSheet, expenses page, dashboard dynamic tile)
 
 ## Bugs Found and Fixed (2026-04-05)
 - No default grocery list created on household signup: `GET /api/grocery/lists` now

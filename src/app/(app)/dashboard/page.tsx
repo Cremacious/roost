@@ -28,6 +28,11 @@ interface MembersResponse {
   members: { userId: string; name: string; avatarColor: string | null }[];
 }
 
+interface ExpensesSummaryResponse {
+  myBalance: number;
+  isPremium: boolean;
+}
+
 interface ActivityAPIItem {
   id: string;
   type: string;
@@ -287,6 +292,19 @@ export default function DashboardPage() {
     retry: 2,
   });
 
+  const { data: expensesSummary } = useQuery<ExpensesSummaryResponse>({
+    queryKey: ["expenses-summary"],
+    queryFn: async () => {
+      const r = await fetch("/api/expenses");
+      if (!r.ok) return { myBalance: 0, isPremium: false };
+      const d = await r.json();
+      return { myBalance: d.myBalance ?? 0, isPremium: d.isPremium ?? false };
+    },
+    staleTime: 10_000,
+    refetchInterval: 10_000,
+    retry: 1,
+  });
+
   const {
     data: activityData,
     isError: activityError,
@@ -335,6 +353,18 @@ export default function DashboardPage() {
   const householdName = membersData?.household?.name ?? "";
   const activityItems = (activityData?.activity ?? []).map(mapActivity);
 
+  function expensesStatusText(): string {
+    if (!expensesSummary?.isPremium) return "Premium feature";
+    const bal = expensesSummary.myBalance;
+    if (bal > 0.01) return `Owed $${bal.toFixed(2)}`;
+    if (bal < -0.01) return `You owe $${Math.abs(bal).toFixed(2)}`;
+    return "All settled";
+  }
+
+  const tiles = TILES.map((t) =>
+    t.key === "expenses" ? { ...t, statusText: expensesStatusText() } : t
+  );
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 12 }}
@@ -361,7 +391,7 @@ export default function DashboardPage() {
         )}
 
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-          {TILES.map((tile, i) => (
+          {tiles.map((tile, i) => (
             <TileCard key={tile.key} tile={tile} index={i} />
           ))}
         </div>

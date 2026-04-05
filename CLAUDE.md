@@ -247,14 +247,34 @@ src/components/layout/TopBar.tsx               Household name, weather (Open-Met
 src/components/layout/BottomNav.tsx            Mobile 5-tab nav with chore badge
 src/components/layout/Sidebar.tsx              Desktop icon-only 72px sidebar
 src/components/shared/QueryProvider.tsx        TanStack Query client provider
+src/app/(app)/chores/page.tsx                  Chores list, summary bar, view toggle, optimistic completion
+src/app/api/chores/route.ts                    GET (list with joins) + POST (create); exports getUserHousehold + calcNextDueAt
+src/app/api/chores/[id]/route.ts               PATCH (update) + DELETE (soft delete)
+src/app/api/chores/[id]/complete/route.ts      POST — complete chore, update streak + points
+src/app/api/chores/leaderboard/route.ts        GET — weekly leaderboard sorted by points
+src/components/chores/ChoreSheet.tsx           Add/edit sheet with frequency, custom days, delete confirm
+src/components/chores/LeaderboardSheet.tsx     Weekly leaderboard with rank colors + streak display
 
 ## API Rules
 - All routes validate session + household membership before DB
 - Child accounts: financial endpoints always return 403
 - Free tier limits checked server-side before writes
-- Optimistic UI for: grocery check/uncheck, chore completion
+- Optimistic UI pattern: cancelQueries → setQueryData → return previous → onError revert → onSettled invalidate
 - Server confirmation required for: expenses, payments, members
 - Schema entry point: src/db/schema/index.ts re-exports all tables
+- getUserHousehold(userId) helper exported from src/app/api/chores/route.ts — returns { householdId, role }
+- calcNextDueAt(frequency, customDays, from?) exported from same file — use for all chore scheduling
+- Streaks use week_start (Monday, YYYY-MM-DD) as partition key in chore_streaks table
+- Completing a chore: insert chore_completions, update next_due_at, upsert chore_streaks (+10 pts)
+
+## Key Rules
+- Toasts: use sonner only. Import { toast } from "sonner" in client components.
+  Import Toaster from @/components/ui/sonner in root layout. Never use @/components/ui/toast.
+- Section colors: always import from src/lib/constants/colors.ts — never hardcode hex values
+- Weather: Open-Meteo free API, no key needed. Hardcoded lat/lon 28.5, -81.4 (Orlando) — TODO make dynamic
+- Touch targets: 48px minimum everywhere, 64px for list rows
+- No emojis anywhere — Lucide icons only
+- No em dashes in copy or UI text
 
 ## Build Phases
 Phase 1 — Foundation (COMPLETE)
@@ -264,7 +284,7 @@ Phase 1 — Foundation (COMPLETE)
   Middleware: DONE — src/proxy.ts (Next.js 16 renamed middleware to proxy)
 
 Phase 2 — Daily Use
-  Chores: assign, recurring schedule, complete, streaks
+  Chores: DONE — list, create, edit, complete, streaks, leaderboard, optimistic UI
   Grocery: shared list, optimistic check/uncheck
   Calendar: events, shared view
   Tasks: create, assign, due date, priority

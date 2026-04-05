@@ -285,6 +285,15 @@ export default function GroceryPage() {
   const [showListSheet, setShowListSheet] = useState(false);
   const [listToEdit, setListToEdit] = useState<GroceryListData | null>(null);
 
+  const PLACEHOLDERS = ["Add milk...", "Add eggs...", "Add anything..."];
+  const [placeholderIdx, setPlaceholderIdx] = useState(0);
+  useEffect(() => {
+    const id = setInterval(() => {
+      setPlaceholderIdx((i) => (i + 1) % PLACEHOLDERS.length);
+    }, 3000);
+    return () => clearInterval(id);
+  }, []);
+
   // ---- Queries ---------------------------------------------------------------
 
   const listsQuery = useQuery<ListsResponse>({
@@ -487,13 +496,13 @@ export default function GroceryPage() {
     addItemMutation.mutate(newItemName.trim());
   }
 
-  function handleFABClick() {
-    window.scrollTo({ top: 0, behavior: "smooth" });
-    setTimeout(() => quickAddRef.current?.focus(), 250);
-  }
-
   function openEditItem(item: GroceryItemFull) {
     setEditingItem(item);
+    setShowItemSheet(true);
+  }
+
+  function openAddItem() {
+    setEditingItem(null);
     setShowItemSheet(true);
   }
 
@@ -614,23 +623,21 @@ export default function GroceryPage() {
             {activeList.name}
           </h1>
           <div className="flex items-center gap-1">
-            {lists.length === 1 && (
-              <motion.button
-                type="button"
-                onClick={openAddList}
-                whileTap={{ y: 1 }}
-                className="flex h-10 w-10 items-center justify-center rounded-xl"
-                style={{
-                  backgroundColor: "var(--roost-surface)",
-                  border: "1.5px solid var(--roost-border)",
-                  borderBottom: "3px solid var(--roost-border-bottom)",
-                  color: "var(--roost-text-secondary)",
-                }}
-                title="Add new list"
-              >
-                <Plus className="size-4" />
-              </motion.button>
-            )}
+            <motion.button
+              type="button"
+              onClick={openAddItem}
+              whileTap={{ y: 1 }}
+              className="flex h-10 w-10 items-center justify-center rounded-xl"
+              style={{
+                backgroundColor: "var(--roost-surface)",
+                border: "1.5px solid var(--roost-border)",
+                borderBottom: "3px solid var(--roost-border-bottom)",
+                color: "var(--roost-text-secondary)",
+              }}
+              title="Add item with details"
+            >
+              <Plus className="size-4" />
+            </motion.button>
             <MoreMenu
               list={activeList}
               isAdmin={isAdmin}
@@ -652,12 +659,12 @@ export default function GroceryPage() {
 
       {/* Quick add bar */}
       {activeListId && (
-        <form onSubmit={handleQuickAdd}>
+        <form onSubmit={handleQuickAdd} onClick={() => quickAddRef.current?.focus()}>
           <div
-            className="flex h-12 items-center gap-2 overflow-hidden rounded-xl"
+            className="flex h-14 items-center gap-2 overflow-hidden rounded-xl"
             style={{
-              border: "1.5px solid var(--roost-border)",
-              borderBottom: "3px solid var(--roost-border-bottom)",
+              border: `1.5px solid ${COLOR}50`,
+              borderBottom: `3px solid ${COLOR}70`,
               backgroundColor: "var(--roost-surface)",
             }}
           >
@@ -666,14 +673,17 @@ export default function GroceryPage() {
               type="text"
               value={newItemName}
               onChange={(e) => setNewItemName(e.target.value)}
-              placeholder="milk, eggs, sanity..."
-              className="h-full flex-1 bg-transparent px-4 text-sm placeholder:italic focus:outline-none"
-              style={{ color: "var(--roost-text-primary)", fontWeight: 600 }}
+              placeholder={PLACEHOLDERS[placeholderIdx]}
+              className="h-full flex-1 bg-transparent px-4 text-sm focus:outline-none"
+              style={{
+                color: "var(--roost-text-primary)",
+                fontWeight: 600,
+              }}
             />
             <button
               type="submit"
               disabled={!newItemName.trim() || addItemMutation.isPending}
-              className="flex h-full w-12 shrink-0 items-center justify-center disabled:opacity-40"
+              className="flex h-full w-14 shrink-0 items-center justify-center disabled:opacity-40"
               style={{ color: COLOR }}
             >
               {addItemMutation.isPending ? (
@@ -788,22 +798,6 @@ export default function GroceryPage() {
         </div>
       )}
 
-      {/* FAB */}
-      <motion.button
-        type="button"
-        onClick={handleFABClick}
-        whileTap={{ y: 2 }}
-        className="fixed bottom-24 right-4 flex h-14 w-14 items-center justify-center rounded-2xl text-white shadow-lg md:bottom-6"
-        style={{
-          backgroundColor: COLOR,
-          border: `1.5px solid ${COLOR}`,
-          borderBottom: "4px solid rgba(0,0,0,0.2)",
-        }}
-        aria-label="Add item"
-      >
-        <Plus className="size-6" strokeWidth={2.5} />
-      </motion.button>
-
       {/* Item sheet */}
       <GroceryItemSheet
         open={showItemSheet}
@@ -826,5 +820,6 @@ export default function GroceryPage() {
         isPremium={isPremium}
       />
     </motion.div>
+
   );
 }

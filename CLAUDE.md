@@ -395,6 +395,13 @@ src/app/(app)/grocery/page.tsx                 Full grocery module: list pills, 
 - Dashboard household guard: always check membersData?.household before rendering dashboard content.
   If household is undefined after data loads, render NoHouseholdState (EmptyState with Home icon,
   redirect to /onboarding). User may land on dashboard without a household during early onboarding.
+- Add flow pattern per feature page:
+    Grocery: quick add bar at top for fast adds (h-14, amber border, cycling placeholder).
+      Top-right + opens GroceryItemSheet for detailed add with name + quantity.
+      No FAB on grocery page.
+    Chores: FAB opens ChoreSheet (no inline quick-add bar on chores page, FAB is the primary action).
+    Other feature pages: only add a FAB if there is no inline quick-add input already on the page.
+      Never add a FAB just to duplicate an existing add flow.
 
 ## Build Phases
 Phase 1: Foundation (COMPLETE)
@@ -482,7 +489,7 @@ Designer brief (send this when hiring):
 At the start of each new session fetch this file to restore context.
 Share GitHub file URLs, paste code, or describe what was built.
 Update this file after every major decision or completed phase.
-Last updated: 2026-04-05 (grocery + activity complete; child PIN keys fixed; dashboard household guard; AppShell nav hiding)
+Last updated: 2026-04-05 (FAB removed from grocery page; quick-add bar made prominent with cycling placeholder)
 
 ## Bugs Found and Fixed (2026-04-05)
 - No default grocery list created on household signup: `GET /api/grocery/lists` now

@@ -366,6 +366,10 @@ src/app/api/calendar/route.ts                 GET (month events with attendees) 
 src/app/api/calendar/[id]/route.ts            PATCH (edit, creator or admin) + DELETE (soft delete)
 src/components/calendar/EventSheet.tsx        Create/edit/view event: inline date picker, all-day toggle, time inputs, attendee chips
 src/components/calendar/DaySheet.tsx          Day events list, tap to view/add, pre-fills date in EventSheet
+src/app/(app)/notes/page.tsx                  Notes module: quick add bar, masonry CSS columns grid, NoteSheet
+src/app/api/notes/route.ts                    GET (newest first, creator join) + POST (1000 char limit, activity log)
+src/app/api/notes/[id]/route.ts               PATCH + DELETE (creator or admin, soft delete)
+src/components/notes/NoteSheet.tsx            Create/edit/view note: title optional, 1000 char limit, char counter
 
 ## Calendar UX Patterns
 - Two views: Month grid (default) and Agenda list (next 60 days from today)
@@ -455,7 +459,7 @@ Phase 2: Daily Use
   Activity feed: DONE, household_activity table, logged for chores + grocery, dashboard reads real data
   Calendar: DONE, month grid + agenda view, DaySheet, EventSheet, attendees, permissions
   Tasks: DONE, create, assign, due date, priority, complete, grouped sections, filter row
-  Notes: create, view
+  Notes: DONE, quick add bar, masonry grid, view/edit/delete sheet, 1000 char limit
   Push notification setup (Expo)
 
 Phase 3: Money (premium)
@@ -526,7 +530,7 @@ Designer brief (send this when hiring):
 At the start of each new session fetch this file to restore context.
 Share GitHub file URLs, paste code, or describe what was built.
 Update this file after every major decision or completed phase.
-Last updated: 2026-04-05 (calendar module complete: month grid, agenda view, DaySheet, EventSheet, attendees, permissions)
+Last updated: 2026-04-05 (notes module complete: quick add bar, masonry grid, NoteSheet, API routes)
 
 ## Bugs Found and Fixed (2026-04-05)
 - No default grocery list created on household signup: `GET /api/grocery/lists` now

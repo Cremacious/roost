@@ -1,8 +1,9 @@
-// PLACEHOLDER LOGO — swap src/components/shared/RoostLogo.tsx
-// when final logo assets arrive from designer.
-// All logo usage across the app imports from here.
-// To update: replace the SVG paths in the icon and/or
-// swap the wordmark font/spacing. Nothing else needs changing.
+// Logo — src/components/shared/RoostLogo.tsx
+// Single source of truth for all logo usage across the app.
+// To update: swap the image at public/brand/roost-icon.png.
+// Nothing else needs changing.
+
+import Image from "next/image";
 
 const SIZE_CONFIG = {
   xs: { iconSize: 24, wordmarkSize: 0,  radius: 6,  gap: 0  },
@@ -13,9 +14,9 @@ const SIZE_CONFIG = {
 } as const;
 
 const VARIANT_CONFIG = {
-  dark:  { iconBg: "#1A1714", wordmark: "#1A1714" },
-  light: { iconBg: "#1A1714", wordmark: "#F5F0E8" },
-  red:   { iconBg: "#EF4444", wordmark: "#1A1714" },
+  dark:  { wordmark: "#1A1714" },
+  light: { wordmark: "#F5F0E8" },
+  red:   { wordmark: "#1A1714" },
 } as const;
 
 interface RoostLogoProps {
@@ -30,68 +31,20 @@ export default function RoostLogo({
   variant = "dark",
 }: RoostLogoProps) {
   const { iconSize, wordmarkSize, radius, gap } = SIZE_CONFIG[size];
-  const { iconBg, wordmark } = VARIANT_CONFIG[variant];
+  const { wordmark } = VARIANT_CONFIG[variant];
   const showWord = size !== "xs" && showWordmark;
-  const svgSize = iconSize * 0.62;
 
   return (
     <div style={{ display: "flex", alignItems: "center", gap, flexShrink: 0 }}>
       {/* Icon */}
-      <div
-        style={{
-          width: iconSize,
-          height: iconSize,
-          borderRadius: radius,
-          backgroundColor: iconBg,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          flexShrink: 0,
-        }}
-      >
-        <svg
-          width={svgSize}
-          height={svgSize}
-          viewBox="0 0 24 24"
-          fill="none"
-          xmlns="http://www.w3.org/2000/svg"
-        >
-          {/* House walls */}
-          <rect
-            x="3"
-            y="11.5"
-            width="18"
-            height="10.5"
-            rx="1.5"
-            stroke="white"
-            strokeWidth="1.5"
-          />
-          {/* Door */}
-          <path
-            d="M9.5 22v-5a2.5 2.5 0 015 0V22"
-            stroke="white"
-            strokeWidth="1.5"
-            strokeLinecap="round"
-          />
-          {/* Roof ridge */}
-          <path
-            d="M1.5 12L12 2.5L22.5 12"
-            stroke="white"
-            strokeWidth="1.5"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-          {/* Rooster comb: three bumps at roof peak */}
-          <path
-            d="M10.5 2.5Q11 0.5 11.5 2.5Q12 1 12.5 2.5Q13 0.5 13.5 2.5"
-            stroke="white"
-            strokeWidth="1.5"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            fill="none"
-          />
-        </svg>
-      </div>
+      <Image
+        src="/brand/roost-icon.png"
+        alt="Roost"
+        width={iconSize}
+        height={iconSize}
+        style={{ borderRadius: radius, flexShrink: 0 }}
+        priority
+      />
 
       {/* Wordmark */}
       {showWord && (

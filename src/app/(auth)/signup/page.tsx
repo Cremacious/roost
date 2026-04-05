@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { signUp } from "@/lib/auth/client";
 import { CheckCircle2, Eye, EyeOff, Loader2, XCircle } from "lucide-react";
 import { motion } from "framer-motion";
+import RoostLogo from "@/components/shared/RoostLogo";
 
 type Strength = "weak" | "fair" | "good" | "strong";
 
@@ -92,17 +93,7 @@ export default function SignupPage() {
       >
         {/* Logo + heading */}
         <div className="flex flex-col items-center gap-3 text-center">
-          <div
-            className="flex h-14 w-14 items-center justify-center rounded-2xl text-2xl text-white"
-            style={{
-              backgroundColor: "var(--roost-text-primary)",
-              fontWeight: 900,
-              border: "1.5px solid var(--roost-border)",
-              borderBottom: "4px solid var(--roost-border-bottom)",
-            }}
-          >
-            R
-          </div>
+          <RoostLogo size="lg" variant="dark" />
           <div>
             <h1
               className="text-3xl"

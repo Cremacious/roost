@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import RoostLogo from "@/components/shared/RoostLogo";
 import {
   Bell,
   Calendar,
@@ -58,19 +59,8 @@ export default function Sidebar({
       }}
     >
       {/* Logo */}
-      <div className="flex items-center gap-2.5 px-4 pb-5">
-        <div
-          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl text-sm text-white"
-          style={{ backgroundColor: "var(--roost-text-primary)", fontWeight: 900 }}
-        >
-          R
-        </div>
-        <span
-          className="text-lg"
-          style={{ color: "var(--roost-text-primary)", fontWeight: 900 }}
-        >
-          Roost
-        </span>
+      <div className="px-4 pb-5">
+        <RoostLogo size="sm" />
       </div>
 
       {/* Nav */}

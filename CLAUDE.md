@@ -195,6 +195,15 @@ Tasks: one-off to-dos
 - SlabCard is the base card for the entire app: rounded-2xl, border + 4px colored bottom
 - Settings page (/settings) has a theme picker grid -- changes apply instantly, no save button
 
+## Logo
+- Placeholder logo lives in src/components/shared/RoostLogo.tsx
+- This is the ONLY place the logo is defined
+- All pages import RoostLogo from there, never inline SVG
+- To swap: update RoostLogo.tsx only, everything updates
+- Final assets go in public/brand/ when ready
+- See public/brand/README.md for swap instructions
+- App Store icon: 1024x1024, red bg #EF4444, no rounded corners
+
 ## Data Rules
 - Soft deletes: deleted_at timestamp on all major tables
 - Auto-purge: Vercel cron cleans deleted_at > 30 days old
@@ -324,6 +333,7 @@ src/components/layout/BottomNav.tsx            Mobile 4-tab nav + More sheet (Pr
 src/components/layout/Sidebar.tsx              Desktop 220px sidebar with icon+label for all 9 nav items
 src/components/providers/ThemeProvider.tsx     Applies theme CSS vars; exports useTheme() hook
 src/components/shared/QueryProvider.tsx        TanStack Query client provider
+src/components/shared/RoostLogo.tsx            Centralized logo: sizes xs/sm/md/lg/xl, variants dark/light/red
 src/components/shared/SlabCard.tsx             Base card: rounded-2xl, border + 4px slab bottom, press effect
 src/components/shared/EmptyState.tsx           Sassy empty state: dashed slab card, icon, title, body, optional button
 src/components/shared/StatCard.tsx             Stat tile: big number + label, slab card

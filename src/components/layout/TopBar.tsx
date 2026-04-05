@@ -10,6 +10,7 @@ import {
   Sun,
   Wind,
 } from "lucide-react";
+import RoostLogo from "@/components/shared/RoostLogo";
 
 // ---- Types ----------------------------------------------------------------
 
@@ -99,12 +100,9 @@ export default function TopBar() {
     >
       {/* Left: logo on mobile, household name on md+ */}
       <div className="flex items-center gap-2.5 min-w-0">
-        {/* R logo: mobile only (sidebar shows full logo on md+) */}
-        <div
-          className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-xs text-white md:hidden"
-          style={{ backgroundColor: "var(--roost-text-primary)", fontWeight: 900 }}
-        >
-          R
+        {/* Logo: mobile only (sidebar shows logo on md+) */}
+        <div className="md:hidden">
+          <RoostLogo size="sm" />
         </div>
         <span
           className="text-base truncate max-w-40"

@@ -6,6 +6,7 @@ import Link from "next/link";
 import { toast } from "sonner";
 import { Delete, Loader2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import RoostLogo from "@/components/shared/RoostLogo";
 
 const PIN_PAD = [
   ["1", "2", "3"],
@@ -65,16 +66,8 @@ export default function ChildLoginPage() {
       >
         {/* Heading */}
         <div className="text-center">
-          <div
-            className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl text-3xl text-white"
-            style={{
-              backgroundColor: "var(--roost-text-primary)",
-              fontWeight: 900,
-              border: "1.5px solid var(--roost-border)",
-              borderBottom: "4px solid var(--roost-border-bottom)",
-            }}
-          >
-            R
+          <div className="mb-4 flex justify-center">
+            <RoostLogo size="xl" variant="red" showWordmark={false} />
           </div>
           <h1
             className="text-3xl"

@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { signIn } from "@/lib/auth/client";
 import { Eye, EyeOff, Loader2 } from "lucide-react";
 import { motion } from "framer-motion";
+import RoostLogo from "@/components/shared/RoostLogo";
 
 const inputClass =
   "flex h-12 w-full rounded-xl border bg-transparent px-4 text-sm placeholder:italic focus:outline-none transition-colors";
@@ -43,17 +44,7 @@ export default function LoginPage() {
       >
         {/* Logo + greeting */}
         <div className="flex flex-col items-center gap-3 text-center">
-          <div
-            className="flex h-14 w-14 items-center justify-center rounded-2xl text-2xl text-white"
-            style={{
-              backgroundColor: "var(--roost-text-primary)",
-              fontWeight: 900,
-              border: "1.5px solid var(--roost-border)",
-              borderBottom: "4px solid var(--roost-border-bottom)",
-            }}
-          >
-            R
-          </div>
+          <RoostLogo size="lg" variant="dark" />
           <div>
             <h1
               className="text-3xl"

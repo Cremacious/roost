@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Check, Copy, Home, Loader2, Users } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import RoostLogo from "@/components/shared/RoostLogo";
 
 type Choice = "create" | "join";
 
@@ -80,6 +81,11 @@ export default function OnboardingPage() {
         transition={{ duration: 0.18, ease: "easeOut" }}
         className="w-full max-w-md space-y-8"
       >
+        {/* Logo */}
+        <div className="flex justify-center">
+          <RoostLogo size="xl" variant="dark" />
+        </div>
+
         {/* Step indicator: slab pill segments */}
         <div className="flex gap-2">
           {([1, 2, 3] as const).map((s) => (

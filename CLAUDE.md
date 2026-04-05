@@ -343,6 +343,7 @@ src/components/layout/Sidebar.tsx              Desktop 220px sidebar with icon+l
 src/components/providers/ThemeProvider.tsx     Applies theme CSS vars; exports useTheme() hook
 src/components/shared/QueryProvider.tsx        TanStack Query client provider
 src/lib/utils/activity.ts                      logActivity(params) helper -- wraps insert, never throws, safe to call from any route
+src/lib/utils/time.ts                          relativeTime(date) -- returns "Just now", "Xm ago", "Xh ago", "Yesterday", "Xd ago"
 src/components/shared/RoostLogo.tsx            Centralized logo: sizes xs/sm/md/lg/xl, variants dark/light/red
 src/components/shared/SlabCard.tsx             Base card: rounded-2xl, border + 4px slab bottom, press effect
 src/components/shared/EmptyState.tsx           Sassy empty state: dashed slab card, icon, title, body, optional button
@@ -374,6 +375,11 @@ src/app/(app)/grocery/page.tsx                 Full grocery module: list pills, 
 - Dashboard activity feed queries /api/household/activity (last 20, real-time via 10s refetch)
 - Grocery lists: GET /api/grocery/lists returns isPremium + isAdmin for conditional UI
 - Free tier: max 1 grocery list enforced server-side; GroceryListSheet shows upgrade prompt
+- Grocery items: every row shows added_by (avatar + "Added by [first name] · Xh ago").
+  Checked rows also show checked_by on the right. API returns added_by_name, added_by_avatar,
+  checked_by_name, checked_by_avatar, created_at for all items.
+- Quick add bar: Enter key and inline + button both call the same handleQuickAdd() function.
+  + button is type="button" with onClick. Input has onKeyDown for Enter. No form element needed.
 
 ## Key Rules
 - Toasts: use sonner only. Import { toast } from "sonner" in client components.
@@ -489,7 +495,7 @@ Designer brief (send this when hiring):
 At the start of each new session fetch this file to restore context.
 Share GitHub file URLs, paste code, or describe what was built.
 Update this file after every major decision or completed phase.
-Last updated: 2026-04-05 (FAB removed from grocery page; quick-add bar made prominent with cycling placeholder)
+Last updated: 2026-04-05 (grocery: quick-add + button fixed; item rows show added_by/checked_by with avatar + relative time)
 
 ## Bugs Found and Fixed (2026-04-05)
 - No default grocery list created on household signup: `GET /api/grocery/lists` now

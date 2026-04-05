@@ -81,6 +81,9 @@ export async function GET(
     checked_by_name: item.checked_by
       ? (userMap.get(item.checked_by)?.name ?? null)
       : null,
+    checked_by_avatar: item.checked_by
+      ? (userMap.get(item.checked_by)?.avatar_color ?? null)
+      : null,
   }));
 
   return Response.json({ items });

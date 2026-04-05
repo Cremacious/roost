@@ -13,8 +13,9 @@ import {
   ShoppingCart,
   Trash2,
 } from "lucide-react";
-import { formatDistanceToNow } from "date-fns";
 import { SECTION_COLORS } from "@/lib/constants/colors";
+import { relativeTime } from "@/lib/utils/time";
+import MemberAvatar from "@/components/shared/MemberAvatar";
 import GroceryItemSheet, {
   type GroceryItemData,
 } from "@/components/grocery/GroceryItemSheet";
@@ -50,12 +51,20 @@ interface GroceryItemFull {
   added_by_avatar: string | null;
   checked_by: string | null;
   checked_by_name: string | null;
+  checked_by_avatar: string | null;
   checked_at: string | null;
   created_at: string | null;
 }
 
 interface ItemsResponse {
   items: GroceryItemFull[];
+}
+
+// ---- Helpers ----------------------------------------------------------------
+
+function firstName(name: string | null): string {
+  if (!name) return "Someone";
+  return name.split(" ")[0];
 }
 
 // ---- Item row ---------------------------------------------------------------
@@ -71,6 +80,14 @@ function ItemRow({
   onEdit: (item: GroceryItemFull) => void;
   onDelete: (id: string) => void;
 }) {
+  const addedMeta = item.added_by_name
+    ? `Added by ${firstName(item.added_by_name)}${item.created_at ? ` · ${relativeTime(item.created_at)}` : ""}`
+    : null;
+
+  const checkedMeta = item.checked_by_name
+    ? `Checked by ${firstName(item.checked_by_name)}${item.checked_at ? ` · ${relativeTime(item.checked_at)}` : ""}`
+    : null;
+
   return (
     <div
       className="group flex min-h-16 items-center gap-2 rounded-2xl px-3"
@@ -106,57 +123,90 @@ function ItemRow({
 
       {/* Content */}
       <div
-        className="min-w-0 flex-1 cursor-pointer py-3"
+        className="min-w-0 flex-1 cursor-pointer py-2.5"
         onClick={() => onEdit(item)}
         role="button"
         tabIndex={0}
         onKeyDown={(e) => e.key === "Enter" && onEdit(item)}
       >
+        {/* Name + quantity */}
         <p
           className="truncate text-sm"
           style={{
             color: "var(--roost-text-primary)",
             fontWeight: 700,
             textDecoration: item.checked ? "line-through" : undefined,
-            opacity: item.checked ? 0.6 : 1,
+            opacity: item.checked ? 0.5 : 1,
           }}
         >
           {item.name}
         </p>
         {item.quantity && (
           <p
-            className="mt-0.5 text-xs"
+            className="mt-0.5 truncate text-xs"
             style={{
               color: "var(--roost-text-muted)",
               fontWeight: 600,
-              opacity: item.checked ? 0.6 : 1,
+              opacity: item.checked ? 0.5 : 1,
             }}
           >
             {item.quantity}
           </p>
         )}
-        {!item.checked && item.added_by_name && (
-          <p
-            className="mt-0.5 text-xs"
-            style={{ color: "var(--roost-text-muted)", fontWeight: 600 }}
-          >
-            {item.added_by_name}
-          </p>
+
+        {/* Unchecked: added by + time */}
+        {!item.checked && addedMeta && (
+          <div className="mt-1 flex items-center gap-1.5">
+            {item.added_by_name && (
+              <MemberAvatar
+                name={item.added_by_name}
+                avatarColor={item.added_by_avatar}
+                size="sm"
+              />
+            )}
+            <span
+              className="text-xs"
+              style={{ color: "var(--roost-text-muted)", fontWeight: 600 }}
+            >
+              {addedMeta}
+            </span>
+          </div>
         )}
-        {item.checked && item.checked_by_name && (
-          <p
-            className="mt-0.5 text-xs"
-            style={{
-              color: "var(--roost-text-muted)",
-              fontWeight: 600,
-              opacity: 0.6,
-            }}
-          >
-            {item.checked_by_name}
-            {item.checked_at
-              ? ` · ${formatDistanceToNow(new Date(item.checked_at), { addSuffix: true })}`
-              : ""}
-          </p>
+
+        {/* Checked: added by on left, checked by on right */}
+        {item.checked && (addedMeta || checkedMeta) && (
+          <div className="mt-1 flex items-center justify-between gap-2">
+            {addedMeta && item.added_by_name ? (
+              <div className="flex min-w-0 items-center gap-1">
+                <MemberAvatar
+                  name={item.added_by_name}
+                  avatarColor={item.added_by_avatar}
+                  size="sm"
+                />
+                <span
+                  className="truncate text-xs"
+                  style={{ color: "var(--roost-text-muted)", fontWeight: 600, opacity: 0.7 }}
+                >
+                  {addedMeta}
+                </span>
+              </div>
+            ) : <span />}
+            {checkedMeta && item.checked_by_name ? (
+              <div className="flex shrink-0 items-center gap-1">
+                <MemberAvatar
+                  name={item.checked_by_name}
+                  avatarColor={item.checked_by_avatar}
+                  size="sm"
+                />
+                <span
+                  className="text-xs"
+                  style={{ color: "var(--roost-text-muted)", fontWeight: 600, opacity: 0.7 }}
+                >
+                  {checkedMeta}
+                </span>
+              </div>
+            ) : null}
+          </div>
         )}
       </div>
 
@@ -490,8 +540,7 @@ export default function GroceryPage() {
 
   // ---- Handlers --------------------------------------------------------------
 
-  function handleQuickAdd(e: React.FormEvent) {
-    e.preventDefault();
+  function handleQuickAdd() {
     if (!newItemName.trim() || !activeListId) return;
     addItemMutation.mutate(newItemName.trim());
   }
@@ -659,41 +708,43 @@ export default function GroceryPage() {
 
       {/* Quick add bar */}
       {activeListId && (
-        <form onSubmit={handleQuickAdd} onClick={() => quickAddRef.current?.focus()}>
-          <div
-            className="flex h-14 items-center gap-2 overflow-hidden rounded-xl"
+        <div
+          className="flex h-14 items-center gap-2 overflow-hidden rounded-xl"
+          onClick={() => quickAddRef.current?.focus()}
+          style={{
+            border: `1.5px solid ${COLOR}50`,
+            borderBottom: `3px solid ${COLOR}70`,
+            backgroundColor: "var(--roost-surface)",
+            cursor: "text",
+          }}
+        >
+          <input
+            ref={quickAddRef}
+            type="text"
+            value={newItemName}
+            onChange={(e) => setNewItemName(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && handleQuickAdd()}
+            placeholder={PLACEHOLDERS[placeholderIdx]}
+            className="h-full flex-1 bg-transparent px-4 text-sm focus:outline-none"
             style={{
-              border: `1.5px solid ${COLOR}50`,
-              borderBottom: `3px solid ${COLOR}70`,
-              backgroundColor: "var(--roost-surface)",
+              color: "var(--roost-text-primary)",
+              fontWeight: 600,
             }}
+          />
+          <button
+            type="button"
+            onClick={(e) => { e.stopPropagation(); handleQuickAdd(); }}
+            disabled={!newItemName.trim() || addItemMutation.isPending}
+            className="flex h-full w-14 shrink-0 items-center justify-center disabled:opacity-40"
+            style={{ color: COLOR }}
           >
-            <input
-              ref={quickAddRef}
-              type="text"
-              value={newItemName}
-              onChange={(e) => setNewItemName(e.target.value)}
-              placeholder={PLACEHOLDERS[placeholderIdx]}
-              className="h-full flex-1 bg-transparent px-4 text-sm focus:outline-none"
-              style={{
-                color: "var(--roost-text-primary)",
-                fontWeight: 600,
-              }}
-            />
-            <button
-              type="submit"
-              disabled={!newItemName.trim() || addItemMutation.isPending}
-              className="flex h-full w-14 shrink-0 items-center justify-center disabled:opacity-40"
-              style={{ color: COLOR }}
-            >
-              {addItemMutation.isPending ? (
-                <Loader2 className="size-4 animate-spin" />
-              ) : (
-                <Plus className="size-5" strokeWidth={2.5} />
-              )}
-            </button>
-          </div>
-        </form>
+            {addItemMutation.isPending ? (
+              <Loader2 className="size-4 animate-spin" />
+            ) : (
+              <Plus className="size-5" strokeWidth={2.5} />
+            )}
+          </button>
+        </div>
       )}
 
       {/* Empty state */}

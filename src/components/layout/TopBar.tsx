@@ -20,21 +20,13 @@ interface Member {
   avatarColor: string | null;
 }
 
-interface HouseholdInfo {
-  id: string;
-  name: string;
-}
-
 interface MembersResponse {
-  household: HouseholdInfo;
+  household: { id: string; name: string };
   members: Member[];
 }
 
 interface WeatherResponse {
-  current_weather: {
-    temperature: number;
-    weathercode: number;
-  };
+  current_weather: { temperature: number; weathercode: number };
 }
 
 // ---- Helpers ----------------------------------------------------------------
@@ -43,23 +35,18 @@ const WEATHER_LAT = 28.5;
 const WEATHER_LON = -81.4;
 
 function getWeatherIcon(code: number) {
-  if (code === 0) return <Sun className="size-4" />;
-  if (code <= 3) return <Cloud className="size-4" />;
-  if (code <= 48) return <Wind className="size-4" />;
-  if (code <= 67) return <CloudRain className="size-4" />;
-  if (code <= 77) return <CloudSnow className="size-4" />;
-  if (code <= 82) return <CloudRain className="size-4" />;
-  if (code <= 86) return <CloudSnow className="size-4" />;
-  return <CloudLightning className="size-4" />;
+  if (code === 0) return <Sun className="size-3.5" />;
+  if (code <= 3) return <Cloud className="size-3.5" />;
+  if (code <= 48) return <Wind className="size-3.5" />;
+  if (code <= 67) return <CloudRain className="size-3.5" />;
+  if (code <= 77) return <CloudSnow className="size-3.5" />;
+  if (code <= 82) return <CloudRain className="size-3.5" />;
+  if (code <= 86) return <CloudSnow className="size-3.5" />;
+  return <CloudLightning className="size-3.5" />;
 }
 
 function initials(name: string): string {
-  return name
-    .split(" ")
-    .slice(0, 2)
-    .map((w) => w[0])
-    .join("")
-    .toUpperCase();
+  return name.split(" ").slice(0, 2).map((w) => w[0]).join("").toUpperCase();
 }
 
 function formatTime(date: Date): string {
@@ -89,9 +76,8 @@ export default function TopBar() {
   const { data: weatherData } = useQuery<WeatherResponse>({
     queryKey: ["weather"],
     queryFn: () =>
-      fetch(
-        `https://api.open-meteo.com/v1/forecast?latitude=${WEATHER_LAT}&longitude=${WEATHER_LON}&current_weather=true`
-      ).then((r) => r.json()),
+      fetch(`https://api.open-meteo.com/v1/forecast?latitude=${WEATHER_LAT}&longitude=${WEATHER_LON}&current_weather=true`)
+        .then((r) => r.json()),
     staleTime: 10 * 60_000,
     refetchInterval: 10 * 60_000,
     retry: false,
@@ -100,33 +86,45 @@ export default function TopBar() {
   const members = membersData?.members ?? [];
   const householdName = membersData?.household.name ?? "";
   const weather = weatherData?.current_weather;
-
   const visibleMembers = members.slice(0, 4);
   const overflow = members.length > 4 ? members.length - 4 : 0;
 
   return (
     <header
-      className="fixed left-0 right-0 top-0 z-30 flex h-14 items-center justify-between border-b px-4 md:left-18"
+      className="fixed left-0 right-0 top-0 z-30 flex h-14 items-center justify-between border-b px-4 md:left-55"
       style={{
         backgroundColor: "var(--roost-topbar-bg)",
         borderBottomColor: "var(--roost-topbar-border)",
       }}
     >
-      {/* Left: household name */}
-      <span
-        className="text-base font-semibold truncate max-w-45"
-        style={{ color: "var(--roost-text-primary)" }}
-      >
-        {householdName || "\u00A0"}
-      </span>
+      {/* Left: logo on mobile, household name on md+ */}
+      <div className="flex items-center gap-2.5 min-w-0">
+        {/* R logo: mobile only (sidebar shows full logo on md+) */}
+        <div
+          className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-xs text-white md:hidden"
+          style={{ backgroundColor: "var(--roost-text-primary)", fontWeight: 900 }}
+        >
+          R
+        </div>
+        <span
+          className="text-base truncate max-w-40"
+          style={{ color: "var(--roost-text-primary)", fontWeight: 800 }}
+        >
+          {householdName || "\u00A0"}
+        </span>
+      </div>
 
-      {/* Right: weather + time + avatars */}
-      <div className="flex items-center gap-3">
-        {/* Weather */}
+      {/* Right: weather chip + time + avatars */}
+      <div className="flex items-center gap-2">
+        {/* Weather chip */}
         {weather && (
           <div
-            className="flex items-center gap-1 text-sm"
-            style={{ color: "var(--roost-text-secondary)" }}
+            className="flex items-center gap-1 rounded-full px-2.5 py-1 text-xs"
+            style={{
+              backgroundColor: "var(--roost-border)",
+              color: "var(--roost-text-secondary)",
+              fontWeight: 600,
+            }}
           >
             {getWeatherIcon(weather.weathercode)}
             <span>{Math.round(weather.temperature)}&deg;</span>
@@ -135,8 +133,8 @@ export default function TopBar() {
 
         {/* Time */}
         <span
-          className="text-sm tabular-nums"
-          style={{ color: "var(--roost-text-secondary)" }}
+          className="hidden text-sm tabular-nums sm:block"
+          style={{ color: "var(--roost-text-secondary)", fontWeight: 600 }}
         >
           {time}
         </span>

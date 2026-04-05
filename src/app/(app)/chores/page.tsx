@@ -13,7 +13,8 @@ import {
   Plus,
   Trophy,
 } from "lucide-react";
-import { formatDistanceToNow, isPast } from "date-fns";
+import { isPast } from "date-fns";
+import { motion, AnimatePresence } from "framer-motion";
 import ChoreSheet, { type ChoreData } from "@/components/chores/ChoreSheet";
 import LeaderboardSheet from "@/components/chores/LeaderboardSheet";
 import { SECTION_COLORS } from "@/lib/constants/colors";
@@ -24,6 +25,8 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
+import StatCard from "@/components/shared/StatCard";
+import SectionColorBadge from "@/components/shared/SectionColorBadge";
 
 // ---- Types ------------------------------------------------------------------
 
@@ -67,12 +70,7 @@ interface MembersResponse {
 const COLOR = SECTION_COLORS.chores;
 
 function initials(name: string): string {
-  return name
-    .split(" ")
-    .slice(0, 2)
-    .map((w) => w[0])
-    .join("")
-    .toUpperCase();
+  return name.split(" ").slice(0, 2).map((w) => w[0]).join("").toUpperCase();
 }
 
 function frequencyLabel(freq: string): string {
@@ -90,8 +88,8 @@ function frequencyLabel(freq: string): string {
 export default function ChoresPage() {
   const { data: sessionData } = useSession();
   const currentUserId = sessionData?.user.id ?? "";
-
   const queryClient = useQueryClient();
+
   const [view, setView] = useState<"mine" | "all">("mine");
   const [completedExpanded, setCompletedExpanded] = useState(false);
   const [sheetOpen, setSheetOpen] = useState(false);
@@ -99,7 +97,7 @@ export default function ChoresPage() {
   const [leaderboardOpen, setLeaderboardOpen] = useState(false);
   const [pendingCompleteId, setPendingCompleteId] = useState<string | null>(null);
 
-  // ---- Data fetching --------------------------------------------------------
+  // ---- Data ----------------------------------------------------------------
 
   const { data: choresData, isLoading: choresLoading } = useQuery<ChoresResponse>({
     queryKey: ["chores"],
@@ -114,7 +112,7 @@ export default function ChoresPage() {
     staleTime: 60_000,
   });
 
-  // ---- Complete mutation with optimistic UI --------------------------------
+  // ---- Mutations -----------------------------------------------------------
 
   const completeMutation = useMutation({
     mutationFn: (choreId: string) =>
@@ -125,30 +123,16 @@ export default function ChoresPage() {
     onMutate: async (choreId) => {
       await queryClient.cancelQueries({ queryKey: ["chores"] });
       const previous = queryClient.getQueryData<ChoresResponse>(["chores"]);
-
-      queryClient.setQueryData<ChoresResponse>(["chores"], (old) => {
-        if (!old) return old;
-        return {
-          ...old,
-          chores: old.chores.map((c) =>
-            c.id === choreId
-              ? { ...c, is_complete_today: true, completed_today_by_me: true }
-              : c
-          ),
-        };
-      });
-
+      queryClient.setQueryData<ChoresResponse>(["chores"], (old) =>
+        old ? { ...old, chores: old.chores.map((c) => c.id === choreId ? { ...c, is_complete_today: true, completed_today_by_me: true } : c) } : old
+      );
       return { previous };
     },
-    onError: (_err, _choreId, context) => {
-      if (context?.previous) {
-        queryClient.setQueryData(["chores"], context.previous);
-      }
+    onError: (_err, _id, context) => {
+      if (context?.previous) queryClient.setQueryData(["chores"], context.previous);
       toast.error("Failed to complete chore");
     },
-    onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ["chores"] });
-    },
+    onSettled: () => queryClient.invalidateQueries({ queryKey: ["chores"] }),
   });
 
   const uncheckMutation = useMutation({
@@ -160,143 +144,117 @@ export default function ChoresPage() {
     onMutate: async (choreId) => {
       await queryClient.cancelQueries({ queryKey: ["chores"] });
       const previous = queryClient.getQueryData<ChoresResponse>(["chores"]);
-      queryClient.setQueryData<ChoresResponse>(["chores"], (old) => {
-        if (!old) return old;
-        return {
-          ...old,
-          chores: old.chores.map((c) =>
-            c.id === choreId
-              ? { ...c, is_complete_today: false, completed_today_by_me: false }
-              : c
-          ),
-        };
-      });
+      queryClient.setQueryData<ChoresResponse>(["chores"], (old) =>
+        old ? { ...old, chores: old.chores.map((c) => c.id === choreId ? { ...c, is_complete_today: false, completed_today_by_me: false } : c) } : old
+      );
       return { previous };
     },
-    onError: (_err, _choreId, context) => {
-      if (context?.previous) {
-        queryClient.setQueryData(["chores"], context.previous);
-      }
+    onError: (_err, _id, context) => {
+      if (context?.previous) queryClient.setQueryData(["chores"], context.previous);
       toast.error("Failed to uncheck chore");
     },
     onSuccess: (_data, choreId) => {
-      toast("Chore unmarked", {
-        action: {
-          label: "Undo",
-          onClick: () => completeMutation.mutate(choreId),
-        },
-      });
+      toast("Chore unmarked", { action: { label: "Undo", onClick: () => completeMutation.mutate(choreId) } });
       queryClient.invalidateQueries({ queryKey: ["chores"] });
     },
   });
 
-  // ---- Derived data ---------------------------------------------------------
+  // ---- Derived data --------------------------------------------------------
 
   const allChores = choresData?.chores ?? [];
   const members = membersData?.members ?? [];
-
   const currentMember = members.find((m) => m.userId === currentUserId);
   const isAdmin = currentMember?.role === "admin";
 
-  const filtered =
-    view === "mine"
-      ? allChores.filter(
-          (c) => c.assigned_to === currentUserId || !c.assigned_to
-        )
-      : allChores;
+  const filtered = view === "mine"
+    ? allChores.filter((c) => c.assigned_to === currentUserId || !c.assigned_to)
+    : allChores;
 
   const incomplete = filtered.filter((c) => !c.is_complete_today);
   const complete = filtered.filter((c) => c.is_complete_today);
 
   const doneToday = allChores.filter((c) => c.completed_today_by_me).length;
-  const remaining = allChores.filter(
-    (c) =>
-      !c.is_complete_today &&
-      (c.assigned_to === currentUserId || !c.assigned_to)
-  ).length;
+  const remaining = allChores.filter((c) => !c.is_complete_today && (c.assigned_to === currentUserId || !c.assigned_to)).length;
 
-  // Streak: from the leaderboard cache, or show 0
-  const streakData = queryClient.getQueryData<{ leaderboard: { userId: string; currentStreak: number }[] }>(
-    ["chores-leaderboard"]
-  );
-  const myStreak =
-    streakData?.leaderboard.find((e) => e.userId === currentUserId)
-      ?.currentStreak ?? 0;
+  const streakData = queryClient.getQueryData<{ leaderboard: { userId: string; currentStreak: number }[] }>(["chores-leaderboard"]);
+  const myStreak = streakData?.leaderboard.find((e) => e.userId === currentUserId)?.currentStreak ?? 0;
 
-  // ---- Handlers -------------------------------------------------------------
-
-  function openCreate() {
-    setEditingChore(null);
-    setSheetOpen(true);
-  }
-
+  function openCreate() { setEditingChore(null); setSheetOpen(true); }
   function openEdit(chore: ChoreRow) {
-    setEditingChore({
-      id: chore.id,
-      title: chore.title,
-      description: chore.description,
-      frequency: chore.frequency,
-      custom_days: chore.custom_days,
-      assigned_to: chore.assigned_to,
-    });
+    setEditingChore({ id: chore.id, title: chore.title, description: chore.description, frequency: chore.frequency, custom_days: chore.custom_days, assigned_to: chore.assigned_to });
     setSheetOpen(true);
   }
 
-  // ---- Render ---------------------------------------------------------------
+  // ---- Render --------------------------------------------------------------
 
   return (
-    <div className="flex flex-col gap-4 p-4 pb-24 md:p-6">
-
+    <motion.div
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.18, ease: "easeOut" }}
+      className="flex flex-col gap-4 p-4 pb-24 md:p-6"
+      style={{ backgroundColor: "var(--roost-bg)" }}
+    >
       {/* Header */}
       <div className="flex items-center justify-between">
-        <h1 className="text-xl font-bold">Chores</h1>
-        <button
+        <div className="flex items-center gap-2.5">
+          <h1 className="text-2xl" style={{ color: "var(--roost-text-primary)", fontWeight: 900 }}>
+            Chores
+          </h1>
+          {allChores.length > 0 && (
+            <span
+              className="flex h-6 min-w-6 items-center justify-center rounded-full px-2 text-xs text-white"
+              style={{ backgroundColor: COLOR, fontWeight: 700 }}
+            >
+              {allChores.length}
+            </span>
+          )}
+        </div>
+        <motion.button
           type="button"
           onClick={() => setLeaderboardOpen(true)}
-          className="flex h-10 items-center gap-1.5 rounded-lg border border-border px-3 text-sm font-medium text-muted-foreground hover:bg-accent transition-colors"
+          whileTap={{ y: 1 }}
+          className="flex h-10 items-center gap-1.5 rounded-xl px-3 text-sm"
+          style={{
+            backgroundColor: "var(--roost-surface)",
+            border: "1.5px solid var(--roost-border)",
+            borderBottom: "3px solid var(--roost-border-bottom)",
+            color: "var(--roost-text-primary)",
+            fontWeight: 700,
+          }}
         >
-          <Trophy className="size-4" />
+          <Trophy className="size-4" style={{ color: "#F59E0B" }} />
           Leaderboard
-        </button>
+        </motion.button>
       </div>
 
-      {/* Summary bar */}
+      {/* Stats bar */}
       <div className="grid grid-cols-3 gap-2">
-        {[
-          { label: "Done today", value: doneToday },
-          { label: "Remaining", value: remaining },
-          { label: "Streak", value: `${myStreak}d` },
-        ].map((stat) => (
-          <div
-            key={stat.label}
-            className="rounded-xl border border-border bg-card px-3 py-2.5 text-center"
-          >
-            <p
-              className="text-xl font-bold tabular-nums"
-              style={{ color: COLOR }}
-            >
-              {stat.value}
-            </p>
-            <p className="mt-0.5 text-[11px] text-muted-foreground">{stat.label}</p>
-          </div>
-        ))}
+        <StatCard value={doneToday} label="Done today" color={COLOR} />
+        <StatCard value={remaining} label="Remaining" />
+        <StatCard value={`${myStreak}d`} label="Streak" color="#F59E0B" />
       </div>
 
       {/* View toggle */}
-      <div className="flex rounded-lg border border-border overflow-hidden">
+      <div
+        className="flex overflow-hidden rounded-xl"
+        style={{
+          border: "1.5px solid var(--roost-border)",
+          borderBottom: "3px solid var(--roost-border-bottom)",
+        }}
+      >
         {(["mine", "all"] as const).map((v, i) => (
           <button
             key={v}
             type="button"
             onClick={() => setView(v)}
-            className={`flex-1 h-10 text-sm font-medium transition-colors ${
-              i > 0 ? "border-l border-border" : ""
-            } ${
-              view === v
-                ? "text-white"
-                : "bg-background text-muted-foreground hover:bg-accent"
-            }`}
-            style={view === v ? { backgroundColor: COLOR } : undefined}
+            className="flex-1 h-10 text-sm transition-colors"
+            style={{
+              borderLeft: i > 0 ? "1px solid var(--roost-border)" : undefined,
+              backgroundColor: view === v ? COLOR : "var(--roost-surface)",
+              color: view === v ? "white" : "var(--roost-text-secondary)",
+              fontWeight: view === v ? 800 : 600,
+            }}
           >
             {v === "mine" ? "My Chores" : "All Chores"}
           </button>
@@ -305,49 +263,81 @@ export default function ChoresPage() {
 
       {/* Loading */}
       {choresLoading && (
-        <div className="flex items-center justify-center py-12 text-sm text-muted-foreground">
+        <div className="flex items-center justify-center py-12 text-sm" style={{ color: "var(--roost-text-muted)" }}>
           Loading chores...
         </div>
       )}
 
       {/* Empty state */}
       {!choresLoading && allChores.length === 0 && (
-        <div className="flex flex-col items-center gap-3 py-16 text-center">
-          <ClipboardList className="size-12 text-muted-foreground/40" />
-          <div>
-            <p className="font-medium">No chores yet</p>
-            <p className="mt-0.5 text-sm text-muted-foreground">
-              Add your first chore to get started
+        <motion.div
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.2 }}
+          className="flex flex-col items-center gap-4 rounded-2xl px-6 py-12 text-center"
+          style={{
+            backgroundColor: "var(--roost-surface)",
+            border: "1.5px dashed var(--roost-border)",
+            borderBottom: "4px dashed var(--roost-border-bottom)",
+          }}
+        >
+          <div
+            className="flex h-14 w-14 items-center justify-center rounded-2xl"
+            style={{ backgroundColor: COLOR + "18", border: `1.5px solid ${COLOR}30` }}
+          >
+            <ClipboardList className="size-7" style={{ color: COLOR }} />
+          </div>
+          <div className="space-y-1 max-w-xs">
+            <p className="text-base" style={{ color: "var(--roost-text-primary)", fontWeight: 800 }}>
+              Suspiciously clean.
+            </p>
+            <p className="text-sm leading-relaxed" style={{ color: "var(--roost-text-secondary)", fontWeight: 600 }}>
+              No chores yet. Either you are very on top of things, or someone is avoiding this screen.
             </p>
           </div>
-          <button
+          <motion.button
             type="button"
             onClick={openCreate}
-            className="mt-2 flex h-10 items-center gap-1.5 rounded-lg px-4 text-sm font-medium text-white"
-            style={{ backgroundColor: COLOR }}
+            whileTap={{ y: 2 }}
+            className="mt-1 flex h-11 items-center gap-2 rounded-xl px-5 text-sm text-white"
+            style={{
+              backgroundColor: COLOR,
+              border: `1.5px solid ${COLOR}`,
+              borderBottom: "3px solid rgba(0,0,0,0.2)",
+              fontWeight: 800,
+            }}
           >
             <Plus className="size-4" />
-            Add chore
-          </button>
-        </div>
+            Add the first chore
+          </motion.button>
+        </motion.div>
       )}
 
       {/* Incomplete chores */}
-      {incomplete.length > 0 && (
-        <div className="space-y-2">
-          {incomplete.map((chore) => (
-            <ChoreRow
-              key={chore.id}
-              chore={chore}
-              currentUserId={currentUserId}
-              isAdmin={isAdmin}
-              onComplete={() => setPendingCompleteId(chore.id)}
-              onEdit={() => openEdit(chore)}
-              completing={completeMutation.isPending && completeMutation.variables === chore.id}
-            />
-          ))}
-        </div>
-      )}
+      <AnimatePresence>
+        {incomplete.length > 0 && (
+          <div className="space-y-2">
+            {incomplete.map((chore, i) => (
+              <motion.div
+                key={chore.id}
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -4 }}
+                transition={{ delay: Math.min(i * 0.04, 0.2), duration: 0.15 }}
+              >
+                <ChoreItem
+                  chore={chore}
+                  currentUserId={currentUserId}
+                  isAdmin={isAdmin}
+                  onComplete={() => setPendingCompleteId(chore.id)}
+                  onEdit={() => openEdit(chore)}
+                  completing={completeMutation.isPending && completeMutation.variables === chore.id}
+                />
+              </motion.div>
+            ))}
+          </div>
+        )}
+      </AnimatePresence>
 
       {/* Completed section */}
       {complete.length > 0 && (
@@ -355,104 +345,125 @@ export default function ChoresPage() {
           <button
             type="button"
             onClick={() => setCompletedExpanded((v) => !v)}
-            className="flex w-full items-center justify-between py-2 text-sm font-medium text-muted-foreground"
+            className="flex w-full items-center justify-between py-2"
+            style={{ color: "var(--roost-text-muted)" }}
           >
-            <span>Completed today ({complete.length})</span>
-            {completedExpanded ? (
-              <ChevronUp className="size-4" />
-            ) : (
-              <ChevronDown className="size-4" />
-            )}
+            <span className="text-sm" style={{ fontWeight: 700 }}>
+              Completed today ({complete.length})
+            </span>
+            {completedExpanded
+              ? <ChevronUp className="size-4" />
+              : <ChevronDown className="size-4" />
+            }
           </button>
-
-          {completedExpanded && (
-            <div className="mt-1 space-y-2">
-              {complete.map((chore) => (
-                <ChoreRow
-                  key={chore.id}
-                  chore={chore}
-                  currentUserId={currentUserId}
-                  isAdmin={isAdmin}
-                  onComplete={() => uncheckMutation.mutate(chore.id)}
-                  onEdit={() => openEdit(chore)}
-                  completing={uncheckMutation.isPending && uncheckMutation.variables === chore.id}
-                  done
-                />
-              ))}
-            </div>
-          )}
+          <AnimatePresence>
+            {completedExpanded && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: "auto" }}
+                exit={{ opacity: 0, height: 0 }}
+                transition={{ duration: 0.15 }}
+                className="space-y-2 overflow-hidden"
+              >
+                {complete.map((chore, i) => (
+                  <motion.div
+                    key={chore.id}
+                    initial={{ opacity: 0, y: 4 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: i * 0.03, duration: 0.12 }}
+                  >
+                    <ChoreItem
+                      chore={chore}
+                      currentUserId={currentUserId}
+                      isAdmin={isAdmin}
+                      onComplete={() => uncheckMutation.mutate(chore.id)}
+                      onEdit={() => openEdit(chore)}
+                      completing={uncheckMutation.isPending && uncheckMutation.variables === chore.id}
+                      done
+                    />
+                  </motion.div>
+                ))}
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
       )}
 
       {/* FAB */}
       {allChores.length > 0 && (
-        <button
+        <motion.button
           type="button"
           onClick={openCreate}
+          whileTap={{ scale: 0.95, y: 2 }}
           className="fixed bottom-20 right-4 z-30 flex h-14 w-14 items-center justify-center rounded-2xl shadow-lg md:bottom-6"
-          style={{ backgroundColor: COLOR }}
+          style={{
+            backgroundColor: COLOR,
+            border: `1.5px solid ${COLOR}`,
+            borderBottom: "4px solid rgba(0,0,0,0.2)",
+          }}
           aria-label="Add chore"
         >
           <Plus className="size-6 text-white" />
-        </button>
+        </motion.button>
       )}
 
-      {/* Complete confirmation dialog */}
-      <Dialog
-        open={!!pendingCompleteId}
-        onOpenChange={(v) => !v && setPendingCompleteId(null)}
-      >
+      {/* Confirm complete dialog */}
+      <Dialog open={!!pendingCompleteId} onOpenChange={(v) => !v && setPendingCompleteId(null)}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Mark chore complete?</DialogTitle>
+            <DialogTitle style={{ color: "var(--roost-text-primary)", fontWeight: 800 }}>
+              Mark chore complete?
+            </DialogTitle>
           </DialogHeader>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-sm" style={{ color: "var(--roost-text-secondary)", fontWeight: 600 }}>
             {allChores.find((c) => c.id === pendingCompleteId)?.title}
           </p>
           <DialogFooter className="mt-2 gap-2">
             <button
               type="button"
               onClick={() => setPendingCompleteId(null)}
-              className="flex h-11 flex-1 items-center justify-center rounded-lg border border-border text-sm font-medium"
+              className="flex h-11 flex-1 items-center justify-center rounded-xl text-sm"
+              style={{
+                border: "1.5px solid var(--roost-border)",
+                borderBottom: "3px solid var(--roost-border-bottom)",
+                color: "var(--roost-text-primary)",
+                fontWeight: 700,
+              }}
             >
               Cancel
             </button>
-            <button
+            <motion.button
               type="button"
+              whileTap={{ y: 1 }}
               onClick={() => {
                 if (pendingCompleteId) {
                   completeMutation.mutate(pendingCompleteId);
                   setPendingCompleteId(null);
                 }
               }}
-              className="flex h-11 flex-1 items-center justify-center rounded-lg text-sm font-semibold text-white"
-              style={{ backgroundColor: COLOR }}
+              className="flex h-11 flex-1 items-center justify-center rounded-xl text-sm text-white"
+              style={{
+                backgroundColor: COLOR,
+                border: `1.5px solid ${COLOR}`,
+                borderBottom: "3px solid rgba(0,0,0,0.2)",
+                fontWeight: 800,
+              }}
             >
               Mark complete
-            </button>
+            </motion.button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {/* Sheets */}
-      <ChoreSheet
-        open={sheetOpen}
-        onClose={() => setSheetOpen(false)}
-        chore={editingChore}
-        members={members}
-        isAdmin={isAdmin}
-      />
-      <LeaderboardSheet
-        open={leaderboardOpen}
-        onClose={() => setLeaderboardOpen(false)}
-      />
-    </div>
+      <ChoreSheet open={sheetOpen} onClose={() => setSheetOpen(false)} chore={editingChore} members={members} isAdmin={isAdmin} />
+      <LeaderboardSheet open={leaderboardOpen} onClose={() => setLeaderboardOpen(false)} />
+    </motion.div>
   );
 }
 
-// ---- ChoreRow sub-component -------------------------------------------------
+// ---- ChoreItem sub-component ------------------------------------------------
 
-function ChoreRow({
+function ChoreItem({
   chore,
   currentUserId,
   isAdmin,
@@ -469,18 +480,21 @@ function ChoreRow({
   completing: boolean;
   done?: boolean;
 }) {
-  const isOverdue =
-    !done &&
-    chore.next_due_at != null &&
-    isPast(new Date(chore.next_due_at));
-
+  const isOverdue = !done && chore.next_due_at != null && isPast(new Date(chore.next_due_at));
   const canEdit = isAdmin || chore.created_by === currentUserId;
 
   return (
     <div
-      className={`flex min-h-16 items-center gap-3 rounded-xl border border-border bg-card px-3 py-2 transition-opacity ${
-        done ? "opacity-60" : ""
-      }`}
+      className="flex min-h-16 items-center gap-3 rounded-2xl px-3 py-2"
+      style={{
+        backgroundColor: "var(--roost-surface)",
+        border: "1.5px solid var(--roost-border)",
+        borderBottom: isOverdue
+          ? `4px solid ${SECTION_COLORS.chores}`
+          : "4px solid var(--roost-border-bottom)",
+        opacity: done ? 0.6 : 1,
+        transition: "opacity 0.15s",
+      }}
     >
       {/* Complete button */}
       <button
@@ -490,53 +504,44 @@ function ChoreRow({
         className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full"
         aria-label={done ? "Unmark complete" : "Mark complete"}
       >
-        <CheckCircle2
-          className="size-7 transition-colors"
-          style={{ color: done ? COLOR : "var(--muted-foreground)" }}
-          strokeWidth={done ? 2.5 : 1.5}
-        />
+        <motion.div
+          animate={done ? { scale: [0.8, 1.1, 1] } : { scale: 1 }}
+          transition={{ duration: 0.15, ease: "easeOut" }}
+        >
+          <CheckCircle2
+            className="size-7 transition-colors"
+            style={{ color: done ? SECTION_COLORS.chores : "var(--roost-border-bottom)" }}
+            strokeWidth={done ? 2.5 : 1.5}
+          />
+        </motion.div>
       </button>
 
       {/* Content */}
       <div className="min-w-0 flex-1">
         <p
-          className={`text-[15px] font-medium leading-tight ${
-            done ? "line-through text-muted-foreground" : ""
-          }`}
+          className={`text-sm leading-tight ${done ? "line-through" : ""}`}
+          style={{
+            color: done ? "var(--roost-text-muted)" : "var(--roost-text-primary)",
+            fontWeight: done ? 600 : 700,
+          }}
         >
           {chore.title}
         </p>
         <div className="mt-1 flex flex-wrap items-center gap-1.5">
-          {/* Frequency badge */}
-          <span
-            className="rounded-full px-2 py-0.5 text-[11px] font-medium"
-            style={{
-              backgroundColor: COLOR + "18",
-              color: COLOR,
-            }}
-          >
-            {frequencyLabel(chore.frequency)}
-          </span>
-
-          {/* Assignee */}
+          <SectionColorBadge label={frequencyLabel(chore.frequency)} color={SECTION_COLORS.chores} />
           {chore.assignee_name && chore.assigned_to !== currentUserId && (
-            <span className="text-xs text-muted-foreground">
+            <span className="text-xs" style={{ color: "var(--roost-text-muted)", fontWeight: 600 }}>
               {chore.assignee_name}
             </span>
           )}
-
-          {/* Overdue badge */}
           {isOverdue && (
-            <span className="rounded-full bg-red-100 px-2 py-0.5 text-[11px] font-medium text-red-600 dark:bg-red-900/30 dark:text-red-400">
-              Overdue
-            </span>
+            <SectionColorBadge label="Overdue" color="#EF4444" />
           )}
         </div>
       </div>
 
       {/* Right side */}
       <div className="flex shrink-0 items-center gap-1">
-        {/* Assignee avatar */}
         {chore.assignee_name && (
           <div
             className="flex h-7 w-7 items-center justify-center rounded-full text-[10px] font-semibold text-white"
@@ -545,13 +550,12 @@ function ChoreRow({
             {initials(chore.assignee_name)}
           </div>
         )}
-
-        {/* Edit button */}
         {canEdit && !done && (
           <button
             type="button"
             onClick={onEdit}
-            className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground hover:bg-accent transition-colors"
+            className="flex h-8 w-8 items-center justify-center rounded-lg transition-colors hover:bg-accent"
+            style={{ color: "var(--roost-text-muted)" }}
           >
             <Pencil className="size-3.5" />
           </button>

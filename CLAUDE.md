@@ -20,6 +20,7 @@ per-household pricing.
 - better-auth (sessions)
 - TanStack Query (10s polling, real-time not required)
 - Zustand (client state, v5)
+- framer-motion (page enter animations, list stagger, whileTap)
 - shadcn/ui + Lucide icons (NO emojis anywhere)
 - Stripe (web payments) + RevenueCat (iOS/Android billing)
 - Google Vision API (receipt OCR)
@@ -228,7 +229,36 @@ Tasks: one-off to-dos
 - Bottom tab bar on mobile (Home, Chores, Grocery, Calendar, More)
   More opens a sheet with Profile and Settings links
 - UI scales: phone / tablet / desktop
-- Font: Nunito (400, 500, 600, 700, 800, 900) via next/font/google
+- Font: Nunito (400-900) via next/font/google; weights 600/700/800/900 only in UI. Never below 600.
+- framer-motion animations:
+  - Page wrapper: initial={{ opacity:0, y:12 }} animate={{ opacity:1, y:0 }} duration:0.18
+  - List stagger: delay: Math.min(index * 0.04, 0.2), duration: 0.15
+  - Buttons: whileTap={{ y: 2 }} (cards/FAB) or {{ y: 1 }} (small buttons)
+  - Slides: AnimatePresence mode="wait", x: 20 in / x: -20 out
+
+## Empty State Copy (exact wording, section by section)
+- Chores (no chores at all): title "Suspiciously clean." / body "No chores yet. Either you are very on top of things, or someone is avoiding this screen." / button "Add the first chore"
+- Chores (filtered, none match): title "All clear." / body "Nothing here. Enjoy it while it lasts." (no button)
+- Grocery: title "The fridge is on its own." / body "No items on the list. Add something before someone eats a condiment for dinner." / button "Add an item"
+- Tasks: title "Nothing to do." / body "Either you are incredibly productive, or you just found this screen. Either way, good job." / button "Add a task"
+- Calendar: title "Wide open." / body "No events this week. Either things are calm, or nobody told the app." / button "Add an event"
+- Notes: title "Blank slate." / body "No notes yet. Write something down before you forget it." / button "New note"
+- Expenses: title "All square." / body "No expenses tracked. Either everyone is being weirdly generous, or nobody has added anything yet." / button "Add expense"
+- Meals: title "Dinner TBD." / body "No meals planned. The household is winging it tonight." / button "Plan a meal"
+- Reminders: title "Nothing pending." / body "No reminders set. Bold move." / button "Add a reminder"
+- Leaderboard (no activity): title "No activity this week yet." / body "Complete chores to earn points and claim your spot."
+
+## Placeholder Copy (exact wording)
+- Chore title: "e.g. Vacuum the living room"
+- Chore description: "Any extra details for the person doing it"
+- Household name: "e.g. The Johnson House"
+- Household code: "6-letter code from your housemate"
+- Task title: "e.g. Buy a new shower curtain"
+- Note title: "Give it a name"
+- Note body: "Write whatever you want. Nobody is grading this."
+- Grocery item: "Add an item"
+- Expense description: "What was it for?"
+- Expense amount: "0.00"
 
 ## Folder Structure
 src/db/schema/              Drizzle schema files, split by domain
@@ -246,7 +276,7 @@ src/components/ui/          shadcn primitives
 src/components/layout/      Shell, nav, sidebar
 src/components/providers/   Client providers (ThemeProvider)
 src/components/dashboard/   Home screen components
-src/components/shared/      Reused across features (SlabCard, QueryProvider)
+src/components/shared/      Reused across features (SlabCard, QueryProvider, EmptyState, StatCard, PageHeader, SectionColorBadge, MemberAvatar)
 
 ## Files Built So Far
 src/proxy.ts                                   Route protection (Next.js 16 middleware)
@@ -291,12 +321,17 @@ src/app/api/chores/[id]/complete/route.ts      POST: complete chore + streak; DE
 src/app/api/chores/leaderboard/route.ts        GET: weekly leaderboard sorted by points
 src/components/layout/TopBar.tsx               Household name, weather, clock, avatars -- all CSS variable colors
 src/components/layout/BottomNav.tsx            Mobile 4-tab nav + More sheet (Profile, Settings)
-src/components/layout/Sidebar.tsx              Desktop icon-only 72px sidebar -- CSS variable colors
+src/components/layout/Sidebar.tsx              Desktop 220px sidebar with icon+label for all 9 nav items
 src/components/providers/ThemeProvider.tsx     Applies theme CSS vars; exports useTheme() hook
 src/components/shared/QueryProvider.tsx        TanStack Query client provider
 src/components/shared/SlabCard.tsx             Base card: rounded-2xl, border + 4px slab bottom, press effect
-src/components/chores/ChoreSheet.tsx           Add/edit sheet with frequency, custom days, delete confirm
-src/components/chores/LeaderboardSheet.tsx     Weekly leaderboard with rank colors + streak display
+src/components/shared/EmptyState.tsx           Sassy empty state: dashed slab card, icon, title, body, optional button
+src/components/shared/StatCard.tsx             Stat tile: big number + label, slab card
+src/components/shared/PageHeader.tsx           Page title + subtitle + optional badge + action
+src/components/shared/SectionColorBadge.tsx    Inline color badge pill: bg color+18, border color+30
+src/components/shared/MemberAvatar.tsx         Initials avatar, sizes sm/md/lg, color prop
+src/components/chores/ChoreSheet.tsx           Add/edit sheet: slab inputs, slab freq toggles, slab day buttons
+src/components/chores/LeaderboardSheet.tsx     Weekly leaderboard: slab cards, gold/silver/bronze rank badges
 
 ## API Rules
 - All routes validate session + household membership before DB
@@ -324,6 +359,7 @@ src/components/chores/LeaderboardSheet.tsx     Weekly leaderboard with rank colo
 - No emojis anywhere, Lucide icons only
 - No em dashes and no double hyphens in any UI-facing text, placeholders, copy, or JSX string content.
   Use commas, colons, periods, or reword instead. This applies to ALL files forever.
+- Text opacity: never use opacity below /70 for text. Use --roost-text-muted instead of text-primary/50.
 
 ## Build Phases
 Phase 1: Foundation (COMPLETE)
@@ -333,6 +369,7 @@ Phase 1: Foundation (COMPLETE)
   Middleware: DONE, src/proxy.ts (Next.js 16 renamed middleware to proxy)
 
 Phase 2: Daily Use
+  Design system pass: DONE, all auth+app pages, ChoreSheet, LeaderboardSheet, Sidebar (220px), BottomNav (4 tabs + More sheet), shared components
   Theme system: DONE, 8 themes, per-user, instant apply, settings picker
   Chores: DONE, list, create, edit, complete, uncheck, streaks, leaderboard, optimistic UI
   Grocery: shared list, optimistic check/uncheck
@@ -369,7 +406,7 @@ EXPO_ACCESS_TOKEN
 At the start of each new session fetch this file to restore context.
 Share GitHub file URLs, paste code, or describe what was built.
 Update this file after every major decision or completed phase.
-Last updated: 2026-04-05
+Last updated: 2026-04-05 (design system pass complete)
 
 
 Rules:

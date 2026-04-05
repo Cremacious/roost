@@ -5,13 +5,8 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { toast } from "sonner";
 import { signUp } from "@/lib/auth/client";
-import {
-  CheckCircle2,
-  Eye,
-  EyeOff,
-  Loader2,
-  XCircle,
-} from "lucide-react";
+import { CheckCircle2, Eye, EyeOff, Loader2, XCircle } from "lucide-react";
+import { motion } from "framer-motion";
 
 type Strength = "weak" | "fair" | "good" | "strong";
 
@@ -20,16 +15,26 @@ function getStrength(password: string): Strength {
   const hasNumber = /[0-9]/.test(password);
   const hasSymbol = /[^a-zA-Z0-9]/.test(password);
   const hasUpper = /[A-Z]/.test(password);
-  if (hasUpper && (hasNumber || hasSymbol) && hasNumber && hasSymbol) return "strong";
+  if (hasUpper && hasNumber && hasSymbol) return "strong";
   if (hasNumber || hasSymbol) return "good";
   return "fair";
 }
 
-const strengthConfig: Record<Strength, { segments: number; label: string; color: string; textColor: string }> = {
-  weak:   { segments: 1, label: "Weak",   color: "bg-red-500",    textColor: "text-red-500" },
-  fair:   { segments: 2, label: "Fair",   color: "bg-orange-500", textColor: "text-orange-500" },
-  good:   { segments: 3, label: "Good",   color: "bg-yellow-500", textColor: "text-yellow-500" },
-  strong: { segments: 4, label: "Strong", color: "bg-green-500",  textColor: "text-green-500" },
+const STRENGTH_CONFIG: Record<Strength, { segments: number; label: string; color: string }> = {
+  weak:   { segments: 1, label: "Weak",   color: "#EF4444" },
+  fair:   { segments: 2, label: "Fair",   color: "#F97316" },
+  good:   { segments: 3, label: "Good",   color: "#F59E0B" },
+  strong: { segments: 4, label: "Strong", color: "#22C55E" },
+};
+
+const inputClass =
+  "flex h-12 w-full rounded-xl border bg-transparent px-4 text-sm placeholder:italic focus:outline-none transition-colors";
+
+const inputStyle = {
+  border: "1.5px solid var(--roost-border)",
+  borderBottom: "3px solid var(--roost-border-bottom)",
+  color: "var(--roost-text-primary)",
+  fontWeight: 600,
 };
 
 export default function SignupPage() {
@@ -46,6 +51,7 @@ export default function SignupPage() {
   const strength = password.length > 0 ? getStrength(password) : null;
   const confirmTouched = confirm.length > 0;
   const passwordsMatch = password === confirm;
+  const cfg = strength ? STRENGTH_CONFIG[strength] : null;
 
   function validate(): boolean {
     const next: Record<string, string> = {};
@@ -61,149 +67,219 @@ export default function SignupPage() {
     e.preventDefault();
     if (!validate()) return;
     setLoading(true);
-
     const { error } = await signUp.email({ name, email, password });
-
     if (error) {
       toast.error(error.message ?? "Sign up failed");
       setLoading(false);
       return;
     }
-
     router.push("/onboarding");
   }
 
-  const submitDisabled = loading || (confirmTouched && !passwordsMatch) || (!!strength && strength === "weak");
+  const submitDisabled =
+    loading || (confirmTouched && !passwordsMatch) || (!!strength && strength === "weak");
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4">
-      <div className="w-full max-w-sm space-y-6">
-        <div className="space-y-1">
-          <h1 className="text-2xl font-semibold tracking-tight">Create account</h1>
-          <p className="text-sm text-muted-foreground">Get started with Roost</p>
+    <div
+      className="flex min-h-screen flex-col items-center justify-center p-4"
+      style={{ backgroundColor: "var(--roost-bg)" }}
+    >
+      <motion.div
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.18, ease: "easeOut" }}
+        className="w-full max-w-sm space-y-8"
+      >
+        {/* Logo + heading */}
+        <div className="flex flex-col items-center gap-3 text-center">
+          <div
+            className="flex h-14 w-14 items-center justify-center rounded-2xl text-2xl text-white"
+            style={{
+              backgroundColor: "var(--roost-text-primary)",
+              fontWeight: 900,
+              border: "1.5px solid var(--roost-border)",
+              borderBottom: "4px solid var(--roost-border-bottom)",
+            }}
+          >
+            R
+          </div>
+          <div>
+            <h1
+              className="text-3xl"
+              style={{ color: "var(--roost-text-primary)", fontWeight: 900 }}
+            >
+              Create your account.
+            </h1>
+            <p
+              className="mt-1 text-sm"
+              style={{ color: "var(--roost-text-secondary)", fontWeight: 600 }}
+            >
+              Let&apos;s get your household sorted.
+            </p>
+          </div>
         </div>
 
+        {/* Form */}
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* Name */}
-          <div className="space-y-1">
-            <label htmlFor="name" className="text-sm font-medium">Name</label>
+          <div className="space-y-1.5">
+            <label className="text-sm" style={{ color: "var(--roost-text-primary)", fontWeight: 700 }}>
+              Your name
+            </label>
             <input
               id="name"
               type="text"
               autoComplete="name"
               value={name}
-              onChange={(e) => { setName(e.target.value); setErrors((prev) => ({ ...prev, name: "" })); }}
-              className="flex h-12 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+              onChange={(e) => { setName(e.target.value); setErrors((p) => ({ ...p, name: "" })); }}
+              placeholder="What should we call you?"
+              className={inputClass}
+              style={inputStyle}
             />
-            {errors.name && <p className="text-destructive text-sm">{errors.name}</p>}
+            {errors.name && (
+              <p className="text-sm text-destructive" style={{ fontWeight: 600 }}>{errors.name}</p>
+            )}
           </div>
 
           {/* Email */}
-          <div className="space-y-1">
-            <label htmlFor="email" className="text-sm font-medium">Email</label>
+          <div className="space-y-1.5">
+            <label className="text-sm" style={{ color: "var(--roost-text-primary)", fontWeight: 700 }}>
+              Email
+            </label>
             <input
               id="email"
               type="email"
               autoComplete="email"
               value={email}
-              onChange={(e) => { setEmail(e.target.value); setErrors((prev) => ({ ...prev, email: "" })); }}
-              className="flex h-12 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+              onChange={(e) => { setEmail(e.target.value); setErrors((p) => ({ ...p, email: "" })); }}
+              placeholder="you@example.com"
+              className={inputClass}
+              style={inputStyle}
             />
-            {errors.email && <p className="text-destructive text-sm">{errors.email}</p>}
+            {errors.email && (
+              <p className="text-sm text-destructive" style={{ fontWeight: 600 }}>{errors.email}</p>
+            )}
           </div>
 
           {/* Password */}
-          <div className="space-y-1">
-            <label htmlFor="password" className="text-sm font-medium">Password</label>
+          <div className="space-y-1.5">
+            <label className="text-sm" style={{ color: "var(--roost-text-primary)", fontWeight: 700 }}>
+              Password
+            </label>
             <div className="relative">
               <input
                 id="password"
                 type={showPassword ? "text" : "password"}
                 autoComplete="new-password"
                 value={password}
-                onChange={(e) => { setPassword(e.target.value); setErrors((prev) => ({ ...prev, password: "" })); }}
-                className="flex h-12 w-full rounded-md border border-input bg-background px-3 pr-10 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                onChange={(e) => { setPassword(e.target.value); setErrors((p) => ({ ...p, password: "" })); }}
+                placeholder="At least 8 characters"
+                className={`${inputClass} pr-11`}
+                style={inputStyle}
               />
               <button
                 type="button"
                 onClick={() => setShowPassword((v) => !v)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+                className="absolute right-3 top-1/2 -translate-y-1/2"
+                style={{ color: "var(--roost-text-muted)" }}
                 tabIndex={-1}
               >
                 {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
               </button>
             </div>
 
-            {/* Strength bar */}
-            {strength && (
-              <div className="flex items-center gap-2 pt-1">
+            {/* Strength bar: slab pill segments */}
+            {cfg && (
+              <div className="flex items-center gap-2 pt-0.5">
                 <div className="flex flex-1 gap-1">
                   {[0, 1, 2, 3].map((i) => (
                     <div
                       key={i}
-                      className={`h-1.5 flex-1 rounded-full transition-colors ${
-                        i < strengthConfig[strength].segments
-                          ? strengthConfig[strength].color
-                          : "bg-muted"
-                      }`}
+                      className="h-2 flex-1 rounded-full transition-colors"
+                      style={{
+                        backgroundColor: i < cfg.segments ? cfg.color : "var(--roost-border)",
+                        borderBottom: i < cfg.segments ? `2px solid rgba(0,0,0,0.15)` : "2px solid transparent",
+                      }}
                     />
                   ))}
                 </div>
-                <span className={`text-xs font-medium ${strengthConfig[strength].textColor}`}>
-                  {strengthConfig[strength].label}
+                <span className="text-xs" style={{ color: cfg.color, fontWeight: 700 }}>
+                  {cfg.label}
                 </span>
               </div>
             )}
-            {errors.password && <p className="text-destructive text-sm">{errors.password}</p>}
+            {errors.password && (
+              <p className="text-sm text-destructive" style={{ fontWeight: 600 }}>{errors.password}</p>
+            )}
           </div>
 
-          {/* Confirm password */}
-          <div className="space-y-1">
-            <label htmlFor="confirm" className="text-sm font-medium">Confirm password</label>
+          {/* Confirm */}
+          <div className="space-y-1.5">
+            <label className="text-sm" style={{ color: "var(--roost-text-primary)", fontWeight: 700 }}>
+              Confirm password
+            </label>
             <div className="relative">
               <input
                 id="confirm"
                 type={showConfirm ? "text" : "password"}
                 autoComplete="new-password"
                 value={confirm}
-                onChange={(e) => { setConfirm(e.target.value); setErrors((prev) => ({ ...prev, confirm: "" })); }}
-                className="flex h-12 w-full rounded-md border border-input bg-background px-3 pr-16 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                onChange={(e) => { setConfirm(e.target.value); setErrors((p) => ({ ...p, confirm: "" })); }}
+                placeholder="Same as above"
+                className={`${inputClass} pr-16`}
+                style={inputStyle}
               />
               <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1">
                 {confirmTouched && (
                   passwordsMatch
-                    ? <CheckCircle2 className="size-4 text-green-500" />
-                    : <XCircle className="size-4 text-red-500" />
+                    ? <CheckCircle2 className="size-4" style={{ color: "#22C55E" }} />
+                    : <XCircle className="size-4" style={{ color: "#EF4444" }} />
                 )}
                 <button
                   type="button"
                   onClick={() => setShowConfirm((v) => !v)}
-                  className="text-muted-foreground"
+                  style={{ color: "var(--roost-text-muted)" }}
                   tabIndex={-1}
                 >
                   {showConfirm ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
                 </button>
               </div>
             </div>
-            {errors.confirm && <p className="text-destructive text-sm">{errors.confirm}</p>}
+            {errors.confirm && (
+              <p className="text-sm text-destructive" style={{ fontWeight: 600 }}>{errors.confirm}</p>
+            )}
           </div>
 
-          <button
+          <motion.button
             type="submit"
             disabled={submitDisabled}
-            className="flex h-12 w-full items-center justify-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground disabled:opacity-50"
+            whileTap={{ y: 2 }}
+            className="flex h-12 w-full items-center justify-center rounded-xl text-sm text-white disabled:opacity-60"
+            style={{
+              backgroundColor: "var(--roost-text-primary)",
+              border: "1.5px solid var(--roost-text-primary)",
+              borderBottom: "3px solid rgba(0,0,0,0.25)",
+              fontWeight: 800,
+            }}
           >
             {loading ? <Loader2 className="size-4 animate-spin" /> : "Create account"}
-          </button>
+          </motion.button>
         </form>
 
-        <p className="text-center text-sm text-muted-foreground">
+        <p
+          className="text-center text-sm"
+          style={{ color: "var(--roost-text-secondary)", fontWeight: 600 }}
+        >
           Already have an account?{" "}
-          <Link href="/login" className="text-foreground underline underline-offset-4">
+          <Link
+            href="/login"
+            className="underline underline-offset-4"
+            style={{ color: "var(--roost-text-primary)", fontWeight: 700 }}
+          >
             Sign in
           </Link>
         </p>
-      </div>
+      </motion.div>
     </div>
   );
 }

@@ -2,6 +2,7 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
+import { useSession } from "@/lib/auth/client";
 import {
   Bell,
   Calendar,
@@ -13,20 +14,14 @@ import {
   UtensilsCrossed,
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
+import { motion } from "framer-motion";
 import { SECTION_COLORS, type SectionKey } from "@/lib/constants/colors";
 
 // ---- Types ------------------------------------------------------------------
 
-interface Member {
-  id: string;
-  userId: string;
-  name: string;
-  avatarColor: string | null;
-}
-
 interface MembersResponse {
   household: { id: string; name: string; subscriptionStatus: string };
-  members: Member[];
+  members: { userId: string; name: string; avatarColor: string | null }[];
 }
 
 interface ActivityItem {
@@ -46,19 +41,34 @@ interface Tile {
   statusText: string;
 }
 
+// ---- Helpers ----------------------------------------------------------------
+
+function getGreeting(name: string): string {
+  const h = new Date().getHours();
+  const part = h < 12 ? "morning" : h < 17 ? "afternoon" : "evening";
+  const firstName = name.split(" ")[0];
+  return `Good ${part}, ${firstName}.`;
+}
+
+function formatDate(): string {
+  return new Date().toLocaleDateString("en-US", {
+    weekday: "long",
+    month: "long",
+    day: "numeric",
+  });
+}
+
 // ---- Constants --------------------------------------------------------------
 
-// TODO: Replace with real data from API once features are built
 const MOCK_ACTIVITY: ActivityItem[] = [
-  { id: "1", section: "chores",   memberName: "Alex",   action: "completed dishes",         timestamp: new Date(Date.now() - 2 * 60_000) },
-  { id: "2", section: "grocery",  memberName: "Jordan", action: "added milk to the list",    timestamp: new Date(Date.now() - 15 * 60_000) },
-  { id: "3", section: "tasks",    memberName: "Sam",    action: "completed a task",          timestamp: new Date(Date.now() - 1 * 3600_000) },
-  { id: "4", section: "calendar", memberName: "Alex",   action: "added a dinner event",      timestamp: new Date(Date.now() - 3 * 3600_000) },
-  { id: "5", section: "expenses", memberName: "Jordan", action: "added a $42 expense",       timestamp: new Date(Date.now() - 5 * 3600_000) },
-  { id: "6", section: "chores",   memberName: "Sam",    action: "completed vacuuming",       timestamp: new Date(Date.now() - 24 * 3600_000) },
+  { id: "1", section: "chores",   memberName: "Alex",   action: "completed dishes",    timestamp: new Date(Date.now() - 2 * 60_000) },
+  { id: "2", section: "grocery",  memberName: "Jordan", action: "added milk to the list", timestamp: new Date(Date.now() - 15 * 60_000) },
+  { id: "3", section: "tasks",    memberName: "Sam",    action: "completed a task",    timestamp: new Date(Date.now() - 3600_000) },
+  { id: "4", section: "calendar", memberName: "Alex",   action: "added a dinner event", timestamp: new Date(Date.now() - 3 * 3600_000) },
+  { id: "5", section: "expenses", memberName: "Jordan", action: "added a $42 expense",  timestamp: new Date(Date.now() - 5 * 3600_000) },
+  { id: "6", section: "chores",   memberName: "Sam",    action: "completed vacuuming", timestamp: new Date(Date.now() - 24 * 3600_000) },
 ];
 
-// TODO: Replace counts with real API data once features are built
 const TILES: Tile[] = [
   { key: "chores",    label: "Chores",    href: "/chores",    icon: CheckSquare,     count: 3,  statusText: "3 left today" },
   { key: "grocery",   label: "Grocery",   href: "/grocery",   icon: ShoppingCart,    count: 12, statusText: "12 items" },
@@ -72,16 +82,20 @@ const TILES: Tile[] = [
 
 // ---- Sub-components ---------------------------------------------------------
 
-function TileCard({ tile }: { tile: Tile }) {
+function TileCard({ tile, index }: { tile: Tile; index: number }) {
   const router = useRouter();
   const color = SECTION_COLORS[tile.key];
   const Icon = tile.icon;
 
   return (
-    <button
+    <motion.button
       type="button"
       onClick={() => router.push(tile.href)}
-      className="relative flex min-h-24 md:min-h-30 w-full flex-col justify-between rounded-2xl p-4 text-left transition-opacity hover:opacity-90"
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: Math.min(index * 0.04, 0.2), duration: 0.15 }}
+      whileTap={{ y: 2 }}
+      className="relative flex min-h-24 w-full flex-col justify-between rounded-2xl p-4 text-left"
       style={{
         backgroundColor: "var(--roost-surface)",
         border: "1.5px solid var(--roost-border)",
@@ -91,8 +105,8 @@ function TileCard({ tile }: { tile: Tile }) {
       {/* Badge */}
       {tile.count > 0 && (
         <span
-          className="absolute right-3 top-3 flex h-5 min-w-5 items-center justify-center rounded-full px-1 text-[11px] font-semibold text-white"
-          style={{ backgroundColor: color }}
+          className="absolute right-3 top-3 flex h-5 min-w-5 items-center justify-center rounded-full px-1 text-[11px] text-white"
+          style={{ backgroundColor: color, fontWeight: 700 }}
         >
           {tile.count}
         </span>
@@ -100,8 +114,12 @@ function TileCard({ tile }: { tile: Tile }) {
 
       {/* Icon */}
       <div
-        className="flex h-9 w-9 items-center justify-center rounded-full"
-        style={{ backgroundColor: color + "1a" }}
+        className="flex h-9 w-9 items-center justify-center rounded-xl"
+        style={{
+          backgroundColor: color + "18",
+          border: `1px solid ${color}25`,
+          borderBottom: `2px solid ${color}35`,
+        }}
       >
         <Icon className="size-4" style={{ color }} />
       </div>
@@ -109,80 +127,72 @@ function TileCard({ tile }: { tile: Tile }) {
       {/* Text */}
       <div>
         <p
-          className="text-[15px] font-medium leading-tight"
-          style={{ color: "var(--roost-text-primary)" }}
+          className="text-sm leading-tight"
+          style={{ color: "var(--roost-text-primary)", fontWeight: 700 }}
         >
           {tile.label}
         </p>
         <p
           className="mt-0.5 text-xs"
-          style={{ color: "var(--roost-text-muted)" }}
+          style={{ color: "var(--roost-text-muted)", fontWeight: 600 }}
         >
           {tile.statusText}
         </p>
       </div>
-    </button>
+    </motion.button>
   );
+}
+
+function abbrev(name: string): string {
+  return name.split(" ").slice(0, 2).map((w) => w[0]).join("").toUpperCase();
 }
 
 function ActivityFeed({ items }: { items: ActivityItem[] }) {
   return (
-    <div className="space-y-0">
+    <div>
       <h2
-        className="mb-3 text-base font-semibold"
-        style={{ color: "var(--roost-text-primary)" }}
+        className="mb-3 text-base"
+        style={{ color: "var(--roost-text-primary)", fontWeight: 800 }}
       >
         Recent Activity
       </h2>
       <div
-        className="divide-y rounded-xl border overflow-hidden"
+        className="overflow-hidden rounded-2xl"
         style={{
           backgroundColor: "var(--roost-surface)",
-          borderColor: "var(--roost-border)",
+          border: "1.5px solid var(--roost-border)",
           borderBottom: "4px solid var(--roost-border-bottom)",
-          divideColor: "var(--roost-border)",
         }}
       >
-        {items.map((item) => {
+        {items.map((item, i) => {
           const color = SECTION_COLORS[item.section];
-          const abbr = item.memberName
-            .split(" ")
-            .slice(0, 2)
-            .map((w) => w[0])
-            .join("")
-            .toUpperCase();
           return (
             <div
               key={item.id}
-              className="flex min-h-12 items-center gap-3 px-4 py-3"
-              style={{ borderBottomColor: "var(--roost-border)" }}
+              className="flex min-h-14 items-center gap-3 px-4 py-3"
+              style={{
+                borderTop: i > 0 ? "1px solid var(--roost-border)" : undefined,
+              }}
             >
-              {/* Section dot */}
-              <span
-                className="size-2 shrink-0 rounded-full"
-                style={{ backgroundColor: color }}
-              />
-              {/* Avatar */}
+              <span className="size-2 shrink-0 rounded-full" style={{ backgroundColor: color }} />
               <div
-                className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[10px] font-semibold text-white"
-                style={{ backgroundColor: color }}
+                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[10px] text-white"
+                style={{ backgroundColor: color, fontWeight: 700 }}
               >
-                {abbr}
+                {abbrev(item.memberName)}
               </div>
-              {/* Text */}
               <div className="min-w-0 flex-1">
                 <p
                   className="truncate text-sm"
-                  style={{ color: "var(--roost-text-primary)" }}
+                  style={{ color: "var(--roost-text-primary)", fontWeight: 600 }}
                 >
-                  <span className="font-medium">{item.memberName}</span>{" "}
+                  <span style={{ fontWeight: 700 }}>{item.memberName}</span>{" "}
                   {item.action}
                 </p>
               </div>
-              {/* Time */}
               <span
                 className="shrink-0 text-xs"
-                style={{ color: "var(--roost-text-muted)" }}
+                style={{ color: "var(--roost-text-muted)", fontWeight: 600 }}
               >
                 {formatDistanceToNow(item.timestamp, { addSuffix: true })}
               </span>
@@ -197,6 +207,9 @@ function ActivityFeed({ items }: { items: ActivityItem[] }) {
 // ---- Page -------------------------------------------------------------------
 
 export default function DashboardPage() {
+  const { data: sessionData } = useSession();
+  const userName = sessionData?.user?.name ?? "";
+
   const { data: membersData } = useQuery<MembersResponse>({
     queryKey: ["household-members"],
     queryFn: () => fetch("/api/household/members").then((r) => r.json()),
@@ -207,38 +220,51 @@ export default function DashboardPage() {
   const householdName = membersData?.household.name ?? "";
 
   return (
-    <div
-      className="flex flex-col gap-6 p-4 md:flex-row md:items-start md:p-6"
+    <motion.div
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.18, ease: "easeOut" }}
+      className="flex flex-col gap-5 p-4 pb-24 md:flex-row md:items-start md:p-6"
       style={{ backgroundColor: "var(--roost-bg)" }}
     >
-      {/* Left / main column */}
-      <div className="min-w-0 flex-1 space-y-6">
-        {householdName && (
-          <h1
-            className="text-xl font-bold md:text-2xl"
-            style={{ color: "var(--roost-text-primary)" }}
-          >
-            {householdName}
-          </h1>
+      {/* Main column */}
+      <div className="min-w-0 flex-1 space-y-5">
+        {/* Greeting */}
+        {userName && (
+          <div>
+            <h1
+              className="text-2xl md:text-3xl"
+              style={{ color: "var(--roost-text-primary)", fontWeight: 900 }}
+            >
+              {getGreeting(userName)}
+            </h1>
+            <p
+              className="mt-0.5 text-sm"
+              style={{ color: "var(--roost-text-muted)", fontWeight: 600 }}
+            >
+              {formatDate()}
+              {householdName && ` · ${householdName}`}
+            </p>
+          </div>
         )}
 
         {/* Tile grid */}
-        <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-4">
-          {TILES.map((tile) => (
-            <TileCard key={tile.key} tile={tile} />
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+          {TILES.map((tile, i) => (
+            <TileCard key={tile.key} tile={tile} index={i} />
           ))}
         </div>
 
-        {/* Activity feed: mobile only, shows below tiles */}
+        {/* Activity feed: mobile/tablet (below tiles) */}
         <div className="lg:hidden">
           <ActivityFeed items={MOCK_ACTIVITY} />
         </div>
       </div>
 
-      {/* Right column: activity feed on desktop */}
+      {/* Activity feed: desktop sidebar */}
       <div className="hidden w-80 shrink-0 lg:block">
         <ActivityFeed items={MOCK_ACTIVITY} />
       </div>
-    </div>
+    </motion.div>
   );
 }

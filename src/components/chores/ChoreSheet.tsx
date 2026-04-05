@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { motion } from "framer-motion";
 import {
   Sheet,
   SheetContent,
@@ -17,6 +18,9 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Loader2, Trash2 } from "lucide-react";
+import { SECTION_COLORS } from "@/lib/constants/colors";
+
+const COLOR = SECTION_COLORS.chores;
 
 // ---- Types ------------------------------------------------------------------
 
@@ -63,6 +67,16 @@ const DAYS = [
   { value: 0, label: "Sun" },
 ];
 
+// ---- Shared input style -----------------------------------------------------
+
+const inputStyle: React.CSSProperties = {
+  border: "1.5px solid var(--roost-border)",
+  borderBottom: "3px solid var(--roost-border-bottom)",
+  color: "var(--roost-text-primary)",
+  fontWeight: 600,
+  backgroundColor: "transparent",
+};
+
 // ---- Component --------------------------------------------------------------
 
 export default function ChoreSheet({
@@ -82,7 +96,6 @@ export default function ChoreSheet({
   const [customDays, setCustomDays] = useState<number[]>([]);
   const [confirmDelete, setConfirmDelete] = useState(false);
 
-  // Populate form when editing
   useEffect(() => {
     if (chore) {
       setTitle(chore.title);
@@ -171,43 +184,76 @@ export default function ChoreSheet({
   return (
     <>
       <Sheet open={open} onOpenChange={(v) => !v && onClose()}>
-        <SheetContent side="bottom" className="max-h-[90dvh] overflow-y-auto rounded-t-2xl px-4 pb-8 pt-4">
-          <SheetHeader className="mb-4">
-            <SheetTitle>{isEdit ? "Edit chore" : "Add chore"}</SheetTitle>
+        <SheetContent
+          side="bottom"
+          className="max-h-[90dvh] overflow-y-auto rounded-t-2xl px-4 pb-8 pt-4"
+          style={{ backgroundColor: "var(--roost-bg)" }}
+        >
+          <SheetHeader className="mb-5">
+            <SheetTitle
+              className="text-lg"
+              style={{ color: "var(--roost-text-primary)", fontWeight: 900 }}
+            >
+              {isEdit ? "Edit chore" : "Add chore"}
+            </SheetTitle>
           </SheetHeader>
 
           <div className="space-y-5">
             {/* Title */}
             <div className="space-y-1.5">
-              <label className="text-sm font-medium">Title</label>
+              <label
+                className="text-sm"
+                style={{ color: "var(--roost-text-primary)", fontWeight: 700 }}
+              >
+                Title
+              </label>
               <input
                 type="text"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
-                placeholder="e.g. Vacuum living room"
-                className="flex h-12 w-full rounded-md border border-input bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                placeholder="e.g. Vacuum the living room"
+                className="flex h-12 w-full rounded-xl px-4 text-sm placeholder:italic focus:outline-none"
+                style={inputStyle}
               />
             </div>
 
             {/* Description */}
             <div className="space-y-1.5">
-              <label className="text-sm font-medium">Description (optional)</label>
+              <label
+                className="text-sm"
+                style={{ color: "var(--roost-text-primary)", fontWeight: 700 }}
+              >
+                Description
+                <span
+                  className="ml-1.5 text-xs"
+                  style={{ color: "var(--roost-text-muted)", fontWeight: 600 }}
+                >
+                  optional
+                </span>
+              </label>
               <textarea
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
-                placeholder="Any extra details..."
+                placeholder="Any extra details for the person doing it"
                 rows={2}
-                className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring resize-none"
+                className="w-full rounded-xl px-4 py-3 text-sm placeholder:italic focus:outline-none resize-none"
+                style={inputStyle}
               />
             </div>
 
             {/* Assign to */}
             <div className="space-y-1.5">
-              <label className="text-sm font-medium">Assign to</label>
+              <label
+                className="text-sm"
+                style={{ color: "var(--roost-text-primary)", fontWeight: 700 }}
+              >
+                Assign to
+              </label>
               <select
                 value={assignedTo}
                 onChange={(e) => setAssignedTo(e.target.value)}
-                className="flex h-12 w-full rounded-md border border-input bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                className="flex h-12 w-full rounded-xl px-4 text-sm focus:outline-none"
+                style={inputStyle}
               >
                 <option value="">Unassigned</option>
                 {members.map((m) => (
@@ -218,59 +264,95 @@ export default function ChoreSheet({
               </select>
             </div>
 
-            {/* Frequency */}
+            {/* Frequency: slab pill toggles */}
             <div className="space-y-1.5">
-              <label className="text-sm font-medium">Frequency</label>
-              <div className="flex rounded-md border border-input overflow-hidden">
-                {FREQUENCIES.map((f, i) => (
-                  <button
-                    key={f.value}
-                    type="button"
-                    onClick={() => setFrequency(f.value)}
-                    className={`flex-1 h-12 text-sm font-medium transition-colors ${
-                      i > 0 ? "border-l border-input" : ""
-                    } ${
-                      frequency === f.value
-                        ? "bg-[#EF4444] text-white"
-                        : "bg-background text-foreground hover:bg-accent"
-                    }`}
-                  >
-                    {f.label}
-                  </button>
-                ))}
+              <label
+                className="text-sm"
+                style={{ color: "var(--roost-text-primary)", fontWeight: 700 }}
+              >
+                Frequency
+              </label>
+              <div className="grid grid-cols-4 gap-2">
+                {FREQUENCIES.map((f) => {
+                  const active = frequency === f.value;
+                  return (
+                    <motion.button
+                      key={f.value}
+                      type="button"
+                      onClick={() => setFrequency(f.value)}
+                      whileTap={{ y: 1 }}
+                      className="flex h-11 items-center justify-center rounded-xl text-sm"
+                      style={{
+                        backgroundColor: active ? COLOR + "18" : "var(--roost-surface)",
+                        border: active
+                          ? `1.5px solid ${COLOR}40`
+                          : "1.5px solid var(--roost-border)",
+                        borderBottom: active
+                          ? `3px solid ${COLOR}70`
+                          : "3px solid var(--roost-border-bottom)",
+                        color: active ? COLOR : "var(--roost-text-secondary)",
+                        fontWeight: active ? 800 : 600,
+                      }}
+                    >
+                      {f.label}
+                    </motion.button>
+                  );
+                })}
               </div>
             </div>
 
-            {/* Custom days picker */}
+            {/* Custom day buttons */}
             {frequency === "custom" && (
               <div className="space-y-1.5">
-                <label className="text-sm font-medium">Days</label>
-                <div className="flex gap-1.5">
-                  {DAYS.map((d) => (
-                    <button
-                      key={d.value}
-                      type="button"
-                      onClick={() => toggleDay(d.value)}
-                      className={`flex-1 h-10 rounded-lg text-xs font-medium transition-colors ${
-                        customDays.includes(d.value)
-                          ? "bg-[#EF4444] text-white"
-                          : "bg-muted text-muted-foreground hover:bg-accent"
-                      }`}
-                    >
-                      {d.label}
-                    </button>
-                  ))}
+                <label
+                  className="text-sm"
+                  style={{ color: "var(--roost-text-primary)", fontWeight: 700 }}
+                >
+                  Days
+                </label>
+                <div className="grid grid-cols-7 gap-1.5">
+                  {DAYS.map((d) => {
+                    const active = customDays.includes(d.value);
+                    return (
+                      <motion.button
+                        key={d.value}
+                        type="button"
+                        onClick={() => toggleDay(d.value)}
+                        whileTap={{ y: 1 }}
+                        className="flex h-11 items-center justify-center rounded-xl text-xs"
+                        style={{
+                          backgroundColor: active ? COLOR + "18" : "var(--roost-surface)",
+                          border: active
+                            ? `1.5px solid ${COLOR}40`
+                            : "1.5px solid var(--roost-border)",
+                          borderBottom: active
+                            ? `3px solid ${COLOR}70`
+                            : "3px solid var(--roost-border-bottom)",
+                          color: active ? COLOR : "var(--roost-text-secondary)",
+                          fontWeight: active ? 800 : 600,
+                        }}
+                      >
+                        {d.label}
+                      </motion.button>
+                    );
+                  })}
                 </div>
               </div>
             )}
 
             {/* Save button */}
-            <button
+            <motion.button
               type="button"
               disabled={!canSubmit}
               onClick={() => saveMutation.mutate()}
-              className="flex h-12 w-full items-center justify-center rounded-xl text-sm font-semibold text-white transition-opacity disabled:opacity-50"
-              style={{ backgroundColor: "#EF4444" }}
+              whileTap={{ y: 2 }}
+              className="flex h-12 w-full items-center justify-center rounded-xl text-sm text-white disabled:opacity-50"
+              style={{
+                backgroundColor: COLOR,
+                border: `1.5px solid ${COLOR}`,
+                borderBottom: "3px solid rgba(0,0,0,0.2)",
+                fontWeight: 800,
+              }}
             >
               {saveMutation.isPending ? (
                 <Loader2 className="size-4 animate-spin" />
@@ -279,18 +361,26 @@ export default function ChoreSheet({
               ) : (
                 "Add chore"
               )}
-            </button>
+            </motion.button>
 
-            {/* Delete button — edit mode, admins only */}
+            {/* Delete button */}
             {isEdit && isAdmin && (
-              <button
+              <motion.button
                 type="button"
                 onClick={() => setConfirmDelete(true)}
-                className="flex h-12 w-full items-center justify-center gap-2 rounded-xl border border-destructive text-sm font-medium text-destructive hover:bg-destructive/5 transition-colors"
+                whileTap={{ y: 2 }}
+                className="flex h-12 w-full items-center justify-center gap-2 rounded-xl text-sm"
+                style={{
+                  backgroundColor: "var(--roost-surface)",
+                  border: "1.5px solid var(--roost-border)",
+                  borderBottom: "3px solid var(--roost-border-bottom)",
+                  color: "#EF4444",
+                  fontWeight: 700,
+                }}
               >
                 <Trash2 className="size-4" />
                 Delete chore
-              </button>
+              </motion.button>
             )}
           </div>
         </SheetContent>
@@ -298,33 +388,55 @@ export default function ChoreSheet({
 
       {/* Delete confirmation dialog */}
       <Dialog open={confirmDelete} onOpenChange={setConfirmDelete}>
-        <DialogContent>
+        <DialogContent style={{ backgroundColor: "var(--roost-surface)" }}>
           <DialogHeader>
-            <DialogTitle>Delete chore?</DialogTitle>
+            <DialogTitle
+              style={{ color: "var(--roost-text-primary)", fontWeight: 900 }}
+            >
+              Delete chore?
+            </DialogTitle>
           </DialogHeader>
-          <p className="text-sm text-muted-foreground">
-            This will remove the chore for everyone in the household. This cannot be undone.
+          <p
+            className="text-sm"
+            style={{ color: "var(--roost-text-secondary)", fontWeight: 600 }}
+          >
+            This will remove the chore for everyone in the household. It cannot be undone.
           </p>
-          <DialogFooter className="mt-2 gap-2">
-            <button
+          <DialogFooter className="mt-2 flex gap-2">
+            <motion.button
               type="button"
               onClick={() => setConfirmDelete(false)}
-              className="flex h-11 flex-1 items-center justify-center rounded-lg border border-border text-sm font-medium"
+              whileTap={{ y: 1 }}
+              className="flex h-11 flex-1 items-center justify-center rounded-xl text-sm"
+              style={{
+                backgroundColor: "var(--roost-bg)",
+                border: "1.5px solid var(--roost-border)",
+                borderBottom: "3px solid var(--roost-border-bottom)",
+                color: "var(--roost-text-secondary)",
+                fontWeight: 700,
+              }}
             >
               Cancel
-            </button>
-            <button
+            </motion.button>
+            <motion.button
               type="button"
               onClick={() => deleteMutation.mutate()}
               disabled={deleteMutation.isPending}
-              className="flex h-11 flex-1 items-center justify-center rounded-lg bg-destructive text-sm font-semibold text-white disabled:opacity-50"
+              whileTap={{ y: 1 }}
+              className="flex h-11 flex-1 items-center justify-center rounded-xl text-sm text-white disabled:opacity-50"
+              style={{
+                backgroundColor: "#EF4444",
+                border: "1.5px solid #EF4444",
+                borderBottom: "3px solid rgba(0,0,0,0.2)",
+                fontWeight: 800,
+              }}
             >
               {deleteMutation.isPending ? (
                 <Loader2 className="size-4 animate-spin" />
               ) : (
                 "Delete"
               )}
-            </button>
+            </motion.button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

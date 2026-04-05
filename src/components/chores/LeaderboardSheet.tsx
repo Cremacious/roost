@@ -1,12 +1,16 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
+import { motion } from "framer-motion";
 import {
   Sheet,
   SheetContent,
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
+import { SECTION_COLORS } from "@/lib/constants/colors";
+
+const COLOR = SECTION_COLORS.chores;
 
 // ---- Types ------------------------------------------------------------------
 
@@ -36,11 +40,13 @@ function initials(name: string): string {
     .toUpperCase();
 }
 
-const RANK_COLORS: Record<number, string> = {
-  0: "#F59E0B", // gold
-  1: "#9CA3AF", // silver
-  2: "#B45309", // bronze
+const RANK_COLORS: Record<number, { text: string; bg: string; border: string }> = {
+  0: { text: "#F59E0B", bg: "#F59E0B18", border: "#F59E0B40" }, // gold
+  1: { text: "#9CA3AF", bg: "#9CA3AF18", border: "#9CA3AF40" }, // silver
+  2: { text: "#B45309", bg: "#B4530918", border: "#B4530940" }, // bronze
 };
+
+const RANK_LABELS = ["1st", "2nd", "3rd"];
 
 // ---- Component --------------------------------------------------------------
 
@@ -62,62 +68,124 @@ export default function LeaderboardSheet({ open, onClose }: LeaderboardSheetProp
 
   return (
     <Sheet open={open} onOpenChange={(v) => !v && onClose()}>
-      <SheetContent side="bottom" className="max-h-[80dvh] overflow-y-auto rounded-t-2xl px-4 pb-8 pt-4">
-        <SheetHeader className="mb-4">
-          <SheetTitle>Weekly Leaderboard</SheetTitle>
+      <SheetContent
+        side="bottom"
+        className="max-h-[80dvh] overflow-y-auto rounded-t-2xl px-4 pb-8 pt-4"
+        style={{ backgroundColor: "var(--roost-bg)" }}
+      >
+        <SheetHeader className="mb-5">
+          <SheetTitle
+            className="text-lg"
+            style={{ color: "var(--roost-text-primary)", fontWeight: 900 }}
+          >
+            Weekly Leaderboard
+          </SheetTitle>
         </SheetHeader>
 
         {isLoading && (
-          <div className="flex items-center justify-center py-12 text-sm text-muted-foreground">
+          <div
+            className="flex items-center justify-center py-12 text-sm"
+            style={{ color: "var(--roost-text-muted)", fontWeight: 600 }}
+          >
             Loading...
           </div>
         )}
 
         {!isLoading && entries.length === 0 && (
           <div className="flex flex-col items-center gap-2 py-12 text-center">
-            <p className="text-sm text-muted-foreground">No activity this week yet.</p>
-            <p className="text-xs text-muted-foreground">Complete chores to earn points.</p>
+            <p
+              className="text-sm"
+              style={{ color: "var(--roost-text-secondary)", fontWeight: 700 }}
+            >
+              No activity this week yet.
+            </p>
+            <p
+              className="text-sm"
+              style={{ color: "var(--roost-text-muted)", fontWeight: 600 }}
+            >
+              Complete chores to earn points and claim your spot.
+            </p>
           </div>
         )}
 
-        <div className="space-y-1">
+        <div className="space-y-2">
           {entries.map((entry, i) => {
             const isMe = entry.userId === currentUserId;
-            const rankColor = RANK_COLORS[i];
-            const rankLabel = i === 0 ? "1st" : i === 1 ? "2nd" : i === 2 ? "3rd" : `${i + 1}th`;
+            const rank = RANK_COLORS[i];
+            const rankLabel = i < 3 ? RANK_LABELS[i] : `${i + 1}th`;
 
             return (
-              <div
+              <motion.div
                 key={entry.userId}
-                className={`flex min-h-[56px] items-center gap-3 rounded-xl px-3 ${
-                  isMe ? "bg-[#EF4444]/8" : ""
-                }`}
+                initial={{ opacity: 0, y: 6 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: Math.min(i * 0.05, 0.25), duration: 0.15 }}
+                className="flex min-h-16 items-center gap-3 rounded-2xl px-4"
+                style={{
+                  backgroundColor: isMe ? COLOR + "10" : "var(--roost-surface)",
+                  border: isMe
+                    ? `1.5px solid ${COLOR}30`
+                    : "1.5px solid var(--roost-border)",
+                  borderBottom: isMe
+                    ? `4px solid ${COLOR}40`
+                    : rank
+                    ? `4px solid ${rank.border}`
+                    : "4px solid var(--roost-border-bottom)",
+                }}
               >
-                {/* Rank */}
-                <span
-                  className="w-8 text-center text-sm font-bold"
-                  style={{ color: rankColor ?? "var(--muted-foreground)" }}
+                {/* Rank badge */}
+                <div
+                  className="flex h-8 w-10 shrink-0 items-center justify-center rounded-lg text-xs"
+                  style={
+                    rank
+                      ? {
+                          backgroundColor: rank.bg,
+                          border: `1px solid ${rank.border}`,
+                          color: rank.text,
+                          fontWeight: 800,
+                        }
+                      : {
+                          backgroundColor: "var(--roost-bg)",
+                          border: "1px solid var(--roost-border)",
+                          color: "var(--roost-text-muted)",
+                          fontWeight: 700,
+                        }
+                  }
                 >
                   {rankLabel}
-                </span>
+                </div>
 
                 {/* Avatar */}
                 <div
-                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-xs font-semibold text-white"
-                  style={{ background: entry.avatarColor ?? "#6366f1" }}
+                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-xs text-white"
+                  style={{
+                    backgroundColor: entry.avatarColor ?? COLOR,
+                    fontWeight: 700,
+                  }}
                 >
                   {initials(entry.name)}
                 </div>
 
-                {/* Info */}
+                {/* Name + streak */}
                 <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-medium">
+                  <p
+                    className="truncate text-sm"
+                    style={{ color: "var(--roost-text-primary)", fontWeight: 700 }}
+                  >
                     {entry.name}
                     {isMe && (
-                      <span className="ml-1.5 text-xs text-muted-foreground">(you)</span>
+                      <span
+                        className="ml-2 text-xs"
+                        style={{ color: "var(--roost-text-muted)", fontWeight: 600 }}
+                      >
+                        you
+                      </span>
                     )}
                   </p>
-                  <p className="text-xs text-muted-foreground">
+                  <p
+                    className="text-xs"
+                    style={{ color: "var(--roost-text-muted)", fontWeight: 600 }}
+                  >
                     {entry.currentStreak > 0
                       ? `${entry.currentStreak} day streak`
                       : "No streak yet"}
@@ -125,16 +193,21 @@ export default function LeaderboardSheet({ open, onClose }: LeaderboardSheetProp
                 </div>
 
                 {/* Points */}
-                <div className="text-right">
+                <div className="shrink-0 text-right">
                   <p
-                    className="text-base font-bold tabular-nums"
-                    style={{ color: "#EF4444" }}
+                    className="text-base tabular-nums"
+                    style={{ color: COLOR, fontWeight: 800 }}
                   >
                     {entry.points}
                   </p>
-                  <p className="text-[10px] text-muted-foreground">pts</p>
+                  <p
+                    className="text-[10px]"
+                    style={{ color: "var(--roost-text-muted)", fontWeight: 600 }}
+                  >
+                    pts
+                  </p>
                 </div>
-              </div>
+              </motion.div>
             );
           })}
         </div>

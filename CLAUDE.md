@@ -412,11 +412,51 @@ NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
 GOOGLE_VISION_API_KEY
 EXPO_ACCESS_TOKEN
 
+## Logo Swap Checklist (when final logo arrives)
+
+When the designer delivers the final logo files, follow
+these steps in order:
+
+1. Get these files from the designer:
+   roost-icon.svg (icon only, square, no rounded corners)
+   roost-wordmark.svg (icon + Roost wordmark together)
+   roost-icon-red.svg (red background #EF4444 version)
+   roost-appstore.png (1024x1024, red bg, no rounded corners)
+
+2. Drop all files into public/brand/
+
+3. Open src/components/shared/RoostLogo.tsx
+   Replace the placeholder SVG paths with next/image
+   pointing at the files in public/brand/
+   Keep all props (size, variant, showWordmark) working
+
+4. Check every page the logo appears on:
+   login, signup, child-login, onboarding,
+   TopBar, Sidebar
+
+5. Test all 8 themes -- logo should look right on
+   both light and dark theme surfaces
+
+6. Test at all sizes: xs, sm, md, lg, xl
+
+7. Commit with message:
+   "brand: swap in final logo assets from designer"
+
+Designer brief (send this when hiring):
+  App called Roost. Household management app for
+  families and roommates. Red rounded square icon.
+  Clean white rooster silhouette sitting on top of a
+  simple house outline. Friendly and approachable,
+  not realistic or detailed. Must be readable at 20px.
+  Nunito 900 wordmark alongside.
+  Deliver: SVG + PNG at 1024px for App Store.
+  Brand red: #EF4444
+
 ## Session Handoff
 At the start of each new session fetch this file to restore context.
 Share GitHub file URLs, paste code, or describe what was built.
 Update this file after every major decision or completed phase.
-Last updated: 2026-04-05 (design system pass complete)
+Last updated: 2026-04-05 (logo system added)
 
 
 Rules:

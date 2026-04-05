@@ -74,7 +74,6 @@ export default function TopBar() {
   useEffect(() => {
     const tick = () => setTime(formatTime(new Date()));
     const id = setInterval(tick, 60_000);
-    // Align to the next full minute
     const ms = (60 - new Date().getSeconds()) * 1000;
     const align = setTimeout(() => { tick(); setInterval(tick, 60_000); }, ms);
     return () => { clearInterval(id); clearTimeout(align); };
@@ -106,9 +105,18 @@ export default function TopBar() {
   const overflow = members.length > 4 ? members.length - 4 : 0;
 
   return (
-    <header className="fixed left-0 right-0 top-0 z-30 flex h-14 items-center justify-between border-b border-border bg-background px-4 md:left-[72px]">
+    <header
+      className="fixed left-0 right-0 top-0 z-30 flex h-14 items-center justify-between border-b px-4 md:left-18"
+      style={{
+        backgroundColor: "var(--roost-topbar-bg)",
+        borderBottomColor: "var(--roost-topbar-border)",
+      }}
+    >
       {/* Left: household name */}
-      <span className="text-base font-semibold truncate max-w-[180px]">
+      <span
+        className="text-base font-semibold truncate max-w-45"
+        style={{ color: "var(--roost-text-primary)" }}
+      >
         {householdName || "\u00A0"}
       </span>
 
@@ -116,14 +124,22 @@ export default function TopBar() {
       <div className="flex items-center gap-3">
         {/* Weather */}
         {weather && (
-          <div className="flex items-center gap-1 text-sm text-muted-foreground">
+          <div
+            className="flex items-center gap-1 text-sm"
+            style={{ color: "var(--roost-text-secondary)" }}
+          >
             {getWeatherIcon(weather.weathercode)}
-            <span>{Math.round(weather.temperature)}°</span>
+            <span>{Math.round(weather.temperature)}&deg;</span>
           </div>
         )}
 
         {/* Time */}
-        <span className="text-sm text-muted-foreground tabular-nums">{time}</span>
+        <span
+          className="text-sm tabular-nums"
+          style={{ color: "var(--roost-text-secondary)" }}
+        >
+          {time}
+        </span>
 
         {/* Member avatars */}
         {members.length > 0 && (
@@ -132,14 +148,24 @@ export default function TopBar() {
               <div
                 key={m.id}
                 title={m.name}
-                className="flex h-7 w-7 items-center justify-center rounded-full border-2 border-background text-[10px] font-semibold text-white"
-                style={{ background: m.avatarColor ?? "#6366f1" }}
+                className="flex h-7 w-7 items-center justify-center rounded-full border-2 text-[10px] font-semibold text-white"
+                style={{
+                  background: m.avatarColor ?? "#6366f1",
+                  borderColor: "var(--roost-topbar-bg)",
+                }}
               >
                 {initials(m.name)}
               </div>
             ))}
             {overflow > 0 && (
-              <div className="flex h-7 w-7 items-center justify-center rounded-full border-2 border-background bg-muted text-[10px] font-semibold text-muted-foreground">
+              <div
+                className="flex h-7 w-7 items-center justify-center rounded-full border-2 text-[10px] font-semibold"
+                style={{
+                  backgroundColor: "var(--roost-border)",
+                  borderColor: "var(--roost-topbar-bg)",
+                  color: "var(--roost-text-secondary)",
+                }}
+              >
                 +{overflow}
               </div>
             )}

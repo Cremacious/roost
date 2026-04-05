@@ -18,15 +18,16 @@ per-household pricing.
 - Next.js 16 App Router, TypeScript, Tailwind v4
 - Drizzle ORM + Neon (PostgreSQL)
 - better-auth (sessions)
-- TanStack Query (10s polling — real-time not required)
-- Zustand (client state)
+- TanStack Query (10s polling, real-time not required)
+- Zustand (client state, v5)
 - shadcn/ui + Lucide icons (NO emojis anywhere)
 - Stripe (web payments) + RevenueCat (iOS/Android billing)
 - Google Vision API (receipt OCR)
 - Expo Push Notifications (free, iOS + Android)
 - Vercel hosting + Vercel Cron (scheduled jobs)
-- Resend (transactional email — invites only)
+- Resend (transactional email, invites only)
 - Open-Meteo (weather, free, no key needed)
+- Nunito font (via next/font/google, variable --font-nunito)
 
 ## Pricing Model
 - Free tier: 1 household, up to 5 members, core features
@@ -48,7 +49,7 @@ per-household pricing.
 Four roles. Roles are baseline presets. Admin can fine-tune
 any individual user via per-user permission checklist in settings.
 
-Child (preset — no finance access ever):
+Child (preset, no finance access ever):
 - Chores: view + complete own
 - Grocery: view + add items
 - Calendar: view only
@@ -97,9 +98,9 @@ Admin (premium):
   + ambient mode + household pricing model
 
 ## Platform Strategy
-1. Web (Next.js) — launch first, also mobile browser fallback
-2. iOS (Expo) — primary mobile target after web
-3. Android (Expo) — comes nearly free after iOS (~2 weeks extra)
+1. Web (Next.js): launch first, also mobile browser fallback
+2. iOS (Expo): primary mobile target after web
+3. Android (Expo): comes nearly free after iOS (~2 weeks extra)
 All business logic lives in src/lib/ with zero DOM dependencies
 so Expo can reuse it. UI stays in Next.js. Expo calls same API routes.
 
@@ -111,7 +112,7 @@ so Expo can reuse it. UI stays in Next.js. Expo calls same API routes.
 - No email notifications (nobody reads them)
 - Email used only for: invite links, account verification
 
-## Features — Chores vs Tasks
+## Features: Chores vs Tasks
 Chores: recurring household duties (vacuum weekly, dishes daily)
   - Assigned to member, has frequency, resets on schedule
   - Reset time based on assigned person's timezone
@@ -120,34 +121,34 @@ Tasks: one-off to-dos
   - Fields: name, description, assigned_to, due_date, priority
   - Not recurring, just done or not done
 
-## Features — Grocery Lists
+## Features: Grocery Lists
 - One default shared list per household
 - Premium: multiple named lists (Costco run, Target, etc)
 - Optimistic UI for check/uncheck
 - Soft delete with auto-purge after 30 days
 
-## Features — Bill Splitting
+## Features: Bill Splitting
 - Track who owes what, no in-app payments
 - Users settle in cash/Venmo themselves
 - Debt simplification: if A owes B and B owes C, simplify to A owes C
 - Receipt scanning: photo in-app, Google Vision OCR,
   editable line items, manual fallback if scan fails
 
-## Features — Gamification
+## Features: Gamification
 - Chore leaderboard + streaks per household
 - Streak = consecutive days all assigned chores completed
 - Missing one day breaks streak
 - Leaderboard resets weekly
 - Points displayed per member
 
-## Features — Ambient Tablet Mode (premium)
+## Features: Ambient Tablet Mode (premium)
 - Fully customizable widgets
 - Available widgets: weather, clock, pending chores,
   upcoming calendar events, household activity feed
 - Screensaver activates on idle
 - Uses Open-Meteo for weather (free, no key)
 
-## Features — Household Lifecycle
+## Features: Household Lifecycle
 - Admin = person who holds the subscription
 - If admin cancels: household enters 30-day grace period,
   then deleted if no new admin takes over
@@ -155,22 +156,43 @@ Tasks: one-off to-dos
 - Admin can remove any member
 - Expense history shows "Former Member" for removed users
 
-## Features — Permissions Checklist
+## Features: Permissions Checklist
 - Admin settings has per-user toggle list
 - Role presets (Child/Member) auto-apply defaults
 - Admin can then fine-tune individual toggles
 - Changes take effect immediately server-side
 
-## Features — Onboarding
+## Features: Onboarding
 - New user: create household OR join with code
 - Household code is shareable (not email-based)
 - Joiner setup: display name, timezone
 - Child accounts: PIN set by parent, no email needed
 
-## Features — Internationalization
+## Features: Internationalization
 - English + Spanish at launch
 - Build with i18n from day one (next-intl recommended)
 - All UI copy goes through translation keys, no hardcoded strings
+
+## Features: Theme System
+- Each user has their own saved theme stored in users.theme (DB)
+- 8 themes: warm, slate, midnight, forest, rose, sand, lavender, charcoal
+  warm = "Warm Linen" (default, light)
+  slate = "Slate" (light blue-gray)
+  midnight = "Midnight" (dark, dark:true)
+  forest = "Forest" (light green)
+  rose = "Rose" (light pink)
+  sand = "Sand" (light amber)
+  lavender = "Lavender" (light purple)
+  charcoal = "Charcoal" (dark, dark:true)
+- ThemeProvider reads user's theme server-side, applies CSS variables on mount
+- useTheme() hook: { theme, setTheme } -- setTheme applies instantly + PATCHes API
+- CSS variables: --roost-bg, --roost-surface, --roost-border, --roost-border-bottom,
+  --roost-text-primary, --roost-text-secondary, --roost-text-muted,
+  --roost-topbar-bg, --roost-topbar-border
+- ThemeProvider also overrides shadcn CSS vars (--background, --card, etc.)
+  so existing Tailwind classes respond to theme automatically
+- SlabCard is the base card for the entire app: rounded-2xl, border + 4px colored bottom
+- Settings page (/settings) has a theme picker grid -- changes apply instantly, no save button
 
 ## Data Rules
 - Soft deletes: deleted_at timestamp on all major tables
@@ -179,8 +201,8 @@ Tasks: one-off to-dos
 - Former members: anonymized display, expense history preserved
 
 ## Design System
-- Light mode default, dark mode via next-themes
-- Section colors (fixed, never change):
+- Theme system provides all background, surface, border, and text colors
+- Section colors (fixed, never change -- always import from src/lib/constants/colors.ts):
   chores = #EF4444
   grocery = #F59E0B
   calendar = #3B82F6
@@ -189,40 +211,50 @@ Tasks: one-off to-dos
   notes = #A855F7
   reminders = #06B6D4
   tasks = #EC4899
+- Slab card style: rounded-2xl, border 1.5px, border-bottom 4px (section color or --roost-border-bottom)
+  Active press: translateY(2px) + border-bottom reduces to 2px. Use SlabCard component.
 - Touch targets: 48px minimum, 64px for list rows
 - No hover-only interactions, touch first
 - No emojis anywhere, Lucide icons only
-- No em dashes in any copy or UI text
+- No em dashes and no double hyphens in any UI-facing text, placeholders,
+  copy, or JSX string content. Use commas, colons, periods, or reword instead.
+  This applies to ALL files forever.
 - CarPlay-inspired large tile grid on tablet + desktop
-- Bottom tab bar on mobile (Home, Chores, Grocery, Calendar, Profile)
+- Bottom tab bar on mobile (Home, Chores, Grocery, Calendar, More)
+  More opens a sheet with Profile and Settings links
 - UI scales: phone / tablet / desktop
+- Font: Nunito (400, 500, 600, 700, 800, 900) via next/font/google
 
 ## Folder Structure
-src/db/schema/       Drizzle schema files, split by domain
-src/lib/auth/        better-auth config
-src/lib/db/          Neon client + Drizzle instance
-src/lib/utils/       Shared utilities, NO DOM dependencies
-src/lib/hooks/       Shared hooks, NO DOM dependencies
-src/lib/constants/   App-wide constants
-src/types/           TypeScript types and interfaces
-src/app/(auth)/      login, signup, child-login
-src/app/(app)/       All authenticated routes
-src/app/api/         API route handlers
-src/components/ui/         shadcn primitives
-src/components/layout/     Shell, nav, sidebar
-src/components/dashboard/  Home screen components
-src/components/shared/     Reused across features
+src/db/schema/              Drizzle schema files, split by domain
+src/lib/auth/               better-auth config
+src/lib/db/                 Neon client + Drizzle instance
+src/lib/utils/              Shared utilities, NO DOM dependencies
+src/lib/hooks/              Shared hooks, NO DOM dependencies
+src/lib/constants/          App-wide constants (colors, themes)
+src/lib/store/              Zustand stores (themeStore, etc.)
+src/types/                  TypeScript types and interfaces
+src/app/(auth)/             login, signup, child-login
+src/app/(app)/              All authenticated routes
+src/app/api/                API route handlers
+src/components/ui/          shadcn primitives
+src/components/layout/      Shell, nav, sidebar
+src/components/providers/   Client providers (ThemeProvider)
+src/components/dashboard/   Home screen components
+src/components/shared/      Reused across features (SlabCard, QueryProvider)
 
 ## Files Built So Far
 src/proxy.ts                                   Route protection (Next.js 16 middleware)
 src/lib/auth/index.ts                          better-auth server config
 src/lib/auth/client.ts                         better-auth client (signIn, signUp, signOut, useSession)
 src/lib/auth/helpers.ts                        requireSession, requireHouseholdMember, requireHouseholdAdmin, requirePremium, blockChild
-src/lib/constants/colors.ts                    All 8 section colors — always import from here
+src/lib/constants/colors.ts                    All 8 section colors, always import from here
+src/lib/constants/themes.ts                    8 themes: warm, slate, midnight, forest, rose, sand, lavender, charcoal
+src/lib/store/themeStore.ts                    Zustand store: { theme, setTheme }
 src/lib/db/index.ts                            Neon + Drizzle instance
 src/db/schema/auth.ts                          better-auth tables (user, session, account, verification)
 src/db/schema/households.ts
-src/db/schema/users.ts                         App user table (separate from better-auth user table)
+src/db/schema/users.ts                         App user table; includes theme column (text, default 'warm')
 src/db/schema/members.ts                       household_members, member_permissions
 src/db/schema/chores.ts                        chores, chore_completions, chore_streaks
 src/db/schema/grocery.ts                       grocery_lists, grocery_items
@@ -235,23 +267,29 @@ src/db/schema/index.ts                         Re-exports all tables
 src/app/(auth)/login/page.tsx
 src/app/(auth)/signup/page.tsx                 Email/password + strength meter + confirm field
 src/app/(auth)/child-login/page.tsx            Household code + PIN, 64px inputs
-src/app/(app)/layout.tsx                       App shell — TopBar + Sidebar + BottomNav + QueryProvider
+src/app/(app)/layout.tsx                       App shell: TopBar + Sidebar + BottomNav + QueryProvider
 src/app/(app)/onboarding/page.tsx              3-step create/join household flow
-src/app/(app)/dashboard/page.tsx               Tile grid + activity feed
+src/app/(app)/dashboard/page.tsx               Tile grid + activity feed, all CSS variable colors
+src/app/(app)/settings/page.tsx                Appearance section with 8-theme grid picker
+src/app/(app)/chores/page.tsx                  Chores list, summary bar, view toggle, optimistic completion + uncheck
+src/app/layout.tsx                             Root layout: Nunito font, ThemeProvider with server-side theme
+src/app/globals.css                            Tailwind + shadcn vars + --roost-* CSS variable defaults
 src/app/api/auth/[...all]/route.ts             better-auth catch-all handler
-src/app/api/auth/child-login/route.ts          PIN auth — creates session via internalAdapter
-src/app/api/household/create/route.ts          POST — create household, generate unique code
-src/app/api/household/join/route.ts            POST — join by code, premium multi-household check
-src/app/api/household/members/route.ts         GET — household info + member list with user data
-src/components/layout/TopBar.tsx               Household name, weather (Open-Meteo), clock, avatars
-src/components/layout/BottomNav.tsx            Mobile 5-tab nav with chore badge
-src/components/layout/Sidebar.tsx              Desktop icon-only 72px sidebar
-src/components/shared/QueryProvider.tsx        TanStack Query client provider
-src/app/(app)/chores/page.tsx                  Chores list, summary bar, view toggle, optimistic completion
+src/app/api/auth/child-login/route.ts          PIN auth, creates session via internalAdapter
+src/app/api/household/create/route.ts          POST: create household, generate unique code
+src/app/api/household/join/route.ts            POST: join by code, premium multi-household check
+src/app/api/household/members/route.ts         GET: household info + member list with user data
+src/app/api/user/theme/route.ts                PATCH: update users.theme for current user
 src/app/api/chores/route.ts                    GET (list with joins) + POST (create); exports getUserHousehold + calcNextDueAt
 src/app/api/chores/[id]/route.ts               PATCH (update) + DELETE (soft delete)
-src/app/api/chores/[id]/complete/route.ts      POST — complete chore, update streak + points
-src/app/api/chores/leaderboard/route.ts        GET — weekly leaderboard sorted by points
+src/app/api/chores/[id]/complete/route.ts      POST: complete chore + streak; DELETE: uncheck, reverse streak
+src/app/api/chores/leaderboard/route.ts        GET: weekly leaderboard sorted by points
+src/components/layout/TopBar.tsx               Household name, weather, clock, avatars -- all CSS variable colors
+src/components/layout/BottomNav.tsx            Mobile 4-tab nav + More sheet (Profile, Settings)
+src/components/layout/Sidebar.tsx              Desktop icon-only 72px sidebar -- CSS variable colors
+src/components/providers/ThemeProvider.tsx     Applies theme CSS vars; exports useTheme() hook
+src/components/shared/QueryProvider.tsx        TanStack Query client provider
+src/components/shared/SlabCard.tsx             Base card: rounded-2xl, border + 4px slab bottom, press effect
 src/components/chores/ChoreSheet.tsx           Add/edit sheet with frequency, custom days, delete confirm
 src/components/chores/LeaderboardSheet.tsx     Weekly leaderboard with rank colors + streak display
 
@@ -259,44 +297,51 @@ src/components/chores/LeaderboardSheet.tsx     Weekly leaderboard with rank colo
 - All routes validate session + household membership before DB
 - Child accounts: financial endpoints always return 403
 - Free tier limits checked server-side before writes
-- Optimistic UI pattern: cancelQueries → setQueryData → return previous → onError revert → onSettled invalidate
+- Optimistic UI pattern: cancelQueries -> setQueryData -> return previous -> onError revert -> onSettled invalidate
 - Server confirmation required for: expenses, payments, members
 - Schema entry point: src/db/schema/index.ts re-exports all tables
-- getUserHousehold(userId) helper exported from src/app/api/chores/route.ts — returns { householdId, role }
-- calcNextDueAt(frequency, customDays, from?) exported from same file — use for all chore scheduling
+- getUserHousehold(userId) helper exported from src/app/api/chores/route.ts, returns { householdId, role }
+- calcNextDueAt(frequency, customDays, from?) exported from same file, use for all chore scheduling
 - Streaks use week_start (Monday, YYYY-MM-DD) as partition key in chore_streaks table
 - Completing a chore: insert chore_completions, update next_due_at, upsert chore_streaks (+10 pts)
+- Unchecking a chore: delete today's completion, restore last_completed_at, subtract 10 pts (min 0)
 
 ## Key Rules
 - Toasts: use sonner only. Import { toast } from "sonner" in client components.
   Import Toaster from @/components/ui/sonner in root layout. Never use @/components/ui/toast.
-- Section colors: always import from src/lib/constants/colors.ts — never hardcode hex values
-- Weather: Open-Meteo free API, no key needed. Hardcoded lat/lon 28.5, -81.4 (Orlando) — TODO make dynamic
+- Section colors: always import from src/lib/constants/colors.ts, never hardcode hex values
+- Theme colors: always use CSS variables (--roost-bg, --roost-surface, etc.), never hardcode
+  background or text colors on any component. Use inline style={{ color: 'var(--roost-text-primary)' }}.
+- textMuted (--roost-text-muted): ONLY for timestamps, captions, and helper labels.
+  Never for body copy or any text the user needs to read.
+- Weather: Open-Meteo free API, no key needed. Hardcoded lat/lon 28.5, -81.4 (Orlando), TODO make dynamic
 - Touch targets: 48px minimum everywhere, 64px for list rows
-- No emojis anywhere — Lucide icons only
-- No em dashes in copy or UI text
+- No emojis anywhere, Lucide icons only
+- No em dashes and no double hyphens in any UI-facing text, placeholders, copy, or JSX string content.
+  Use commas, colons, periods, or reword instead. This applies to ALL files forever.
 
 ## Build Phases
-Phase 1 — Foundation (COMPLETE)
-  Schema: DONE — all tables in src/db/schema/, pushed to Neon
-  Auth: DONE — better-auth, email/password + child PIN login
-  Household: DONE — create, join by code, onboarding flow
-  Middleware: DONE — src/proxy.ts (Next.js 16 renamed middleware to proxy)
+Phase 1: Foundation (COMPLETE)
+  Schema: DONE, all tables in src/db/schema/, pushed to Neon
+  Auth: DONE, better-auth, email/password + child PIN login
+  Household: DONE, create, join by code, onboarding flow
+  Middleware: DONE, src/proxy.ts (Next.js 16 renamed middleware to proxy)
 
-Phase 2 — Daily Use
-  Chores: DONE — list, create, edit, complete, streaks, leaderboard, optimistic UI
+Phase 2: Daily Use
+  Theme system: DONE, 8 themes, per-user, instant apply, settings picker
+  Chores: DONE, list, create, edit, complete, uncheck, streaks, leaderboard, optimistic UI
   Grocery: shared list, optimistic check/uncheck
   Calendar: events, shared view
   Tasks: create, assign, due date, priority
   Notes: create, view
   Push notification setup (Expo)
 
-Phase 3 — Money (premium)
+Phase 3: Money (premium)
   Expenses: manual entry, who owes whom
   Bill splitting: debt simplification
   Receipt scanning: Google Vision, editable line items
 
-Phase 4 — Polish
+Phase 4: Polish
   Ambient tablet mode + widget customization
   Meal planning
   Expo iOS app
@@ -327,4 +372,5 @@ Rules:
 - No emojis, use Lucide icons
 - Use sonner for all toasts (never @/components/ui/toast)
 - Touch targets 48px minimum
+- All components must use CSS variable colors, never hardcode background or text colors
 - Confirm when done and list files changed

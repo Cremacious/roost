@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
-  Bell,
   Calendar,
   Home,
   Settings,
@@ -36,7 +35,13 @@ export default function Sidebar({ userInitials = "?", userAvatarColor }: Sidebar
   const pathname = usePathname();
 
   return (
-    <aside className="fixed left-0 top-0 bottom-0 z-40 hidden w-[72px] flex-col items-center border-r border-border bg-background py-4 md:flex">
+    <aside
+      className="fixed left-0 top-0 bottom-0 z-40 hidden w-18 flex-col items-center border-r py-4 md:flex"
+      style={{
+        backgroundColor: "var(--roost-surface)",
+        borderRightColor: "var(--roost-border)",
+      }}
+    >
       <div className="flex flex-1 flex-col items-center gap-1 pt-16">
         {NAV_ITEMS.map((item) => {
           const isActive = pathname === item.href || pathname.startsWith(item.href + "/");
@@ -51,7 +56,11 @@ export default function Sidebar({ userInitials = "?", userAvatarColor }: Sidebar
             >
               <Icon
                 className="size-5"
-                style={{ color: isActive ? item.activeColor : undefined }}
+                style={{
+                  color: isActive
+                    ? item.activeColor
+                    : "var(--roost-text-secondary)",
+                }}
               />
             </Link>
           );
@@ -62,7 +71,8 @@ export default function Sidebar({ userInitials = "?", userAvatarColor }: Sidebar
         <Link
           href="/settings"
           title="Settings"
-          className="flex h-12 w-12 items-center justify-center rounded-xl text-muted-foreground transition-colors hover:bg-accent"
+          className="flex h-12 w-12 items-center justify-center rounded-xl transition-colors hover:bg-accent"
+          style={{ color: "var(--roost-text-muted)" }}
         >
           <Settings className="size-5" />
         </Link>

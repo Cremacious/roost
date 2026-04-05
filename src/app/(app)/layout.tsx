@@ -13,7 +13,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       <TopBar />
 
       {/* Main content */}
-      <main className="flex min-h-screen flex-col pt-14 pb-16 md:pb-0 md:pl-[72px]">
+      <main className="flex min-h-screen flex-col pt-14 pb-16 md:pb-0 md:pl-18">
         {children}
       </main>
 

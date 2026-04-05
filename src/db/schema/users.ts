@@ -8,6 +8,7 @@ export const users = pgTable("users", {
   push_token: text("push_token"),
   avatar_color: text("avatar_color"),
   language: text("language").notNull().default("en"),
+  theme: text("theme").notNull().default("warm"),
   created_at: timestamp("created_at").defaultNow(),
   updated_at: timestamp("updated_at").defaultNow(),
   deleted_at: timestamp("deleted_at"),

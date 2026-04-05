@@ -69,7 +69,14 @@ export default function TopBar() {
 
   const { data: membersData } = useQuery<MembersResponse>({
     queryKey: ["household-members"],
-    queryFn: () => fetch("/api/household/members").then((r) => r.json()),
+    queryFn: async () => {
+      const r = await fetch("/api/household/members");
+      if (!r.ok) {
+        const d = await r.json().catch(() => ({}));
+        throw new Error(d.error ?? "Failed to load members");
+      }
+      return r.json();
+    },
     staleTime: 60_000,
     retry: false,
   });

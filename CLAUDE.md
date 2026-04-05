@@ -389,6 +389,12 @@ src/app/(app)/grocery/page.tsx                 Full grocery module: list pills, 
 - No em dashes and no double hyphens in any UI-facing text, placeholders, copy, or JSX string content.
   Use commas, colons, periods, or reword instead. This applies to ALL files forever.
 - Text opacity: never use opacity below /70 for text. Use --roost-text-muted instead of text-primary/50.
+- HIDE_NAV_ROUTES = ['/onboarding']: AppShell hides Sidebar, TopBar, and BottomNav on these routes.
+  Add routes here when a page has its own full-screen layout. AppShell also removes the main padding
+  offsets (pt-14, pb-16, md:pl-55) on hidden-nav routes.
+- Dashboard household guard: always check membersData?.household before rendering dashboard content.
+  If household is undefined after data loads, render NoHouseholdState (EmptyState with Home icon,
+  redirect to /onboarding). User may land on dashboard without a household during early onboarding.
 
 ## Build Phases
 Phase 1: Foundation (COMPLETE)
@@ -476,7 +482,7 @@ Designer brief (send this when hiring):
 At the start of each new session fetch this file to restore context.
 Share GitHub file URLs, paste code, or describe what was built.
 Update this file after every major decision or completed phase.
-Last updated: 2026-04-05 (grocery module + activity feed complete; grocery diagnostic bugs fixed)
+Last updated: 2026-04-05 (grocery + activity complete; child PIN keys fixed; dashboard household guard; AppShell nav hiding)
 
 ## Bugs Found and Fixed (2026-04-05)
 - No default grocery list created on household signup: `GET /api/grocery/lists` now

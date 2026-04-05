@@ -10,9 +10,11 @@ import {
   CheckSquare,
   DollarSign,
   FileText,
+  Home,
   ShoppingCart,
   UtensilsCrossed,
 } from "lucide-react";
+import EmptyState from "@/components/shared/EmptyState";
 import { formatDistanceToNow } from "date-fns";
 import { motion } from "framer-motion";
 import { SECTION_COLORS, type SectionKey } from "@/lib/constants/colors";
@@ -284,7 +286,14 @@ export default function DashboardPage() {
 
   const { data: membersData } = useQuery<MembersResponse>({
     queryKey: ["household-members"],
-    queryFn: () => fetch("/api/household/members").then((r) => r.json()),
+    queryFn: async () => {
+      const r = await fetch("/api/household/members");
+      if (!r.ok) {
+        const d = await r.json().catch(() => ({}));
+        throw new Error(d.error ?? "Failed to load members");
+      }
+      return r.json();
+    },
     staleTime: 60_000,
     retry: false,
   });
@@ -297,7 +306,23 @@ export default function DashboardPage() {
     retry: false,
   });
 
-  const householdName = membersData?.household.name ?? "";
+  // Guard: user has no household yet (e.g. mid-onboarding or fresh signup)
+  if (membersData && !membersData.household) {
+    return (
+      <div className="p-4 md:p-6" style={{ backgroundColor: "var(--roost-bg)" }}>
+        <EmptyState
+          icon={Home}
+          title="You are not in a household yet."
+          body="Create one or join an existing one with a code from a housemate."
+          buttonLabel="Get started"
+          onButtonClick={() => router.push("/onboarding")}
+          color="var(--roost-text-secondary)"
+        />
+      </div>
+    );
+  }
+
+  const householdName = membersData?.household?.name ?? "";
   const activityItems = (activityData?.activity ?? []).map(mapActivity);
 
   return (

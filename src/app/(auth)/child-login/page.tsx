@@ -8,11 +8,10 @@ import { Delete, Loader2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import RoostLogo from "@/components/shared/RoostLogo";
 
-const PIN_PAD = [
+const PIN_ROWS: string[][] = [
   ["1", "2", "3"],
   ["4", "5", "6"],
   ["7", "8", "9"],
-  ["", "0", "del"],
 ];
 
 export default function ChildLoginPage() {
@@ -141,37 +140,66 @@ export default function ChildLoginPage() {
 
         {/* PIN pad */}
         <div className="space-y-2">
-          {PIN_PAD.map((row, ri) => (
-            <div key={ri} className="grid grid-cols-3 gap-2">
-              {row.map((key, ki) => {
-                if (!key) {
-                  return <div key={ki} />;
-                }
-                return (
-                  <motion.button
-                    key={key}
-                    type="button"
-                    onClick={() => handlePinPress(key)}
-                    whileTap={{ y: 2, scale: 0.97 }}
-                    className="flex h-16 items-center justify-center rounded-2xl text-xl"
-                    style={{
-                      backgroundColor: "var(--roost-surface)",
-                      border: "1.5px solid var(--roost-border)",
-                      borderBottom: "4px solid var(--roost-border-bottom)",
-                      color: "var(--roost-text-primary)",
-                      fontWeight: key === "del" ? 700 : 800,
-                    }}
-                  >
-                    {key === "del" ? (
-                      <Delete className="size-5" />
-                    ) : (
-                      key
-                    )}
-                  </motion.button>
-                );
-              })}
+          {/* Rows 1-3: digits 1-9 */}
+          {PIN_ROWS.map((row, ri) => (
+            <div key={`row-${ri}`} className="grid grid-cols-3 gap-2">
+              {row.map((digit) => (
+                <motion.button
+                  key={`pin-${digit}`}
+                  type="button"
+                  onClick={() => handlePinPress(digit)}
+                  whileTap={{ y: 2, scale: 0.97 }}
+                  className="flex h-16 items-center justify-center rounded-2xl text-xl"
+                  style={{
+                    backgroundColor: "var(--roost-surface)",
+                    border: "1.5px solid var(--roost-border)",
+                    borderBottom: "4px solid var(--roost-border-bottom)",
+                    color: "var(--roost-text-primary)",
+                    fontWeight: 800,
+                  }}
+                >
+                  {digit}
+                </motion.button>
+              ))}
             </div>
           ))}
+
+          {/* Row 4: 0 centered + backspace */}
+          <div className="grid grid-cols-3 gap-2">
+            <div key="pin-empty" />
+            <motion.button
+              key="pin-0"
+              type="button"
+              onClick={() => handlePinPress("0")}
+              whileTap={{ y: 2, scale: 0.97 }}
+              className="flex h-16 items-center justify-center rounded-2xl text-xl"
+              style={{
+                backgroundColor: "var(--roost-surface)",
+                border: "1.5px solid var(--roost-border)",
+                borderBottom: "4px solid var(--roost-border-bottom)",
+                color: "var(--roost-text-primary)",
+                fontWeight: 800,
+              }}
+            >
+              0
+            </motion.button>
+            <motion.button
+              key="pin-backspace"
+              type="button"
+              onClick={() => handlePinPress("del")}
+              whileTap={{ y: 2, scale: 0.97 }}
+              className="flex h-16 items-center justify-center rounded-2xl"
+              style={{
+                backgroundColor: "var(--roost-surface)",
+                border: "1.5px solid var(--roost-border)",
+                borderBottom: "4px solid var(--roost-border-bottom)",
+                color: "var(--roost-text-primary)",
+                fontWeight: 700,
+              }}
+            >
+              <Delete className="size-5" />
+            </motion.button>
+          </div>
         </div>
 
         {/* Sign in button */}

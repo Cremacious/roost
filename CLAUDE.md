@@ -357,6 +357,19 @@ src/components/chores/LeaderboardSheet.tsx     Weekly leaderboard: slab cards, g
 src/components/grocery/GroceryItemSheet.tsx    Add/edit item sheet: name + quantity slab inputs, amber save button
 src/components/grocery/GroceryListSheet.tsx    Create/rename list sheet; shows premium upgrade prompt for free tier
 src/app/(app)/grocery/page.tsx                 Full grocery module: list pills, quick add bar, item rows, checked collapsible, amber FAB
+src/app/(app)/tasks/page.tsx                   Full tasks module: grouped sections, filter row, stats, optimistic complete/uncheck, delete confirm
+src/app/api/tasks/route.ts                     GET (incomplete asc due_date + completed desc) + POST (create + log activity)
+src/app/api/tasks/[id]/route.ts                PATCH (edit + complete/uncheck + log completion) + DELETE (creator or admin, soft delete)
+src/components/tasks/TaskSheet.tsx             Add/edit task sheet: title, description, assignee select, due date + Clear, priority toggle
+
+## Task UX Patterns
+- Tasks grouped by: Overdue (red header), Due today (pink), Upcoming, No due date, Completed
+- Completed section collapsed by default; all others expanded
+- Priority colors: High #EF4444, Medium #F59E0B, Low var(--roost-text-muted)
+- Completing a task: AlertDialog confirmation, then optimistic update
+- Unchecking a task: immediate optimistic update, no confirmation (undo toast)
+- Filter row: All / Mine / Assigned / Completed — active pill has dark fill (roost-text-primary bg)
+- Children can mark tasks complete but cannot create, edit, or delete tasks
 
 ## API Rules
 - All routes validate session + household membership before DB
@@ -424,7 +437,7 @@ Phase 2: Daily Use
   Grocery: DONE, lists (free: 1, premium: multiple), items, check/uncheck optimistic, clear checked, activity logging
   Activity feed: DONE, household_activity table, logged for chores + grocery, dashboard reads real data
   Calendar: events, shared view
-  Tasks: create, assign, due date, priority
+  Tasks: DONE, create, assign, due date, priority, complete, grouped sections, filter row
   Notes: create, view
   Push notification setup (Expo)
 
@@ -496,7 +509,7 @@ Designer brief (send this when hiring):
 At the start of each new session fetch this file to restore context.
 Share GitHub file URLs, paste code, or describe what was built.
 Update this file after every major decision or completed phase.
-Last updated: 2026-04-05 (code quality sweep: ErrorState, skeletons, r.ok checks, query config, touch targets, empty state copy)
+Last updated: 2026-04-05 (tasks module complete: API routes, TaskSheet, tasks page with grouping, filters, optimistic UI)
 
 ## Bugs Found and Fixed (2026-04-05)
 - No default grocery list created on household signup: `GET /api/grocery/lists` now

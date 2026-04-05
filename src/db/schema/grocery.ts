@@ -9,7 +9,7 @@ export const grocery_lists = pgTable("grocery_lists", {
     .notNull(),
   name: text("name").notNull().default("Shopping List"),
   is_default: boolean("is_default").notNull().default(false),
-  created_by: uuid("created_by")
+  created_by: text("created_by")
     .references(() => users.id)
     .notNull(),
   created_at: timestamp("created_at").defaultNow(),
@@ -26,11 +26,11 @@ export const grocery_items = pgTable("grocery_items", {
     .notNull(),
   name: text("name").notNull(),
   quantity: text("quantity"),
-  added_by: uuid("added_by")
+  added_by: text("added_by")
     .references(() => users.id)
     .notNull(),
   checked: boolean("checked").notNull().default(false),
-  checked_by: uuid("checked_by").references(() => users.id),
+  checked_by: text("checked_by").references(() => users.id),
   checked_at: timestamp("checked_at"),
   created_at: timestamp("created_at").defaultNow(),
   deleted_at: timestamp("deleted_at"),

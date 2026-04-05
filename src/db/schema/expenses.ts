@@ -9,7 +9,7 @@ export const expenses = pgTable("expenses", {
     .notNull(),
   title: text("title").notNull(),
   total_amount: numeric("total_amount").notNull(),
-  paid_by: uuid("paid_by")
+  paid_by: text("paid_by")
     .references(() => users.id)
     .notNull(),
   category: text("category"),
@@ -25,7 +25,7 @@ export const expense_splits = pgTable("expense_splits", {
   expense_id: uuid("expense_id")
     .references(() => expenses.id)
     .notNull(),
-  user_id: uuid("user_id")
+  user_id: text("user_id")
     .references(() => users.id)
     .notNull(),
   amount: numeric("amount").notNull(),

@@ -3,7 +3,7 @@ import { users } from "./users";
 
 export const notification_queue = pgTable("notification_queue", {
   id: uuid("id").primaryKey().defaultRandom(),
-  user_id: uuid("user_id")
+  user_id: text("user_id")
     .references(() => users.id)
     .notNull(),
   type: text("type").notNull(),

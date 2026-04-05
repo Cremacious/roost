@@ -9,7 +9,7 @@ export const notes = pgTable("notes", {
     .notNull(),
   title: text("title"),
   content: text("content").notNull(),
-  created_by: uuid("created_by")
+  created_by: text("created_by")
     .references(() => users.id)
     .notNull(),
   created_at: timestamp("created_at").defaultNow(),

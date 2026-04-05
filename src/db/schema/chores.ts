@@ -9,12 +9,12 @@ export const chores = pgTable("chores", {
     .notNull(),
   title: text("title").notNull(),
   description: text("description"),
-  assigned_to: uuid("assigned_to").references(() => users.id),
+  assigned_to: text("assigned_to").references(() => users.id),
   frequency: text("frequency").notNull(),
   custom_days: text("custom_days"),
   last_completed_at: timestamp("last_completed_at"),
   next_due_at: timestamp("next_due_at"),
-  created_by: uuid("created_by")
+  created_by: text("created_by")
     .references(() => users.id)
     .notNull(),
   created_at: timestamp("created_at").defaultNow(),
@@ -27,7 +27,7 @@ export const chore_completions = pgTable("chore_completions", {
   chore_id: uuid("chore_id")
     .references(() => chores.id)
     .notNull(),
-  completed_by: uuid("completed_by")
+  completed_by: text("completed_by")
     .references(() => users.id)
     .notNull(),
   completed_at: timestamp("completed_at").defaultNow(),
@@ -41,7 +41,7 @@ export const chore_streaks = pgTable(
     household_id: uuid("household_id")
       .references(() => households.id)
       .notNull(),
-    user_id: uuid("user_id")
+    user_id: text("user_id")
       .references(() => users.id)
       .notNull(),
     current_streak: integer("current_streak").notNull().default(0),

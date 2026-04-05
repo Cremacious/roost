@@ -12,7 +12,7 @@ export const calendar_events = pgTable("calendar_events", {
   start_time: timestamp("start_time").notNull(),
   end_time: timestamp("end_time"),
   all_day: boolean("all_day").notNull().default(false),
-  created_by: uuid("created_by")
+  created_by: text("created_by")
     .references(() => users.id)
     .notNull(),
   created_at: timestamp("created_at").defaultNow(),
@@ -27,7 +27,7 @@ export const event_attendees = pgTable(
     event_id: uuid("event_id")
       .references(() => calendar_events.id)
       .notNull(),
-    user_id: uuid("user_id")
+    user_id: text("user_id")
       .references(() => users.id)
       .notNull(),
   },

@@ -9,7 +9,7 @@ export const household_members = pgTable(
     household_id: uuid("household_id")
       .references(() => households.id)
       .notNull(),
-    user_id: uuid("user_id")
+    user_id: text("user_id")
       .references(() => users.id)
       .notNull(),
     role: text("role").notNull().default("member"),
@@ -26,7 +26,7 @@ export const member_permissions = pgTable(
     household_id: uuid("household_id")
       .references(() => households.id)
       .notNull(),
-    user_id: uuid("user_id")
+    user_id: text("user_id")
       .references(() => users.id)
       .notNull(),
     permission: text("permission").notNull(),

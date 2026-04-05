@@ -9,13 +9,13 @@ export const tasks = pgTable("tasks", {
     .notNull(),
   title: text("title").notNull(),
   description: text("description"),
-  assigned_to: uuid("assigned_to").references(() => users.id),
+  assigned_to: text("assigned_to").references(() => users.id),
   due_date: timestamp("due_date"),
   priority: text("priority").notNull().default("medium"),
   completed: boolean("completed").notNull().default(false),
-  completed_by: uuid("completed_by").references(() => users.id),
+  completed_by: text("completed_by").references(() => users.id),
   completed_at: timestamp("completed_at"),
-  created_by: uuid("created_by")
+  created_by: text("created_by")
     .references(() => users.id)
     .notNull(),
   created_at: timestamp("created_at").defaultNow(),

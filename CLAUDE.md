@@ -361,6 +361,23 @@ src/app/(app)/tasks/page.tsx                   Full tasks module: grouped sectio
 src/app/api/tasks/route.ts                     GET (incomplete asc due_date + completed desc) + POST (create + log activity)
 src/app/api/tasks/[id]/route.ts                PATCH (edit + complete/uncheck + log completion) + DELETE (creator or admin, soft delete)
 src/components/tasks/TaskSheet.tsx             Add/edit task sheet: title, description, assignee select, due date + Clear, priority toggle
+src/app/(app)/calendar/page.tsx               Full calendar module: month grid + agenda list, DaySheet, EventSheet
+src/app/api/calendar/route.ts                 GET (month events with attendees) + POST (create + permission check + log activity)
+src/app/api/calendar/[id]/route.ts            PATCH (edit, creator or admin) + DELETE (soft delete)
+src/components/calendar/EventSheet.tsx        Create/edit/view event: inline date picker, all-day toggle, time inputs, attendee chips
+src/components/calendar/DaySheet.tsx          Day events list, tap to view/add, pre-fills date in EventSheet
+
+## Calendar UX Patterns
+- Two views: Month grid (default) and Agenda list (next 60 days from today)
+- Month view: tap any day cell to open DaySheet showing that day's events
+- Event pills in day cells: blue bg (#3B82F6 at 15%), blue text, 11px, border-bottom slab
+- Today cell: date number has filled blue circle
+- DaySheet pre-fills the date when opening EventSheet from a specific day cell
+- Agenda view: groups events by date with sticky headers (Today/Tomorrow/date)
+- Agenda view: fetches current month + 2 ahead to cover 60-day window
+- Permission check: calendar.add permission in member_permissions table (default true for members)
+- Children blocked from adding/editing/deleting events
+- Event color: #3B82F6, border-bottom: #1A5CB5
 
 ## Task UX Patterns
 - Tasks grouped by: Overdue (red header), Due today (pink), Upcoming, No due date, Completed
@@ -436,7 +453,7 @@ Phase 2: Daily Use
   Chores: DONE, list, create, edit, complete, uncheck, streaks, leaderboard, optimistic UI
   Grocery: DONE, lists (free: 1, premium: multiple), items, check/uncheck optimistic, clear checked, activity logging
   Activity feed: DONE, household_activity table, logged for chores + grocery, dashboard reads real data
-  Calendar: events, shared view
+  Calendar: DONE, month grid + agenda view, DaySheet, EventSheet, attendees, permissions
   Tasks: DONE, create, assign, due date, priority, complete, grouped sections, filter row
   Notes: create, view
   Push notification setup (Expo)
@@ -509,7 +526,7 @@ Designer brief (send this when hiring):
 At the start of each new session fetch this file to restore context.
 Share GitHub file URLs, paste code, or describe what was built.
 Update this file after every major decision or completed phase.
-Last updated: 2026-04-05 (tasks module complete: API routes, TaskSheet, tasks page with grouping, filters, optimistic UI)
+Last updated: 2026-04-05 (calendar module complete: month grid, agenda view, DaySheet, EventSheet, attendees, permissions)
 
 ## Bugs Found and Fixed (2026-04-05)
 - No default grocery list created on household signup: `GET /api/grocery/lists` now

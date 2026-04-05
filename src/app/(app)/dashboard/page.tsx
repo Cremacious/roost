@@ -81,19 +81,13 @@ function TileCard({ tile }: { tile: Tile }) {
     <button
       type="button"
       onClick={() => router.push(tile.href)}
-      className="relative flex min-h-24 md:min-h-30 w-full flex-col justify-between overflow-hidden rounded-2xl border p-4 text-left transition-colors hover:opacity-90"
+      className="relative flex min-h-24 md:min-h-30 w-full flex-col justify-between rounded-2xl p-4 text-left transition-opacity hover:opacity-90"
       style={{
         backgroundColor: "var(--roost-surface)",
-        borderColor: "var(--roost-border)",
-        borderBottom: `4px solid ${color}33`,
+        border: "1.5px solid var(--roost-border)",
+        borderBottom: "4px solid var(--roost-border-bottom)",
       }}
     >
-      {/* Left accent bar */}
-      <span
-        className="absolute left-0 top-0 bottom-0 w-[3px] rounded-l-2xl"
-        style={{ backgroundColor: color }}
-      />
-
       {/* Badge */}
       {tile.count > 0 && (
         <span

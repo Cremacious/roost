@@ -211,7 +211,9 @@ Tasks: one-off to-dos
   notes = #A855F7
   reminders = #06B6D4
   tasks = #EC4899
-- Slab card style: rounded-2xl, border 1.5px, border-bottom 4px (section color or --roost-border-bottom)
+- Slab card style: rounded-2xl, border 1.5px solid --roost-border on all sides,
+  border-bottom 4px solid (section color or --roost-border-bottom). That bottom border is the
+  ONLY place the 3D clay effect comes from. No left/right/top border accents ever.
   Active press: translateY(2px) + border-bottom reduces to 2px. Use SlabCard component.
 - Touch targets: 48px minimum, 64px for list rows
 - No hover-only interactions, touch first
@@ -219,6 +221,9 @@ Tasks: one-off to-dos
 - No em dashes and no double hyphens in any UI-facing text, placeholders,
   copy, or JSX string content. Use commas, colons, periods, or reword instead.
   This applies to ALL files forever.
+- Slab design = bottom border only for the 3D effect. No left/right/top border as color accents.
+  Section colors appear only in: icon background, icon stroke, badge pills, border-bottom of
+  section-specific cards. Never as a left/right stripe or top accent.
 - CarPlay-inspired large tile grid on tablet + desktop
 - Bottom tab bar on mobile (Home, Chores, Grocery, Calendar, More)
   More opens a sheet with Profile and Settings links

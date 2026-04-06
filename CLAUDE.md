@@ -374,6 +374,8 @@ src/components/shared/QueryProvider.tsx        TanStack Query client provider
 src/lib/utils/activity.ts                      logActivity(params) helper -- wraps insert, never throws, safe to call from any route
 src/lib/utils/time.ts                          relativeTime(date) -- returns "Just now", "Xm ago", "Xh ago", "Yesterday", "Xd ago"
 src/lib/hooks/useHousehold.ts                  Client hook: returns { household, role, permissions, isPremium, isLoading, error } via /api/household/me
+src/lib/hooks/useUserPreferences.ts            Client hook: returns { temperatureUnit, latitude, longitude, updatePreferences } via /api/user/preferences
+src/app/api/user/preferences/route.ts          GET + PATCH: temperature_unit, latitude, longitude, timezone, language
 src/components/shared/RoostLogo.tsx            Centralized logo: sizes xs/sm/md/lg/xl, variants dark/light/red
 src/components/shared/SlabCard.tsx             Base card: rounded-2xl, border + 4px slab bottom, press effect
 src/components/shared/EmptyState.tsx           Sassy empty state: dashed slab card, icon, title, body, optional button
@@ -581,7 +583,11 @@ vercel.json                                   Cron schedule: /api/cron/reminders
   background or text colors on any component. Use inline style={{ color: 'var(--roost-text-primary)' }}.
 - textMuted (--roost-text-muted): ONLY for timestamps, captions, and helper labels.
   Never for body copy or any text the user needs to read.
-- Weather: Open-Meteo free API, no key needed. Hardcoded lat/lon 28.5, -81.4 (Orlando), TODO make dynamic
+- Weather: Open-Meteo free API, no key needed. Location-aware via users.latitude/longitude.
+  Falls back to Orlando (28.5, -81.4) when no location stored.
+  Unit detection: America/ timezone prefix = Fahrenheit, all others = Celsius (auto on first grant).
+  Geolocation requires HTTPS in production — Vercel handles this automatically.
+  users table: latitude (numeric nullable), longitude (numeric nullable), temperature_unit (text default 'fahrenheit')
 - Touch targets: 48px minimum everywhere, 64px for list rows
 - No emojis anywhere, Lucide icons only
 - No em dashes and no double hyphens in any UI-facing text, placeholders, copy, or JSX string content.
@@ -638,40 +644,11 @@ Phase 4: Polish
   Expo iOS app
   Android submission
   i18n Spanish pass
-  Weather Temperature Units (build later):
-    Currently hardcoded location (Orlando 28.5, -81.4) and unit (Celsius default).
-    Need to make it location-aware and user-controlled.
-    1. Auto-detect user location on first app load
-       Use browser Geolocation API: navigator.geolocation.getCurrentPosition()
-       Store lat/lon in users table
-       Add columns: latitude (numeric), longitude (numeric) to users schema
-    2. Auto-select temperature unit based on location
-       United States: Fahrenheit. All other countries: Celsius.
-       Detection: reverse geocode lat/lon via Open-Meteo geocoding API, or check
-       if timezone contains "America/" prefix as a simple US detection method
-    3. Store preference in users table
-       Add column: temperature_unit text default 'fahrenheit' (fahrenheit | celsius)
-    4. Open-Meteo API supports both units:
-       Fahrenheit: add &temperature_unit=fahrenheit
-       Celsius: default, no param needed
-    5. User can override in Settings > Preferences:
-       Toggle: Fahrenheit / Celsius
-       Saves to users.temperature_unit via PATCH /api/user/preferences
-    6. Update TopBar weather display:
-       Read temperature_unit from useHousehold() or a new useUserPreferences() hook
-       Pass correct unit param to Open-Meteo fetch
-       Display "72F" or "22C" accordingly
-    7. Also store and use user's actual location for accurate weather (not hardcoded Orlando):
-       On first load: request location permission
-       If granted: use real lat/lon
-       If denied: fall back to household timezone to approximate location, or show no weather
-    Current hardcoded values to replace:
-      Latitude: 28.5 (Orlando), Longitude: -81.4 (Orlando), Unit: Celsius (Open-Meteo default)
-    Files to update when building:
-      src/db/schema/users.ts (add columns)
-      src/components/layout/TopBar.tsx (use real location + unit)
-      src/app/(app)/settings/page.tsx (add preference toggle)
-      src/app/api/user/preferences/route.ts (new route)
+  Weather Temperature Units: DONE
+    Location-aware weather with user-controlled temperature unit.
+    Unit auto-detected from browser timezone on first location grant (America/ = Fahrenheit).
+    Falls back to Orlando (28.5, -81.4) when no location stored.
+    Settings > Preferences: °F/°C toggle, location status + Update button, language placeholder.
 
 Phase 5: Allowance System (premium only, build after Phase 4)
   Parent-controlled allowance tied to chore completion.
@@ -780,7 +757,7 @@ Designer brief (send this when hiring):
 At the start of each new session fetch this file to restore context.
 Share GitHub file URLs, paste code, or describe what was built.
 Update this file after every major decision or completed phase.
-Last updated: 2026-04-06 (reminders: fix snooze bug — snoozed_until missing from GET select; calcNextRemindAt uses Math.max(base, now) to prevent past dates for overdue reminders)
+Last updated: 2026-04-06 (weather: location-aware with user-controlled temp unit; useUserPreferences hook; /api/user/preferences GET+PATCH; Settings > Preferences section)
 
 ## Bugs Found and Fixed (2026-04-05)
 - No default grocery list created on household signup: `GET /api/grocery/lists` now

@@ -1,7 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+// Note: navigator.geolocation requires HTTPS in production.
+// Works on localhost for dev. Vercel deployment uses HTTPS automatically.
+
+import { useEffect, useRef, useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Cloud,
   CloudLightning,
@@ -11,8 +14,10 @@ import {
   Wind,
 } from "lucide-react";
 import RoostLogo from "@/components/shared/RoostLogo";
+import { useUserPreferences } from "@/lib/hooks/useUserPreferences";
+import { Skeleton } from "@/components/ui/skeleton";
 
-// ---- Types ----------------------------------------------------------------
+// ---- Types ------------------------------------------------------------------
 
 interface Member {
   id: string;
@@ -31,9 +36,6 @@ interface WeatherResponse {
 }
 
 // ---- Helpers ----------------------------------------------------------------
-
-const WEATHER_LAT = 28.5;
-const WEATHER_LON = -81.4;
 
 function getWeatherIcon(code: number) {
   if (code === 0) return <Sun className="size-3.5" />;
@@ -58,6 +60,12 @@ function formatTime(date: Date): string {
 
 export default function TopBar() {
   const [time, setTime] = useState<string>(() => formatTime(new Date()));
+  const locationRequested = useRef(false);
+  const queryClient = useQueryClient();
+
+  const { temperatureUnit, latitude, longitude, isLoading: prefsLoading } = useUserPreferences();
+
+  // ---- Clock ------------------------------------------------------------------
 
   useEffect(() => {
     const tick = () => setTime(formatTime(new Date()));
@@ -66,6 +74,48 @@ export default function TopBar() {
     const align = setTimeout(() => { tick(); setInterval(tick, 60_000); }, ms);
     return () => { clearInterval(id); clearTimeout(align); };
   }, []);
+
+  // ---- Location detection (first mount, only if no stored location) ----------
+
+  useEffect(() => {
+    if (prefsLoading) return;
+    if (locationRequested.current) return;
+    locationRequested.current = true;
+
+    if (latitude !== null) return; // Already have stored location
+    if (!navigator.geolocation) return;
+
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        const { latitude: lat, longitude: lon } = position.coords;
+
+        // Save location
+        await fetch("/api/user/preferences", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ latitude: lat, longitude: lon }),
+        }).catch(() => {});
+
+        // Auto-detect unit on first location grant using browser timezone
+        const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+        const unit = tz.startsWith("America/") ? "fahrenheit" : "celsius";
+        await fetch("/api/user/preferences", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ temperature_unit: unit }),
+        }).catch(() => {});
+
+        // Refresh preferences so weather query picks up new coords + unit
+        queryClient.invalidateQueries({ queryKey: ["user-preferences"] });
+      },
+      (error) => {
+        console.log("Location denied:", error.message);
+      },
+      { timeout: 10_000 }
+    );
+  }, [prefsLoading, latitude, queryClient]);
+
+  // ---- Household members -------------------------------------------------------
 
   const { data: membersData } = useQuery<MembersResponse>({
     queryKey: ["household-members"],
@@ -81,19 +131,28 @@ export default function TopBar() {
     retry: false,
   });
 
-  const { data: weatherData } = useQuery<WeatherResponse>({
-    queryKey: ["weather"],
-    queryFn: () =>
-      fetch(`https://api.open-meteo.com/v1/forecast?latitude=${WEATHER_LAT}&longitude=${WEATHER_LON}&current_weather=true`)
-        .then((r) => r.json()),
-    staleTime: 10 * 60_000,
-    refetchInterval: 10 * 60_000,
+  // ---- Weather ----------------------------------------------------------------
+
+  const effectiveLat = latitude ?? 28.5;
+  const effectiveLon = longitude ?? -81.4;
+
+  const weatherUrl =
+    temperatureUnit === "fahrenheit"
+      ? `https://api.open-meteo.com/v1/forecast?latitude=${effectiveLat}&longitude=${effectiveLon}&current_weather=true&temperature_unit=fahrenheit`
+      : `https://api.open-meteo.com/v1/forecast?latitude=${effectiveLat}&longitude=${effectiveLon}&current_weather=true`;
+
+  const { data: weatherData, isLoading: weatherLoading } = useQuery<WeatherResponse>({
+    queryKey: ["weather", effectiveLat, effectiveLon, temperatureUnit],
+    queryFn: () => fetch(weatherUrl).then((r) => r.json()),
+    staleTime: 5 * 60_000,
+    refetchInterval: 5 * 60_000,
     retry: false,
   });
 
   const members = membersData?.members ?? [];
   const householdName = membersData?.household?.name ?? "";
   const weather = weatherData?.current_weather;
+  const unitLabel = temperatureUnit === "fahrenheit" ? "°F" : "°C";
   const visibleMembers = members.slice(0, 4);
   const overflow = members.length > 4 ? members.length - 4 : 0;
 
@@ -107,7 +166,6 @@ export default function TopBar() {
     >
       {/* Left: logo on mobile, household name on md+ */}
       <div className="flex items-center gap-2.5 min-w-0">
-        {/* Logo: mobile only (sidebar shows logo on md+) */}
         <div className="md:hidden">
           <RoostLogo size="sm" />
         </div>
@@ -122,7 +180,9 @@ export default function TopBar() {
       {/* Right: weather chip + time + avatars */}
       <div className="flex items-center gap-2">
         {/* Weather chip */}
-        {weather && (
+        {weatherLoading ? (
+          <Skeleton className="h-6 w-20 rounded-full" />
+        ) : weather ? (
           <div
             className="flex items-center gap-1 rounded-full px-2.5 py-1 text-xs"
             style={{
@@ -132,9 +192,12 @@ export default function TopBar() {
             }}
           >
             {getWeatherIcon(weather.weathercode)}
-            <span>{Math.round(weather.temperature)}&deg;</span>
+            <span>
+              {Math.round(weather.temperature)}
+              {unitLabel}
+            </span>
           </div>
-        )}
+        ) : null}
 
         {/* Time */}
         <span

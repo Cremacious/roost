@@ -1,10 +1,13 @@
 "use client";
 
-import { Check } from "lucide-react";
+import { useState } from "react";
+import { Check, MapPin, Thermometer } from "lucide-react";
 import { motion } from "framer-motion";
+import { toast } from "sonner";
 import { THEMES, type ThemeKey } from "@/lib/constants/themes";
 import { useTheme } from "@/components/providers/ThemeProvider";
 import { useSession } from "@/lib/auth/client";
+import { useUserPreferences } from "@/lib/hooks/useUserPreferences";
 
 // ---- Helpers ----------------------------------------------------------------
 
@@ -130,10 +133,50 @@ function SettingsSection({
 export default function SettingsPage() {
   const { theme, setTheme } = useTheme();
   const { data: sessionData } = useSession();
+  const { temperatureUnit, latitude, longitude, updatePreferences } = useUserPreferences();
+  const [locationUpdating, setLocationUpdating] = useState(false);
 
   const themeKeys = Object.keys(THEMES) as ThemeKey[];
   const userName = sessionData?.user?.name ?? "";
   const userEmail = sessionData?.user?.email ?? "";
+
+  async function handleTempUnitChange(unit: "fahrenheit" | "celsius") {
+    try {
+      await updatePreferences({ temperature_unit: unit });
+      toast.success("Preference saved");
+    } catch {
+      toast.error("Could not save preference", { description: "Something went wrong. Try again." });
+    }
+  }
+
+  function handleUpdateLocation() {
+    if (!navigator.geolocation) {
+      toast.error("Location not available", { description: "Your browser does not support geolocation." });
+      return;
+    }
+    setLocationUpdating(true);
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        const { latitude: lat, longitude: lon } = position.coords;
+        try {
+          await updatePreferences({ latitude: lat, longitude: lon });
+          toast.success("Location updated");
+        } catch {
+          toast.error("Could not save location", { description: "Something went wrong. Try again." });
+        } finally {
+          setLocationUpdating(false);
+        }
+      },
+      (error) => {
+        console.log("Location denied:", error.message);
+        setLocationUpdating(false);
+        toast.error("Location access was denied", {
+          description: "You can enable it in your browser settings.",
+        });
+      },
+      { timeout: 10_000 }
+    );
+  }
 
   return (
     <motion.div
@@ -217,6 +260,139 @@ export default function SettingsPage() {
               onSelect={() => setTheme(key)}
             />
           ))}
+        </div>
+      </SettingsSection>
+
+      {/* Preferences section */}
+      <SettingsSection title="Preferences">
+        <div
+          className="flex flex-col divide-y rounded-2xl overflow-hidden"
+          style={{
+            backgroundColor: "var(--roost-surface)",
+            border: "1.5px solid var(--roost-border)",
+            borderBottom: "4px solid var(--roost-border-bottom)",
+            // Dividers use the border color
+            ["--tw-divide-opacity" as string]: "1",
+          }}
+        >
+          {/* Temperature unit */}
+          <div className="flex flex-col gap-2 p-4">
+            <div className="flex items-center gap-2">
+              <Thermometer className="size-4 shrink-0" style={{ color: "var(--roost-text-muted)" }} />
+              <div className="flex-1">
+                <p className="text-sm" style={{ color: "var(--roost-text-primary)", fontWeight: 700 }}>
+                  Temperature
+                </p>
+                <p className="text-xs" style={{ color: "var(--roost-text-muted)", fontWeight: 600 }}>
+                  Choose your preferred unit for weather.
+                </p>
+              </div>
+            </div>
+            <div className="flex gap-2 mt-1">
+              {(["fahrenheit", "celsius"] as const).map((unit) => {
+                const active = temperatureUnit === unit;
+                const label = unit === "fahrenheit" ? "°F Fahrenheit" : "°C Celsius";
+                return (
+                  <motion.button
+                    key={unit}
+                    type="button"
+                    whileTap={{ y: 1 }}
+                    onClick={() => handleTempUnitChange(unit)}
+                    className="flex h-10 flex-1 items-center justify-center rounded-xl text-sm"
+                    style={{
+                      backgroundColor: active ? "var(--roost-text-primary)" : "var(--roost-bg)",
+                      border: "1.5px solid var(--roost-border)",
+                      borderBottom: "3px solid var(--roost-border-bottom)",
+                      color: active ? "var(--roost-surface)" : "var(--roost-text-secondary)",
+                      fontWeight: 700,
+                    }}
+                  >
+                    {label}
+                  </motion.button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Weather location */}
+          <div className="flex items-center gap-3 p-4">
+            <MapPin className="size-4 shrink-0" style={{ color: "var(--roost-text-muted)" }} />
+            <div className="flex-1 min-w-0">
+              <p className="text-sm" style={{ color: "var(--roost-text-primary)", fontWeight: 700 }}>
+                Weather Location
+              </p>
+              {latitude !== null && longitude !== null ? (
+                <>
+                  <p className="text-xs" style={{ color: "var(--roost-text-muted)", fontWeight: 600 }}>
+                    Using your current location
+                  </p>
+                  <p className="text-xs" style={{ color: "var(--roost-text-muted)", fontWeight: 600 }}>
+                    {latitude.toFixed(2)}, {longitude.toFixed(2)}
+                  </p>
+                </>
+              ) : (
+                <>
+                  <p className="text-xs" style={{ color: "var(--roost-text-muted)", fontWeight: 600 }}>
+                    Location not set
+                  </p>
+                  <p className="text-xs" style={{ color: "var(--roost-text-muted)", fontWeight: 600 }}>
+                    Allow location access for accurate weather.
+                  </p>
+                </>
+              )}
+            </div>
+            <motion.button
+              type="button"
+              whileTap={{ y: 1 }}
+              onClick={handleUpdateLocation}
+              disabled={locationUpdating}
+              className="shrink-0 h-9 rounded-xl px-3 text-sm"
+              style={{
+                backgroundColor: "var(--roost-bg)",
+                border: "1.5px solid var(--roost-border)",
+                borderBottom: "3px solid var(--roost-border-bottom)",
+                color: "var(--roost-text-secondary)",
+                fontWeight: 700,
+                opacity: locationUpdating ? 0.6 : 1,
+              }}
+            >
+              {locationUpdating ? "Updating..." : "Update"}
+            </motion.button>
+          </div>
+
+          {/* Language (placeholder) */}
+          <div className="flex flex-col gap-2 p-4">
+            <p className="text-sm" style={{ color: "var(--roost-text-primary)", fontWeight: 700 }}>
+              Language
+            </p>
+            <div className="flex gap-2">
+              {["English", "Español"].map((lang) => {
+                const active = lang === "English";
+                return (
+                  <motion.button
+                    key={lang}
+                    type="button"
+                    whileTap={{ y: 1 }}
+                    onClick={() => {
+                      if (lang === "Español") {
+                        toast.info("Spanish translation coming soon.");
+                      }
+                    }}
+                    className="flex h-10 flex-1 items-center justify-center rounded-xl text-sm"
+                    style={{
+                      backgroundColor: active ? "var(--roost-text-primary)" : "var(--roost-bg)",
+                      border: "1.5px solid var(--roost-border)",
+                      borderBottom: "3px solid var(--roost-border-bottom)",
+                      color: active ? "var(--roost-surface)" : "var(--roost-text-secondary)",
+                      fontWeight: 700,
+                    }}
+                  >
+                    {lang}
+                  </motion.button>
+                );
+              })}
+            </div>
+          </div>
         </div>
       </SettingsSection>
 

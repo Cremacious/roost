@@ -32,6 +32,7 @@ interface MealSheetProps {
   open: boolean;
   onClose: () => void;
   meal?: MealData | null;
+  onUpgradeRequired?: (code: string) => void;
 }
 
 const CATEGORIES = [
@@ -51,7 +52,7 @@ const inputStyle: React.CSSProperties = {
 
 // ---- Component --------------------------------------------------------------
 
-export default function MealSheet({ open, onClose, meal }: MealSheetProps) {
+export default function MealSheet({ open, onClose, meal, onUpgradeRequired }: MealSheetProps) {
   const queryClient = useQueryClient();
   const isEdit = !!meal;
 
@@ -113,7 +114,9 @@ export default function MealSheet({ open, onClose, meal }: MealSheetProps) {
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        throw new Error(data.error ?? "Failed to save meal");
+        const err = new Error(data.error ?? "Failed to save meal") as Error & { code?: string };
+        err.code = data.code;
+        throw err;
       }
       return res.json();
     },
@@ -125,7 +128,11 @@ export default function MealSheet({ open, onClose, meal }: MealSheetProps) {
       });
       onClose();
     },
-    onError: (err: Error) => {
+    onError: (err: Error & { code?: string }) => {
+      if (err.code && onUpgradeRequired) {
+        onUpgradeRequired(err.code);
+        return;
+      }
       toast.error("Could not save meal", {
         description: err.message,
         className: "roost-toast roost-toast-error",

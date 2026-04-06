@@ -44,6 +44,7 @@ interface NoteSheetProps {
   note?: NoteData | null;
   currentUserId: string;
   isAdmin: boolean;
+  onUpgradeRequired?: (code: string) => void;
 }
 
 // ---- Input style ------------------------------------------------------------
@@ -65,6 +66,7 @@ export default function NoteSheet({
   note,
   currentUserId,
   isAdmin,
+  onUpgradeRequired,
 }: NoteSheetProps) {
   const queryClient = useQueryClient();
   const contentRef = useRef<HTMLTextAreaElement>(null);
@@ -115,7 +117,9 @@ export default function NoteSheet({
         });
         if (!r.ok) {
           const d = await r.json().catch(() => ({}));
-          throw new Error(d.error ?? "Failed to save note");
+          const err = new Error(d.error ?? "Failed to save note") as Error & { code?: string };
+          err.code = d.code;
+          throw err;
         }
         return r.json();
       } else {
@@ -136,7 +140,10 @@ export default function NoteSheet({
       toast.success(mode === "create" ? "Note saved" : "Note updated");
       onClose();
     },
-    onError: (err: Error) => toast.error(err.message),
+    onError: (err: Error & { code?: string }) => {
+      if (err.code && onUpgradeRequired) { onUpgradeRequired(err.code); return; }
+      toast.error("Could not save note", { description: err.message });
+    },
   });
 
   const deleteMutation = useMutation({

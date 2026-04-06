@@ -1,10 +1,11 @@
 import { NextRequest } from "next/server";
 import { requireSession } from "@/lib/auth/helpers";
 import { db } from "@/lib/db";
-import { notes, users } from "@/db/schema";
+import { notes, users, households } from "@/db/schema";
 import { and, desc, eq, isNull } from "drizzle-orm";
 import { getUserHousehold } from "@/app/api/chores/route";
 import { logActivity } from "@/lib/utils/activity";
+import { checkNoteLimit } from "@/lib/utils/premiumGating";
 
 // ---- GET --------------------------------------------------------------------
 
@@ -59,6 +60,22 @@ export async function POST(request: NextRequest): Promise<Response> {
     return Response.json({ error: "Forbidden" }, { status: 403 });
   }
   const { householdId } = membership;
+
+  // Premium check
+  const [household] = await db
+    .select({ subscription_status: households.subscription_status })
+    .from(households)
+    .where(eq(households.id, householdId))
+    .limit(1);
+  if (household?.subscription_status !== "premium") {
+    const { allowed, count } = await checkNoteLimit(householdId);
+    if (!allowed) {
+      return Response.json(
+        { error: "Free tier limit reached", code: "NOTES_LIMIT", limit: 10, current: count },
+        { status: 403 }
+      );
+    }
+  }
 
   let body: { title?: string; content?: string };
   try {

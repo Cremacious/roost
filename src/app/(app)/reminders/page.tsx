@@ -42,6 +42,8 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import ReminderSheet, { type ReminderData, type Member } from "@/components/reminders/ReminderSheet";
+import { Sheet, SheetContent } from "@/components/ui/sheet";
+import UpgradePrompt from "@/components/shared/UpgradePrompt";
 import { SECTION_COLORS } from "@/lib/constants/colors";
 import { PageContainer } from "@/components/layout/PageContainer";
 
@@ -494,6 +496,7 @@ export default function RemindersPage() {
   const queryClient = useQueryClient();
 
   const [filter, setFilter] = useState<FilterKey>("all");
+  const [upgradeCode, setUpgradeCode] = useState<string | null>(null);
   const [sheetOpen, setSheetOpen] = useState(false);
   const [sheetMode, setSheetMode] = useState<"create" | "edit">("create");
   const [selectedReminder, setSelectedReminder] = useState<ReminderRow | null>(null);
@@ -838,7 +841,16 @@ export default function RemindersPage() {
         mode={sheetMode}
         reminder={selectedReminder}
         householdMembers={members}
+        onUpgradeRequired={(code) => { setSheetOpen(false); setUpgradeCode(code); }}
       />
+
+      {/* Upgrade prompt */}
+      <Sheet open={!!upgradeCode} onOpenChange={(v) => !v && setUpgradeCode(null)}>
+        <SheetContent side="bottom" className="rounded-t-2xl px-4 pb-8 pt-2" style={{ backgroundColor: "var(--roost-surface)" }}>
+          <div className="mx-auto mb-4 h-1 w-10 rounded-full" style={{ backgroundColor: COLOR }} />
+          {upgradeCode && <UpgradePrompt code={upgradeCode} onDismiss={() => setUpgradeCode(null)} />}
+        </SheetContent>
+      </Sheet>
 
       {/* Delete confirm */}
       <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>

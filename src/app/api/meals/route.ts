@@ -1,9 +1,10 @@
 import { NextRequest } from "next/server";
 import { requireSession } from "@/lib/auth/helpers";
 import { db } from "@/lib/db";
-import { meals } from "@/db/schema";
+import { meals, households } from "@/db/schema";
 import { and, asc, eq, isNull } from "drizzle-orm";
 import { getUserHousehold } from "@/app/api/chores/route";
+import { checkMealBankLimit } from "@/lib/utils/premiumGating";
 
 // ---- GET --------------------------------------------------------------------
 
@@ -48,6 +49,22 @@ export async function POST(request: NextRequest): Promise<Response> {
     return Response.json({ error: "Forbidden" }, { status: 403 });
   }
   const { householdId } = membership;
+
+  // Premium check
+  const [household] = await db
+    .select({ subscription_status: households.subscription_status })
+    .from(households)
+    .where(eq(households.id, householdId))
+    .limit(1);
+  if (household?.subscription_status !== "premium") {
+    const { allowed, count } = await checkMealBankLimit(householdId);
+    if (!allowed) {
+      return Response.json(
+        { error: "Free tier limit reached", code: "MEAL_BANK_LIMIT", limit: 5, current: count },
+        { status: 403 }
+      );
+    }
+  }
 
   let body: {
     name?: string;

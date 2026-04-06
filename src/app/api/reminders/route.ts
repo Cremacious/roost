@@ -1,11 +1,12 @@
 import { NextRequest } from "next/server";
 import { requireSession } from "@/lib/auth/helpers";
 import { db } from "@/lib/db";
-import { reminders, reminder_receipts, users } from "@/db/schema";
+import { reminders, reminder_receipts, users, households } from "@/db/schema";
 import { and, asc, eq, isNull } from "drizzle-orm";
 import { getUserHousehold } from "@/app/api/chores/route";
 import { logActivity } from "@/lib/utils/activity";
 import { addDays, addMonths } from "date-fns";
+import { checkReminderLimit } from "@/lib/utils/premiumGating";
 
 // ---- Helper: calculate next_remind_at ---------------------------------------
 
@@ -161,6 +162,38 @@ export async function POST(request: NextRequest): Promise<Response> {
   }
   if (!body.remind_at) {
     return Response.json({ error: "Reminder time is required" }, { status: 400 });
+  }
+
+  // Premium checks
+  const [household] = await db
+    .select({ subscription_status: households.subscription_status })
+    .from(households)
+    .where(eq(households.id, householdId))
+    .limit(1);
+  const isPremium = household?.subscription_status === "premium";
+
+  if (!isPremium) {
+    const freq = body.frequency ?? "once";
+    if (freq !== "once") {
+      return Response.json(
+        { error: "Recurring reminders require premium", code: "RECURRING_REMINDERS_PREMIUM" },
+        { status: 403 }
+      );
+    }
+    const notifyType = body.notify_type ?? "self";
+    if (notifyType !== "self") {
+      return Response.json(
+        { error: "Notifying others requires premium", code: "REMINDER_NOTIFY_PREMIUM" },
+        { status: 403 }
+      );
+    }
+    const { allowed, count } = await checkReminderLimit(householdId, session.user.id);
+    if (!allowed) {
+      return Response.json(
+        { error: "Free tier limit reached", code: "REMINDERS_LIMIT", limit: 5, current: count },
+        { status: 403 }
+      );
+    }
   }
 
   const remindAt = new Date(body.remind_at);

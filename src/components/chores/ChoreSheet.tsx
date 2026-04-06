@@ -17,7 +17,7 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { Loader2, Trash2 } from "lucide-react";
+import { Loader2, Lock, Trash2 } from "lucide-react";
 import { SECTION_COLORS } from "@/lib/constants/colors";
 
 const COLOR = SECTION_COLORS.chores;
@@ -46,15 +46,17 @@ interface ChoreSheetProps {
   chore?: ChoreData | null;
   members: Member[];
   isAdmin: boolean;
+  isPremium?: boolean;
+  onUpgradeRequired?: (code: string) => void;
 }
 
 // ---- Constants --------------------------------------------------------------
 
 const FREQUENCIES = [
-  { value: "daily",   label: "Daily" },
-  { value: "weekly",  label: "Weekly" },
-  { value: "monthly", label: "Monthly" },
-  { value: "custom",  label: "Custom" },
+  { value: "daily",   label: "Daily",   premiumOnly: false },
+  { value: "weekly",  label: "Weekly",  premiumOnly: true  },
+  { value: "monthly", label: "Monthly", premiumOnly: true  },
+  { value: "custom",  label: "Custom",  premiumOnly: true  },
 ];
 
 const DAYS = [
@@ -85,6 +87,8 @@ export default function ChoreSheet({
   chore,
   members,
   isAdmin,
+  isPremium = false,
+  onUpgradeRequired,
 }: ChoreSheetProps) {
   const queryClient = useQueryClient();
   const isEdit = !!chore;
@@ -120,6 +124,14 @@ export default function ChoreSheet({
     );
   }
 
+  function handleFrequencyClick(value: string, premiumOnly: boolean) {
+    if (premiumOnly && !isPremium) {
+      onUpgradeRequired?.("RECURRING_CHORES_PREMIUM");
+      return;
+    }
+    setFrequency(value);
+  }
+
   // ---- Mutations ------------------------------------------------------------
 
   const saveMutation = useMutation({
@@ -143,7 +155,9 @@ export default function ChoreSheet({
 
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        throw new Error(data.error ?? "Failed to save chore");
+        const err = new Error(data.error ?? "Failed to save chore") as Error & { code?: string };
+        err.code = data.code;
+        throw err;
       }
       return res.json();
     },
@@ -152,8 +166,12 @@ export default function ChoreSheet({
       toast.success(isEdit ? "Chore updated" : "Chore created");
       onClose();
     },
-    onError: (err: Error) => {
-      toast.error(err.message);
+    onError: (err: Error & { code?: string }) => {
+      if (err.code && onUpgradeRequired) {
+        onUpgradeRequired(err.code);
+      } else {
+        toast.error(err.message);
+      }
     },
   });
 
@@ -189,6 +207,7 @@ export default function ChoreSheet({
           className="max-h-[90dvh] overflow-y-auto rounded-t-2xl px-4 pb-8 pt-4"
           style={{ backgroundColor: "var(--roost-bg)" }}
         >
+          <div className="mx-auto mb-4 h-1 w-10 rounded-full" style={{ backgroundColor: "#EF4444" }} />
           <SheetHeader className="mb-5">
             <SheetTitle
               className="text-lg"
@@ -275,13 +294,14 @@ export default function ChoreSheet({
               <div className="grid grid-cols-4 gap-2">
                 {FREQUENCIES.map((f) => {
                   const active = frequency === f.value;
+                  const locked = f.premiumOnly && !isPremium;
                   return (
                     <motion.button
                       key={f.value}
                       type="button"
-                      onClick={() => setFrequency(f.value)}
+                      onClick={() => handleFrequencyClick(f.value, f.premiumOnly)}
                       whileTap={{ y: 1 }}
-                      className="flex h-11 items-center justify-center rounded-xl text-sm"
+                      className="relative flex h-11 items-center justify-center rounded-xl text-sm"
                       style={{
                         backgroundColor: active ? COLOR + "18" : "var(--roost-surface)",
                         border: active
@@ -290,11 +310,17 @@ export default function ChoreSheet({
                         borderBottom: active
                           ? `3px solid ${COLOR}70`
                           : "3px solid var(--roost-border-bottom)",
-                        color: active ? COLOR : "var(--roost-text-secondary)",
+                        color: locked ? "var(--roost-text-muted)" : active ? COLOR : "var(--roost-text-secondary)",
                         fontWeight: active ? 800 : 600,
                       }}
                     >
                       {f.label}
+                      {locked && (
+                        <Lock
+                          className="absolute right-1.5 top-1.5 size-2.5"
+                          style={{ color: "var(--roost-text-muted)" }}
+                        />
+                      )}
                     </motion.button>
                   );
                 })}

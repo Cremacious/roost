@@ -1,10 +1,11 @@
 import { NextRequest } from "next/server";
 import { requireSession } from "@/lib/auth/helpers";
 import { db } from "@/lib/db";
-import { calendar_events, event_attendees, member_permissions, users } from "@/db/schema";
+import { calendar_events, event_attendees, households, member_permissions, users } from "@/db/schema";
 import { and, eq, gte, inArray, isNull, lt } from "drizzle-orm";
 import { getUserHousehold } from "@/app/api/chores/route";
 import { logActivity } from "@/lib/utils/activity";
+import { checkCalendarEventLimit } from "@/lib/utils/premiumGating";
 
 // ---- Permission helper -------------------------------------------------------
 
@@ -143,6 +144,7 @@ export async function POST(request: NextRequest): Promise<Response> {
     end_time?: string;
     all_day?: boolean;
     attendee_ids?: string[];
+    recurring?: boolean;
   };
   try {
     body = await request.json();
@@ -156,6 +158,35 @@ export async function POST(request: NextRequest): Promise<Response> {
   }
   if (!body.start_time) {
     return Response.json({ error: "Start time is required" }, { status: 400 });
+  }
+
+  // Premium checks
+  const [household] = await db
+    .select({ subscription_status: households.subscription_status })
+    .from(households)
+    .where(eq(households.id, householdId))
+    .limit(1);
+  const isPremium = household?.subscription_status === "premium";
+
+  if (!isPremium) {
+    if (body.recurring) {
+      return Response.json(
+        { error: "Recurring events require premium", code: "RECURRING_EVENTS_PREMIUM" },
+        { status: 403 }
+      );
+    }
+    const startDate = new Date(body.start_time);
+    const { allowed, count } = await checkCalendarEventLimit(
+      householdId,
+      startDate.getMonth() + 1,
+      startDate.getFullYear()
+    );
+    if (!allowed) {
+      return Response.json(
+        { error: "Free tier limit reached", code: "CALENDAR_LIMIT", limit: 20, current: count },
+        { status: 403 }
+      );
+    }
   }
 
   const [event] = await db

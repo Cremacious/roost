@@ -9,6 +9,7 @@ import {
   ChevronDown,
   ChevronUp,
   ClipboardList,
+  Lock,
   Pencil,
   Plus,
   Trophy,
@@ -25,9 +26,14 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
+import {
+  Sheet,
+  SheetContent,
+} from "@/components/ui/sheet";
 import StatCard from "@/components/shared/StatCard";
 import SectionColorBadge from "@/components/shared/SectionColorBadge";
 import ErrorState from "@/components/shared/ErrorState";
+import UpgradePrompt from "@/components/shared/UpgradePrompt";
 import { Skeleton } from "@/components/ui/skeleton";
 import { PageContainer } from "@/components/layout/PageContainer";
 
@@ -99,6 +105,7 @@ export default function ChoresPage() {
   const [editingChore, setEditingChore] = useState<ChoreData | null>(null);
   const [leaderboardOpen, setLeaderboardOpen] = useState(false);
   const [pendingCompleteId, setPendingCompleteId] = useState<string | null>(null);
+  const [upgradeCode, setUpgradeCode] = useState<string | null>(null);
 
   // ---- Data ----------------------------------------------------------------
 
@@ -189,6 +196,7 @@ export default function ChoresPage() {
   const members = membersData?.members ?? [];
   const currentMember = members.find((m) => m.userId === currentUserId);
   const isAdmin = currentMember?.role === "admin";
+  const isPremium = membersData?.household?.subscriptionStatus === "premium";
 
   const filtered = view === "mine"
     ? allChores.filter((c) => c.assigned_to === currentUserId || !c.assigned_to)
@@ -237,7 +245,7 @@ export default function ChoresPage() {
         </div>
         <motion.button
           type="button"
-          onClick={() => setLeaderboardOpen(true)}
+          onClick={() => isPremium ? setLeaderboardOpen(true) : setUpgradeCode("LEADERBOARD_PREMIUM")}
           whileTap={{ y: 1 }}
           className="flex h-10 items-center gap-1.5 rounded-xl px-3 text-sm"
           style={{
@@ -250,6 +258,7 @@ export default function ChoresPage() {
         >
           <Trophy className="size-4" style={{ color: "#F59E0B" }} />
           Leaderboard
+          {!isPremium && <Lock className="size-3 ml-0.5" style={{ color: "var(--roost-text-muted)" }} />}
         </motion.button>
       </div>
 
@@ -487,8 +496,24 @@ export default function ChoresPage() {
         </DialogContent>
       </Dialog>
 
-      <ChoreSheet open={sheetOpen} onClose={() => setSheetOpen(false)} chore={editingChore} members={members} isAdmin={isAdmin} />
+      <ChoreSheet
+        open={sheetOpen}
+        onClose={() => setSheetOpen(false)}
+        chore={editingChore}
+        members={members}
+        isAdmin={isAdmin}
+        isPremium={isPremium}
+        onUpgradeRequired={(code) => { setSheetOpen(false); setUpgradeCode(code); }}
+      />
       <LeaderboardSheet open={leaderboardOpen} onClose={() => setLeaderboardOpen(false)} />
+
+      {/* Upgrade prompt sheet */}
+      <Sheet open={!!upgradeCode} onOpenChange={(v) => !v && setUpgradeCode(null)}>
+        <SheetContent side="bottom" className="rounded-t-2xl px-4 pb-10 pt-6" style={{ backgroundColor: "var(--roost-bg)" }}>
+          <div className="mx-auto mb-6 h-1 w-10 rounded-full" style={{ backgroundColor: "#EF4444" }} />
+          <UpgradePrompt code={upgradeCode ?? ""} onDismiss={() => setUpgradeCode(null)} />
+        </SheetContent>
+      </Sheet>
       </PageContainer>
     </motion.div>
   );

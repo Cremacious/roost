@@ -47,6 +47,7 @@ interface ReminderSheetProps {
   mode: "create" | "edit";
   reminder?: ReminderData | null;
   householdMembers: Member[];
+  onUpgradeRequired?: (code: string) => void;
 }
 
 // ---- Constants --------------------------------------------------------------
@@ -87,6 +88,7 @@ export default function ReminderSheet({
   mode,
   reminder,
   householdMembers,
+  onUpgradeRequired,
 }: ReminderSheetProps) {
   const queryClient = useQueryClient();
   const titleRef = useRef<HTMLInputElement>(null);
@@ -195,7 +197,9 @@ export default function ReminderSheet({
         });
         if (!r.ok) {
           const d = await r.json().catch(() => ({}));
-          throw new Error(d.error ?? "Failed to save reminder");
+          const err = new Error(d.error ?? "Failed to save reminder") as Error & { code?: string };
+          err.code = d.code;
+          throw err;
         }
         return r.json();
       } else {
@@ -216,7 +220,13 @@ export default function ReminderSheet({
       toast.success(mode === "create" ? "Reminder set" : "Reminder updated");
       onClose();
     },
-    onError: (err: Error) => toast.error(err.message),
+    onError: (err: Error & { code?: string }) => {
+      if (err.code && onUpgradeRequired) {
+        onUpgradeRequired(err.code);
+      } else {
+        toast.error(err.message);
+      }
+    },
   });
 
   const displayDate = dateStr

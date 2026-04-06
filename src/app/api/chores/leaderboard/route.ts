@@ -1,7 +1,7 @@
 import { NextRequest } from "next/server";
 import { requireSession } from "@/lib/auth/helpers";
 import { db } from "@/lib/db";
-import { chore_streaks, household_members, users } from "@/db/schema";
+import { chore_streaks, household_members, households, users } from "@/db/schema";
 import { and, desc, eq } from "drizzle-orm";
 import { getUserHousehold } from "../route";
 import { startOfWeek, format } from "date-fns";
@@ -19,6 +19,19 @@ export async function GET(request: NextRequest): Promise<Response> {
     return Response.json({ error: "No household found" }, { status: 404 });
   }
   const { householdId } = membership;
+
+  // Premium check
+  const [household] = await db
+    .select({ subscription_status: households.subscription_status })
+    .from(households)
+    .where(eq(households.id, householdId))
+    .limit(1);
+  if (household?.subscription_status !== "premium") {
+    return Response.json(
+      { error: "The leaderboard requires premium", code: "LEADERBOARD_PREMIUM" },
+      { status: 403 }
+    );
+  }
 
   const weekStart = format(
     startOfWeek(new Date(), { weekStartsOn: 1 }),

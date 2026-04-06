@@ -1,9 +1,10 @@
 import { NextRequest } from "next/server";
 import { requireSession } from "@/lib/auth/helpers";
 import { db } from "@/lib/db";
-import { chores, chore_completions, household_members, users } from "@/db/schema";
+import { chores, chore_completions, household_members, households, users } from "@/db/schema";
 import { and, desc, eq, gte, isNull } from "drizzle-orm";
 import { addDays, addMonths, startOfDay } from "date-fns";
+import { checkChoreLimit } from "@/lib/utils/premiumGating";
 
 // ---- Shared helpers ---------------------------------------------------------
 
@@ -174,6 +175,30 @@ export async function POST(request: NextRequest): Promise<Response> {
   }
   if (!body.frequency) {
     return Response.json({ error: "Frequency is required" }, { status: 400 });
+  }
+
+  // Premium checks
+  const [household] = await db
+    .select({ subscription_status: households.subscription_status })
+    .from(households)
+    .where(eq(households.id, membership.householdId))
+    .limit(1);
+  const isPremium = household?.subscription_status === "premium";
+
+  if (!isPremium) {
+    if (body.frequency !== "daily") {
+      return Response.json(
+        { error: "Recurring chores require premium", code: "RECURRING_CHORES_PREMIUM" },
+        { status: 403 }
+      );
+    }
+    const { allowed, count } = await checkChoreLimit(membership.householdId);
+    if (!allowed) {
+      return Response.json(
+        { error: "Free tier limit reached", code: "CHORES_LIMIT", limit: 5, current: count },
+        { status: 403 }
+      );
+    }
   }
 
   const next_due_at = calcNextDueAt(body.frequency, body.custom_days ?? null);

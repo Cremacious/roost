@@ -5,12 +5,12 @@ import { useQuery } from "@tanstack/react-query";
 import { useSession } from "@/lib/auth/client";
 import { useHousehold } from "@/lib/hooks/useHousehold";
 import { motion } from "framer-motion";
-import { DollarSign, Plus, TrendingDown, TrendingUp } from "lucide-react";
+import { DollarSign, Plus, Sparkles, TrendingDown, TrendingUp } from "lucide-react";
+import Link from "next/link";
 import { relativeTime } from "@/lib/utils/time";
 import PageHeader from "@/components/shared/PageHeader";
 import EmptyState from "@/components/shared/EmptyState";
 import ErrorState from "@/components/shared/ErrorState";
-import PremiumGate from "@/components/shared/PremiumGate";
 import { Skeleton } from "@/components/ui/skeleton";
 import MemberAvatar from "@/components/shared/MemberAvatar";
 import ExpenseSheet, { type ExpenseData } from "@/components/expenses/ExpenseSheet";
@@ -331,9 +331,53 @@ export default function ExpensesPage() {
       {/* Error */}
       {isError && !isLoading && !householdLoading && <ErrorState onRetry={refetch} />}
 
-      {/* Premium gate */}
+      {/* Free tier upgrade pitch */}
       {!isLoading && !householdLoading && !isError && !isPremium && (
-        <PremiumGate feature="expenses" />
+        <div className="space-y-4">
+          <div
+            className="rounded-2xl p-5"
+            style={{
+              backgroundColor: `${COLOR}10`,
+              border: `1.5px solid ${COLOR}30`,
+              borderBottom: `4px solid ${COLOR_DARK}40`,
+            }}
+          >
+            <div className="mb-3 flex items-center gap-3">
+              <div
+                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl"
+                style={{ backgroundColor: `${COLOR}20` }}
+              >
+                <Sparkles className="size-5" style={{ color: COLOR }} />
+              </div>
+              <p className="text-base" style={{ color: "var(--roost-text-primary)", fontWeight: 800 }}>
+                Track shared expenses
+              </p>
+            </div>
+            <p className="mb-4 text-sm" style={{ color: "var(--roost-text-secondary)", fontWeight: 600 }}>
+              Split bills, track who owes what, and settle up without the awkward conversations. Upgrade to Premium for $3/month.
+            </p>
+            <ul className="mb-4 space-y-1.5">
+              {["Split bills equally or custom amounts", "Track who paid and who owes", "Debt simplification across the household", "Receipt scanning with Google Vision"].map((item) => (
+                <li key={item} className="flex items-center gap-2 text-sm" style={{ color: "var(--roost-text-secondary)", fontWeight: 600 }}>
+                  <div className="h-1.5 w-1.5 shrink-0 rounded-full" style={{ backgroundColor: COLOR }} />
+                  {item}
+                </li>
+              ))}
+            </ul>
+            <Link
+              href="/settings#section-billing"
+              className="flex h-11 w-full items-center justify-center rounded-xl text-sm text-white"
+              style={{
+                backgroundColor: COLOR,
+                border: `1.5px solid ${COLOR}`,
+                borderBottom: `3px solid ${COLOR_DARK}`,
+                fontWeight: 800,
+              }}
+            >
+              Upgrade for $3/month
+            </Link>
+          </div>
+        </div>
       )}
 
       {/* Premium content */}

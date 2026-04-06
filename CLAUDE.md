@@ -396,8 +396,8 @@ src/app/api/grocery/lists/[id]/clear/route.ts  POST: soft delete all checked ite
 src/app/api/grocery/items/[id]/route.ts        PATCH: check/uncheck + edit name/qty + log check activity; DELETE: soft delete
 src/app/api/household/activity/route.ts        GET: activity items with pagination (limit/offset params), returns { activity, total, hasMore }
 src/components/layout/TopBar.tsx               Household name, weather, clock, avatars -- all CSS variable colors
-src/components/layout/BottomNav.tsx            Mobile 4-tab nav + More sheet (Profile, Settings)
-src/components/layout/Sidebar.tsx              Desktop 220px sidebar with icon+label for all 9 nav items
+src/components/layout/BottomNav.tsx            Mobile 4-tab nav + More sheet (Profile, Settings, Sign out with AlertDialog confirm)
+src/components/layout/Sidebar.tsx              Desktop 220px sidebar with icon+label for all 9 nav items; sign out button at bottom with AlertDialog confirm
 src/components/providers/ThemeProvider.tsx     Applies theme CSS vars; exports useTheme() hook
 src/components/shared/QueryProvider.tsx        TanStack Query client provider
 src/lib/utils/activity.ts                      logActivity(params) helper -- wraps insert, never throws, safe to call from any route
@@ -420,9 +420,12 @@ src/components/shared/PageHeader.tsx           Page title + subtitle + optional 
 src/components/shared/SectionColorBadge.tsx    Inline color badge pill: bg color+18, border color+30
 src/components/shared/MemberAvatar.tsx         Initials avatar, sizes sm/md/lg, color prop
 src/components/shared/PremiumGate.tsx          Premium upgrade prompt: icon, copy, price card, upgrade button, blurred feature preview
+src/components/shared/UpgradePrompt.tsx        In-sheet upgrade prompt: maps 16+ error codes to icon/title/body, "Upgrade for $3/month" link, optional dismiss
 src/components/settings/MemberSheet.tsx        Admin member management: role picker, 12 permission toggles, child PIN change, allowance config, remove member
 src/components/dev/DevTools.tsx                Dev-only floating toolbar: premium toggle switch, user info, household info
-src/components/chores/ChoreSheet.tsx           Add/edit sheet: slab inputs, slab freq toggles, slab day buttons
+src/lib/constants/freeTierLimits.ts            FREE_TIER_LIMITS: members(5), children(1), chores(5), tasks(10), calendarEventsPerMonth(20), notes(10), activeSingleReminders(5), mealBank(5), groceryLists(1)
+src/lib/utils/premiumGating.ts                 Server-side limit checkers: checkChoreLimit, checkTaskLimit, checkNoteLimit, checkCalendarEventLimit, checkReminderLimit, checkMealBankLimit, checkMemberLimit
+src/components/chores/ChoreSheet.tsx           Add/edit sheet: slab inputs, slab freq toggles, slab day buttons; isPremium + onUpgradeRequired props; Lock icon on premium-only freqs
 src/components/chores/LeaderboardSheet.tsx     Weekly leaderboard: slab cards, gold/silver/bronze rank badges
 src/components/grocery/GroceryItemSheet.tsx    Add/edit item sheet: name + quantity slab inputs, amber save button
 src/components/grocery/GroceryListSheet.tsx    Create/rename list sheet; shows premium upgrade prompt for free tier
@@ -430,17 +433,17 @@ src/app/(app)/grocery/page.tsx                 Full grocery module: list pills, 
 src/app/(app)/tasks/page.tsx                   Full tasks module: grouped sections, filter row, stats, optimistic complete/uncheck, delete confirm
 src/app/api/tasks/route.ts                     GET (incomplete asc due_date + completed desc) + POST (create + log activity)
 src/app/api/tasks/[id]/route.ts                PATCH (edit + complete/uncheck + log completion) + DELETE (creator or admin, soft delete)
-src/components/tasks/TaskSheet.tsx             Add/edit task sheet: title, description, assignee select, due date + Clear, priority toggle
+src/components/tasks/TaskSheet.tsx             Add/edit task sheet: title, description, assignee select, due date + Clear, priority toggle; onUpgradeRequired prop
 src/app/(app)/calendar/page.tsx               Full calendar module: month grid + agenda list, DaySheet, EventSheet
 src/app/api/calendar/route.ts                 GET (month events with attendees) + POST (create + permission check + log activity)
 src/app/api/calendar/[id]/route.ts            PATCH (edit, creator or admin) + DELETE (soft delete)
-src/components/calendar/EventSheet.tsx        Create/edit/view event: inline date picker, all-day toggle, time inputs, attendee chips
+src/components/calendar/EventSheet.tsx        Create/edit/view event: inline date picker, all-day toggle, time inputs, attendee chips; onUpgradeRequired prop
 src/components/calendar/DaySheet.tsx          Day events list, tap to view/add, pre-fills date in EventSheet
 src/app/(app)/notes/page.tsx                  Notes module: quick add bar, masonry CSS columns grid, NoteSheet
 src/app/api/notes/route.ts                    GET (newest first, creator join) + POST (1000 char limit, activity log)
 src/app/api/notes/[id]/route.ts               PATCH + DELETE (creator or admin, soft delete)
-src/components/notes/NoteSheet.tsx            Create/edit/view note: title optional, 1000 char limit, char counter
-src/app/(app)/expenses/page.tsx               Expenses module: premium gate with blurred preview, balance summary, debt cards, settle flow
+src/components/notes/NoteSheet.tsx            Create/edit/view note: title optional, 1000 char limit, char counter; onUpgradeRequired prop
+src/app/(app)/expenses/page.tsx               Expenses module: inline upgrade pitch for free users (no blurred preview), balance summary, debt cards, settle flow
 src/app/api/expenses/route.ts                 GET (expenses + splits + debt simplification + myBalance + isPremium) + POST (premium, splits validation)
 src/app/api/expenses/[id]/route.ts            PATCH (title/category only, paid_by or admin) + DELETE (soft delete)
 src/app/api/expenses/[id]/settle/route.ts     POST: mark single split as settled (payer or admin)
@@ -459,9 +462,9 @@ src/app/api/meals/planner/[id]/route.ts       DELETE: hard delete slot (creator 
 src/app/api/meals/suggestions/route.ts        GET (pending, vote counts, userVote, sorted by upvotes) + POST (all roles including children)
 src/app/api/meals/suggestions/[id]/vote/route.ts  POST: toggle up/down vote (same vote = remove)
 src/app/api/meals/suggestions/[id]/approve/route.ts  POST: admin only, sets status=approved, optionally inserts into meals bank
-src/components/meals/MealSheet.tsx            Create/edit meal: name, category pills, description, prep time, dynamic ingredients list
+src/components/meals/MealSheet.tsx            Create/edit meal: name, category pills, description, prep time, dynamic ingredients list; onUpgradeRequired prop
 src/components/meals/MealSlotSheet.tsx        Slot picker: menu mode, bank search, quick add, date-pick mode (preSelectedMeal prop), view/remove existing slot
-src/components/meals/SuggestionSheet.tsx      Suggest a meal: name, category pills, note, prep time, dynamic ingredients list (all roles)
+src/components/meals/SuggestionSheet.tsx      Suggest a meal: name, category pills, note, prep time, dynamic ingredients list (all roles); onUpgradeRequired prop
 src/app/(app)/meals/page.tsx                  Full meals module: Planner/Meal Bank/Suggestions tabs
 src/db/schema/reminders.ts                    reminders + reminder_receipts tables (frequency, notify_type, next_remind_at)
 src/app/api/reminders/route.ts                GET (filtered by notify_type + user) + POST (create + receipts + activity log)
@@ -471,7 +474,7 @@ src/app/api/reminders/[id]/seen/route.ts      POST: upsert reminder_receipt seen
 src/app/api/reminders/due/route.ts            GET: reminders due in next 24h for current user (used by banner + dashboard)
 src/app/api/cron/reminders/route.ts           Vercel cron GET (every 15min): process due reminders, create receipts, advance recurring
 src/app/(app)/reminders/page.tsx              Full reminders module: grouped sections (overdue/today/week/later/done), filter, stats
-src/components/reminders/ReminderSheet.tsx    Create/edit: title, note, date+time picker, frequency + custom days, notify type + member list
+src/components/reminders/ReminderSheet.tsx    Create/edit: title, note, date+time picker, frequency + custom days, notify type + member list; onUpgradeRequired prop
 src/components/shared/ReminderBanner.tsx      Dismissible banner below TopBar when reminders due (polls every 60s, session-dismissed)
 vercel.json                                   Cron schedule: /api/cron/reminders every 15 minutes
 src/components/layout/PageContainer.tsx        Content width constraint: max-w-4xl (896px) centered, full width mobile
@@ -798,11 +801,33 @@ Designer brief (send this when hiring):
   Deliver: SVG + PNG at 1024px for App Store.
   Brand red: #EF4444
 
+## Premium Enforcement UX Patterns
+- Free tier limits live in src/lib/constants/freeTierLimits.ts (FREE_TIER_LIMITS)
+- Server-side limit checks live in src/lib/utils/premiumGating.ts
+- API routes return 403 with { error, code, limit, current } shape when limit hit
+- Error codes: CHORES_LIMIT, RECURRING_CHORES_PREMIUM, TASKS_LIMIT, NOTES_LIMIT,
+  CALENDAR_LIMIT, RECURRING_EVENTS_PREMIUM, REMINDERS_LIMIT, RECURRING_REMINDERS_PREMIUM,
+  REMINDER_NOTIFY_PREMIUM, MEAL_BANK_LIMIT, MEAL_SUGGESTIONS_PREMIUM,
+  MEAL_GROCERY_INTEGRATION_PREMIUM, LEADERBOARD_PREMIUM, MEMBERS_LIMIT,
+  THEMES_PREMIUM, MULTIPLE_LISTS_PREMIUM
+- Mutation error propagation: `const err = new Error(msg) as Error & { code?: string }; err.code = data.code; throw err;`
+- Sheet onError: if (err.code && onUpgradeRequired) { onUpgradeRequired(err.code); return; }
+- Page pattern: upgradeCode state + <Sheet open={!!upgradeCode}> wrapping <UpgradePrompt code={...} onDismiss={...}>
+- All 7 sheet components (ChoreSheet, TaskSheet, ReminderSheet, MealSheet, SuggestionSheet, EventSheet, NoteSheet) have onUpgradeRequired?: (code: string) => void prop
+- UpgradePrompt is the shared component for in-sheet upgrade display; maps codes to icon/title/body
+- Chores: daily = free, weekly/monthly/custom = premium (Lock icon shown on premium freq buttons)
+- Leaderboard button: Lock icon shown + clicking shows UpgradePrompt when not premium
+- Grocery: pill row shows for (isPremium || lists.length > 1); + button shows Lock icon for free users
+- Settings theme picker: non-default themes show Lock icon overlay for free users, click shows UpgradePrompt
+- Expenses: free users see inline upgrade pitch card (no blurred preview), premium users see full module
+- Sign out: AlertDialog confirmation in both Sidebar (desktop) and BottomNav More sheet (mobile)
+  Calls signOut() from better-auth client then router.push('/login'), no toast on success
+
 ## Session Handoff
 At the start of each new session fetch this file to restore context.
 Share GitHub file URLs, paste code, or describe what was built.
 Update this file after every major decision or completed phase.
-Last updated: 2026-04-06 (theme overhaul: 5 themes with brand red #EF4444; sidebar/topbar/bottomnav updated; new CSS vars for sidebar + weather; dashboard date hardcoded #9B9590)
+Last updated: 2026-04-06 (premium enforcement: freeTierLimits, premiumGating, 11 API routes gated, UpgradePrompt component, 7 sheets wired, 6 pages wired, grocery fix, expenses free-tier UI, theme lock, sign out button)
 
 ## Bugs Found and Fixed (2026-04-05)
 - No default grocery list created on household signup: `GET /api/grocery/lists` now

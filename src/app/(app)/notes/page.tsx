@@ -13,6 +13,8 @@ import ErrorState from "@/components/shared/ErrorState";
 import { Skeleton } from "@/components/ui/skeleton";
 import MemberAvatar from "@/components/shared/MemberAvatar";
 import NoteSheet, { type NoteData } from "@/components/notes/NoteSheet";
+import { Sheet, SheetContent } from "@/components/ui/sheet";
+import UpgradePrompt from "@/components/shared/UpgradePrompt";
 import { SECTION_COLORS } from "@/lib/constants/colors";
 import { PageContainer } from "@/components/layout/PageContainer";
 
@@ -147,6 +149,7 @@ export default function NotesPage() {
 
   const [quickText, setQuickText] = useState("");
   const [placeholderIdx, setPlaceholderIdx] = useState(0);
+  const [upgradeCode, setUpgradeCode] = useState<string | null>(null);
   const [sheetOpen, setSheetOpen] = useState(false);
   const [sheetMode, setSheetMode] = useState<"create" | "edit" | "view">("create");
   const [selectedNote, setSelectedNote] = useState<NoteData | null>(null);
@@ -209,7 +212,9 @@ export default function NotesPage() {
       });
       if (!r.ok) {
         const d = await r.json().catch(() => ({}));
-        throw new Error(d.error ?? "Failed to save note");
+        const err = new Error(d.error ?? "Failed to save note") as Error & { code?: string };
+        err.code = d.code;
+        throw err;
       }
       return r.json();
     },
@@ -219,7 +224,10 @@ export default function NotesPage() {
       setQuickText("");
       quickAddRef.current?.focus();
     },
-    onError: (err: Error) => toast.error(err.message),
+    onError: (err: Error & { code?: string }) => {
+      if (err.code) { setUpgradeCode(err.code); return; }
+      toast.error("Could not save note", { description: err.message });
+    },
   });
 
   function handleQuickAdd() {
@@ -352,7 +360,16 @@ export default function NotesPage() {
         note={selectedNote}
         currentUserId={currentUserId}
         isAdmin={isAdmin}
+        onUpgradeRequired={(code) => { setSheetOpen(false); setUpgradeCode(code); }}
       />
+
+      {/* Upgrade prompt */}
+      <Sheet open={!!upgradeCode} onOpenChange={(v) => !v && setUpgradeCode(null)}>
+        <SheetContent side="bottom" className="rounded-t-2xl px-4 pb-8 pt-2" style={{ backgroundColor: "var(--roost-surface)" }}>
+          <div className="mx-auto mb-4 h-1 w-10 rounded-full" style={{ backgroundColor: COLOR }} />
+          {upgradeCode && <UpgradePrompt code={upgradeCode} onDismiss={() => setUpgradeCode(null)} />}
+        </SheetContent>
+      </Sheet>
       </PageContainer>
     </motion.div>
   );

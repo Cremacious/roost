@@ -43,6 +43,8 @@ import {
 import MealSheet, { type MealData } from "@/components/meals/MealSheet";
 import MealSlotSheet, { type MealRow, type SlotRow } from "@/components/meals/MealSlotSheet";
 import SuggestionSheet from "@/components/meals/SuggestionSheet";
+import { Sheet, SheetContent } from "@/components/ui/sheet";
+import UpgradePrompt from "@/components/shared/UpgradePrompt";
 import { PageContainer } from "@/components/layout/PageContainer";
 
 const COLOR = SECTION_COLORS.meals;
@@ -149,6 +151,7 @@ export default function MealsPage() {
     preSelectedMeal?: MealRow | null;
   }>({ open: false, slotDate: null, slotType: "dinner" });
   const [suggestionSheet, setSuggestionSheet] = useState(false);
+  const [upgradeCode, setUpgradeCode] = useState<string | null>(null);
 
   // Confirmation dialog state
   const [groceryConfirm, setGroceryConfirm] = useState<MealData | null>(null);
@@ -242,7 +245,9 @@ export default function MealsPage() {
       const r = await fetch(`/api/meals/${mealId}/add-to-grocery`, { method: "POST" });
       if (!r.ok) {
         const d = await r.json().catch(() => ({}));
-        throw new Error(d.error ?? "Failed to add to grocery list");
+        const err = new Error(d.error ?? "Failed to add to grocery list") as Error & { code?: string };
+        err.code = d.code;
+        throw err;
       }
       return r.json();
     },
@@ -254,7 +259,8 @@ export default function MealsPage() {
         descriptionClassName: "roost-toast-description",
       });
     },
-    onError: (err: Error) => {
+    onError: (err: Error & { code?: string }) => {
+      if (err.code) { setGroceryConfirm(null); setUpgradeCode(err.code); return; }
       toast.error("Could not add ingredients", {
         description: err.message,
         className: "roost-toast roost-toast-error",
@@ -953,12 +959,22 @@ export default function MealsPage() {
         open={mealSheet.open}
         onClose={() => setMealSheet({ open: false })}
         meal={mealSheet.meal}
+        onUpgradeRequired={(code) => { setMealSheet({ open: false }); setUpgradeCode(code); }}
       />
 
       <SuggestionSheet
         open={suggestionSheet}
         onClose={() => setSuggestionSheet(false)}
+        onUpgradeRequired={(code) => { setSuggestionSheet(false); setUpgradeCode(code); }}
       />
+
+      {/* Upgrade prompt */}
+      <Sheet open={!!upgradeCode} onOpenChange={(v) => !v && setUpgradeCode(null)}>
+        <SheetContent side="bottom" className="rounded-t-2xl px-4 pb-8 pt-2" style={{ backgroundColor: "var(--roost-surface)" }}>
+          <div className="mx-auto mb-4 h-1 w-10 rounded-full" style={{ backgroundColor: COLOR }} />
+          {upgradeCode && <UpgradePrompt code={upgradeCode} onDismiss={() => setUpgradeCode(null)} />}
+        </SheetContent>
+      </Sheet>
 
       {/* Grocery confirm dialog (Fix 1) */}
       {groceryConfirm && (() => {

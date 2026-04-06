@@ -32,6 +32,8 @@ import {
 import TaskSheet, { type TaskData, type Member } from "@/components/tasks/TaskSheet";
 import { SECTION_COLORS } from "@/lib/constants/colors";
 import { PageContainer } from "@/components/layout/PageContainer";
+import { Sheet, SheetContent } from "@/components/ui/sheet";
+import UpgradePrompt from "@/components/shared/UpgradePrompt";
 
 const COLOR = SECTION_COLORS.tasks; // #EC4899
 
@@ -363,6 +365,7 @@ export default function TasksPage() {
   const [editingTask, setEditingTask] = useState<TaskData | null>(null);
   const [pendingCompleteId, setPendingCompleteId] = useState<string | null>(null);
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
+  const [upgradeCode, setUpgradeCode] = useState<string | null>(null);
 
   // Section collapse state
   const [overdueExpanded, setOverdueExpanded] = useState(true);
@@ -960,7 +963,16 @@ export default function TasksPage() {
         householdMembers={members}
         currentUserId={currentUserId}
         isAdmin={isAdmin}
+        onUpgradeRequired={(code) => { setSheetOpen(false); setUpgradeCode(code); }}
       />
+
+      {/* Upgrade prompt sheet */}
+      <Sheet open={!!upgradeCode} onOpenChange={(v) => !v && setUpgradeCode(null)}>
+        <SheetContent side="bottom" className="rounded-t-2xl px-4 pb-10 pt-6" style={{ backgroundColor: "var(--roost-bg)" }}>
+          <div className="mx-auto mb-6 h-1 w-10 rounded-full" style={{ backgroundColor: "#EC4899" }} />
+          <UpgradePrompt code={upgradeCode ?? ""} onDismiss={() => setUpgradeCode(null)} />
+        </SheetContent>
+      </Sheet>
       </PageContainer>
     </motion.div>
   );

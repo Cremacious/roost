@@ -34,9 +34,10 @@ const inputStyle: React.CSSProperties = {
 interface SuggestionSheetProps {
   open: boolean;
   onClose: () => void;
+  onUpgradeRequired?: (code: string) => void;
 }
 
-export default function SuggestionSheet({ open, onClose }: SuggestionSheetProps) {
+export default function SuggestionSheet({ open, onClose, onUpgradeRequired }: SuggestionSheetProps) {
   const queryClient = useQueryClient();
   const [mealName, setMealName] = useState("");
   const [note, setNote] = useState("");
@@ -77,7 +78,9 @@ export default function SuggestionSheet({ open, onClose }: SuggestionSheetProps)
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        throw new Error(data.error ?? "Failed to submit suggestion");
+        const err = new Error(data.error ?? "Failed to submit suggestion") as Error & { code?: string };
+        err.code = data.code;
+        throw err;
       }
       return res.json();
     },
@@ -90,7 +93,11 @@ export default function SuggestionSheet({ open, onClose }: SuggestionSheetProps)
       });
       handleClose();
     },
-    onError: (err: Error) => {
+    onError: (err: Error & { code?: string }) => {
+      if (err.code && onUpgradeRequired) {
+        onUpgradeRequired(err.code);
+        return;
+      }
       toast.error("Could not submit suggestion", {
         description: err.message,
         className: "roost-toast roost-toast-error",

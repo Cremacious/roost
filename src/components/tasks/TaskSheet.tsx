@@ -48,6 +48,7 @@ interface TaskSheetProps {
   householdMembers: Member[];
   currentUserId: string;
   isAdmin: boolean;
+  onUpgradeRequired?: (code: string) => void;
 }
 
 // ---- Shared input style -----------------------------------------------------
@@ -77,6 +78,7 @@ export default function TaskSheet({
   householdMembers,
   currentUserId,
   isAdmin,
+  onUpgradeRequired,
 }: TaskSheetProps) {
   const queryClient = useQueryClient();
   const titleRef = useRef<HTMLInputElement>(null);
@@ -131,7 +133,9 @@ export default function TaskSheet({
         });
         if (!r.ok) {
           const d = await r.json().catch(() => ({}));
-          throw new Error(d.error ?? "Failed to create task");
+          const err = new Error(d.error ?? "Failed to create task") as Error & { code?: string };
+          err.code = d.code;
+          throw err;
         }
         return r.json();
       } else {
@@ -152,7 +156,13 @@ export default function TaskSheet({
       toast.success(mode === "create" ? "Task added" : "Task updated");
       onClose();
     },
-    onError: (err: Error) => toast.error(err.message),
+    onError: (err: Error & { code?: string }) => {
+      if (err.code && onUpgradeRequired) {
+        onUpgradeRequired(err.code);
+      } else {
+        toast.error(err.message);
+      }
+    },
   });
 
   const deleteMutation = useMutation({

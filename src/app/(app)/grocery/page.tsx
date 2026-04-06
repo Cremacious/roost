@@ -7,6 +7,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   Check,
   ChevronDown,
+  Lock,
   Loader2,
   MoreHorizontal,
   Plus,
@@ -23,6 +24,8 @@ import GroceryItemSheet from "@/components/grocery/GroceryItemSheet";
 import GroceryListSheet, {
   type GroceryListData,
 } from "@/components/grocery/GroceryListSheet";
+import { Sheet, SheetContent } from "@/components/ui/sheet";
+import UpgradePrompt from "@/components/shared/UpgradePrompt";
 
 const COLOR = SECTION_COLORS.grocery; // #F59E0B
 const COLOR_DARK = "#C87D00";
@@ -335,6 +338,7 @@ export default function GroceryPage() {
   const [showItemSheet, setShowItemSheet] = useState(false);
   const [showListSheet, setShowListSheet] = useState(false);
   const [listToEdit, setListToEdit] = useState<GroceryListData | null>(null);
+  const [upgradeCode, setUpgradeCode] = useState<string | null>(null);
 
   const PLACEHOLDERS = ["Add milk...", "Add eggs...", "Add anything..."];
   const [placeholderIdx, setPlaceholderIdx] = useState(0);
@@ -618,8 +622,8 @@ export default function GroceryPage() {
       style={{ backgroundColor: "var(--roost-bg)" }}
     >
       <PageContainer className="flex flex-col gap-4">
-      {/* List pill switcher (multiple lists only) */}
-      {lists.length > 1 && (
+      {/* List pill switcher (premium or multiple lists) */}
+      {(isPremium || lists.length > 1) && (
         <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
           {lists.map((list) => {
             const active = list.id === activeListId;
@@ -658,20 +662,20 @@ export default function GroceryPage() {
             );
           })}
 
-          {/* Add list button */}
+          {/* Add list button (premium only) */}
           <motion.button
             type="button"
-            onClick={openAddList}
+            onClick={isPremium ? openAddList : () => setUpgradeCode("MULTIPLE_LISTS_PREMIUM")}
             whileTap={{ y: 1 }}
             className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl"
             style={{
               backgroundColor: "var(--roost-surface)",
               border: "1.5px solid var(--roost-border)",
               borderBottom: "3px solid var(--roost-border-bottom)",
-              color: "var(--roost-text-muted)",
+              color: isPremium ? "var(--roost-text-muted)" : "var(--roost-text-muted)",
             }}
           >
-            <Plus className="size-4" />
+            {isPremium ? <Plus className="size-4" /> : <Lock className="size-4" />}
           </motion.button>
         </div>
       )}
@@ -883,6 +887,14 @@ export default function GroceryPage() {
         list={listToEdit}
         isPremium={isPremium}
       />
+
+      {/* Upgrade prompt */}
+      <Sheet open={!!upgradeCode} onOpenChange={(v) => !v && setUpgradeCode(null)}>
+        <SheetContent side="bottom" className="rounded-t-2xl px-4 pb-8 pt-2" style={{ backgroundColor: "var(--roost-surface)" }}>
+          <div className="mx-auto mb-4 h-1 w-10 rounded-full" style={{ backgroundColor: COLOR }} />
+          {upgradeCode && <UpgradePrompt code={upgradeCode} onDismiss={() => setUpgradeCode(null)} />}
+        </SheetContent>
+      </Sheet>
       </PageContainer>
     </motion.div>
 

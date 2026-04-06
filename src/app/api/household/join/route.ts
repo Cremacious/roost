@@ -3,6 +3,7 @@ import { requireSession } from "@/lib/auth/helpers";
 import { db } from "@/lib/db";
 import { households, household_members } from "@/db/schema";
 import { and, eq, ilike, isNull } from "drizzle-orm";
+import { checkMemberLimit } from "@/lib/utils/premiumGating";
 
 export async function POST(request: NextRequest): Promise<Response> {
   let session;
@@ -63,6 +64,17 @@ export async function POST(request: NextRequest): Promise<Response> {
       { error: "Upgrade to premium to join multiple households" },
       { status: 403 }
     );
+  }
+
+  // Check member limit for free tier
+  if (household.subscription_status !== "premium") {
+    const { allowed } = await checkMemberLimit(household.id);
+    if (!allowed) {
+      return Response.json(
+        { error: "This household has reached the 5 member limit", code: "MEMBERS_LIMIT", limit: 5 },
+        { status: 403 }
+      );
+    }
   }
 
   await db.insert(household_members).values({

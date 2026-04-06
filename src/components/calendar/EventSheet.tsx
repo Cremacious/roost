@@ -64,6 +64,7 @@ interface EventSheetProps {
   currentUserId: string;
   isAdmin: boolean;
   queryKeys: (string | number)[][];
+  onUpgradeRequired?: (code: string) => void;
 }
 
 // ---- Input style ------------------------------------------------------------
@@ -103,6 +104,7 @@ export default function EventSheet({
   currentUserId,
   isAdmin,
   queryKeys,
+  onUpgradeRequired,
 }: EventSheetProps) {
   const queryClient = useQueryClient();
   const titleRef = useRef<HTMLInputElement>(null);
@@ -191,7 +193,9 @@ export default function EventSheet({
         });
         if (!r.ok) {
           const d = await r.json().catch(() => ({}));
-          throw new Error(d.error ?? "Failed to create event");
+          const err = new Error(d.error ?? "Failed to create event") as Error & { code?: string };
+          err.code = d.code;
+          throw err;
         }
         return r.json();
       } else {
@@ -212,7 +216,13 @@ export default function EventSheet({
       toast.success(mode === "create" ? "Event added" : "Event updated");
       onClose();
     },
-    onError: (err: Error) => toast.error(err.message),
+    onError: (err: Error & { code?: string }) => {
+      if (err.code && onUpgradeRequired) {
+        onUpgradeRequired(err.code);
+      } else {
+        toast.error(err.message);
+      }
+    },
   });
 
   const deleteMutation = useMutation({

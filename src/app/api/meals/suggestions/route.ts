@@ -1,7 +1,7 @@
 import { NextRequest } from "next/server";
 import { requireSession } from "@/lib/auth/helpers";
 import { db } from "@/lib/db";
-import { meal_suggestions, meal_suggestion_votes, users } from "@/db/schema";
+import { meal_suggestions, meal_suggestion_votes, users, households } from "@/db/schema";
 import { and, desc, eq, inArray } from "drizzle-orm";
 import { getUserHousehold } from "@/app/api/chores/route";
 import { logActivity } from "@/lib/utils/activity";
@@ -81,6 +81,19 @@ export async function POST(request: NextRequest): Promise<Response> {
     return Response.json({ error: "No household found" }, { status: 404 });
   }
   const { householdId } = membership;
+
+  // Premium check
+  const [household] = await db
+    .select({ subscription_status: households.subscription_status })
+    .from(households)
+    .where(eq(households.id, householdId))
+    .limit(1);
+  if (household?.subscription_status !== "premium") {
+    return Response.json(
+      { error: "Meal suggestions require premium", code: "MEAL_SUGGESTIONS_PREMIUM" },
+      { status: 403 }
+    );
+  }
 
   let body: { meal_name?: string; note?: string; category?: string; prep_time?: number; ingredients?: string[] };
   try {

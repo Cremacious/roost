@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import {
   Bell,
   Calendar,
@@ -11,6 +11,8 @@ import {
   DollarSign,
   FileText,
   Home,
+  Loader2,
+  LogOut,
   MoreHorizontal,
   Settings,
   ShoppingCart,
@@ -23,7 +25,15 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import { motion } from "framer-motion";
+import { signOut } from "@/lib/auth/client";
 
 interface NavItem {
   label: string;
@@ -55,7 +65,16 @@ interface BottomNavProps {
 
 export default function BottomNav({ hasIncompleteChores = false }: BottomNavProps) {
   const pathname = usePathname();
+  const router = useRouter();
   const [moreOpen, setMoreOpen] = useState(false);
+  const [confirmSignOut, setConfirmSignOut] = useState(false);
+  const [signingOut, setSigningOut] = useState(false);
+
+  async function handleSignOut() {
+    setSigningOut(true);
+    await signOut();
+    router.push("/login");
+  }
 
   return (
     <>
@@ -163,8 +182,85 @@ export default function BottomNav({ hasIncompleteChores = false }: BottomNavProp
               );
             })}
           </div>
+
+          {/* Divider + Sign out */}
+          <div
+            className="mt-4 pt-4"
+            style={{ borderTop: "1.5px solid var(--roost-border)" }}
+          >
+            <button
+              type="button"
+              onClick={() => {
+                setMoreOpen(false);
+                setConfirmSignOut(true);
+              }}
+              className="flex h-14 w-full items-center gap-3 rounded-xl px-4"
+              style={{
+                backgroundColor: "var(--roost-bg)",
+                border: "1.5px solid var(--roost-border)",
+                borderBottom: "3px solid var(--roost-border-bottom)",
+                color: "var(--roost-text-muted)",
+              }}
+            >
+              <LogOut className="size-4 shrink-0" style={{ color: "var(--roost-text-muted)" }} />
+              <span className="text-sm" style={{ color: "var(--roost-text-primary)", fontWeight: 700 }}>
+                Sign out
+              </span>
+            </button>
+          </div>
         </SheetContent>
       </Sheet>
+
+      {/* Sign out confirmation dialog */}
+      <Dialog open={confirmSignOut} onOpenChange={setConfirmSignOut}>
+        <DialogContent style={{ backgroundColor: "var(--roost-surface)" }}>
+          <DialogHeader>
+            <DialogTitle
+              style={{ color: "var(--roost-text-primary)", fontWeight: 900 }}
+            >
+              Sign out?
+            </DialogTitle>
+          </DialogHeader>
+          <p
+            className="text-sm"
+            style={{ color: "var(--roost-text-secondary)", fontWeight: 600 }}
+          >
+            You will need to sign back in to access your household.
+          </p>
+          <DialogFooter className="mt-2 flex gap-2">
+            <motion.button
+              type="button"
+              onClick={() => setConfirmSignOut(false)}
+              whileTap={{ y: 1 }}
+              className="flex h-11 flex-1 items-center justify-center rounded-xl text-sm"
+              style={{
+                backgroundColor: "var(--roost-bg)",
+                border: "1.5px solid var(--roost-border)",
+                borderBottom: "3px solid var(--roost-border-bottom)",
+                color: "var(--roost-text-secondary)",
+                fontWeight: 700,
+              }}
+            >
+              Cancel
+            </motion.button>
+            <motion.button
+              type="button"
+              onClick={handleSignOut}
+              disabled={signingOut}
+              whileTap={{ y: 1 }}
+              className="flex h-11 flex-1 items-center justify-center rounded-xl text-sm text-white disabled:opacity-50"
+              style={{
+                backgroundColor: "#EF4444",
+                border: "1.5px solid #EF4444",
+                borderBottom: "3px solid #C93B3B",
+                fontWeight: 800,
+              }}
+            >
+              {signingOut ? <Loader2 className="size-4 animate-spin" /> : "Sign out"}
+            </motion.button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }

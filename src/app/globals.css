@@ -236,11 +236,25 @@
   border-color: var(--roost-border) !important;
 }
 
+/* ---- Desktop sheet centering ------------------------------------------ */
+
+@media (min-width: 640px) {
+  [data-slot="sheet-content"][data-side="bottom"] {
+    left: 50% !important;
+    right: auto !important;
+    width: 100% !important;
+    max-width: 680px !important;
+    transform: translateX(-50%) !important;
+    border-radius: 16px 16px 0 0 !important;
+  }
+}
+
 /* ---- Compact calendar (EventSheet desktop right column) ---------------- */
 
 .roost-calendar-compact {
   --cell-size: 30px;
-  max-width: 300px !important;
+  width: 100% !important;
+  max-width: 100% !important;
 }
 
 .roost-calendar-compact .rdp-month_caption {

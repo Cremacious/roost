@@ -255,6 +255,17 @@ Tasks: one-off to-dos
 - CarPlay-inspired large tile grid on tablet + desktop
 - Bottom tab bar on mobile (Home, Chores, Grocery, Calendar, More)
   More opens a sheet with Profile and Settings links
+- Sheet Rules (ALL sheets in the app):
+  Mobile: full width, slides from bottom, rounded-t-2xl top corners only
+  Desktop (sm:): 680px max-width, centered — done via globals.css, NOT via individual classNames
+  Centering is applied globally in globals.css:
+    @media (min-width: 640px) { [data-slot="sheet-content"][data-side="bottom"] {
+      left: 50%; right: auto; width: 100%; max-width: 680px;
+      transform: translateX(-50%); border-radius: 16px 16px 0 0; } }
+  Do NOT add sm:left-* or sm:translate-x-* to individual SheetContent classNames — handled globally
+  Never make sheets wider than 680px on desktop
+  EventSheet exception: uses sm:grid-cols-[1fr_240px] two-column grid within the 680px;
+    form fields on left (1fr), calendar on right (240px fixed)
 - UI scales: phone / tablet / desktop
 - Font: Nunito (400-900) via next/font/google; weights 600/700/800/900 only in UI. Never below 600.
 - framer-motion animations:
@@ -427,8 +438,8 @@ src/app/api/dev/toggle-premium/route.ts       POST: dev-only, toggles household 
 - Event color: #3B82F6, border-bottom: #1A5CB5
 - EventSheet create/edit: mobile = single column (calendar inline, collapses after date pick); desktop (sm:) = two-column grid, left col has all form fields, right col has always-visible Calendar using `.roost-calendar-compact`
 - EventSheet SheetContent: `sm:rounded-2xl sm:max-w-215 sm:w-215` (860px) for desktop two-column layout
-- Desktop right column calendar: max-width 300px, left-aligned (sm:items-start), not stretched to fill column width
-- `.roost-calendar-compact` in globals.css: sets `--cell-size: 30px` and `max-width: 300px !important` to prevent stretching; targets `.rdp-weekday`, `.rdp-day`, `.rdp-day_button`
+- Desktop right column calendar: fills the 260px fixed column (w-full, classNames root w-full), no maxWidth constraint
+- `.roost-calendar-compact` in globals.css: sets `--cell-size: 30px`, `width: 100%`, `max-width: 100%`; targets `.rdp-weekday`, `.rdp-day`, `.rdp-day_button`
 
 ## Task UX Patterns
 - Tasks grouped by: Overdue (red header), Due today (pink), Upcoming, No due date, Completed
@@ -664,7 +675,7 @@ Designer brief (send this when hiring):
 At the start of each new session fetch this file to restore context.
 Share GitHub file URLs, paste code, or describe what was built.
 Update this file after every major decision or completed phase.
-Last updated: 2026-04-05 (desktop calendar capped at 300px, left-aligned; Phase 5 Allowance System roadmap; Brand Voice/slogan section; EventSheet desktop two-column layout; premium stack verified)
+Last updated: 2026-04-05 (desktop sheet centering via globals.css [data-slot] selector; EventSheet two-column [1fr_240px]; Phase 5 Allowance System; Brand Voice; premium stack verified)
 
 ## Bugs Found and Fixed (2026-04-05)
 - No default grocery list created on household signup: `GET /api/grocery/lists` now

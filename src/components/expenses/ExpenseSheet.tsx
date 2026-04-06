@@ -235,7 +235,7 @@ export default function ExpenseSheet({
         <Sheet open={open} onOpenChange={(v) => !v && onClose()}>
           <SheetContent
             side="bottom"
-            className="rounded-t-2xl px-4 pb-8 pt-2"
+            className="rounded-t-2xl px-4 pb-8 pt-2 "
             style={{ backgroundColor: "var(--roost-surface)", maxHeight: "88dvh", overflowY: "auto" }}
           >
             <div className="mx-auto mb-4 h-1 w-10 rounded-full" style={{ backgroundColor: "var(--roost-border)" }} />
@@ -393,7 +393,7 @@ export default function ExpenseSheet({
     <Sheet open={open} onOpenChange={(v) => !v && onClose()}>
       <SheetContent
         side="bottom"
-        className="rounded-t-2xl px-4 pb-8 pt-2"
+        className="rounded-t-2xl px-4 pb-8 pt-2 "
         style={{ backgroundColor: "var(--roost-surface)", maxHeight: "88dvh", overflowY: "auto" }}
       >
         <div className="mx-auto mb-4 h-1 w-10 rounded-full" style={{ backgroundColor: "var(--roost-border)" }} />

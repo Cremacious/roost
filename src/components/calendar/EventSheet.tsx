@@ -249,7 +249,7 @@ export default function EventSheet({
         <Sheet open={open} onOpenChange={(v) => !v && onClose()}>
           <SheetContent
             side="bottom"
-            className="rounded-t-2xl px-4 pb-8 pt-2"
+            className="rounded-t-2xl px-4 pb-8 pt-2 "
             style={{ backgroundColor: "var(--roost-surface)", maxHeight: "88dvh", overflowY: "auto" }}
           >
             <div className="mx-auto mb-4 h-1 w-10 rounded-full" style={{ backgroundColor: "var(--roost-border)" }} />
@@ -400,7 +400,7 @@ export default function EventSheet({
         </SheetHeader>
 
         {/* Two-column on desktop, single column on mobile */}
-        <div className="space-y-4 sm:grid sm:grid-cols-2 sm:items-start sm:gap-6 sm:space-y-0">
+        <div className="space-y-4 sm:grid sm:grid-cols-[1fr_240px] sm:items-start sm:gap-6 sm:space-y-0">
 
           {/* LEFT COLUMN — form fields */}
           <div className="space-y-4 sm:flex sm:flex-col">
@@ -558,23 +558,16 @@ export default function EventSheet({
           </div>
 
           {/* RIGHT COLUMN — calendar, desktop only */}
-          <div className="hidden sm:flex sm:flex-col sm:items-start sm:pt-6">
+          <div className="hidden sm:block sm:w-full sm:pt-6">
             <p className="mb-3 text-xs" style={{ color: "var(--roost-text-muted)", fontWeight: 700 }}>
               Date
             </p>
-            <div style={{ maxWidth: "300px", width: "100%" }}>
-              <div
-                className="overflow-hidden rounded-xl"
-                style={{ border: "1.5px solid var(--roost-border)", borderBottom: `3px solid ${COLOR_DARK}40`, "--primary": COLOR, "--primary-foreground": "#ffffff" } as React.CSSProperties}
-              >
-                <Calendar
-                  mode="single"
-                  selected={selectedDate}
-                  onSelect={(d) => d && setSelectedDate(d)}
-                  className="roost-calendar-compact"
-                />
-              </div>
-            </div>
+            <Calendar
+              mode="single"
+              selected={selectedDate}
+              onSelect={(d) => d && setSelectedDate(d)}
+              className="roost-calendar-compact"
+            />
           </div>
 
         </div>

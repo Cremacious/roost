@@ -189,6 +189,7 @@ export default function Sidebar() {
           {/* Sign out button */}
           <button
             type="button"
+            data-testid="sign-out-btn"
             onClick={() => setConfirmSignOut(true)}
             onMouseEnter={() => setHoverSignOut(true)}
             onMouseLeave={() => setHoverSignOut(false)}

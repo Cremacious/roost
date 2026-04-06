@@ -332,6 +332,7 @@ export default function SignupPage() {
             {/* Submit */}
             <motion.button
               type="submit"
+              data-testid="signup-submit"
               disabled={submitDisabled}
               whileTap={{ y: 2 }}
               style={{

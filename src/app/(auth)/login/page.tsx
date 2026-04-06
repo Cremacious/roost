@@ -197,6 +197,7 @@ export default function LoginPage() {
             {/* Submit */}
             <motion.button
               type="submit"
+              data-testid="login-submit"
               disabled={loading}
               whileTap={{ y: 2 }}
               style={{

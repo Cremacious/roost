@@ -65,7 +65,7 @@ export async function parseReceiptImage(imageBase64: string): Promise<ParsedRece
   return parseReceiptText(fullText);
 }
 
-function parseReceiptText(text: string): ParsedReceipt {
+export function parseReceiptText(text: string): ParsedReceipt {
   const lines = text
     .split("\n")
     .map((l) => l.trim())
@@ -120,13 +120,14 @@ function parseReceiptText(text: string): ParsedReceipt {
         .replace(/[*@#]/g, "")
         .trim();
 
-      if (totalPattern.test(line)) {
-        result.total = amount;
+      // Check subtotal before total — "Subtotal" contains "total" so order matters
+      if (subtotalPattern.test(line)) {
+        result.subtotal = amount;
         continue;
       }
 
-      if (subtotalPattern.test(line)) {
-        result.subtotal = amount;
+      if (totalPattern.test(line)) {
+        result.total = amount;
         continue;
       }
 

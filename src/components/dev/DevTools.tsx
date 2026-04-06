@@ -103,6 +103,7 @@ export default function DevTools() {
               checked={isPremium}
               onCheckedChange={handleTogglePremium}
               disabled={toggling || isLoading}
+              data-testid="premium-toggle"
             />
           </div>
 

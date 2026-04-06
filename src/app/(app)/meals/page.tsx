@@ -19,6 +19,7 @@ import {
   ChevronRight,
   Clock,
   Lightbulb,
+  Loader2,
   Plus,
   ShoppingCart,
   ThumbsDown,
@@ -32,6 +33,13 @@ import PageHeader from "@/components/shared/PageHeader";
 import EmptyState from "@/components/shared/EmptyState";
 import MemberAvatar from "@/components/shared/MemberAvatar";
 import { relativeTime } from "@/lib/utils/time";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import MealSheet, { type MealData } from "@/components/meals/MealSheet";
 import MealSlotSheet, { type MealRow, type SlotRow } from "@/components/meals/MealSlotSheet";
 import SuggestionSheet from "@/components/meals/SuggestionSheet";
@@ -137,8 +145,13 @@ export default function MealsPage() {
     slotDate: Date | null;
     slotType: string;
     existingSlot?: SlotRow | null;
+    preSelectedMeal?: MealRow | null;
   }>({ open: false, slotDate: null, slotType: "dinner" });
   const [suggestionSheet, setSuggestionSheet] = useState(false);
+
+  // Confirmation dialog state
+  const [groceryConfirm, setGroceryConfirm] = useState<MealData | null>(null);
+  const [approveConfirm, setApproveConfirm] = useState<SuggestionRow | null>(null);
 
   const weekStartStr = format(weekStart, "yyyy-MM-dd");
   const weekEnd = addDays(weekStart, 6);
@@ -234,6 +247,7 @@ export default function MealsPage() {
     },
     onSuccess: (data: { added: number }) => {
       queryClient.invalidateQueries({ queryKey: ["grocery-items"] });
+      setGroceryConfirm(null);
       toast.success(`Added ${data.added} ingredient${data.added !== 1 ? "s" : ""} to Shopping List`, {
         className: "roost-toast roost-toast-success",
         descriptionClassName: "roost-toast-description",
@@ -263,7 +277,9 @@ export default function MealsPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["suggestions"] });
-      toast.success("Suggestion approved", {
+      queryClient.invalidateQueries({ queryKey: ["meals"] });
+      setApproveConfirm(null);
+      toast.success("Added to meal bank", {
         className: "roost-toast roost-toast-success",
         descriptionClassName: "roost-toast-description",
       });
@@ -299,7 +315,11 @@ export default function MealsPage() {
 
   function openSlot(date: Date, slotType: string) {
     const existing = getSlot(date, slotType);
-    setSlotSheet({ open: true, slotDate: date, slotType, existingSlot: existing ?? null });
+    setSlotSheet({ open: true, slotDate: date, slotType, existingSlot: existing ?? null, preSelectedMeal: null });
+  }
+
+  function openSlotForMeal(meal: MealData) {
+    setSlotSheet({ open: true, slotDate: null, slotType: "dinner", existingSlot: null, preSelectedMeal: meal as MealRow });
   }
 
   // ---- Planner tab -----------------------------------------------------------
@@ -615,11 +635,18 @@ export default function MealsPage() {
                     </p>
                   )}
 
+                  {/* Ingredient count — Fix 6 */}
+                  {ing.length === 0 && (
+                    <p className="mt-1.5 text-xs" style={{ color: "var(--roost-text-muted)", fontWeight: 600 }}>
+                      No ingredients added
+                    </p>
+                  )}
+
                   {/* Actions */}
                   <div className="mt-4 flex gap-2">
                     <motion.button
                       type="button"
-                      onClick={() => openSlot(new Date(), "dinner")}
+                      onClick={() => openSlotForMeal(m)}
                       whileTap={{ y: 1 }}
                       className="flex flex-1 items-center justify-center rounded-xl py-2 text-xs"
                       style={{
@@ -635,7 +662,7 @@ export default function MealsPage() {
                     {ing.length > 0 && (
                       <motion.button
                         type="button"
-                        onClick={() => addToGroceryMutation.mutate(m.id)}
+                        onClick={() => setGroceryConfirm(m)}
                         whileTap={{ y: 1 }}
                         className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl"
                         style={{
@@ -807,7 +834,7 @@ export default function MealsPage() {
                 <motion.button
                   type="button"
                   whileTap={{ y: 1 }}
-                  onClick={() => approveMutation.mutate({ id: s.id, addToBank: true })}
+                  onClick={() => setApproveConfirm(s)}
                   className="flex h-9 items-center rounded-xl px-3 text-xs"
                   style={{
                     backgroundColor: "#22C55E12",
@@ -916,6 +943,8 @@ export default function MealsPage() {
         existingSlot={slotSheet.existingSlot}
         meals={allMeals as MealRow[]}
         weekStart={weekStartStr}
+        preSelectedMeal={slotSheet.preSelectedMeal}
+        existingSlots={slots}
       />
 
       <MealSheet
@@ -928,6 +957,131 @@ export default function MealsPage() {
         open={suggestionSheet}
         onClose={() => setSuggestionSheet(false)}
       />
+
+      {/* Grocery confirm dialog (Fix 1) */}
+      {groceryConfirm && (() => {
+        let ing: string[] = [];
+        try { ing = groceryConfirm.ingredients ? (JSON.parse(groceryConfirm.ingredients) as string[]).filter(Boolean) : []; } catch { ing = []; }
+        const preview = ing.slice(0, 5);
+        const extra = ing.length - 5;
+        return (
+          <Dialog open={!!groceryConfirm} onOpenChange={(v) => !v && setGroceryConfirm(null)}>
+            <DialogContent style={{ backgroundColor: "var(--roost-surface)" }}>
+              <DialogHeader>
+                <DialogTitle style={{ color: "var(--roost-text-primary)", fontWeight: 900 }}>
+                  Add ingredients to grocery list?
+                </DialogTitle>
+              </DialogHeader>
+              <div className="space-y-2">
+                <p className="text-sm" style={{ color: "var(--roost-text-secondary)", fontWeight: 600 }}>
+                  This will add {ing.length} ingredient{ing.length !== 1 ? "s" : ""} from{" "}
+                  <span style={{ fontWeight: 800, color: "var(--roost-text-primary)" }}>{groceryConfirm.name}</span>{" "}
+                  to your Shopping List:
+                </p>
+                <ul className="space-y-1">
+                  {preview.map((item, i) => (
+                    <li key={i} className="text-sm" style={{ color: "var(--roost-text-secondary)", fontWeight: 600 }}>
+                      {item}
+                    </li>
+                  ))}
+                  {extra > 0 && (
+                    <li className="text-sm" style={{ color: "var(--roost-text-muted)", fontWeight: 600 }}>
+                      + {extra} more
+                    </li>
+                  )}
+                </ul>
+              </div>
+              <DialogFooter className="flex gap-2">
+                <motion.button
+                  type="button"
+                  onClick={() => setGroceryConfirm(null)}
+                  whileTap={{ y: 1 }}
+                  className="flex h-11 flex-1 items-center justify-center rounded-xl text-sm"
+                  style={{
+                    backgroundColor: "var(--roost-bg)",
+                    border: "1.5px solid var(--roost-border)",
+                    borderBottom: "3px solid var(--roost-border-bottom)",
+                    color: "var(--roost-text-secondary)",
+                    fontWeight: 700,
+                  }}
+                >
+                  Cancel
+                </motion.button>
+                <motion.button
+                  type="button"
+                  disabled={addToGroceryMutation.isPending}
+                  onClick={() => addToGroceryMutation.mutate(groceryConfirm.id)}
+                  whileTap={{ y: 1 }}
+                  className="flex h-11 flex-1 items-center justify-center rounded-xl text-sm text-white disabled:opacity-50"
+                  style={{
+                    backgroundColor: "#22C55E",
+                    border: "1.5px solid #22C55E",
+                    borderBottom: "3px solid #16A34A",
+                    fontWeight: 800,
+                  }}
+                >
+                  {addToGroceryMutation.isPending ? (
+                    <Loader2 className="size-4 animate-spin" />
+                  ) : (
+                    "Add to list"
+                  )}
+                </motion.button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        );
+      })()}
+
+      {/* Approve confirm dialog (Fix 2) */}
+      <Dialog open={!!approveConfirm} onOpenChange={(v) => !v && setApproveConfirm(null)}>
+        <DialogContent style={{ backgroundColor: "var(--roost-surface)" }}>
+          <DialogHeader>
+            <DialogTitle style={{ color: "var(--roost-text-primary)", fontWeight: 900 }}>
+              Add to meal bank?
+            </DialogTitle>
+          </DialogHeader>
+          <p className="text-sm" style={{ color: "var(--roost-text-secondary)", fontWeight: 600 }}>
+            <span style={{ fontWeight: 800, color: "var(--roost-text-primary)" }}>{approveConfirm?.meal_name}</span>{" "}
+            will be added to your meal bank. You can add more details like ingredients and prep time afterwards.
+          </p>
+          <DialogFooter className="flex gap-2">
+            <motion.button
+              type="button"
+              onClick={() => setApproveConfirm(null)}
+              whileTap={{ y: 1 }}
+              className="flex h-11 flex-1 items-center justify-center rounded-xl text-sm"
+              style={{
+                backgroundColor: "var(--roost-bg)",
+                border: "1.5px solid var(--roost-border)",
+                borderBottom: "3px solid var(--roost-border-bottom)",
+                color: "var(--roost-text-secondary)",
+                fontWeight: 700,
+              }}
+            >
+              Cancel
+            </motion.button>
+            <motion.button
+              type="button"
+              disabled={approveMutation.isPending}
+              onClick={() => approveConfirm && approveMutation.mutate({ id: approveConfirm.id, addToBank: true })}
+              whileTap={{ y: 1 }}
+              className="flex h-11 flex-1 items-center justify-center rounded-xl text-sm text-white disabled:opacity-50"
+              style={{
+                backgroundColor: COLOR,
+                border: `1.5px solid ${COLOR}`,
+                borderBottom: `3px solid ${COLOR_DARK}`,
+                fontWeight: 800,
+              }}
+            >
+              {approveMutation.isPending ? (
+                <Loader2 className="size-4 animate-spin" />
+              ) : (
+                "Add to bank"
+              )}
+            </motion.button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </motion.div>
   );
 }

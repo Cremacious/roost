@@ -1,4 +1,5 @@
 import { date, integer, pgTable, text, timestamp, unique, uuid } from "drizzle-orm/pg-core";
+
 import { households } from "./households";
 import { users } from "./users";
 
@@ -49,6 +50,9 @@ export const meal_suggestions = pgTable("meal_suggestions", {
     .notNull(),
   meal_name: text("meal_name").notNull(),
   note: text("note"),
+  category: text("category").notNull().default("dinner"),
+  prep_time: integer("prep_time"),
+  ingredients: text("ingredients"), // JSON array of strings
   status: text("status").notNull().default("pending"),
   created_at: timestamp("created_at").defaultNow(),
 });

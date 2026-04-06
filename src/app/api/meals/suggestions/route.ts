@@ -82,7 +82,7 @@ export async function POST(request: NextRequest): Promise<Response> {
   }
   const { householdId } = membership;
 
-  let body: { meal_name?: string; note?: string };
+  let body: { meal_name?: string; note?: string; category?: string; prep_time?: number; ingredients?: string[] };
   try {
     body = await request.json();
   } catch {
@@ -93,6 +93,8 @@ export async function POST(request: NextRequest): Promise<Response> {
     return Response.json({ error: "Meal name is required" }, { status: 400 });
   }
 
+  const filteredIngredients = (body.ingredients ?? []).filter((i) => i.trim());
+
   const [suggestion] = await db
     .insert(meal_suggestions)
     .values({
@@ -100,6 +102,9 @@ export async function POST(request: NextRequest): Promise<Response> {
       suggested_by: session.user.id,
       meal_name: body.meal_name.trim(),
       note: body.note?.trim() || null,
+      category: body.category ?? "dinner",
+      prep_time: body.prep_time ?? null,
+      ingredients: filteredIngredients.length > 0 ? JSON.stringify(filteredIngredients) : null,
     })
     .returning();
 

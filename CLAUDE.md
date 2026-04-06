@@ -422,8 +422,8 @@ src/app/api/meals/suggestions/route.ts        GET (pending, vote counts, userVot
 src/app/api/meals/suggestions/[id]/vote/route.ts  POST: toggle up/down vote (same vote = remove)
 src/app/api/meals/suggestions/[id]/approve/route.ts  POST: admin only, sets status=approved, optionally inserts into meals bank
 src/components/meals/MealSheet.tsx            Create/edit meal: name, category pills, description, prep time, dynamic ingredients list
-src/components/meals/MealSlotSheet.tsx        Slot picker: menu mode, bank search, quick add, view/remove existing slot
-src/components/meals/SuggestionSheet.tsx      Suggest a meal: name + note + submit (all roles)
+src/components/meals/MealSlotSheet.tsx        Slot picker: menu mode, bank search, quick add, date-pick mode (preSelectedMeal prop), view/remove existing slot
+src/components/meals/SuggestionSheet.tsx      Suggest a meal: name, category pills, note, prep time, dynamic ingredients list (all roles)
 src/app/(app)/meals/page.tsx                  Full meals module: Planner/Meal Bank/Suggestions tabs
 
 ## Expense UX Patterns
@@ -462,7 +462,11 @@ src/app/(app)/meals/page.tsx                  Full meals module: Planner/Meal Ba
   Empty slot: dashed slab card, tap opens MealSlotSheet
   Filled slot: orange-tinted slab card, tap opens MealSlotSheet (view/remove/change)
   Desktop: horizontal scroll with minWidth 980px, each day column flex-1
-  MealSlotSheet: menu mode (pick bank / quick add), bank search mode, quick add mode
+  MealSlotSheet: menu mode (pick bank / quick add), bank search mode, quick add mode, date mode
+  "Add to planner" from the meal bank opens MealSlotSheet in date mode (preSelectedMeal prop set)
+  Date mode: shows 7-day picker (Mon-Sun of current week) + slot type pills, then saves directly
+  Day labels: "Today", "Tomorrow", or short weekday (Mon/Tue/etc); dot indicator if slot filled
+  Toast: "Added to {weekday} {slot label}" using the chosen date + slot type
 - Meal Bank: searchable, filterable by category (All/Breakfast/Lunch/Dinner/Snack)
   Meal cards: name, category badge, prep time, ingredient count, description truncated
   Actions: "Add to planner" (opens slot picker), grocery cart icon (pushes ingredients), edit icon
@@ -470,9 +474,16 @@ src/app/(app)/meals/page.tsx                  Full meals module: Planner/Meal Ba
 - Suggestions: ranked by upvotes desc, anyone including children can suggest
   Top suggestion (i=0, upvotes>0) gets Trophy badge
   Voting: optimistic UI, same vote = toggle off, up = orange, down = muted red
-  Admin sees "Add to bank" button on each suggestion
+  Admin sees "Add to bank" button on each suggestion; tapping opens confirmation Dialog
+  Approve confirm Dialog: shows meal name bold, description, orange "Add to bank" button
+  SuggestionSheet collects: meal name, category (Breakfast/Lunch/Dinner/Snack pills), note,
+    prep time (optional), dynamic ingredients list (start with 2 inputs, +Add/X buttons)
+  Submits category + prep_time + ingredients so the bank entry is complete when approved
+  Approving a suggestion invalidates BOTH ["suggestions"] AND ["meals"] query keys
 - Grocery integration: POST /api/meals/[id]/add-to-grocery inserts each ingredient
   as a grocery_item in the default grocery list
+  Grocery add requires confirmation Dialog: shows meal name bold, ingredient preview (up to 5
+    items with "+ X more"), green "Add to list" button
 - Activity types: meal_planned, meal_suggested (both map to 'meals' section color in dashboard)
 - Dashboard meals tile: shows "Tonight: [meal name]" or "Nothing planned tonight"
   via a separate planner-tonight query against /api/meals/planner
@@ -714,7 +725,7 @@ Designer brief (send this when hiring):
 At the start of each new session fetch this file to restore context.
 Share GitHub file URLs, paste code, or describe what was built.
 Update this file after every major decision or completed phase.
-Last updated: 2026-04-05 (meal planning module complete: planner, bank, suggestions, voting, grocery integration; Phase 5 Allowance System roadmap; desktop sheet centering via globals.css)
+Last updated: 2026-04-05 (meal planning module complete: planner, bank, suggestions, voting, grocery integration; Phase 5 Allowance System roadmap; desktop sheet centering via globals.css; meal UX patterns updated: confirmation dialogs, suggestion form fields, date-mode slot picker, query invalidation)
 
 ## Bugs Found and Fixed (2026-04-05)
 - No default grocery list created on household signup: `GET /api/grocery/lists` now

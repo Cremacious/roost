@@ -9,17 +9,20 @@ import type { ParsedReceipt } from "@/lib/utils/googleVision";
 
 const COLOR = "#22C55E";
 const COLOR_DARK = "#159040";
+const AMBER = "#F59E0B";
+const AMBER_DARK = "#C87D00";
 
 interface ReceiptScannerProps {
   onReceiptParsed: (receipt: ParsedReceipt) => void;
   onClose: () => void;
 }
 
-type ScanState = "idle" | "scanning" | "error";
+type ScanState = "idle" | "scanning" | "empty" | "error";
 
 export default function ReceiptScanner({ onReceiptParsed, onClose }: ReceiptScannerProps) {
   const [state, setState] = useState<ScanState>("idle");
   const [errorMessage, setErrorMessage] = useState("");
+  const [emptyReceipt, setEmptyReceipt] = useState<ParsedReceipt | null>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -47,7 +50,14 @@ export default function ReceiptScanner({ onReceiptParsed, onClose }: ReceiptScan
       }
 
       const { receipt } = await response.json();
-      onReceiptParsed(receipt);
+
+      if (receipt.lineItems.length === 0) {
+        // Vision worked but found no parseable items
+        setEmptyReceipt(receipt);
+        setState("empty");
+      } else {
+        onReceiptParsed(receipt);
+      }
     } catch (err) {
       setState("error");
       setErrorMessage(err instanceof Error ? err.message : "Something went wrong");
@@ -76,10 +86,7 @@ export default function ReceiptScanner({ onReceiptParsed, onClose }: ReceiptScan
         >
           <ScanLine size={48} style={{ color: COLOR }} />
         </motion.div>
-        <p
-          className="text-sm"
-          style={{ color: "var(--roost-text-muted)", fontWeight: 700 }}
-        >
+        <p className="text-sm" style={{ color: "var(--roost-text-muted)", fontWeight: 700 }}>
           Reading your receipt...
         </p>
         <div
@@ -97,7 +104,64 @@ export default function ReceiptScanner({ onReceiptParsed, onClose }: ReceiptScan
     );
   }
 
-  // ---- Error state -----------------------------------------------------------
+  // ---- Empty state (Vision worked, no items parsed) --------------------------
+
+  if (state === "empty") {
+    return (
+      <div
+        className="flex flex-col items-center gap-4 rounded-2xl px-6 py-10 text-center"
+        style={{
+          backgroundColor: "var(--roost-surface)",
+          border: "1.5px solid var(--roost-border)",
+          borderBottom: `4px solid ${AMBER_DARK}`,
+        }}
+      >
+        <ScanLine size={40} style={{ color: AMBER }} />
+        <div>
+          <p className="text-sm" style={{ color: "var(--roost-text-primary)", fontWeight: 800 }}>
+            We could not read the items.
+          </p>
+          <p className="mt-1 text-sm" style={{ color: "var(--roost-text-secondary)", fontWeight: 600 }}>
+            The receipt scanned but we could not pick out individual items. You
+            can add them manually or try a clearer photo.
+          </p>
+        </div>
+        <div className="flex w-full flex-col gap-2">
+          <motion.button
+            type="button"
+            whileTap={{ y: 1 }}
+            onClick={() => onReceiptParsed(emptyReceipt ?? { lineItems: [], rawText: "" })}
+            className="flex h-12 w-full items-center justify-center gap-2 rounded-xl text-sm text-white"
+            style={{
+              backgroundColor: AMBER,
+              border: `1.5px solid ${AMBER}`,
+              borderBottom: `3px solid ${AMBER_DARK}`,
+              fontWeight: 800,
+            }}
+          >
+            Add items manually
+          </motion.button>
+          <motion.button
+            type="button"
+            whileTap={{ y: 1 }}
+            onClick={() => setState("idle")}
+            className="flex h-11 w-full items-center justify-center rounded-xl text-sm"
+            style={{
+              backgroundColor: "var(--roost-surface)",
+              border: "1.5px solid var(--roost-border)",
+              borderBottom: "3px solid var(--roost-border-bottom)",
+              color: "var(--roost-text-secondary)",
+              fontWeight: 700,
+            }}
+          >
+            Try again
+          </motion.button>
+        </div>
+      </div>
+    );
+  }
+
+  // ---- Error state (actual API/network failure) -------------------------------
 
   if (state === "error") {
     return (
@@ -159,16 +223,10 @@ export default function ReceiptScanner({ onReceiptParsed, onClose }: ReceiptScan
       <ScanLine size={48} style={{ color: COLOR }} />
 
       <div>
-        <p
-          className="text-lg"
-          style={{ color: "var(--roost-text-primary)", fontWeight: 800 }}
-        >
+        <p className="text-lg" style={{ color: "var(--roost-text-primary)", fontWeight: 800 }}>
           Scan a receipt
         </p>
-        <p
-          className="mt-1 text-sm"
-          style={{ color: "var(--roost-text-secondary)", fontWeight: 600 }}
-        >
+        <p className="mt-1 text-sm" style={{ color: "var(--roost-text-secondary)", fontWeight: 600 }}>
           Take a photo or upload an image of your receipt. We will read the
           items automatically.
         </p>

@@ -10,6 +10,11 @@ import { parseReceiptImage } from "@/lib/utils/googleVision";
 const MAX_BASE64_LENGTH = 14_000_000;
 
 export async function POST(request: NextRequest): Promise<Response> {
+  console.log("[scan] route hit:", {
+    hasKey: !!process.env.GOOGLE_VISION_API_KEY,
+    nodeEnv: process.env.NODE_ENV,
+  });
+
   let session;
   try {
     session = await requireSession(request);
@@ -56,7 +61,13 @@ export async function POST(request: NextRequest): Promise<Response> {
 
   try {
     const receipt = await parseReceiptImage(body.imageBase64);
-    return Response.json({ receipt });
+    return Response.json({
+      receipt,
+      warning:
+        receipt.lineItems.length === 0
+          ? "No items detected. You can add them manually."
+          : undefined,
+    });
   } catch (err) {
     console.error("[POST /api/expenses/scan] Vision API error:", err);
     return Response.json(

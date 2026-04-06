@@ -676,6 +676,15 @@ src/app/(auth)/child-login/page.tsx           Single centered column on #FFF5F5;
 - receipt_data stored as JSON string in expenses.receipt_data column (schema already had this column)
 - Expense list rows with receipt_data show a small green Receipt icon badge next to the title
 - View mode shows collapsible "Receipt items" section when receipt_data has lineItems
+- Parser handles two patterns: item+price on same line ("Milk 2.99") and price-only line where
+  previous line is the description (common on many POS receipts)
+- hardSkip only blocks definitive non-item metadata (payment type, auth codes, cashier lines)
+- Empty scan results (Vision worked, 0 items) show 'empty' state (amber) with "Add items manually"
+  button, NOT the error state — error state is only for actual API/network failures
+- API always returns 200 with the ParsedReceipt even when lineItems is empty; includes
+  warning field when empty: { receipt, warning: "No items detected..." }
+- Never throw errors for empty line items — empty is valid, user adds manually in LineItemEditor
+- Debug: console.log("[Vision] raw text: ...") logs first 500 chars of Vision output to server terminal
 
 ## Key Rules
 - Toasts: use sonner only. Import { toast } from "sonner" in client components.
@@ -925,7 +934,7 @@ Update this file after every major decision or completed phase.
 - Activity types: allowance_earned (green dot, maps to expenses), allowance_missed (amber dot)
 - vercel.json cron: /api/cron/allowances runs "0 23 * * 0" (Sunday 11pm UTC)
 
-Last updated: 2026-04-06 (receipt scanning complete: Vision API, scan route, ReceiptScanner, LineItemEditor, ExpenseSheet scan flow, receipt_data in GET/POST)
+Last updated: 2026-04-06 (receipt parser improved: looser patterns, prev-line lookup, empty state vs error state, debug logging)
 
 ## Bugs Found and Fixed (2026-04-05)
 - No default grocery list created on household signup: `GET /api/grocery/lists` now

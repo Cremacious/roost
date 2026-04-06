@@ -1,9 +1,9 @@
-"use client";
+'use client';
 
-import { useCallback, useEffect, useRef, useState } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { toast } from "sonner";
-import { motion, AnimatePresence } from "framer-motion";
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { toast } from 'sonner';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
   Check,
   ChevronDown,
@@ -12,23 +12,23 @@ import {
   MoreHorizontal,
   Plus,
   ShoppingCart,
-  Trash2,
-} from "lucide-react";
-import { SECTION_COLORS } from "@/lib/constants/colors";
-import { relativeTime } from "@/lib/utils/time";
-import MemberAvatar from "@/components/shared/MemberAvatar";
-import ErrorState from "@/components/shared/ErrorState";
-import { Skeleton } from "@/components/ui/skeleton";
-import { PageContainer } from "@/components/layout/PageContainer";
-import GroceryItemSheet from "@/components/grocery/GroceryItemSheet";
+  Trash2, ClipboardList,
+} from 'lucide-react';
+import { SECTION_COLORS } from '@/lib/constants/colors';
+import { relativeTime } from '@/lib/utils/time';
+import MemberAvatar from '@/components/shared/MemberAvatar';
+import ErrorState from '@/components/shared/ErrorState';
+import { Skeleton } from '@/components/ui/skeleton';
+import { PageContainer } from '@/components/layout/PageContainer';
+import GroceryItemSheet from '@/components/grocery/GroceryItemSheet';
 import GroceryListSheet, {
   type GroceryListData,
-} from "@/components/grocery/GroceryListSheet";
-import { Sheet, SheetContent } from "@/components/ui/sheet";
-import UpgradePrompt from "@/components/shared/UpgradePrompt";
+} from '@/components/grocery/GroceryListSheet';
+import { Sheet, SheetContent } from '@/components/ui/sheet';
+import UpgradePrompt from '@/components/shared/UpgradePrompt';
 
 const COLOR = SECTION_COLORS.grocery; // #F59E0B
-const COLOR_DARK = "#C87D00";
+const COLOR_DARK = '#C87D00';
 
 // ---- Types ------------------------------------------------------------------
 
@@ -67,8 +67,8 @@ interface ItemsResponse {
 // ---- Helpers ----------------------------------------------------------------
 
 function firstName(name: string | null): string {
-  if (!name) return "Someone";
-  return name.split(" ")[0];
+  if (!name) return 'Someone';
+  return name.split(' ')[0];
 }
 
 // ---- Item row ---------------------------------------------------------------
@@ -85,20 +85,20 @@ function ItemRow({
   onDelete: (id: string) => void;
 }) {
   const addedMeta = item.added_by_name
-    ? `Added by ${firstName(item.added_by_name)}${item.created_at ? ` · ${relativeTime(item.created_at)}` : ""}`
+    ? `Added by ${firstName(item.added_by_name)}${item.created_at ? ` · ${relativeTime(item.created_at)}` : ''}`
     : null;
 
   const checkedMeta = item.checked_by_name
-    ? `Checked by ${firstName(item.checked_by_name)}${item.checked_at ? ` · ${relativeTime(item.checked_at)}` : ""}`
+    ? `Checked by ${firstName(item.checked_by_name)}${item.checked_at ? ` · ${relativeTime(item.checked_at)}` : ''}`
     : null;
 
   return (
     <div
       className="group flex min-h-16 items-center gap-2 rounded-2xl px-3"
       style={{
-        backgroundColor: "var(--roost-surface)",
-        border: "1.5px solid var(--roost-border)",
-        borderBottom: `4px solid ${item.checked ? COLOR_DARK : "var(--roost-border-bottom)"}`,
+        backgroundColor: 'var(--roost-surface)',
+        border: '1.5px solid var(--roost-border)',
+        borderBottom: `4px solid ${item.checked ? COLOR_DARK : 'var(--roost-border-bottom)'}`,
       }}
     >
       {/* Checkbox */}
@@ -106,7 +106,7 @@ function ItemRow({
         type="button"
         onClick={() => onCheck(item.id, !item.checked)}
         className="flex h-12 w-12 shrink-0 items-center justify-center"
-        aria-label={item.checked ? "Uncheck item" : "Check item"}
+        aria-label={item.checked ? 'Uncheck item' : 'Check item'}
       >
         {item.checked ? (
           <motion.div
@@ -120,7 +120,7 @@ function ItemRow({
         ) : (
           <div
             className="h-6 w-6 rounded-md border-2"
-            style={{ borderColor: COLOR + "70" }}
+            style={{ borderColor: COLOR + '70' }}
           />
         )}
       </button>
@@ -131,15 +131,15 @@ function ItemRow({
         onClick={() => onEdit(item)}
         role="button"
         tabIndex={0}
-        onKeyDown={(e) => e.key === "Enter" && onEdit(item)}
+        onKeyDown={(e) => e.key === 'Enter' && onEdit(item)}
       >
         {/* Name + quantity */}
         <p
           className="truncate text-sm"
           style={{
-            color: "var(--roost-text-primary)",
+            color: 'var(--roost-text-primary)',
             fontWeight: 700,
-            textDecoration: item.checked ? "line-through" : undefined,
+            textDecoration: item.checked ? 'line-through' : undefined,
             opacity: item.checked ? 0.5 : 1,
           }}
         >
@@ -149,7 +149,7 @@ function ItemRow({
           <p
             className="mt-0.5 truncate text-xs"
             style={{
-              color: "var(--roost-text-muted)",
+              color: 'var(--roost-text-muted)',
               fontWeight: 600,
               opacity: item.checked ? 0.5 : 1,
             }}
@@ -170,7 +170,7 @@ function ItemRow({
             )}
             <span
               className="text-xs"
-              style={{ color: "var(--roost-text-muted)", fontWeight: 600 }}
+              style={{ color: 'var(--roost-text-muted)', fontWeight: 600 }}
             >
               {addedMeta}
             </span>
@@ -189,12 +189,18 @@ function ItemRow({
                 />
                 <span
                   className="truncate text-xs"
-                  style={{ color: "var(--roost-text-muted)", fontWeight: 600, opacity: 0.7 }}
+                  style={{
+                    color: 'var(--roost-text-muted)',
+                    fontWeight: 600,
+                    opacity: 0.7,
+                  }}
                 >
                   {addedMeta}
                 </span>
               </div>
-            ) : <span />}
+            ) : (
+              <span />
+            )}
             {checkedMeta && item.checked_by_name ? (
               <div className="flex shrink-0 items-center gap-1">
                 <MemberAvatar
@@ -204,7 +210,11 @@ function ItemRow({
                 />
                 <span
                   className="text-xs"
-                  style={{ color: "var(--roost-text-muted)", fontWeight: 600, opacity: 0.7 }}
+                  style={{
+                    color: 'var(--roost-text-muted)',
+                    fontWeight: 600,
+                    opacity: 0.7,
+                  }}
                 >
                   {checkedMeta}
                 </span>
@@ -219,7 +229,7 @@ function ItemRow({
         type="button"
         onClick={() => onDelete(item.id)}
         className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl transition-opacity opacity-100 md:opacity-0 md:group-hover:opacity-100"
-        style={{ color: "var(--roost-text-muted)" }}
+        style={{ color: 'var(--roost-text-muted)' }}
         aria-label="Remove item"
       >
         <Trash2 className="size-4" />
@@ -253,8 +263,8 @@ function MoreMenu({
         setOpen(false);
       }
     }
-    document.addEventListener("mousedown", handleClick);
-    return () => document.removeEventListener("mousedown", handleClick);
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
   }, [open]);
 
   function action(fn: () => void) {
@@ -269,8 +279,8 @@ function MoreMenu({
         onClick={() => setOpen((v) => !v)}
         className="flex h-10 w-10 items-center justify-center rounded-xl"
         style={{
-          backgroundColor: open ? "var(--roost-border)" : "transparent",
-          color: "var(--roost-text-secondary)",
+          backgroundColor: open ? 'var(--roost-border)' : 'transparent',
+          color: 'var(--roost-text-secondary)',
         }}
       >
         <MoreHorizontal className="size-5" />
@@ -285,9 +295,9 @@ function MoreMenu({
             transition={{ duration: 0.1 }}
             className="absolute right-0 top-full z-50 mt-1 min-w-48 overflow-hidden rounded-2xl py-1"
             style={{
-              backgroundColor: "var(--roost-surface)",
-              border: "1.5px solid var(--roost-border)",
-              boxShadow: "0 8px 24px rgba(0,0,0,0.12)",
+              backgroundColor: 'var(--roost-surface)',
+              border: '1.5px solid var(--roost-border)',
+              boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
             }}
           >
             {!list.is_default && (
@@ -295,7 +305,7 @@ function MoreMenu({
                 type="button"
                 onClick={() => action(onRename)}
                 className="flex h-11 w-full items-center px-4 text-sm"
-                style={{ color: "var(--roost-text-primary)", fontWeight: 600 }}
+                style={{ color: 'var(--roost-text-primary)', fontWeight: 600 }}
               >
                 Rename list
               </button>
@@ -304,7 +314,7 @@ function MoreMenu({
               type="button"
               onClick={() => action(onClear)}
               className="flex h-11 w-full items-center px-4 text-sm"
-              style={{ color: "var(--roost-text-primary)", fontWeight: 600 }}
+              style={{ color: 'var(--roost-text-primary)', fontWeight: 600 }}
             >
               Clear checked items
             </button>
@@ -313,7 +323,7 @@ function MoreMenu({
                 type="button"
                 onClick={() => action(onDelete)}
                 className="flex h-11 w-full items-center px-4 text-sm"
-                style={{ color: "#EF4444", fontWeight: 600 }}
+                style={{ color: '#EF4444', fontWeight: 600 }}
               >
                 Delete list
               </button>
@@ -332,7 +342,7 @@ export default function GroceryPage() {
   const quickAddRef = useRef<HTMLInputElement>(null);
 
   const [selectedListId, setSelectedListId] = useState<string | null>(null);
-  const [newItemName, setNewItemName] = useState("");
+  const [newItemName, setNewItemName] = useState('');
   const [showChecked, setShowChecked] = useState(true);
   const [editingItem, setEditingItem] = useState<GroceryItemFull | null>(null);
   const [showItemSheet, setShowItemSheet] = useState(false);
@@ -340,7 +350,7 @@ export default function GroceryPage() {
   const [listToEdit, setListToEdit] = useState<GroceryListData | null>(null);
   const [upgradeCode, setUpgradeCode] = useState<string | null>(null);
 
-  const PLACEHOLDERS = ["Add milk...", "Add eggs...", "Add anything..."];
+  const PLACEHOLDERS = ['Add milk...', 'Add eggs...', 'Add anything...'];
   const [placeholderIdx, setPlaceholderIdx] = useState(0);
   useEffect(() => {
     const id = setInterval(() => {
@@ -352,12 +362,12 @@ export default function GroceryPage() {
   // ---- Queries ---------------------------------------------------------------
 
   const listsQuery = useQuery<ListsResponse>({
-    queryKey: ["grocery-lists"],
+    queryKey: ['grocery-lists'],
     queryFn: async () => {
-      const r = await fetch("/api/grocery/lists");
+      const r = await fetch('/api/grocery/lists');
       if (!r.ok) {
         const d = await r.json().catch(() => ({}));
-        throw new Error(d.error ?? "Failed to load lists");
+        throw new Error(d.error ?? 'Failed to load lists');
       }
       return r.json();
     },
@@ -372,12 +382,12 @@ export default function GroceryPage() {
   const activeListId = selectedListId ?? lists[0]?.id ?? null;
 
   const itemsQuery = useQuery<ItemsResponse>({
-    queryKey: ["grocery-items", activeListId],
+    queryKey: ['grocery-items', activeListId],
     queryFn: async () => {
       const r = await fetch(`/api/grocery/lists/${activeListId}/items`);
       if (!r.ok) {
         const d = await r.json().catch(() => ({}));
-        throw new Error(d.error ?? "Failed to load items");
+        throw new Error(d.error ?? 'Failed to load items');
       }
       return r.json();
     },
@@ -396,54 +406,50 @@ export default function GroceryPage() {
   const addItemMutation = useMutation({
     mutationFn: (name: string) =>
       fetch(`/api/grocery/lists/${activeListId}/items`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name }),
       }).then(async (r) => {
         if (!r.ok) {
           const d = await r.json().catch(() => ({}));
-          throw new Error(d.error ?? "Failed to add item");
+          throw new Error(d.error ?? 'Failed to add item');
         }
         return r.json();
       }),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["grocery-items", activeListId] });
-      queryClient.invalidateQueries({ queryKey: ["grocery-lists"] });
-      setNewItemName("");
+      queryClient.invalidateQueries({
+        queryKey: ['grocery-items', activeListId],
+      });
+      queryClient.invalidateQueries({ queryKey: ['grocery-lists'] });
+      setNewItemName('');
       quickAddRef.current?.focus();
     },
     onError: (err: Error) => toast.error(err.message),
   });
 
   const checkMutation = useMutation({
-    mutationFn: ({
-      itemId,
-      checked,
-    }: {
-      itemId: string;
-      checked: boolean;
-    }) =>
+    mutationFn: ({ itemId, checked }: { itemId: string; checked: boolean }) =>
       fetch(`/api/grocery/items/${itemId}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ checked }),
       }).then(async (r) => {
         if (!r.ok) {
           const d = await r.json().catch(() => ({}));
-          throw new Error(d.error ?? "Failed to update item");
+          throw new Error(d.error ?? 'Failed to update item');
         }
         return r.json();
       }),
     onMutate: async ({ itemId, checked }) => {
       await queryClient.cancelQueries({
-        queryKey: ["grocery-items", activeListId],
+        queryKey: ['grocery-items', activeListId],
       });
       const previous = queryClient.getQueryData<ItemsResponse>([
-        "grocery-items",
+        'grocery-items',
         activeListId,
       ]);
       queryClient.setQueryData<ItemsResponse>(
-        ["grocery-items", activeListId],
+        ['grocery-items', activeListId],
         (old) => {
           if (!old) return old;
           return {
@@ -455,42 +461,43 @@ export default function GroceryPage() {
                     checked,
                     checked_at: checked ? new Date().toISOString() : null,
                   }
-                : item
+                : item,
             ),
           };
-        }
+        },
       );
       return { previous };
     },
     onError: (_, __, ctx) => {
       if (ctx?.previous) {
-        queryClient.setQueryData(
-          ["grocery-items", activeListId],
-          ctx.previous
-        );
+        queryClient.setQueryData(['grocery-items', activeListId], ctx.previous);
       }
-      toast.error("Could not update item", { description: "Something went wrong. Try again." });
+      toast.error('Could not update item', {
+        description: 'Something went wrong. Try again.',
+      });
     },
     onSettled: () => {
       queryClient.invalidateQueries({
-        queryKey: ["grocery-items", activeListId],
+        queryKey: ['grocery-items', activeListId],
       });
     },
   });
 
   const deleteItemMutation = useMutation({
     mutationFn: (itemId: string) =>
-      fetch(`/api/grocery/items/${itemId}`, { method: "DELETE" }).then(
+      fetch(`/api/grocery/items/${itemId}`, { method: 'DELETE' }).then(
         async (r) => {
           if (!r.ok) {
             const d = await r.json().catch(() => ({}));
-            throw new Error(d.error ?? "Failed to remove item");
+            throw new Error(d.error ?? 'Failed to remove item');
           }
-        }
+        },
       ),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["grocery-items", activeListId] });
-      queryClient.invalidateQueries({ queryKey: ["grocery-lists"] });
+      queryClient.invalidateQueries({
+        queryKey: ['grocery-items', activeListId],
+      });
+      queryClient.invalidateQueries({ queryKey: ['grocery-lists'] });
     },
     onError: (err: Error) => toast.error(err.message),
   });
@@ -498,21 +505,23 @@ export default function GroceryPage() {
   const clearCheckedMutation = useMutation({
     mutationFn: () =>
       fetch(`/api/grocery/lists/${activeListId}/clear`, {
-        method: "POST",
+        method: 'POST',
       }).then(async (r) => {
         if (!r.ok) {
           const d = await r.json().catch(() => ({}));
-          throw new Error(d.error ?? "Failed to clear items");
+          throw new Error(d.error ?? 'Failed to clear items');
         }
         return r.json() as Promise<{ cleared: number }>;
       }),
     onSuccess: ({ cleared }) => {
-      queryClient.invalidateQueries({ queryKey: ["grocery-items", activeListId] });
-      queryClient.invalidateQueries({ queryKey: ["grocery-lists"] });
+      queryClient.invalidateQueries({
+        queryKey: ['grocery-items', activeListId],
+      });
+      queryClient.invalidateQueries({ queryKey: ['grocery-lists'] });
       toast.success(
         cleared > 0
-          ? `Cleared ${cleared} item${cleared === 1 ? "" : "s"}`
-          : "Nothing to clear"
+          ? `Cleared ${cleared} item${cleared === 1 ? '' : 's'}`
+          : 'Nothing to clear',
       );
     },
     onError: (err: Error) => toast.error(err.message),
@@ -520,20 +529,20 @@ export default function GroceryPage() {
 
   const deleteListMutation = useMutation({
     mutationFn: (listId: string) =>
-      fetch(`/api/grocery/lists/${listId}`, { method: "DELETE" }).then(
+      fetch(`/api/grocery/lists/${listId}`, { method: 'DELETE' }).then(
         async (r) => {
           if (!r.ok) {
             const d = await r.json().catch(() => ({}));
-            throw new Error(d.error ?? "Failed to delete list");
+            throw new Error(d.error ?? 'Failed to delete list');
           }
-        }
+        },
       ),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["grocery-lists"] });
+      queryClient.invalidateQueries({ queryKey: ['grocery-lists'] });
       // Switch to first remaining list
       const remaining = lists.filter((l) => l.id !== activeListId);
       setSelectedListId(remaining[0]?.id ?? null);
-      toast.success("List deleted");
+      toast.success('List deleted');
     },
     onError: (err: Error) => toast.error(err.message),
   });
@@ -570,21 +579,24 @@ export default function GroceryPage() {
     (itemId: string, checked: boolean) => {
       checkMutation.mutate({ itemId, checked });
     },
-    [checkMutation]
+    [checkMutation],
   );
 
   const handleDelete = useCallback(
     (itemId: string) => {
       deleteItemMutation.mutate(itemId);
     },
-    [deleteItemMutation]
+    [deleteItemMutation],
   );
 
   // ---- Render ----------------------------------------------------------------
 
   if (listsQuery.isLoading) {
     return (
-      <div className="py-4 pb-28 md:py-6" style={{ backgroundColor: "var(--roost-bg)" }}>
+      <div
+        className="py-4 pb-28 md:py-6"
+        style={{ backgroundColor: 'var(--roost-bg)' }}
+      >
         <PageContainer className="flex flex-col gap-4">
           <Skeleton className="h-9 w-48 rounded-2xl" />
           <Skeleton className="h-14 rounded-xl" />
@@ -600,7 +612,10 @@ export default function GroceryPage() {
 
   if (listsQuery.isError) {
     return (
-      <div className="py-4 pb-28 md:py-6" style={{ backgroundColor: "var(--roost-bg)" }}>
+      <div
+        className="py-4 pb-28 md:py-6"
+        style={{ backgroundColor: 'var(--roost-bg)' }}
+      >
         <PageContainer>
           <ErrorState onRetry={() => listsQuery.refetch()} />
         </PageContainer>
@@ -612,287 +627,328 @@ export default function GroceryPage() {
     <motion.div
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.18, ease: "easeOut" }}
+      transition={{ duration: 0.18, ease: 'easeOut' }}
       className="py-4 pb-28 md:py-6"
-      style={{ backgroundColor: "var(--roost-bg)" }}
+      style={{ backgroundColor: 'var(--roost-bg)' }}
     >
       <PageContainer className="flex flex-col gap-4">
-      {/* List pill switcher (premium or multiple lists) */}
-      {(isPremium || lists.length > 1) && (
-        <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
-          {lists.map((list) => {
-            const active = list.id === activeListId;
-            return (
+        {/* Header: list name + action buttons in one row */}
+        {activeList && (
+          <div className="flex items-center justify-between gap-2">
+            {/* List name */}
+            <h1
+              className="text-2xl md:text-3xl"
+              style={{ color: 'var(--roost-text-primary)', fontWeight: 900 }}
+            >
+              {activeList.name}
+            </h1>
+
+            {/* Actions: + Shopping List, + add item, more menu */}
+            <div className="flex shrink-0 items-center gap-2">
+              {/* + Shopping List button */}
               <motion.button
-                key={list.id}
                 type="button"
-                onClick={() => setSelectedListId(list.id)}
+                onClick={
+                  isPremium
+                    ? openAddList
+                    : () => setUpgradeCode('MULTIPLE_LISTS_PREMIUM')
+                }
                 whileTap={{ y: 1 }}
-                className="flex h-10 shrink-0 items-center gap-1.5 rounded-xl px-4 text-sm"
+                className="flex h-10 shrink-0 items-center gap-1.5 rounded-xl px-3 text-sm"
                 style={{
-                  backgroundColor: active ? COLOR + "18" : "var(--roost-surface)",
-                  border: active
-                    ? `1.5px solid ${COLOR}40`
-                    : "1.5px solid var(--roost-border)",
-                  borderBottom: active
-                    ? `3px solid ${COLOR}60`
-                    : "3px solid var(--roost-border-bottom)",
-                  color: active ? COLOR : "var(--roost-text-primary)",
-                  fontWeight: active ? 800 : 600,
+                  backgroundColor: 'var(--roost-surface)',
+                  border: '1.5px solid var(--roost-border)',
+                  borderBottom: '3px solid var(--roost-border-bottom)',
+                  color: 'var(--roost-text-secondary)',
+                  fontWeight: 700,
                 }}
               >
-                {list.name}
-                {list.item_count > 0 && (
-                  <span
-                    className="flex h-5 min-w-5 items-center justify-center rounded-full px-1 text-[11px] text-white"
-                    style={{
-                      backgroundColor: active ? COLOR : "var(--roost-text-muted)",
-                      fontWeight: 700,
-                    }}
-                  >
-                    {list.item_count}
-                  </span>
+                {isPremium ? (
+                  <Plus className="size-3.5" strokeWidth={2.5} />
+                ) : (
+                  <Lock className="size-3.5" />
                 )}
+                <span className="hidden sm:inline">Shopping List</span>
+                <span className=" md:hidden"><ClipboardList className="size-3.5" /></span>
               </motion.button>
-            );
-          })}
 
-          {/* Add list button (premium only) */}
-          <motion.button
-            type="button"
-            onClick={isPremium ? openAddList : () => setUpgradeCode("MULTIPLE_LISTS_PREMIUM")}
-            whileTap={{ y: 1 }}
-            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl"
-            style={{
-              backgroundColor: "var(--roost-surface)",
-              border: "1.5px solid var(--roost-border)",
-              borderBottom: "3px solid var(--roost-border-bottom)",
-              color: isPremium ? "var(--roost-text-muted)" : "var(--roost-text-muted)",
-            }}
-          >
-            {isPremium ? <Plus className="size-4" /> : <Lock className="size-4" />}
-          </motion.button>
-        </div>
-      )}
-
-      {/* Header: list name + actions */}
-      {activeList && (
-        <div className="flex items-center justify-between gap-2">
-          <h1
-            className="text-2xl md:text-3xl"
-            style={{ color: "var(--roost-text-primary)", fontWeight: 900 }}
-          >
-            {activeList.name}
-          </h1>
-          <div className="flex items-center gap-1">
-            <motion.button
-              type="button"
-              onClick={openAddItem}
-              whileTap={{ y: 1 }}
-              className="flex h-10 w-10 items-center justify-center rounded-xl"
-              style={{
-                backgroundColor: "var(--roost-surface)",
-                border: "1.5px solid var(--roost-border)",
-                borderBottom: "3px solid var(--roost-border-bottom)",
-                color: "var(--roost-text-secondary)",
-              }}
-              title="Add item with details"
-            >
-              <Plus className="size-4" />
-            </motion.button>
-            <MoreMenu
-              list={activeList}
-              isAdmin={isAdmin}
-              onRename={openRenameList}
-              onClear={() => clearCheckedMutation.mutate()}
-              onDelete={() => {
-                if (
-                  window.confirm(
-                    `Delete "${activeList.name}"? All items in it will be removed.`
-                  )
-                ) {
-                  deleteListMutation.mutate(activeList.id);
-                }
-              }}
-            />
-          </div>
-        </div>
-      )}
-
-      {/* Quick add bar */}
-      {activeListId && (
-        <div
-          className="flex h-14 items-center gap-2 overflow-hidden rounded-xl"
-          onClick={() => quickAddRef.current?.focus()}
-          style={{
-            border: `1.5px solid ${COLOR}50`,
-            borderBottom: `3px solid ${COLOR}70`,
-            backgroundColor: "var(--roost-surface)",
-            cursor: "text",
-          }}
-        >
-          <input
-            ref={quickAddRef}
-            type="text"
-            value={newItemName}
-            onChange={(e) => setNewItemName(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && handleQuickAdd()}
-            placeholder={PLACEHOLDERS[placeholderIdx]}
-            className="h-full flex-1 bg-transparent px-4 text-sm focus:outline-none"
-            style={{
-              color: "var(--roost-text-primary)",
-              fontWeight: 600,
-            }}
-          />
-          <button
-            type="button"
-            onClick={(e) => { e.stopPropagation(); handleQuickAdd(); }}
-            disabled={!newItemName.trim() || addItemMutation.isPending}
-            className="flex h-full w-14 shrink-0 items-center justify-center disabled:opacity-40"
-            style={{ color: COLOR }}
-          >
-            {addItemMutation.isPending ? (
-              <Loader2 className="size-4 animate-spin" />
-            ) : (
-              <Plus className="size-5" strokeWidth={2.5} />
-            )}
-          </button>
-        </div>
-      )}
-
-      {/* Empty state */}
-      {!itemsQuery.isLoading && items.length === 0 && (
-        <div
-          className="flex flex-col items-center gap-3 rounded-2xl px-6 py-12 text-center"
-          style={{
-            backgroundColor: "var(--roost-surface)",
-            border: "2px dashed var(--roost-border)",
-            borderBottom: "4px dashed var(--roost-border-bottom)",
-          }}
-        >
-          <div
-            className="flex h-12 w-12 items-center justify-center rounded-2xl"
-            style={{
-              backgroundColor: "var(--roost-surface)",
-              border: "1.5px solid var(--roost-border)",
-              borderBottom: `4px solid ${COLOR_DARK}`,
-            }}
-          >
-            <ShoppingCart className="size-5" style={{ color: COLOR }} />
-          </div>
-          <div>
-            <p
-              className="text-base"
-              style={{ color: "var(--roost-text-primary)", fontWeight: 800 }}
-            >
-              The fridge is on its own.
-            </p>
-            <p
-              className="mt-1 text-sm"
-              style={{ color: "var(--roost-text-secondary)", fontWeight: 600 }}
-            >
-              No items on the list. Add something before someone eats a condiment for dinner.
-            </p>
-          </div>
-        </div>
-      )}
-
-      {/* Unchecked items */}
-      {unchecked.length > 0 && (
-        <div className="space-y-2">
-          {unchecked.map((item, i) => (
-            <motion.div
-              key={item.id}
-              initial={{ opacity: 0, y: 6 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: Math.min(i * 0.04, 0.2), duration: 0.15 }}
-            >
-              <ItemRow
-                item={item}
-                onCheck={handleCheck}
-                onEdit={openEditItem}
-                onDelete={handleDelete}
-              />
-            </motion.div>
-          ))}
-        </div>
-      )}
-
-      {/* Checked items (collapsible) */}
-      {checked.length > 0 && (
-        <div>
-          <button
-            type="button"
-            onClick={() => setShowChecked((v) => !v)}
-            className="flex h-11 w-full items-center gap-2 text-sm"
-            style={{ color: "var(--roost-text-muted)", fontWeight: 700 }}
-          >
-            <ChevronDown
-              className="size-4 transition-transform"
-              style={{
-                transform: showChecked ? "rotate(0deg)" : "rotate(-90deg)",
-              }}
-            />
-            In the cart ({checked.length})
-          </button>
-
-          <AnimatePresence initial={false}>
-            {showChecked && (
-              <motion.div
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: "auto" }}
-                exit={{ opacity: 0, height: 0 }}
-                transition={{ duration: 0.15 }}
-                className="overflow-hidden"
+              {/* + add item */}
+              <motion.button
+                type="button"
+                onClick={openAddItem}
+                whileTap={{ y: 1 }}
+                className="flex h-10 w-10 items-center justify-center rounded-xl"
+                style={{
+                  backgroundColor: 'var(--roost-surface)',
+                  border: '1.5px solid var(--roost-border)',
+                  borderBottom: '3px solid var(--roost-border-bottom)',
+                  color: 'var(--roost-text-secondary)',
+                }}
+                title="Add item with details"
               >
-                <div className="space-y-2 pt-1">
-                  {checked.map((item) => (
-                    <ItemRow
-                      key={item.id}
-                      item={item}
-                      onCheck={handleCheck}
-                      onEdit={openEditItem}
-                      onDelete={handleDelete}
-                    />
-                  ))}
-                </div>
+                <Plus className="size-4" />
+              </motion.button>
+
+              {/* More menu */}
+              <MoreMenu
+                list={activeList}
+                isAdmin={isAdmin}
+                onRename={openRenameList}
+                onClear={() => clearCheckedMutation.mutate()}
+                onDelete={() => {
+                  if (
+                    window.confirm(
+                      `Delete "${activeList.name}"? All items in it will be removed.`,
+                    )
+                  ) {
+                    deleteListMutation.mutate(activeList.id);
+                  }
+                }}
+              />
+            </div>
+          </div>
+        )}
+
+        {/* List pill switcher — only shown when 2+ lists exist */}
+        {lists.length > 1 && (
+          <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
+            {lists.map((list) => {
+              const active = list.id === activeListId;
+              return (
+                <motion.button
+                  key={list.id}
+                  type="button"
+                  onClick={() => setSelectedListId(list.id)}
+                  whileTap={{ y: 1 }}
+                  className="flex h-9 shrink-0 items-center gap-1.5 rounded-xl px-3 text-sm"
+                  style={{
+                    backgroundColor: active
+                      ? COLOR + '18'
+                      : 'var(--roost-surface)',
+                    border: active
+                      ? `1.5px solid ${COLOR}40`
+                      : '1.5px solid var(--roost-border)',
+                    borderBottom: active
+                      ? `3px solid ${COLOR}60`
+                      : '3px solid var(--roost-border-bottom)',
+                    color: active ? COLOR : 'var(--roost-text-primary)',
+                    fontWeight: active ? 800 : 600,
+                  }}
+                >
+                  {list.name}
+                  {list.item_count > 0 && (
+                    <span
+                      className="flex h-5 min-w-5 items-center justify-center rounded-full px-1 text-[11px] text-white"
+                      style={{
+                        backgroundColor: active
+                          ? COLOR
+                          : 'var(--roost-text-muted)',
+                        fontWeight: 700,
+                      }}
+                    >
+                      {list.item_count}
+                    </span>
+                  )}
+                </motion.button>
+              );
+            })}
+          </div>
+        )}
+
+        {/* Quick add bar */}
+        {activeListId && (
+          <div
+            className="flex h-14 items-center gap-2 overflow-hidden rounded-xl"
+            onClick={() => quickAddRef.current?.focus()}
+            style={{
+              border: `1.5px solid ${COLOR}50`,
+              borderBottom: `3px solid ${COLOR}70`,
+              backgroundColor: 'var(--roost-surface)',
+              cursor: 'text',
+            }}
+          >
+            <input
+              ref={quickAddRef}
+              type="text"
+              value={newItemName}
+              onChange={(e) => setNewItemName(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && handleQuickAdd()}
+              placeholder={PLACEHOLDERS[placeholderIdx]}
+              className="h-full flex-1 bg-transparent px-4 text-sm focus:outline-none"
+              style={{
+                color: 'var(--roost-text-primary)',
+                fontWeight: 600,
+              }}
+            />
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                handleQuickAdd();
+              }}
+              disabled={!newItemName.trim() || addItemMutation.isPending}
+              className="flex h-full w-14 shrink-0 items-center justify-center disabled:opacity-40"
+              style={{ color: COLOR }}
+            >
+              {addItemMutation.isPending ? (
+                <Loader2 className="size-4 animate-spin" />
+              ) : (
+                <Plus className="size-5" strokeWidth={2.5} />
+              )}
+            </button>
+          </div>
+        )}
+
+        {/* Empty state */}
+        {!itemsQuery.isLoading && items.length === 0 && (
+          <div
+            className="flex flex-col items-center gap-3 rounded-2xl px-6 py-12 text-center"
+            style={{
+              backgroundColor: 'var(--roost-surface)',
+              border: '2px dashed var(--roost-border)',
+            }}
+          >
+            <div
+              className="flex h-12 w-12 items-center justify-center rounded-2xl"
+              style={{
+                backgroundColor: 'var(--roost-surface)',
+                border: '1.5px solid var(--roost-border)',
+                borderBottom: `4px solid ${COLOR_DARK}`,
+              }}
+            >
+              <ShoppingCart className="size-5" style={{ color: COLOR }} />
+            </div>
+            <div>
+              <p
+                className="text-base"
+                style={{ color: 'var(--roost-text-primary)', fontWeight: 800 }}
+              >
+                The fridge is on its own.
+              </p>
+              <p
+                className="mt-1 text-sm"
+                style={{
+                  color: 'var(--roost-text-secondary)',
+                  fontWeight: 600,
+                }}
+              >
+                No items on the list. Add something before someone eats a
+                condiment for dinner.
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* Unchecked items */}
+        {unchecked.length > 0 && (
+          <div className="space-y-2">
+            {unchecked.map((item, i) => (
+              <motion.div
+                key={item.id}
+                initial={{ opacity: 0, y: 6 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: Math.min(i * 0.04, 0.2), duration: 0.15 }}
+              >
+                <ItemRow
+                  item={item}
+                  onCheck={handleCheck}
+                  onEdit={openEditItem}
+                  onDelete={handleDelete}
+                />
               </motion.div>
+            ))}
+          </div>
+        )}
+
+        {/* Checked items (collapsible) */}
+        {checked.length > 0 && (
+          <div>
+            <button
+              type="button"
+              onClick={() => setShowChecked((v) => !v)}
+              className="flex h-11 w-full items-center gap-2 text-sm"
+              style={{ color: 'var(--roost-text-muted)', fontWeight: 700 }}
+            >
+              <ChevronDown
+                className="size-4 transition-transform"
+                style={{
+                  transform: showChecked ? 'rotate(0deg)' : 'rotate(-90deg)',
+                }}
+              />
+              In the cart ({checked.length})
+            </button>
+
+            <AnimatePresence initial={false}>
+              {showChecked && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  exit={{ opacity: 0, height: 0 }}
+                  transition={{ duration: 0.15 }}
+                  className="overflow-hidden"
+                >
+                  <div className="space-y-2 pt-1">
+                    {checked.map((item) => (
+                      <ItemRow
+                        key={item.id}
+                        item={item}
+                        onCheck={handleCheck}
+                        onEdit={openEditItem}
+                        onDelete={handleDelete}
+                      />
+                    ))}
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+        )}
+
+        {/* Item sheet */}
+        <GroceryItemSheet
+          open={showItemSheet}
+          onClose={() => {
+            setShowItemSheet(false);
+            setEditingItem(null);
+          }}
+          item={editingItem}
+          listId={activeListId ?? ''}
+        />
+
+        {/* List sheet */}
+        <GroceryListSheet
+          open={showListSheet}
+          onClose={() => {
+            setShowListSheet(false);
+            setListToEdit(null);
+          }}
+          list={listToEdit}
+          isPremium={isPremium}
+        />
+
+        {/* Upgrade prompt */}
+        <Sheet
+          open={!!upgradeCode}
+          onOpenChange={(v) => !v && setUpgradeCode(null)}
+        >
+          <SheetContent
+            side="bottom"
+            className="rounded-t-2xl px-4 pb-8 pt-2"
+            style={{ backgroundColor: 'var(--roost-surface)' }}
+          >
+            <div
+              className="mx-auto mb-4 h-1 w-10 rounded-full"
+              style={{ backgroundColor: COLOR }}
+            />
+            {upgradeCode && (
+              <UpgradePrompt
+                code={upgradeCode}
+                onDismiss={() => setUpgradeCode(null)}
+              />
             )}
-          </AnimatePresence>
-        </div>
-      )}
-
-      {/* Item sheet */}
-      <GroceryItemSheet
-        open={showItemSheet}
-        onClose={() => {
-          setShowItemSheet(false);
-          setEditingItem(null);
-        }}
-        item={editingItem}
-        listId={activeListId ?? ""}
-      />
-
-      {/* List sheet */}
-      <GroceryListSheet
-        open={showListSheet}
-        onClose={() => {
-          setShowListSheet(false);
-          setListToEdit(null);
-        }}
-        list={listToEdit}
-        isPremium={isPremium}
-      />
-
-      {/* Upgrade prompt */}
-      <Sheet open={!!upgradeCode} onOpenChange={(v) => !v && setUpgradeCode(null)}>
-        <SheetContent side="bottom" className="rounded-t-2xl px-4 pb-8 pt-2" style={{ backgroundColor: "var(--roost-surface)" }}>
-          <div className="mx-auto mb-4 h-1 w-10 rounded-full" style={{ backgroundColor: COLOR }} />
-          {upgradeCode && <UpgradePrompt code={upgradeCode} onDismiss={() => setUpgradeCode(null)} />}
-        </SheetContent>
-      </Sheet>
+          </SheetContent>
+        </Sheet>
       </PageContainer>
     </motion.div>
-
   );
 }

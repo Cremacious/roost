@@ -23,6 +23,7 @@ import { motion } from "framer-motion";
 import { SECTION_COLORS, type SectionKey } from "@/lib/constants/colors";
 import { PageContainer } from "@/components/layout/PageContainer";
 import SlabCard from "@/components/shared/SlabCard";
+import AllowanceWidget from "@/components/shared/AllowanceWidget";
 
 // ---- Types ------------------------------------------------------------------
 
@@ -96,6 +97,8 @@ const TYPE_TO_SECTION: Record<string, SectionKey> = {
   meal_planned: "meals",
   meal_suggested: "meals",
   member_joined: "tasks",
+  allowance_earned: "expenses",
+  allowance_missed: "expenses",
 };
 
 function mapActivity(item: ActivityAPIItem): ActivityItem {
@@ -314,7 +317,7 @@ export default function DashboardPage() {
   const router = useRouter();
   const { data: sessionData } = useSession();
   const userName = sessionData?.user?.name ?? "";
-  const { isPremium } = useHousehold();
+  const { isPremium, role } = useHousehold();
 
   const {
     data: membersData,
@@ -494,6 +497,9 @@ export default function DashboardPage() {
             <TileCard key={tile.key} tile={tile} index={i} />
           ))}
         </div>
+
+        {/* Allowance widget — child accounts only */}
+        {role === "child" && <AllowanceWidget />}
 
         {/* Recent Activity */}
         <div className="mb-4">

@@ -397,7 +397,7 @@ src/db/schema/notes.ts
 src/db/schema/expenses.ts                      expenses, expense_splits
 src/db/schema/notifications.ts                 notification_queue
 src/db/schema/activity.ts                      household_activity table (id, household_id, user_id, type, entity_id, entity_type, description, created_at)
-src/db/schema/allowances.ts                    allowance_settings table: id, household_id, user_id, enabled, weekly_amount, threshold_percent, created_by, created_at, updated_at
+src/db/schema/allowances.ts                    allowance_settings + allowance_payouts tables. Payouts have unique (household_id, user_id, week_start)
 src/db/schema/index.ts                         Re-exports all tables
 src/app/(auth)/login/page.tsx
 src/app/(auth)/signup/page.tsx                 Email/password + strength meter + confirm field
@@ -514,6 +514,10 @@ src/components/shared/ReminderBanner.tsx      Dismissible banner below TopBar wh
 vercel.json                                   Cron schedule: /api/cron/reminders every 15 minutes
 src/components/layout/PageContainer.tsx        Content width constraint: max-w-4xl (896px) centered, full width mobile
 src/app/(app)/activity/page.tsx               Full activity feed: paginated list, 20 per page, Load more button
+src/app/api/allowances/route.ts               GET: payout history for household, optional ?userId filter
+src/app/api/allowances/child/route.ts         GET: allowance settings + payouts + current week progress for current user
+src/app/api/cron/allowances/route.ts          Vercel cron GET (Sunday 11pm UTC): evaluate chore completion, create expense entries
+src/components/shared/AllowanceWidget.tsx     Child-only widget: weekly progress bar, status message, last 4 weeks history
 src/app/page.tsx                              Public marketing homepage (server component, no app shell)
 src/app/(auth)/login/page.tsx                 Split layout: red left panel (desktop), form right panel; slab inputs on #FFF5F5
 src/app/(auth)/signup/page.tsx                Split layout matching login; all validation logic preserved
@@ -757,7 +761,7 @@ Phase 4: Polish
     Falls back to Orlando (28.5, -81.4) when no location stored.
     Settings > Preferences: °F/°C toggle, location status + Update button, language placeholder.
 
-Phase 5: Allowance System (premium only, build after Phase 4)
+Phase 5: Allowance System (COMPLETE)
   Parent-controlled allowance tied to chore completion.
   Unique to Roost, no competitor has this feature.
   Requires: chores module + expenses module.
@@ -886,7 +890,21 @@ Designer brief (send this when hiring):
 At the start of each new session fetch this file to restore context.
 Share GitHub file URLs, paste code, or describe what was built.
 Update this file after every major decision or completed phase.
-Last updated: 2026-04-06 (public homepage + auth page redesign + routing fix: / is always public, /login/signup redirect to dashboard if signed in, auth pages use split desktop layout with red left panel)
+## Allowance System Rules
+- Allowance is premium only (enforced via household subscription_status)
+- allowance_settings: one row per child per household, admin configures via MemberSheet
+- allowance_payouts: one row per child per week, unique (household_id, user_id, week_start)
+- Cron runs Sunday 11pm UTC via /api/cron/allowances, secured with CRON_SECRET
+- Earned allowances create a real expense entry (paid_by = admin, split = child owes admin)
+  This means earned allowances appear in the settle-up flow automatically
+- Completion rate = (completions this week) / (total assigned chores) * 100
+  If no chores assigned, completion rate = 100 (full allowance always paid)
+- Children see AllowanceWidget on dashboard (only when allowance is enabled for them)
+- Allowance history is visible in the expenses page allowance section (admins/members only)
+- Activity types: allowance_earned (green dot, maps to expenses), allowance_missed (amber dot)
+- vercel.json cron: /api/cron/allowances runs "0 23 * * 0" (Sunday 11pm UTC)
+
+Last updated: 2026-04-06 (allowance system complete: payouts schema, cron job, child widget, expenses section, settings note)
 
 ## Bugs Found and Fixed (2026-04-05)
 - No default grocery list created on household signup: `GET /api/grocery/lists` now

@@ -5,8 +5,9 @@ import { useQuery } from "@tanstack/react-query";
 import { useSession } from "@/lib/auth/client";
 import { useHousehold } from "@/lib/hooks/useHousehold";
 import { motion } from "framer-motion";
-import { DollarSign, Plus, Sparkles, TrendingDown, TrendingUp } from "lucide-react";
+import { DollarSign, PiggyBank, Plus, Sparkles, TrendingDown, TrendingUp } from "lucide-react";
 import Link from "next/link";
+import { format, parseISO, startOfWeek, endOfWeek } from "date-fns";
 import { relativeTime } from "@/lib/utils/time";
 import PageHeader from "@/components/shared/PageHeader";
 import EmptyState from "@/components/shared/EmptyState";
@@ -42,6 +43,21 @@ interface ExpensesResponse {
 interface MembersResponse {
   household: { id: string; name: string };
   members: { userId: string; name: string; avatarColor: string | null; role: string }[];
+}
+
+interface AllowancePayout {
+  id: string;
+  user_id: string;
+  week_start: string;
+  amount: string;
+  earned: boolean;
+  completion_rate: number;
+  child_name: string;
+  child_avatar: string | null;
+}
+
+interface AllowancesResponse {
+  payouts: AllowancePayout[];
 }
 
 // ---- Loading skeleton -------------------------------------------------------
@@ -225,6 +241,7 @@ export default function ExpensesPage() {
   const [selectedExpense, setSelectedExpense] = useState<ExpenseData | null>(null);
   const [settleSheetOpen, setSettleSheetOpen] = useState(false);
   const [selectedDebt, setSelectedDebt] = useState<DebtItem | null>(null);
+  const [allowanceHistoryExpanded, setAllowanceHistoryExpanded] = useState(false);
 
   // ---- Queries ---------------------------------------------------------------
 
@@ -259,6 +276,18 @@ export default function ExpensesPage() {
     retry: 2,
   });
 
+  const { data: allowancesData } = useQuery<AllowancesResponse>({
+    queryKey: ["allowances"],
+    queryFn: async () => {
+      const r = await fetch("/api/allowances");
+      if (!r.ok) return { payouts: [] };
+      return r.json();
+    },
+    staleTime: 60_000,
+    retry: 1,
+    enabled: isPremium,
+  });
+
   // ---- Derived ---------------------------------------------------------------
 
   const allExpenses = expensesData?.expenses ?? [];
@@ -272,6 +301,26 @@ export default function ExpensesPage() {
   for (const m of members) memberAvatars[m.userId] = m.avatarColor;
 
   const myDebts = debts.filter((d) => d.fromUserId === currentUserId || d.toUserId === currentUserId);
+
+  // Allowances — group payouts by child, keep last 8 weeks per child
+  const allPayouts = allowancesData?.payouts ?? [];
+  const childIds = [...new Set(allPayouts.map((p) => p.user_id))];
+  const childMembers = members.filter((m) => m.role === "child" && childIds.includes(m.userId));
+  const hasAllowances = childMembers.length > 0;
+
+  // Current week range label
+  const now = new Date();
+  const weekStart = startOfWeek(now, { weekStartsOn: 1 });
+  const weekEnd = endOfWeek(now, { weekStartsOn: 1 });
+  const weekRangeLabel = `${format(weekStart, "MMM d")} – ${format(weekEnd, "MMM d")}`;
+
+  function childPayouts(userId: string): AllowancePayout[] {
+    return allPayouts.filter((p) => p.user_id === userId);
+  }
+
+  function latestPayout(userId: string): AllowancePayout | undefined {
+    return childPayouts(userId)[0];
+  }
 
   function openCreate() {
     setSelectedExpense(null);
@@ -463,6 +512,148 @@ export default function ExpensesPage() {
                   onOpen={() => openView(expense)}
                 />
               ))}
+            </div>
+          )}
+
+          {/* Allowance section — premium + at least one child has allowance */}
+          {hasAllowances && (
+            <div className="space-y-2">
+              {/* Section header */}
+              <div className="flex items-center gap-2">
+                <PiggyBank className="size-4" style={{ color: "#22C55E" }} />
+                <p className="flex-1 text-sm" style={{ color: "var(--roost-text-primary)", fontWeight: 800 }}>
+                  Allowances
+                </p>
+                <span className="text-xs" style={{ color: "var(--roost-text-muted)", fontWeight: 600 }}>
+                  {weekRangeLabel}
+                </span>
+              </div>
+
+              {/* Child rows */}
+              <div
+                className="overflow-hidden rounded-2xl"
+                style={{
+                  backgroundColor: "var(--roost-surface)",
+                  border: "1.5px solid var(--roost-border)",
+                  borderBottom: "4px solid #159040",
+                }}
+              >
+                {childMembers.map((child, i) => {
+                  const latest = latestPayout(child.userId);
+                  const payoutForThisWeek =
+                    latest && latest.week_start === format(weekStart, "yyyy-MM-dd")
+                      ? latest
+                      : undefined;
+
+                  return (
+                    <div
+                      key={child.userId}
+                      className="flex min-h-14 items-center gap-3 px-4 py-3"
+                      style={{ borderTop: i > 0 ? "1px solid var(--roost-border)" : undefined }}
+                    >
+                      <MemberAvatar name={child.name} avatarColor={child.avatarColor} size="md" />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm" style={{ color: "var(--roost-text-primary)", fontWeight: 700 }}>
+                          {child.name}
+                        </p>
+                        {payoutForThisWeek ? (
+                          <p className="text-xs" style={{ color: "var(--roost-text-muted)", fontWeight: 600 }}>
+                            {payoutForThisWeek.completion_rate}% of chores done
+                          </p>
+                        ) : (
+                          <p className="text-xs" style={{ color: "var(--roost-text-muted)", fontWeight: 600 }}>
+                            Allowance evaluated Sunday
+                          </p>
+                        )}
+                      </div>
+                      {payoutForThisWeek ? (
+                        <span
+                          className="shrink-0 rounded-full px-2 py-0.5 text-xs"
+                          style={{
+                            backgroundColor: payoutForThisWeek.earned ? "#22C55E18" : "#EF444418",
+                            color: payoutForThisWeek.earned ? "#22C55E" : "#EF4444",
+                            border: `1px solid ${payoutForThisWeek.earned ? "#22C55E30" : "#EF444430"}`,
+                            fontWeight: 700,
+                          }}
+                        >
+                          {payoutForThisWeek.earned
+                            ? `Earned $${parseFloat(payoutForThisWeek.amount).toFixed(2)}`
+                            : "Missed this week"}
+                        </span>
+                      ) : (
+                        <span className="shrink-0 text-xs" style={{ color: "var(--roost-text-muted)", fontWeight: 600 }}>
+                          Pending
+                        </span>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* View history toggle */}
+              <button
+                type="button"
+                onClick={() => setAllowanceHistoryExpanded((v) => !v)}
+                className="text-xs"
+                style={{ color: "#22C55E", fontWeight: 700 }}
+              >
+                {allowanceHistoryExpanded ? "Hide history" : "View history"}
+              </button>
+
+              {/* Expanded history */}
+              {allowanceHistoryExpanded && (
+                <div className="space-y-3">
+                  {childMembers.map((child) => {
+                    const history = childPayouts(child.userId);
+                    if (history.length === 0) return null;
+                    return (
+                      <div key={child.userId}>
+                        <p className="mb-1.5 text-xs" style={{ color: "var(--roost-text-muted)", fontWeight: 700 }}>
+                          {child.name}
+                        </p>
+                        <div
+                          className="overflow-hidden rounded-xl"
+                          style={{
+                            border: "1.5px solid var(--roost-border)",
+                            backgroundColor: "var(--roost-surface)",
+                          }}
+                        >
+                          {history.slice(0, 8).map((payout, i) => {
+                            const ws = parseISO(payout.week_start);
+                            const label = `${format(ws, "MMM d")} – ${format(ws, "MMM")} ${format(new Date(ws.getTime() + 6 * 86400000), "d")}`;
+                            return (
+                              <div
+                                key={payout.id}
+                                className="flex items-center justify-between gap-2 px-3 py-2"
+                                style={{ borderTop: i > 0 ? "1px solid var(--roost-border)" : undefined }}
+                              >
+                                <span className="text-xs" style={{ color: "var(--roost-text-secondary)", fontWeight: 600 }}>
+                                  {label}
+                                </span>
+                                <div className="flex items-center gap-2">
+                                  <span
+                                    className="rounded-full px-2 py-0.5 text-[11px]"
+                                    style={{
+                                      backgroundColor: payout.earned ? "#22C55E18" : "#EF444418",
+                                      color: payout.earned ? "#22C55E" : "#EF4444",
+                                      fontWeight: 700,
+                                    }}
+                                  >
+                                    {payout.earned ? `$${parseFloat(payout.amount).toFixed(2)}` : "Missed"}
+                                  </span>
+                                  <span className="text-[11px]" style={{ color: "var(--roost-text-muted)", fontWeight: 600 }}>
+                                    {payout.completion_rate}% done
+                                  </span>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           )}
         </>

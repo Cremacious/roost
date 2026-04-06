@@ -1041,7 +1041,16 @@ export default function SettingsPage() {
 
         {/* ---- SECTION 5: MEMBERS (admin only) ----------------------------- */}
         {isAdmin && (
-          <SettingsSection id="section-members" title="Members" subtitle="Manage who is in your household.">
+          <SettingsSection
+            id="section-members"
+            title="Members"
+            subtitle="Manage who is in your household."
+          >
+            {members.some((m) => m.role === "child") && (
+              <p className="mb-3 text-[13px]" style={{ color: "var(--roost-text-secondary)", fontWeight: 600 }}>
+                Set up allowances for children in their member settings. Allowances are evaluated every Sunday night.
+              </p>
+            )}
             <SlabCard>
               {members.map((m, i) => (
                 <button

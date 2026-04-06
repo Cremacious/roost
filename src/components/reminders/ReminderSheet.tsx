@@ -89,65 +89,73 @@ export default function ReminderSheet({
 }: ReminderSheetProps) {
   const queryClient = useQueryClient();
   const titleRef = useRef<HTMLInputElement>(null);
-
-  const [title, setTitle] = useState("");
-  const [note, setNote] = useState("");
-  const [dateStr, setDateStr] = useState(""); // YYYY-MM-DD
-  const [timeStr, setTimeStr] = useState("09:00");
-  const [frequency, setFrequency] = useState<string>("once");
-  const [customDays, setCustomDays] = useState<number[]>([]);
   const [showCalendar, setShowCalendar] = useState(false);
-  const [notifyType, setNotifyType] = useState<"self" | "specific" | "household">("self");
-  const [specificUserIds, setSpecificUserIds] = useState<string[]>([]);
 
-  useEffect(() => {
-    if (!open) return;
-
-    if (mode === "create") {
-      setTitle("");
-      setNote("");
-      // Default date: tomorrow
+  function buildInitialForm(m: "create" | "edit") {
+    if (m === "create") {
       const tomorrow = new Date();
       tomorrow.setDate(tomorrow.getDate() + 1);
-      setDateStr(tomorrow.toISOString().slice(0, 10));
-      setTimeStr("09:00");
-      setFrequency("once");
-      setCustomDays([]);
-      setNotifyType("self");
-      setSpecificUserIds([]);
-      setTimeout(() => titleRef.current?.focus(), 100);
-    } else if (reminder) {
-      setTitle(reminder.title);
-      setNote(reminder.note ?? "");
-      const remindDate = new Date(reminder.remind_at);
-      setDateStr(remindDate.toISOString().slice(0, 10));
-      setTimeStr(
-        `${String(remindDate.getHours()).padStart(2, "0")}:${String(remindDate.getMinutes()).padStart(2, "0")}`
-      );
-      setFrequency(reminder.frequency);
-      try {
-        setCustomDays(reminder.custom_days ? (JSON.parse(reminder.custom_days) as number[]) : []);
-      } catch {
-        setCustomDays([]);
-      }
-      setNotifyType((reminder.notify_type as "self" | "specific" | "household") ?? "self");
-      try {
-        setSpecificUserIds(reminder.notify_user_ids ? (JSON.parse(reminder.notify_user_ids) as string[]) : []);
-      } catch {
-        setSpecificUserIds([]);
-      }
+      return {
+        title: "",
+        note: "",
+        dateStr: tomorrow.toISOString().slice(0, 10),
+        timeStr: "09:00",
+        frequency: "once",
+        customDays: [] as number[],
+        notifyType: "self" as "self" | "specific" | "household",
+        specificUserIds: [] as string[],
+      };
     }
+    if (reminder) {
+      const remindDate = new Date(reminder.remind_at);
+      let parsedCustomDays: number[] = [];
+      try { parsedCustomDays = reminder.custom_days ? (JSON.parse(reminder.custom_days) as number[]) : []; } catch { /* */ }
+      let parsedUserIds: string[] = [];
+      try { parsedUserIds = reminder.notify_user_ids ? (JSON.parse(reminder.notify_user_ids) as string[]) : []; } catch { /* */ }
+      return {
+        title: reminder.title,
+        note: reminder.note ?? "",
+        dateStr: remindDate.toISOString().slice(0, 10),
+        timeStr: `${String(remindDate.getHours()).padStart(2, "0")}:${String(remindDate.getMinutes()).padStart(2, "0")}`,
+        frequency: reminder.frequency,
+        customDays: parsedCustomDays,
+        notifyType: (reminder.notify_type as "self" | "specific" | "household") ?? "self",
+        specificUserIds: parsedUserIds,
+      };
+    }
+    return { title: "", note: "", dateStr: "", timeStr: "09:00", frequency: "once", customDays: [] as number[], notifyType: "self" as const, specificUserIds: [] as string[] };
+  }
+
+  const [form, setForm] = useState(() => buildInitialForm(mode));
+
+  // Single setState call per open — no cascading renders
+  useEffect(() => {
+    if (!open) return;
+    setForm(buildInitialForm(mode));
+    setShowCalendar(false);
+    if (mode === "create") {
+      setTimeout(() => titleRef.current?.focus(), 100);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, mode, reminder]);
 
+  function set<K extends keyof typeof form>(key: K, value: typeof form[K]) {
+    setForm((prev) => ({ ...prev, [key]: value }));
+  }
+
+  const { title, note, dateStr, timeStr, frequency, customDays, notifyType, specificUserIds } = form;
+
   function toggleDay(day: number) {
-    setCustomDays((prev) =>
-      prev.includes(day) ? prev.filter((d) => d !== day) : [...prev, day]
+    set("customDays", customDays.includes(day)
+      ? customDays.filter((d) => d !== day)
+      : [...customDays, day]
     );
   }
 
   function toggleSpecificUser(userId: string) {
-    setSpecificUserIds((prev) =>
-      prev.includes(userId) ? prev.filter((id) => id !== userId) : [...prev, userId]
+    set("specificUserIds", specificUserIds.includes(userId)
+      ? specificUserIds.filter((id) => id !== userId)
+      : [...specificUserIds, userId]
     );
   }
 
@@ -238,7 +246,7 @@ export default function ReminderSheet({
               ref={titleRef}
               type="text"
               value={title}
-              onChange={(e) => setTitle(e.target.value)}
+              onChange={(e) => set("title", e.target.value)}
               placeholder="Pay rent, call the vet, buy birthday card..."
               className="h-12 w-full rounded-xl px-4 text-sm focus:outline-none"
               style={inputStyle}
@@ -252,7 +260,7 @@ export default function ReminderSheet({
             </label>
             <textarea
               value={note}
-              onChange={(e) => setNote(e.target.value)}
+              onChange={(e) => set("note", e.target.value)}
               placeholder="Any extra context..."
               rows={2}
               className="w-full resize-none rounded-xl px-4 py-3 text-sm focus:outline-none"
@@ -284,7 +292,7 @@ export default function ReminderSheet({
               <input
                 type="time"
                 value={timeStr}
-                onChange={(e) => setTimeStr(e.target.value)}
+                onChange={(e) => set("timeStr", e.target.value)}
                 className="h-12 w-32 rounded-xl px-3 text-sm focus:outline-none"
                 style={inputStyle}
               />
@@ -295,7 +303,7 @@ export default function ReminderSheet({
               <input
                 type="date"
                 value={dateStr}
-                onChange={(e) => { setDateStr(e.target.value); setShowCalendar(false); }}
+                onChange={(e) => { set("dateStr", e.target.value); setShowCalendar(false); }}
                 className="mt-2 h-12 w-full rounded-xl px-4 text-sm focus:outline-none"
                 style={inputStyle}
                 autoFocus
@@ -315,7 +323,7 @@ export default function ReminderSheet({
                   <button
                     key={f.value}
                     type="button"
-                    onClick={() => setFrequency(f.value)}
+                    onClick={() => set("frequency", f.value)}
                     className="h-10 flex-1 rounded-xl text-sm"
                     style={{
                       border: active ? `1.5px solid ${COLOR}` : "1.5px solid var(--roost-border)",
@@ -367,8 +375,8 @@ export default function ReminderSheet({
               {(
                 [
                   { value: "self" as const, icon: User, label: "Just me", desc: "Only you will be notified" },
-                  { value: "specific" as const, icon: Users, label: "Specific people", desc: "Choose who gets notified" },
                   { value: "household" as const, icon: Home, label: "Whole household", desc: "Everyone gets notified" },
+                  { value: "specific" as const, icon: Users, label: "Specific people", desc: "Choose who gets notified" },
                 ] as const
               ).map(({ value, icon: Icon, label, desc }) => {
                 const active = notifyType === value;
@@ -376,7 +384,7 @@ export default function ReminderSheet({
                   <button
                     key={value}
                     type="button"
-                    onClick={() => setNotifyType(value)}
+                    onClick={() => set("notifyType", value)}
                     className="flex w-full items-center gap-3 rounded-xl px-4 py-3 text-left"
                     style={{
                       border: active ? `1.5px solid ${COLOR}` : "1.5px solid var(--roost-border)",

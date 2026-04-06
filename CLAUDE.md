@@ -934,7 +934,41 @@ Update this file after every major decision or completed phase.
 - Activity types: allowance_earned (green dot, maps to expenses), allowance_missed (amber dot)
 - vercel.json cron: /api/cron/allowances runs "0 23 * * 0" (Sunday 11pm UTC)
 
-Last updated: 2026-04-06 (receipt parser improved: looser patterns, prev-line lookup, empty state vs error state, debug logging)
+## Playwright E2E Testing Notes
+- Use `**/path` glob patterns for `waitForURL`, not bare `/path` strings, to handle baseURL prefixes
+- Add `waitForLoadState("networkidle")` after submit clicks before `waitForURL` (catch silently)
+- Onboarding creates a 3-step flow: step 1 picks create/join, step 2 fills name, step 3 is confirmation
+  - After "Create household" submit: lands on step 3, NOT /dashboard
+  - Must click "Go to dashboard" button on step 3 to navigate to /dashboard
+- Household name input placeholder: "e.g. The Johnson House" (CSS `placeholder*="house"` fails — case-sensitive; use `placeholder*="Johnson" i` or `input[type="text"]`)
+- Signup submit button uses `data-testid="signup-submit"`, text "Create account"
+- Onboarding step 1 "Join" card title is "Join a household" — use full text to avoid strict mode violations
+- `signUp` helper: after clicking submit, `waitForURL` accepts both /onboarding and /dashboard via function predicate
+- `createHousehold` helper: guards against being called when already on /dashboard
+- playwright.config.ts: `timeout: 60000`, `actionTimeout: 15000`, `screenshot: "only-on-failure"`
+- `toHaveURL` assertions should use regex (`/\/dashboard/`) not exact strings for robustness
+- Mobile project (`iPhone 14`) only runs auth/onboarding/premium specs; navigation/chores/grocery run desktop only
+- data-testid attributes added for test targeting:
+  - `grocery-quick-add` on grocery quick-add input (src/app/(app)/grocery/page.tsx)
+  - `chore-save-btn` on ChoreSheet save/add button (src/components/chores/ChoreSheet.tsx)
+  - `dashboard-tiles` on dashboard tiles grid container (src/app/(app)/dashboard/page.tsx)
+  - `premium-toggle` on DevTools Switch (src/components/dev/DevTools.tsx) — was already present
+- ChoreSheet save button text: "Add chore" (create) or "Save changes" (edit) — not "Save"
+- Grocery quick-add placeholder rotates: "Add milk...", "Add eggs...", "Add anything..." — never "Add an item"
+- Expenses free-tier shows "Upgrade to Premium for $3/month" and "Upgrade for $3/month" link
+- Use `.or()` chaining for multi-text locators; comma-separated `text=` is not valid Playwright CSS
+- Playwright runs serially (`fullyParallel: false`, `workers: 1`) to prevent context-crash cascades
+- Desktop (chromium) project timeout: 60s; mobile project timeout: 90s
+- Grocery check button: `aria-label="Check item"` (unchecked) / `aria-label="Uncheck item"` (checked)
+- Checked items section header text: "In the cart (N)" — not "Checked"
+- signUp helper networkidle timeout: 30s; waitForURL timeout: 45s
+- signUp helper uses `pressSequentially` (not `fill`) for the name field — mobile WebKit's `insertText` protocol command does not fire React `onChange`; per-character key events do
+- Premium toggle lives inside collapsed DevTools panel — must click "DEV" pill first to open it before interacting
+- DEV button locator must use `.first()` — `text=DEV` matches button + inner text nodes and throws strict-mode error on `.isVisible()`
+- Dashboard tile selector: use `.locator('button, a').filter({ hasText: 'Chores' }).first()` to avoid strict mode (both button and inner `<p>` match plain `text=Chores`)
+- `uniqueUser` in test files must be a factory function `() => ({...})`, not a plain object — reusing the same email across tests causes "email already exists" failures when tests run serially
+
+Last updated: 2026-04-06 (receipt parser improved; Playwright e2e selectors fixed: flexible waitForURL, data-testid attributes, mobile project scoping, serial workers, grocery checkbox/checked-state selectors, DEV panel interaction, uniqueUser factory pattern)
 
 ## Bugs Found and Fixed (2026-04-05)
 - No default grocery list created on household signup: `GET /api/grocery/lists` now

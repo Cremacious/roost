@@ -492,7 +492,7 @@ export default function DashboardPage() {
         )}
 
         {/* Feature tiles grid */}
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <div data-testid="dashboard-tiles" className="grid grid-cols-2 gap-3 sm:grid-cols-4">
           {tiles.map((tile, i) => (
             <TileCard key={tile.key} tile={tile} index={i} />
           ))}

@@ -1,11 +1,11 @@
 import { test, expect } from "@playwright/test";
 import { signUp, signIn, createHousehold, TEST_USER } from "./helpers/auth";
 
-const uniqueUser = {
+const uniqueUser = () => ({
   name: "Auth Test User",
   email: `auth-test-${Date.now()}@example.com`,
   password: "SecurePass123!",
-};
+});
 
 test.describe("Auth flows", () => {
   test("homepage is public and accessible", async ({ page }) => {
@@ -45,14 +45,24 @@ test.describe("Auth flows", () => {
   });
 
   test("full signup flow creates account and reaches onboarding", async ({ page }) => {
-    await signUp(page, uniqueUser);
-    await expect(page).toHaveURL("/onboarding");
+    await signUp(page, uniqueUser());
+    await expect(page).toHaveURL(/\/onboarding/);
   });
 
   test("signed-in user visiting /login is redirected to dashboard", async ({ page }) => {
-    await signUp(page, uniqueUser);
+    const user = uniqueUser();
+    await signUp(page, user);
     await createHousehold(page);
+
+    await expect(page).toHaveURL(/\/dashboard/);
+
     await page.goto("/login");
-    await expect(page).toHaveURL("/dashboard");
+
+    await page.waitForURL(
+      (url) => url.pathname.includes("/dashboard"),
+      { timeout: 15000 }
+    );
+
+    await expect(page).toHaveURL(/\/dashboard/);
   });
 });

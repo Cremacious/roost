@@ -772,6 +772,7 @@ export default function GroceryPage() {
           >
             <input
               ref={quickAddRef}
+              data-testid="grocery-quick-add"
               type="text"
               value={newItemName}
               onChange={(e) => setNewItemName(e.target.value)}

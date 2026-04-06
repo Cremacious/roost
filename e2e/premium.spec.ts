@@ -19,14 +19,20 @@ test.describe("Premium gating", () => {
     await page.goto("/expenses");
     // Free users see an inline upgrade pitch, not the full module
     await expect(
-      page.locator("text=Premium, text=upgrade, text=Upgrade").first()
+      page.locator("text=Upgrade to Premium")
+        .or(page.locator("text=Upgrade for $3/month"))
+        .first()
     ).toBeVisible();
   });
 
   test("dashboard tiles are visible on free tier", async ({ page }) => {
     await page.goto("/dashboard");
-    await expect(page.locator("text=Chores")).toBeVisible();
-    await expect(page.locator("text=Grocery")).toBeVisible();
+    await expect(
+      page.locator('[data-testid="dashboard-tiles"]').locator("button, a").filter({ hasText: "Chores" }).first()
+    ).toBeVisible();
+    await expect(
+      page.locator('[data-testid="dashboard-tiles"]').locator("button, a").filter({ hasText: "Grocery" }).first()
+    ).toBeVisible();
   });
 
   test("enabling premium shows full expenses module", async ({ page }) => {

@@ -28,7 +28,7 @@ test.describe("Chores", () => {
     const nameInput = page.locator('input[placeholder*="Vacuum"]').first();
     await nameInput.fill("Wash the dishes");
     // Save
-    await page.click("text=Save");
+    await page.click('[data-testid="chore-save-btn"]');
     await expect(page.locator("text=Wash the dishes")).toBeVisible();
   });
 

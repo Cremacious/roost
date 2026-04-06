@@ -369,6 +369,7 @@ export default function ChoreSheet({
             {/* Save button */}
             <motion.button
               type="button"
+              data-testid="chore-save-btn"
               disabled={!canSubmit}
               onClick={() => saveMutation.mutate()}
               whileTap={{ y: 2 }}

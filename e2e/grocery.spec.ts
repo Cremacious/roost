@@ -20,7 +20,7 @@ test.describe("Grocery", () => {
 
   test("can quick add an item", async ({ page }) => {
     await page.goto("/grocery");
-    const quickAddInput = page.locator('input[placeholder*="Add an item"]').first();
+    const quickAddInput = page.locator('[data-testid="grocery-quick-add"]');
     await quickAddInput.fill("Milk");
     await quickAddInput.press("Enter");
     await expect(page.locator("text=Milk")).toBeVisible();
@@ -29,14 +29,14 @@ test.describe("Grocery", () => {
   test("can check off an item", async ({ page }) => {
     await page.goto("/grocery");
     // Add item first
-    const quickAddInput = page.locator('input[placeholder*="Add an item"]').first();
+    const quickAddInput = page.locator('[data-testid="grocery-quick-add"]');
     await quickAddInput.fill("Eggs");
     await quickAddInput.press("Enter");
     await expect(page.locator("text=Eggs")).toBeVisible();
-    // Check it off
-    const checkbox = page.locator('[role="checkbox"], button[aria-label*="check"]').first();
+    // Check it off — button has aria-label="Check item" when unchecked
+    const checkbox = page.locator('button[aria-label="Check item"]').first();
     await checkbox.click();
-    // Item should move to checked section or be visually checked
-    await expect(page.locator("text=Checked")).toBeVisible();
+    // Checked items appear under the collapsible "In the cart" section header
+    await expect(page.locator("text=In the cart")).toBeVisible();
   });
 });

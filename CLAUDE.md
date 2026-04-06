@@ -247,14 +247,49 @@ Tasks: one-off to-dos
 ## Design System
 - Theme system provides all background, surface, border, and text colors
 - Section colors (fixed, never change -- always import from src/lib/constants/colors.ts):
-  chores = #EF4444
-  grocery = #F59E0B
-  calendar = #3B82F6
-  expenses = #22C55E
-  meals = #F97316
-  notes = #A855F7
-  reminders = #06B6D4
-  tasks = #EC4899
+  chores = #EF4444 / dark #C93B3B
+  grocery = #F59E0B / dark #C87D00
+  calendar = #3B82F6 / dark #1A5CB5
+  expenses = #22C55E / dark #159040
+  meals = #F97316 / dark #C4581A
+  notes = #A855F7 / dark #7C28C8
+  reminders = #06B6D4 / dark #0891B2
+  tasks = #EC4899 / dark #B02878
+
+## Section Color Ownership Rule (overrides ALL previous color rules)
+  Each feature page owns its section color completely. Apply section color to:
+    Buttons (primary, save, FAB, action buttons)
+    Active filter/toggle pills (bg = section color, text = white)
+    Completion circles and checkboxes (filled = section color, unfilled = section color at 40%)
+    Badges and count pills
+    Input focus border + focus border-bottom
+    Sheet drag handle
+    Card border-bottom for feature-specific cards
+    Empty state icon box border-bottom
+    Section headers (color, not just muted text)
+  Theme CSS vars apply ONLY to:
+    Page background (var(--roost-bg))
+    Card/surface background (var(--roost-surface))
+    Card border top/left/right (var(--roost-border))
+    Neutral card border-bottom (var(--roost-border-bottom)) -- for dashboard tiles + non-feature cards
+    Text colors (var(--roost-text-*))
+    Sidebar, topbar, dividers
+  NEVER use var(--roost-border-bottom) on feature-specific interactive elements.
+  NEVER let brand red (#EF4444) appear on non-chores/non-settings pages except sidebar active nav.
+  Dashboard tiles are neutral containers: border-bottom = var(--roost-border-bottom).
+  Dashboard "See all" and activity links: #EF4444 brand red.
+  Calendar nav arrows: simple rounded-full, no slab style (NO borderBottom slab effect).
+  PageHeader badge: pass color={SECTION_COLOR} prop so badge uses section color, not theme color.
+
+## Empty State Rules (overrides all previous empty state styling)
+  Container: backgroundColor: "var(--roost-surface)", border: "2px dashed var(--roost-border)",
+    borderBottom: "4px dashed var(--roost-border-bottom)" (neutral bottom, no section color)
+  Icon box: backgroundColor: "var(--roost-surface)", border: "1.5px solid var(--roost-border)",
+    borderBottom: "4px solid ${sectionColor}" (THIS is where section color appears)
+  Button: section color slab (bg = section color, borderBottom = dark shade)
+  EmptyState component always receives color={SECTION_COLOR} prop; the color prop
+    controls ONLY the icon fill and icon box border-bottom.
+
 - Slab card style: rounded-2xl, border 1.5px solid --roost-border on all sides,
   border-bottom 4px solid (section color or --roost-border-bottom). That bottom border is the
   ONLY place the 3D clay effect comes from. No left/right/top border accents ever.
@@ -266,8 +301,8 @@ Tasks: one-off to-dos
   copy, or JSX string content. Use commas, colons, periods, or reword instead.
   This applies to ALL files forever.
 - Slab design = bottom border only for the 3D effect. No left/right/top border as color accents.
-  Section colors appear only in: icon background, icon stroke, badge pills, border-bottom of
-  section-specific cards. Never as a left/right stripe or top accent.
+  Section colors appear in: buttons, toggles, input focus, badges, completion states,
+  FABs, drag handles, empty state icon box border-bottom. Never as a left/right/top accent.
 - PageContainer component (src/components/layout/PageContainer.tsx): max-w-4xl (896px) centered
   on desktop, full width on mobile. All pages wrap their content in PageContainer.
   Exception: Calendar uses an inline div with max-w-5xl (1024px) for the 7-column grid.
@@ -827,7 +862,7 @@ Designer brief (send this when hiring):
 At the start of each new session fetch this file to restore context.
 Share GitHub file URLs, paste code, or describe what was built.
 Update this file after every major decision or completed phase.
-Last updated: 2026-04-06 (premium enforcement: freeTierLimits, premiumGating, 11 API routes gated, UpgradePrompt component, 7 sheets wired, 6 pages wired, grocery fix, expenses free-tier UI, theme lock, sign out button)
+Last updated: 2026-04-06 (section color consistency pass: EmptyState icon box uses section color borderBottom, PageHeader accepts color prop for badge, calendar nav arrows are simple circular (no slab), tasks+reminders filter pills use section color for active state, chores completion circles use section color at 40% when incomplete, grocery/chores custom empty states updated, dashboard See All links use brand red)
 
 ## Bugs Found and Fixed (2026-04-05)
 - No default grocery list created on household signup: `GET /api/grocery/lists` now

@@ -624,6 +624,7 @@ export default function TasksPage() {
       <PageHeader
         title="Tasks"
         badge={incompleteTasks.length}
+        color={COLOR}
         action={
           <motion.button
             type="button"
@@ -659,10 +660,10 @@ export default function TasksPage() {
               onClick={() => setFilter(f)}
               className="flex h-9 shrink-0 items-center rounded-xl px-4 text-sm"
               style={{
-                backgroundColor: active ? "var(--roost-text-primary)" : "var(--roost-surface)",
-                border: "1.5px solid var(--roost-border)",
-                borderBottom: "3px solid var(--roost-border-bottom)",
-                color: active ? "var(--roost-bg)" : "var(--roost-text-secondary)",
+                backgroundColor: active ? COLOR : "var(--roost-surface)",
+                border: active ? `1.5px solid ${COLOR}` : "1.5px solid var(--roost-border)",
+                borderBottom: active ? "3px solid #B02878" : "3px solid var(--roost-border-bottom)",
+                color: active ? "white" : "var(--roost-text-secondary)",
                 fontWeight: active ? 800 : 600,
               }}
             >

@@ -318,13 +318,17 @@ export default function ChoresPage() {
           className="flex flex-col items-center gap-4 rounded-2xl px-6 py-12 text-center"
           style={{
             backgroundColor: "var(--roost-surface)",
-            border: "1.5px dashed var(--roost-border)",
+            border: "2px dashed var(--roost-border)",
             borderBottom: "4px dashed var(--roost-border-bottom)",
           }}
         >
           <div
             className="flex h-14 w-14 items-center justify-center rounded-2xl"
-            style={{ backgroundColor: COLOR + "18", border: `1.5px solid ${COLOR}30` }}
+            style={{
+              backgroundColor: "var(--roost-surface)",
+              border: "1.5px solid var(--roost-border)",
+              borderBottom: `4px solid #C93B3B`,
+            }}
           >
             <ClipboardList className="size-7" style={{ color: COLOR }} />
           </div>
@@ -344,7 +348,7 @@ export default function ChoresPage() {
             style={{
               backgroundColor: COLOR,
               border: `1.5px solid ${COLOR}`,
-              borderBottom: "3px solid rgba(0,0,0,0.2)",
+              borderBottom: "3px solid #C93B3B",
               fontWeight: 800,
             }}
           >
@@ -568,7 +572,7 @@ function ChoreItem({
         >
           <CheckCircle2
             className="size-7 transition-colors"
-            style={{ color: done ? SECTION_COLORS.chores : "var(--roost-border-bottom)" }}
+            style={{ color: done ? SECTION_COLORS.chores : SECTION_COLORS.chores + "40" }}
             strokeWidth={done ? 2.5 : 1.5}
           />
         </motion.div>

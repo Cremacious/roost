@@ -305,6 +305,7 @@ export default function ExpensesPage() {
       <PageHeader
         title="Expenses"
         badge={isPremium ? allExpenses.length : undefined}
+        color={COLOR}
         action={
           isPremium ? (
             <motion.button

@@ -770,16 +770,17 @@ export default function GroceryPage() {
         <div
           className="flex flex-col items-center gap-3 rounded-2xl px-6 py-12 text-center"
           style={{
-            border: `1.5px dashed var(--roost-border)`,
-            borderBottom: `4px dashed var(--roost-border-bottom)`,
+            backgroundColor: "var(--roost-surface)",
+            border: "2px dashed var(--roost-border)",
+            borderBottom: "4px dashed var(--roost-border-bottom)",
           }}
         >
           <div
             className="flex h-12 w-12 items-center justify-center rounded-2xl"
             style={{
-              backgroundColor: COLOR + "18",
-              border: `1px solid ${COLOR}25`,
-              borderBottom: `2px solid ${COLOR}35`,
+              backgroundColor: "var(--roost-surface)",
+              border: "1.5px solid var(--roost-border)",
+              borderBottom: `4px solid ${COLOR_DARK}`,
             }}
           >
             <ShoppingCart className="size-5" style={{ color: COLOR }} />

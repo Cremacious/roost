@@ -249,7 +249,7 @@ function ActivityFeed({
           type="button"
           onClick={onSeeAll}
           className="text-sm"
-          style={{ color: "#3B82F6", fontWeight: 700 }}
+          style={{ color: "#EF4444", fontWeight: 700 }}
         >
           See all
         </button>
@@ -297,7 +297,7 @@ function ActivityFeed({
               type="button"
               onClick={onSeeAll}
               className="text-sm"
-              style={{ color: "#3B82F6", fontWeight: 700 }}
+              style={{ color: "#EF4444", fontWeight: 700 }}
             >
               See all activity
             </button>

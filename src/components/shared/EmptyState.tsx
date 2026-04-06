@@ -35,7 +35,11 @@ export default function EmptyState({
       {/* Icon box */}
       <div
         className="flex h-14 w-14 items-center justify-center rounded-2xl"
-        style={{ backgroundColor: color + "18", border: `1.5px solid ${color}30` }}
+        style={{
+          backgroundColor: "var(--roost-surface)",
+          border: "1.5px solid var(--roost-border)",
+          borderBottom: `4px solid ${color}`,
+        }}
       >
         <Icon className="size-7" style={{ color }} />
       </div>

@@ -269,6 +269,7 @@ export default function NotesPage() {
       <PageHeader
         title="Notes"
         badge={allNotes.length}
+        color={COLOR}
         action={
           <motion.button
             type="button"

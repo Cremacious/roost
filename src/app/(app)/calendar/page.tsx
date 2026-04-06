@@ -410,10 +410,10 @@ export default function CalendarPage() {
             <button
               type="button"
               onClick={() => setCurrentMonth((m) => subMonths(m, 1))}
-              className="flex h-9 w-9 items-center justify-center rounded-xl"
+              className="flex h-9 w-9 items-center justify-center rounded-full"
               style={{
+                backgroundColor: "var(--roost-surface)",
                 border: "1.5px solid var(--roost-border)",
-                borderBottom: "3px solid var(--roost-border-bottom)",
                 color: "var(--roost-text-secondary)",
               }}
             >
@@ -443,10 +443,10 @@ export default function CalendarPage() {
               <button
                 type="button"
                 onClick={() => setCurrentMonth((m) => addMonths(m, 1))}
-                className="flex h-9 w-9 items-center justify-center rounded-xl"
+                className="flex h-9 w-9 items-center justify-center rounded-full"
                 style={{
+                  backgroundColor: "var(--roost-surface)",
                   border: "1.5px solid var(--roost-border)",
-                  borderBottom: "3px solid var(--roost-border-bottom)",
                   color: "var(--roost-text-secondary)",
                 }}
               >
@@ -460,7 +460,7 @@ export default function CalendarPage() {
             className="overflow-hidden rounded-2xl"
             style={{
               border: "1.5px solid var(--roost-border)",
-              borderBottom: "4px solid var(--roost-border-bottom)",
+              borderBottom: `4px solid ${COLOR_DARK}`,
               backgroundColor: "var(--roost-surface)",
             }}
           >

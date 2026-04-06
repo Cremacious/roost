@@ -331,7 +331,7 @@ export default function GroceryPage() {
   const queryClient = useQueryClient();
   const quickAddRef = useRef<HTMLInputElement>(null);
 
-  const [activeListId, setActiveListId] = useState<string | null>(null);
+  const [selectedListId, setSelectedListId] = useState<string | null>(null);
   const [newItemName, setNewItemName] = useState("");
   const [showChecked, setShowChecked] = useState(true);
   const [editingItem, setEditingItem] = useState<GroceryItemFull | null>(null);
@@ -369,12 +369,7 @@ export default function GroceryPage() {
   const isPremium = listsQuery.data?.isPremium ?? false;
   const isAdmin = listsQuery.data?.isAdmin ?? false;
 
-  // Set default active list once loaded
-  useEffect(() => {
-    if (lists.length > 0 && !activeListId) {
-      setActiveListId(lists[0].id);
-    }
-  }, [lists, activeListId]);
+  const activeListId = selectedListId ?? lists[0]?.id ?? null;
 
   const itemsQuery = useQuery<ItemsResponse>({
     queryKey: ["grocery-items", activeListId],
@@ -537,7 +532,7 @@ export default function GroceryPage() {
       queryClient.invalidateQueries({ queryKey: ["grocery-lists"] });
       // Switch to first remaining list
       const remaining = lists.filter((l) => l.id !== activeListId);
-      setActiveListId(remaining[0]?.id ?? null);
+      setSelectedListId(remaining[0]?.id ?? null);
       toast.success("List deleted");
     },
     onError: (err: Error) => toast.error(err.message),
@@ -631,7 +626,7 @@ export default function GroceryPage() {
               <motion.button
                 key={list.id}
                 type="button"
-                onClick={() => setActiveListId(list.id)}
+                onClick={() => setSelectedListId(list.id)}
                 whileTap={{ y: 1 }}
                 className="flex h-10 shrink-0 items-center gap-1.5 rounded-xl px-4 text-sm"
                 style={{

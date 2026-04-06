@@ -442,8 +442,16 @@ vercel.json                                   Cron schedule: /api/cron/reminders
 - Notify types: self (only creator), specific (chosen members), household (everyone)
 - notify_user_ids stored as JSON string in DB
 - next_remind_at is the next fire time; remind_at is the original time set by user
-- Completing a recurring reminder advances next_remind_at, does NOT mark completed
-- Completing a once reminder marks completed = true
+- One-time reminders: completing sets completed = true permanently
+- Recurring reminders: NEVER set completed = true. Completing sets snoozed_until = nextRemindAt
+  and advances next_remind_at. Undo clears snoozed_until and restores next_remind_at to remind_at.
+- Snoozed state: !completed && snoozed_until IS NOT NULL && snoozed_until > now()
+- Snoozed rows: var(--roost-bg) background, dimmed text, Clock icon (cyan filled),
+  "Resets in X days" caption, Undo button (cyan text, no confirmation)
+- Completing recurring: shows "Done for now?" dialog with next occurrence date before confirming
+- Completing one-time: shows simple "Mark as done?" dialog
+- Snoozed section: collapsed by default, between Later and Completed sections in list
+- Stats (active count) exclude snoozed reminders
 - In-app banner polls /api/reminders/due every 60 seconds
 - Banner dismisses per-session via sessionStorage key "roost-reminder-banner-dismissed"
 - Cron job runs every 15 minutes on Vercel, secured with CRON_SECRET env var
@@ -452,6 +460,12 @@ vercel.json                                   Cron schedule: /api/cron/reminders
 - Dashboard reminders tile: dynamic statusText "X due today" or "Nothing due today"
 - vercel.json created with cron schedule at root of project
 - calcNextRemindAt() helper exported from src/app/api/reminders/route.ts
+- Snooze base date: Math.max(next_remind_at, now()) + frequency duration. This prevents
+  past-date snooze values when a reminder is overdue. Used in both calcNextRemindAt()
+  (server) and calcNextSnoozeDate() (client, reminders/page.tsx).
+- snoozed_until is the single source of truth for snoozed state on the frontend.
+  Never use next_remind_at to determine snoozed state. isSnoozed() checks snoozed_until only.
+- GET /api/reminders select must include snoozed_until or isSnoozed() breaks on refetch.
 
 ## Expense UX Patterns
 - Premium-gated: free tier sees blurred mock expense list with upgrade CTA overlay
@@ -766,7 +780,7 @@ Designer brief (send this when hiring):
 At the start of each new session fetch this file to restore context.
 Share GitHub file URLs, paste code, or describe what was built.
 Update this file after every major decision or completed phase.
-Last updated: 2026-04-06 (reminders module complete: schema + db:push, 5 API routes, cron job, ReminderSheet, ReminderBanner in AppShell, dashboard tile dynamic, vercel.json, CRON_SECRET added)
+Last updated: 2026-04-06 (reminders: fix snooze bug — snoozed_until missing from GET select; calcNextRemindAt uses Math.max(base, now) to prevent past dates for overdue reminders)
 
 ## Bugs Found and Fixed (2026-04-05)
 - No default grocery list created on household signup: `GET /api/grocery/lists` now

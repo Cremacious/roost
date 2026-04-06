@@ -9,10 +9,12 @@ import {
   Bell,
   Check,
   ChevronDown,
+  Clock,
   Home,
   MoreHorizontal,
   Plus,
   RefreshCw,
+  RotateCcw,
   User,
   Users,
 } from "lucide-react";
@@ -21,8 +23,10 @@ import {
   isToday,
   isTomorrow,
   isPast,
-  isThisWeek,
   format,
+  differenceInCalendarDays,
+  addDays,
+  addMonths,
 } from "date-fns";
 import PageHeader from "@/components/shared/PageHeader";
 import StatCard from "@/components/shared/StatCard";
@@ -64,6 +68,10 @@ type FilterKey = "all" | "mine" | "household" | "completed";
 
 // ---- Helpers ----------------------------------------------------------------
 
+function isSnoozed(r: ReminderRow): boolean {
+  return !r.completed && !!r.snoozed_until && new Date(r.snoozed_until) > new Date();
+}
+
 function formatRemindAt(dateStr: string): { label: string; overdue: boolean } {
   const d = new Date(dateStr);
   const overdue = isPast(d) && !isToday(d);
@@ -71,6 +79,44 @@ function formatRemindAt(dateStr: string): { label: string; overdue: boolean } {
   if (isToday(d)) return { label: `Today at ${format(d, "h:mm a")}`, overdue: false };
   if (isTomorrow(d)) return { label: `Tomorrow at ${format(d, "h:mm a")}`, overdue: false };
   return { label: format(d, "EEE MMM d 'at' h:mm a"), overdue: false };
+}
+
+function formatResetsIn(snoozedUntil: string): string {
+  const d = new Date(snoozedUntil);
+  if (isToday(d)) return "Resets today";
+  if (isTomorrow(d)) return "Resets tomorrow";
+  const days = differenceInCalendarDays(d, new Date());
+  if (days <= 6) return `Resets in ${days} day${days === 1 ? "" : "s"}`;
+  return `Resets ${format(d, "EEE MMM d")}`;
+}
+
+function calcNextSnoozeDate(r: ReminderRow): Date {
+  // Use Math.max(next_remind_at, now) so overdue reminders always produce a future date
+  const raw = r.next_remind_at ? new Date(r.next_remind_at) : new Date();
+  const base = new Date(Math.max(raw.getTime(), Date.now()));
+  switch (r.frequency) {
+    case "daily":
+      return addDays(base, 1);
+    case "weekly":
+      return addDays(base, 7);
+    case "monthly":
+      return addMonths(base, 1);
+    case "custom": {
+      let customDays: number[] = [];
+      try { customDays = r.custom_days ? (JSON.parse(r.custom_days) as number[]) : []; } catch { /* */ }
+      for (let i = 1; i <= 7; i++) {
+        const candidate = addDays(base, i);
+        if (customDays.includes(candidate.getDay())) return candidate;
+      }
+      return addDays(base, 1);
+    }
+    default:
+      return addDays(base, 1);
+  }
+}
+
+function calcNextOccurrenceLabel(r: ReminderRow): string {
+  return format(calcNextSnoozeDate(r), "EEEE, MMMM d");
 }
 
 function freqLabel(freq: string): string {
@@ -99,12 +145,10 @@ function RemindersSkeleton() {
 // ---- More menu --------------------------------------------------------------
 
 function ReminderMoreMenu({
-  reminder,
   canManage,
   onEdit,
   onDelete,
 }: {
-  reminder: ReminderRow;
   canManage: boolean;
   onEdit: () => void;
   onDelete: () => void;
@@ -169,7 +213,7 @@ function ReminderRow({
   onEdit,
   onDelete,
   onComplete,
-  onUncheck,
+  onUnsnooze,
 }: {
   reminder: ReminderRow;
   index: number;
@@ -178,22 +222,75 @@ function ReminderRow({
   onEdit: () => void;
   onDelete: () => void;
   onComplete: () => void;
-  onUncheck: () => void;
+  onUnsnooze: () => void;
 }) {
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const snoozed = isSnoozed(reminder);
   const { label: dateLabel, overdue } = formatRemindAt(reminder.next_remind_at ?? reminder.remind_at);
   const canManage = reminder.created_by === currentUserId || isAdmin;
   const isRecurring = reminder.frequency !== "once";
 
   function handleCircleClick(e: React.MouseEvent) {
     e.stopPropagation();
-    if (reminder.completed) {
-      onUncheck();
-    } else {
-      setConfirmOpen(true);
-    }
+    if (reminder.completed || snoozed) return; // snoozed rows use Undo button instead
+    setConfirmOpen(true);
   }
 
+  // ---- Snoozed (recurring, waiting for next occurrence) ---------------------
+  if (snoozed) {
+    return (
+      <motion.div
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: Math.min(index * 0.04, 0.2), duration: 0.15 }}
+        className="flex items-center gap-3 rounded-2xl px-3 py-3"
+        style={{
+          backgroundColor: "var(--roost-bg)",
+          border: "1.5px solid var(--roost-border)",
+          borderBottom: "4px solid var(--roost-border-bottom)",
+          minHeight: 64,
+        }}
+      >
+        {/* Clock circle */}
+        <div className="flex h-12 w-12 shrink-0 items-center justify-center">
+          <div
+            className="flex h-7 w-7 items-center justify-center rounded-full"
+            style={{ backgroundColor: COLOR, border: `2px solid ${COLOR}` }}
+          >
+            <Clock className="size-3.5 text-white" strokeWidth={2.5} />
+          </div>
+        </div>
+
+        {/* Content */}
+        <div className="min-w-0 flex-1">
+          <p className="text-sm leading-snug" style={{ color: "var(--roost-text-secondary)", fontWeight: 700 }}>
+            {reminder.title}
+          </p>
+          <div className="mt-1 flex flex-wrap items-center gap-1.5">
+            <SectionColorBadge label={freqLabel(reminder.frequency)} color={COLOR} />
+            {reminder.snoozed_until && (
+              <span className="flex items-center gap-1 text-xs" style={{ color: "var(--roost-text-muted)", fontWeight: 600 }}>
+                <RotateCcw className="size-3" />
+                {formatResetsIn(reminder.snoozed_until)}
+              </span>
+            )}
+          </div>
+        </div>
+
+        {/* Undo button */}
+        <button
+          type="button"
+          onClick={(e) => { e.stopPropagation(); onUnsnooze(); }}
+          className="shrink-0 text-sm px-2 py-1"
+          style={{ color: COLOR, fontWeight: 700 }}
+        >
+          Undo
+        </button>
+      </motion.div>
+    );
+  }
+
+  // ---- Normal active / completed row ----------------------------------------
   return (
     <>
       <motion.div
@@ -214,7 +311,7 @@ function ReminderRow({
           type="button"
           onClick={handleCircleClick}
           className="flex h-12 w-12 shrink-0 items-center justify-center"
-          aria-label={reminder.completed ? "Undo" : "Complete"}
+          aria-label={reminder.completed ? "Done" : "Mark done"}
         >
           <div
             className="flex h-7 w-7 items-center justify-center rounded-full transition-colors"
@@ -253,9 +350,7 @@ function ReminderRow({
               <User className="size-3" style={{ color: "var(--roost-text-muted)" }} />
             )}
             {reminder.notify_type === "specific" && (
-              <span className="flex items-center gap-0.5">
-                <Users className="size-3" style={{ color: "var(--roost-text-muted)" }} />
-              </span>
+              <Users className="size-3" style={{ color: "var(--roost-text-muted)" }} />
             )}
             {reminder.notify_type === "household" && (
               <Home className="size-3" style={{ color: "var(--roost-text-muted)" }} />
@@ -263,31 +358,38 @@ function ReminderRow({
           </div>
         </div>
 
-        {/* More menu */}
-        <ReminderMoreMenu
-          reminder={reminder}
-          canManage={canManage}
-          onEdit={onEdit}
-          onDelete={onDelete}
-        />
+        {/* Right side: more menu (active) or nothing (completed) */}
+        {!reminder.completed && (
+          <ReminderMoreMenu
+            canManage={canManage}
+            onEdit={onEdit}
+            onDelete={onDelete}
+          />
+        )}
       </motion.div>
 
-      {/* Confirm complete dialog */}
+      {/* Confirmation dialog */}
       <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle style={{ color: "var(--roost-text-primary)", fontWeight: 800 }}>
-              Mark as done?
+              {isRecurring ? "Done for now?" : "Mark as done?"}
             </DialogTitle>
           </DialogHeader>
-          <p className="text-sm" style={{ color: "var(--roost-text-secondary)", fontWeight: 600 }}>
-            {reminder.title}
-            {isRecurring && (
-              <span className="block mt-1" style={{ color: "var(--roost-text-muted)" }}>
-                This is a recurring reminder. It will be scheduled for the next occurrence.
-              </span>
-            )}
-          </p>
+          {isRecurring ? (
+            <div className="space-y-2">
+              <p className="text-sm" style={{ color: "var(--roost-text-secondary)", fontWeight: 600 }}>
+                This is a recurring reminder. Marking it complete will snooze it until the next occurrence.
+              </p>
+              <p className="text-sm" style={{ color: "var(--roost-text-muted)", fontWeight: 600 }}>
+                It will return on {calcNextOccurrenceLabel(reminder)}.
+              </p>
+            </div>
+          ) : (
+            <p className="text-sm" style={{ color: "var(--roost-text-secondary)", fontWeight: 600 }}>
+              {reminder.title}
+            </p>
+          )}
           <DialogFooter className="mt-2 gap-2">
             <button
               type="button"
@@ -304,7 +406,7 @@ function ReminderRow({
               className="flex h-11 flex-1 items-center justify-center rounded-xl text-sm text-white"
               style={{ backgroundColor: COLOR, border: `1.5px solid ${COLOR}`, borderBottom: `3px solid ${COLOR_DARK}`, fontWeight: 800 }}
             >
-              Done
+              {isRecurring ? "Got it, mark done" : "Done"}
             </motion.button>
           </DialogFooter>
         </DialogContent>
@@ -317,41 +419,52 @@ function ReminderRow({
 
 function Section({
   title,
+  subtitle,
   color,
-  reminders,
+  count,
   collapsed,
   onToggle,
   children,
 }: {
   title: string;
+  subtitle?: string;
   color: string;
-  reminders: ReminderRow[];
+  count: number;
   collapsed?: boolean;
   onToggle?: () => void;
   children: React.ReactNode;
 }) {
-  if (reminders.length === 0) return null;
+  if (count === 0) return null;
 
   return (
     <div className="space-y-2">
       <button
         type="button"
         onClick={onToggle}
-        className="flex w-full items-center gap-2"
+        className="flex w-full items-start gap-2"
         disabled={!onToggle}
       >
-        <span className="text-xs" style={{ color, fontWeight: 800 }}>
-          {title}
-        </span>
-        <span
-          className="rounded-full px-2 py-0.5 text-[10px]"
-          style={{ backgroundColor: color + "18", color, fontWeight: 700 }}
-        >
-          {reminders.length}
-        </span>
+        <div className="flex flex-col items-start gap-0.5">
+          <div className="flex items-center gap-2">
+            <span className="text-xs" style={{ color, fontWeight: 800 }}>
+              {title}
+            </span>
+            <span
+              className="rounded-full px-2 py-0.5 text-[10px]"
+              style={{ backgroundColor: color + "18", color, fontWeight: 700 }}
+            >
+              {count}
+            </span>
+          </div>
+          {subtitle && (
+            <span className="text-[11px]" style={{ color: "var(--roost-text-muted)", fontWeight: 600 }}>
+              {subtitle}
+            </span>
+          )}
+        </div>
         {onToggle && (
           <ChevronDown
-            className="size-3.5 ml-auto transition-transform"
+            className="size-3.5 ml-auto mt-0.5 transition-transform"
             style={{ color: "var(--roost-text-muted)", transform: collapsed ? "rotate(-90deg)" : "rotate(0deg)" }}
           />
         )}
@@ -385,6 +498,7 @@ export default function RemindersPage() {
   const [selectedReminder, setSelectedReminder] = useState<ReminderRow | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [reminderToDelete, setReminderToDelete] = useState<ReminderRow | null>(null);
+  const [snoozedCollapsed, setSnoozedCollapsed] = useState(true);
   const [completedCollapsed, setCompletedCollapsed] = useState(true);
 
   // ---- Queries ---------------------------------------------------------------
@@ -434,18 +548,22 @@ export default function RemindersPage() {
     onMutate: async (id) => {
       await queryClient.cancelQueries({ queryKey: ["reminders"] });
       const previous = queryClient.getQueryData<RemindersResponse>(["reminders"]);
-      queryClient.setQueryData<RemindersResponse>(["reminders"], (old) =>
-        old
-          ? {
-              ...old,
-              reminders: old.reminders.map((r) =>
-                r.id === id && r.frequency === "once"
-                  ? { ...r, completed: true, completed_at: new Date().toISOString() }
-                  : r
-              ),
+      queryClient.setQueryData<RemindersResponse>(["reminders"], (old) => {
+        if (!old) return old;
+        return {
+          ...old,
+          reminders: old.reminders.map((r) => {
+            if (r.id !== id) return r;
+            if (r.frequency === "once") {
+              return { ...r, completed: true, completed_at: new Date().toISOString() };
             }
-          : old
-      );
+            // Recurring: optimistic snooze using the same Math.max(next_remind_at, now) base
+            // so overdue reminders always produce a future snoozed_until
+            const snoozeUntil = calcNextSnoozeDate(r).toISOString();
+            return { ...r, snoozed_until: snoozeUntil };
+          }),
+        };
+      });
       return { previous };
     },
     onError: (_err, _id, ctx) => {
@@ -455,12 +573,12 @@ export default function RemindersPage() {
     onSettled: () => queryClient.invalidateQueries({ queryKey: ["reminders"] }),
   });
 
-  const uncheckMutation = useMutation({
+  const unsnoozeMutation = useMutation({
     mutationFn: async (id: string) => {
       const r = await fetch(`/api/reminders/${id}/complete`, { method: "DELETE" });
       if (!r.ok) {
         const d = await r.json().catch(() => ({}));
-        throw new Error(d.error ?? "Failed to undo reminder");
+        throw new Error(d.error ?? "Failed to undo");
       }
       return r.json();
     },
@@ -472,7 +590,9 @@ export default function RemindersPage() {
           ? {
               ...old,
               reminders: old.reminders.map((r) =>
-                r.id === id ? { ...r, completed: false, completed_at: null } : r
+                r.id === id
+                  ? { ...r, completed: false, completed_at: null, snoozed_until: null }
+                  : r
               ),
             }
           : old
@@ -483,12 +603,7 @@ export default function RemindersPage() {
       if (ctx?.previous) queryClient.setQueryData(["reminders"], ctx.previous);
       toast.error("Could not undo reminder", { description: "Something went wrong. Try again." });
     },
-    onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ["reminders"] });
-      toast("Reminder unmarked", {
-        action: { label: "Undo", onClick: () => {} },
-      });
-    },
+    onSettled: () => queryClient.invalidateQueries({ queryKey: ["reminders"] }),
   });
 
   const deleteMutation = useMutation({
@@ -514,9 +629,7 @@ export default function RemindersPage() {
   const members = membersData?.members ?? [];
   const currentMember = members.find((m) => m.userId === currentUserId);
   const isAdmin = currentMember?.role === "admin";
-
   const now = new Date();
-  const endOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59);
   const in7Days = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
 
   // Apply filter
@@ -527,17 +640,22 @@ export default function RemindersPage() {
     return true;
   });
 
-  // Group into sections
-  const overdue = filtered.filter((r) => !r.completed && r.next_remind_at && isPast(new Date(r.next_remind_at)) && !isToday(new Date(r.next_remind_at)));
-  const today = filtered.filter((r) => !r.completed && r.next_remind_at && isToday(new Date(r.next_remind_at)));
-  const thisWeek = filtered.filter((r) => !r.completed && r.next_remind_at && !isToday(new Date(r.next_remind_at)) && new Date(r.next_remind_at) <= in7Days && !isPast(new Date(r.next_remind_at)));
-  const later = filtered.filter((r) => !r.completed && r.next_remind_at && new Date(r.next_remind_at) > in7Days);
-  const completed = filtered.filter((r) => r.completed);
+  // Active: not completed, not snoozed
+  const active = filtered.filter((r) => !r.completed && !isSnoozed(r));
+  const snoozedList = filtered.filter((r) => isSnoozed(r));
+  const completedList = filtered.filter((r) => r.completed);
 
-  const incompleteCount = allReminders.filter((r) => !r.completed).length;
-  const dueTodayCount = allReminders.filter((r) => !r.completed && r.next_remind_at && isToday(new Date(r.next_remind_at))).length;
-  const in7DaysCount = allReminders.filter((r) => !r.completed && r.next_remind_at && new Date(r.next_remind_at) <= in7Days).length;
+  // Group active into sections
+  const overdue = active.filter((r) => r.next_remind_at && isPast(new Date(r.next_remind_at)) && !isToday(new Date(r.next_remind_at)));
+  const today = active.filter((r) => r.next_remind_at && isToday(new Date(r.next_remind_at)));
+  const thisWeek = active.filter((r) => r.next_remind_at && !isToday(new Date(r.next_remind_at)) && new Date(r.next_remind_at) <= in7Days && !isPast(new Date(r.next_remind_at)));
+  const later = active.filter((r) => r.next_remind_at && new Date(r.next_remind_at) > in7Days);
+
+  // Stats — exclude snoozed from "due today"
+  const activeDueTodayCount = allReminders.filter((r) => !r.completed && !isSnoozed(r) && r.next_remind_at && isToday(new Date(r.next_remind_at))).length;
+  const activeIn7DaysCount = allReminders.filter((r) => !r.completed && !isSnoozed(r) && r.next_remind_at && new Date(r.next_remind_at) <= in7Days).length;
   const recurringCount = allReminders.filter((r) => !r.completed && r.frequency !== "once").length;
+  const incompleteCount = allReminders.filter((r) => !r.completed && !isSnoozed(r)).length;
 
   function openCreate() {
     setSelectedReminder(null);
@@ -574,10 +692,12 @@ export default function RemindersPage() {
         onEdit={() => openEdit(r)}
         onDelete={() => openDelete(r)}
         onComplete={() => completeMutation.mutate(r.id)}
-        onUncheck={() => uncheckMutation.mutate(r.id)}
+        onUnsnooze={() => unsnoozeMutation.mutate(r.id)}
       />
     );
   }
+
+  const hasAnyContent = overdue.length + today.length + thisWeek.length + later.length + snoozedList.length + completedList.length > 0;
 
   // ---- Render ----------------------------------------------------------------
 
@@ -637,8 +757,8 @@ export default function RemindersPage() {
 
       {/* Stats */}
       <div className="grid grid-cols-3 gap-3">
-        <StatCard value={dueTodayCount} label="Due today" color={dueTodayCount > 0 ? COLOR : undefined} />
-        <StatCard value={in7DaysCount} label="This week" />
+        <StatCard value={activeDueTodayCount} label="Due today" color={activeDueTodayCount > 0 ? COLOR : undefined} />
+        <StatCard value={activeIn7DaysCount} label="This week" />
         <StatCard value={recurringCount} label="Recurring" color={recurringCount > 0 ? COLOR : undefined} />
       </div>
 
@@ -663,30 +783,40 @@ export default function RemindersPage() {
       {/* Lists */}
       {!isLoading && !isError && allReminders.length > 0 && (
         <div className="space-y-5">
-          <Section title="Overdue" color="#EF4444" reminders={overdue}>
+          <Section title="Overdue" color="#EF4444" count={overdue.length}>
             {overdue.map((r, i) => renderRow(r, i))}
           </Section>
-          <Section title="Today" color={COLOR} reminders={today}>
+          <Section title="Today" color={COLOR} count={today.length}>
             {today.map((r, i) => renderRow(r, i))}
           </Section>
-          <Section title="This week" color={COLOR} reminders={thisWeek}>
+          <Section title="This week" color={COLOR} count={thisWeek.length}>
             {thisWeek.map((r, i) => renderRow(r, i))}
           </Section>
-          <Section title="Later" color="var(--roost-text-muted)" reminders={later}>
+          <Section title="Later" color="var(--roost-text-muted)" count={later.length}>
             {later.map((r, i) => renderRow(r, i))}
+          </Section>
+          <Section
+            title="Snoozed"
+            subtitle="These will reactivate automatically"
+            color="var(--roost-text-muted)"
+            count={snoozedList.length}
+            collapsed={snoozedCollapsed}
+            onToggle={() => setSnoozedCollapsed((v) => !v)}
+          >
+            {snoozedList.map((r, i) => renderRow(r, i))}
           </Section>
           <Section
             title="Completed"
             color="var(--roost-text-muted)"
-            reminders={completed}
+            count={completedList.length}
             collapsed={completedCollapsed}
             onToggle={() => setCompletedCollapsed((v) => !v)}
           >
-            {completed.map((r, i) => renderRow(r, i))}
+            {completedList.map((r, i) => renderRow(r, i))}
           </Section>
 
           {/* Filter empty state */}
-          {filter !== "all" && overdue.length === 0 && today.length === 0 && thisWeek.length === 0 && later.length === 0 && completed.length === 0 && (
+          {filter !== "all" && !hasAnyContent && (
             <div
               className="flex flex-col items-center gap-2 rounded-2xl px-6 py-10 text-center"
               style={{ backgroundColor: "var(--roost-surface)", border: "1.5px dashed var(--roost-border)" }}

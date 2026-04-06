@@ -22,6 +22,7 @@ export const reminders = pgTable("reminders", {
   completed_by: text("completed_by").references(() => users.id),
   last_sent_at: timestamp("last_sent_at"),
   next_remind_at: timestamp("next_remind_at"),
+  snoozed_until: timestamp("snoozed_until"), // set on recurring complete, cleared on undo
   deleted_at: timestamp("deleted_at"),
   created_at: timestamp("created_at").defaultNow(),
   updated_at: timestamp("updated_at").defaultNow(),

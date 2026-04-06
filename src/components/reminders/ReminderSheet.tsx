@@ -30,6 +30,7 @@ export interface ReminderData {
   notify_user_ids: string | null;
   completed: boolean;
   next_remind_at: string | null;
+  snoozed_until: string | null;
   created_by: string;
 }
 

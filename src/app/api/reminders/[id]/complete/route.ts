@@ -6,7 +6,7 @@ import { and, eq, isNull } from "drizzle-orm";
 import { getUserHousehold } from "@/app/api/chores/route";
 import { calcNextRemindAt } from "@/app/api/reminders/route";
 
-// ---- POST: mark complete (or advance recurring) ------------------------------
+// ---- POST: mark complete (one-time) or snooze until next occurrence (recurring) ---
 
 export async function POST(
   request: NextRequest,
@@ -41,7 +41,7 @@ export async function POST(
   let updated;
 
   if (existing.frequency === "once") {
-    // Mark as permanently completed
+    // One-time: permanently completed
     [updated] = await db
       .update(reminders)
       .set({
@@ -53,7 +53,7 @@ export async function POST(
       .where(eq(reminders.id, id))
       .returning();
   } else {
-    // Recurring: advance to next occurrence, don't mark completed
+    // Recurring: snooze until next occurrence (do NOT set completed = true)
     const customDays = existing.custom_days ? (JSON.parse(existing.custom_days) as number[]) : null;
     const nextRemindAt = calcNextRemindAt(existing.frequency, customDays, existing.next_remind_at ?? now);
 
@@ -62,6 +62,7 @@ export async function POST(
       .set({
         last_sent_at: now,
         next_remind_at: nextRemindAt,
+        snoozed_until: nextRemindAt, // grayed-out until this time
         updated_at: now,
       })
       .where(eq(reminders.id, id))
@@ -77,7 +78,7 @@ export async function POST(
   return Response.json({ reminder: updated });
 }
 
-// ---- DELETE: undo complete (one-time only) -----------------------------------
+// ---- DELETE: undo complete/snooze -------------------------------------------
 
 export async function DELETE(
   request: NextRequest,
@@ -99,7 +100,7 @@ export async function DELETE(
   const { householdId } = membership;
 
   const [existing] = await db
-    .select({ id: reminders.id, frequency: reminders.frequency, household_id: reminders.household_id })
+    .select({ id: reminders.id, frequency: reminders.frequency, remind_at: reminders.remind_at })
     .from(reminders)
     .where(and(eq(reminders.id, id), eq(reminders.household_id, householdId), isNull(reminders.deleted_at)))
     .limit(1);
@@ -107,15 +108,24 @@ export async function DELETE(
   if (!existing) {
     return Response.json({ error: "Reminder not found" }, { status: 404 });
   }
-  if (existing.frequency !== "once") {
-    return Response.json({ error: "Cannot undo recurring reminders" }, { status: 400 });
-  }
 
-  const [updated] = await db
-    .update(reminders)
-    .set({ completed: false, completed_at: null, completed_by: null, updated_at: new Date() })
-    .where(eq(reminders.id, id))
-    .returning();
+  let updated;
+
+  if (existing.frequency === "once") {
+    // Undo permanent completion
+    [updated] = await db
+      .update(reminders)
+      .set({ completed: false, completed_at: null, completed_by: null, updated_at: new Date() })
+      .where(eq(reminders.id, id))
+      .returning();
+  } else {
+    // Undo snooze: clear snoozed_until, restore next_remind_at to remind_at
+    [updated] = await db
+      .update(reminders)
+      .set({ snoozed_until: null, next_remind_at: existing.remind_at, updated_at: new Date() })
+      .where(eq(reminders.id, id))
+      .returning();
+  }
 
   return Response.json({ reminder: updated });
 }

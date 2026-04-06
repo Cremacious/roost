@@ -14,22 +14,24 @@ export function calcNextRemindAt(
   customDays: number[] | null,
   from: Date
 ): Date | null {
+  // Always use the later of `from` and now so overdue reminders don't produce a past date
+  const base = new Date(Math.max(from.getTime(), Date.now()));
   switch (frequency) {
     case "once":
       return null;
     case "daily":
-      return addDays(from, 1);
+      return addDays(base, 1);
     case "weekly":
-      return addDays(from, 7);
+      return addDays(base, 7);
     case "monthly":
-      return addMonths(from, 1);
+      return addMonths(base, 1);
     case "custom": {
-      if (!customDays || customDays.length === 0) return addDays(from, 1);
+      if (!customDays || customDays.length === 0) return addDays(base, 1);
       for (let i = 1; i <= 7; i++) {
-        const candidate = addDays(from, i);
+        const candidate = addDays(base, i);
         if (customDays.includes(candidate.getDay())) return candidate;
       }
-      return addDays(from, 1);
+      return addDays(base, 1);
     }
     default:
       return null;
@@ -87,6 +89,7 @@ export async function GET(request: NextRequest): Promise<Response> {
       completed_by: reminders.completed_by,
       last_sent_at: reminders.last_sent_at,
       next_remind_at: reminders.next_remind_at,
+      snoozed_until: reminders.snoozed_until,
       created_by: reminders.created_by,
       created_at: reminders.created_at,
       updated_at: reminders.updated_at,

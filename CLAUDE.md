@@ -467,6 +467,11 @@ src/app/(app)/meals/page.tsx                  Full meals module: Planner/Meal Ba
   Date mode: shows 7-day picker (Mon-Sun of current week) + slot type pills, then saves directly
   Day labels: "Today", "Tomorrow", or short weekday (Mon/Tue/etc); dot indicator if slot filled
   Toast: "Added to {weekday} {slot label}" using the chosen date + slot type
+  Edit mode (existing slot): title is "Change meal", shows "Currently: [meal name]" in muted text
+  Edit menu shows same two options as create: pick from bank OR quick add
+  Quick add in edit mode upserts via POST (unique constraint replaces existing slot, no API change)
+  Remove from plan button always visible in edit mode (ghost style, red, Trash2 icon)
+  Remove requires AlertDialog confirmation: "Remove from plan?" with meal name and day/slot in description
 - Meal Bank: searchable, filterable by category (All/Breakfast/Lunch/Dinner/Snack)
   Meal cards: name, category badge, prep time, ingredient count, description truncated
   Actions: "Add to planner" (opens slot picker), grocery cart icon (pushes ingredients), edit icon
@@ -732,7 +737,7 @@ Designer brief (send this when hiring):
 At the start of each new session fetch this file to restore context.
 Share GitHub file URLs, paste code, or describe what was built.
 Update this file after every major decision or completed phase.
-Last updated: 2026-04-05 (meal planning module complete: planner, bank, suggestions, voting, grocery integration; Phase 5 Allowance System roadmap; desktop sheet centering via globals.css; meal UX patterns updated: confirmation dialogs, suggestion form fields, date-mode slot picker, query invalidation)
+Last updated: 2026-04-05 (meal planning module complete: planner, bank, suggestions, voting, grocery integration; Phase 5 Allowance System roadmap; desktop sheet centering via globals.css; meal UX patterns updated: confirmation dialogs, suggestion form fields, date-mode slot picker, query invalidation; MealSlotSheet edit mode: two options + AlertDialog remove confirm)
 
 ## Bugs Found and Fixed (2026-04-05)
 - No default grocery list created on household signup: `GET /api/grocery/lists` now

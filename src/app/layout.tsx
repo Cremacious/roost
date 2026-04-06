@@ -7,7 +7,7 @@ import { db } from "@/lib/db";
 import { users } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { headers } from "next/headers";
-import { DEFAULT_THEME, type ThemeKey } from "@/lib/constants/themes";
+import { DEFAULT_THEME } from "@/lib/constants/themes";
 import "./globals.css";
 
 const nunito = Nunito({
@@ -90,7 +90,7 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  let initialTheme: ThemeKey = DEFAULT_THEME;
+  let initialTheme: string = DEFAULT_THEME;
 
   try {
     const session = await auth.api.getSession({ headers: await headers() });
@@ -101,7 +101,7 @@ export default async function RootLayout({
         .where(eq(users.id, session.user.id))
         .limit(1);
       if (user?.theme) {
-        initialTheme = user.theme as ThemeKey;
+        initialTheme = user.theme;
       }
     }
   } catch {

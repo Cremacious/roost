@@ -19,16 +19,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 // ---- Types ------------------------------------------------------------------
 
-interface Member {
-  id: string;
-  userId: string;
-  name: string;
-  avatarColor: string | null;
-}
-
 interface MembersResponse {
   household: { id: string; name: string };
-  members: Member[];
 }
 
 interface WeatherResponse {
@@ -46,10 +38,6 @@ function getWeatherIcon(code: number) {
   if (code <= 82) return <CloudRain className="size-3.5" />;
   if (code <= 86) return <CloudSnow className="size-3.5" />;
   return <CloudLightning className="size-3.5" />;
-}
-
-function initials(name: string): string {
-  return name.split(" ").slice(0, 2).map((w) => w[0]).join("").toUpperCase();
 }
 
 function formatTime(date: Date): string {
@@ -82,21 +70,19 @@ export default function TopBar() {
     if (locationRequested.current) return;
     locationRequested.current = true;
 
-    if (latitude !== null) return; // Already have stored location
+    if (latitude !== null) return;
     if (!navigator.geolocation) return;
 
     navigator.geolocation.getCurrentPosition(
       async (position) => {
         const { latitude: lat, longitude: lon } = position.coords;
 
-        // Save location
         await fetch("/api/user/preferences", {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ latitude: lat, longitude: lon }),
         }).catch(() => {});
 
-        // Auto-detect unit on first location grant using browser timezone
         const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
         const unit = tz.startsWith("America/") ? "fahrenheit" : "celsius";
         await fetch("/api/user/preferences", {
@@ -105,7 +91,6 @@ export default function TopBar() {
           body: JSON.stringify({ temperature_unit: unit }),
         }).catch(() => {});
 
-        // Refresh preferences so weather query picks up new coords + unit
         queryClient.invalidateQueries({ queryKey: ["user-preferences"] });
       },
       (error) => {
@@ -149,12 +134,9 @@ export default function TopBar() {
     retry: false,
   });
 
-  const members = membersData?.members ?? [];
   const householdName = membersData?.household?.name ?? "";
   const weather = weatherData?.current_weather;
   const unitLabel = temperatureUnit === "fahrenheit" ? "°F" : "°C";
-  const visibleMembers = members.slice(0, 4);
-  const overflow = members.length > 4 ? members.length - 4 : 0;
 
   return (
     <header
@@ -170,73 +152,41 @@ export default function TopBar() {
           <RoostLogo size="sm" />
         </div>
         <span
-          className="text-base truncate max-w-40"
+          className="hidden text-base truncate max-w-48 md:block"
           style={{ color: "var(--roost-text-primary)", fontWeight: 800 }}
         >
           {householdName || "\u00A0"}
         </span>
       </div>
 
-      {/* Right: weather chip + time + avatars */}
-      <div className="flex items-center gap-2">
+      {/* Right: weather chip + time */}
+      <div className="flex items-center gap-3">
         {/* Weather chip */}
         {weatherLoading ? (
-          <Skeleton className="h-6 w-20 rounded-full" />
+          <Skeleton className="h-7 w-20 rounded-full" />
         ) : weather ? (
           <div
-            className="flex items-center gap-1 rounded-full px-2.5 py-1 text-xs"
+            className="flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[13px]"
             style={{
-              backgroundColor: "var(--roost-border)",
-              color: "var(--roost-text-secondary)",
-              fontWeight: 600,
+              backgroundColor: "var(--roost-weather-bg)",
+              color: "var(--roost-weather-color)",
+              fontWeight: 700,
             }}
           >
             {getWeatherIcon(weather.weathercode)}
             <span>
-              {Math.round(weather.temperature)}
-              {unitLabel}
+              {Math.round(weather.temperature)}{unitLabel}
             </span>
           </div>
         ) : null}
 
         {/* Time */}
         <span
-          className="hidden text-sm tabular-nums sm:block"
-          style={{ color: "var(--roost-text-secondary)", fontWeight: 600 }}
+          className="hidden tabular-nums sm:block text-[13px]"
+          style={{ color: "var(--roost-text-muted)", fontWeight: 700 }}
         >
           {time}
         </span>
-
-        {/* Member avatars */}
-        {members.length > 0 && (
-          <div className="flex -space-x-2">
-            {visibleMembers.map((m) => (
-              <div
-                key={m.id}
-                title={m.name}
-                className="flex h-7 w-7 items-center justify-center rounded-full border-2 text-[10px] font-semibold text-white"
-                style={{
-                  background: m.avatarColor ?? "#6366f1",
-                  borderColor: "var(--roost-topbar-bg)",
-                }}
-              >
-                {initials(m.name)}
-              </div>
-            ))}
-            {overflow > 0 && (
-              <div
-                className="flex h-7 w-7 items-center justify-center rounded-full border-2 text-[10px] font-semibold"
-                style={{
-                  backgroundColor: "var(--roost-border)",
-                  borderColor: "var(--roost-topbar-bg)",
-                  color: "var(--roost-text-secondary)",
-                }}
-              >
-                +{overflow}
-              </div>
-            )}
-          </div>
-        )}
       </div>
     </header>
   );

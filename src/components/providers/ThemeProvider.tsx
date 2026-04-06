@@ -5,6 +5,12 @@ import { toast } from "sonner";
 import { THEMES, DEFAULT_THEME, type ThemeKey } from "@/lib/constants/themes";
 import { useThemeStore } from "@/lib/store/themeStore";
 
+const VALID_THEME_KEYS = new Set(Object.keys(THEMES));
+
+function resolveThemeKey(key: string): ThemeKey {
+  return VALID_THEME_KEYS.has(key) ? (key as ThemeKey) : DEFAULT_THEME;
+}
+
 // ---- Apply theme ------------------------------------------------------------
 
 export function applyTheme(key: ThemeKey) {
@@ -21,6 +27,14 @@ export function applyTheme(key: ThemeKey) {
   root.style.setProperty("--roost-text-muted", theme.textMuted);
   root.style.setProperty("--roost-topbar-bg", theme.topbarBg);
   root.style.setProperty("--roost-topbar-border", theme.topbarBorder);
+  root.style.setProperty("--roost-sidebar-bg", theme.sidebarBg);
+  root.style.setProperty("--roost-sidebar-border", theme.sidebarBorder);
+  root.style.setProperty("--roost-sidebar-active-bg", theme.sidebarActiveBg);
+  root.style.setProperty("--roost-sidebar-active-text", theme.sidebarActiveText);
+  root.style.setProperty("--roost-sidebar-inactive-text", theme.sidebarInactiveText);
+  root.style.setProperty("--roost-sidebar-divider", theme.sidebarDivider);
+  root.style.setProperty("--roost-weather-bg", theme.weatherBg);
+  root.style.setProperty("--roost-weather-color", theme.weatherColor);
 
   // Override shadcn/Tailwind variables so existing classes respond to theme
   root.style.setProperty("--background", theme.bg);
@@ -35,9 +49,13 @@ export function applyTheme(key: ThemeKey) {
   root.style.setProperty("--muted-foreground", theme.textMuted);
   root.style.setProperty("--secondary", theme.surface);
   root.style.setProperty("--secondary-foreground", theme.textSecondary);
-  root.style.setProperty("--sidebar", theme.surface);
+  root.style.setProperty("--sidebar", theme.sidebarBg);
   root.style.setProperty("--sidebar-foreground", theme.textPrimary);
-  root.style.setProperty("--sidebar-border", theme.border);
+  root.style.setProperty("--sidebar-border", theme.sidebarBorder);
+
+  // Data attributes for CSS selectors (e.g. toast dark theme override)
+  root.setAttribute("data-theme", key);
+  root.setAttribute("data-dark", theme.dark ? "true" : "false");
 
   // Toggle dark class for shadcn dark: Tailwind variants
   if (theme.dark) {
@@ -76,16 +94,16 @@ export function useTheme() {
 
 interface ThemeProviderProps {
   children: React.ReactNode;
-  initialTheme: ThemeKey;
+  initialTheme: string;
 }
 
 export default function ThemeProvider({ children, initialTheme }: ThemeProviderProps) {
   const setThemeStore = useThemeStore((s) => s.setTheme);
 
   useEffect(() => {
-    const theme = initialTheme ?? DEFAULT_THEME;
-    setThemeStore(theme);
-    applyTheme(theme);
+    const resolved = resolveThemeKey(initialTheme ?? DEFAULT_THEME);
+    setThemeStore(resolved);
+    applyTheme(resolved);
   }, [initialTheme, setThemeStore]);
 
   return <>{children}</>;

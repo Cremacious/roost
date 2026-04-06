@@ -429,7 +429,6 @@ export default function DashboardPage() {
     );
   }
 
-  const householdName = membersData?.household?.name ?? "";
   const activityItems = (activityData?.activity ?? []).map(mapActivity);
 
   function expensesStatusText(): string {
@@ -483,9 +482,8 @@ export default function DashboardPage() {
             >
               {getGreeting(userName)}
             </h1>
-            <p className="mt-0.5 text-sm" style={{ color: "var(--roost-text-muted)", fontWeight: 600 }}>
+            <p className="mt-0.5 text-[13px]" style={{ color: "#9B9590", fontWeight: 600 }}>
               {formatDate()}
-              {householdName && ` · ${householdName}`}
             </p>
           </div>
         )}

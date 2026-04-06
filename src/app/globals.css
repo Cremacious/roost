@@ -49,16 +49,24 @@
 }
 
 :root {
-  /* Roost theme variables — warm theme defaults, overridden at runtime by ThemeProvider */
-  --roost-bg: #FAFAF9;
+  /* Roost theme variables — default theme values, overridden at runtime by ThemeProvider */
+  --roost-bg: #FFF5F5;
   --roost-surface: #FFFFFF;
-  --roost-border: #E8E4DF;
-  --roost-border-bottom: #D4CFC9;
-  --roost-text-primary: #1A1714;
-  --roost-text-secondary: #6B6560;
-  --roost-text-muted: #9B9590;
+  --roost-border: #F5C5C5;
+  --roost-border-bottom: #C93B3B;
+  --roost-text-primary: #1A0505;
+  --roost-text-secondary: #5A2020;
+  --roost-text-muted: #9B6060;
   --roost-topbar-bg: #FFFFFF;
-  --roost-topbar-border: #F0EDE8;
+  --roost-topbar-border: #F5C5C5;
+  --roost-sidebar-bg: #FFFFFF;
+  --roost-sidebar-border: #F5C5C5;
+  --roost-sidebar-active-bg: rgba(239,68,68,0.10);
+  --roost-sidebar-active-text: #EF4444;
+  --roost-sidebar-inactive-text: #7A4040;
+  --roost-sidebar-divider: #F5C5C5;
+  --roost-weather-bg: rgba(239,68,68,0.08);
+  --roost-weather-color: #EF4444;
 
   --background: oklch(1 0 0);
   --foreground: oklch(0.145 0 0);
@@ -66,7 +74,7 @@
   --card-foreground: oklch(0.145 0 0);
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
+  --primary: oklch(0.577 0.245 27.325);
   --primary-foreground: oklch(0.985 0 0);
   --secondary: oklch(0.97 0 0);
   --secondary-foreground: oklch(0.205 0 0);
@@ -230,8 +238,7 @@
   color: var(--roost-text-primary) !important;
 }
 
-[data-theme="midnight"] .roost-toast,
-[data-theme="charcoal"] .roost-toast {
+[data-theme="midnight"] .roost-toast {
   background: var(--roost-surface) !important;
   border-color: var(--roost-border) !important;
 }

@@ -187,24 +187,40 @@ Tasks: one-off to-dos
 
 ## Features: Theme System
 - Each user has their own saved theme stored in users.theme (DB)
-- 8 themes: warm, slate, midnight, forest, rose, sand, lavender, charcoal
-  warm = "Warm Linen" (default, light)
-  slate = "Slate" (light blue-gray)
+- 5 themes: default, midnight, forest, slate, sand
+  default = "Roost Red" (brand default, light, red-tinted)
   midnight = "Midnight" (dark, dark:true)
   forest = "Forest" (light green)
-  rose = "Rose" (light pink)
+  slate = "Slate" (light blue-gray)
   sand = "Sand" (light amber)
-  lavender = "Lavender" (light purple)
-  charcoal = "Charcoal" (dark, dark:true)
 - ThemeProvider reads user's theme server-side, applies CSS variables on mount
+- ThemeProvider accepts string for initialTheme and resolves unknown keys to DEFAULT_THEME
+  (handles existing users whose DB value may be an old theme name like 'warm')
 - useTheme() hook: { theme, setTheme } -- setTheme applies instantly + PATCHes API
 - CSS variables: --roost-bg, --roost-surface, --roost-border, --roost-border-bottom,
   --roost-text-primary, --roost-text-secondary, --roost-text-muted,
-  --roost-topbar-bg, --roost-topbar-border
+  --roost-topbar-bg, --roost-topbar-border,
+  --roost-sidebar-bg, --roost-sidebar-border, --roost-sidebar-active-bg,
+  --roost-sidebar-active-text, --roost-sidebar-inactive-text, --roost-sidebar-divider,
+  --roost-weather-bg, --roost-weather-color
+- ThemeProvider sets data-theme and data-dark attributes on <html> element
 - ThemeProvider also overrides shadcn CSS vars (--background, --card, etc.)
   so existing Tailwind classes respond to theme automatically
 - SlabCard is the base card for the entire app: rounded-2xl, border + 4px colored bottom
-- Settings page (/settings) has a theme picker grid -- changes apply instantly, no save button
+- Settings page (/settings) has a theme picker grid (5 cards) -- changes apply instantly, no save button
+- Selected theme card: border 2px solid #EF4444, border-bottom 4px solid #C93B3B
+
+## Brand Guidelines
+- Primary brand color: #EF4444 (Roost Red)
+- Primary dark: #C93B3B
+- Brand red used for: sidebar active state, bottom nav Home/Chores active, primary buttons,
+  "See all" links, selected theme card border, shadcn --primary (Switch, Checkbox etc.)
+- Section colors unchanged (chores, grocery, calendar, expenses, meals, notes, reminders, tasks)
+- Date subheading on dashboard always uses #9B9590 hardcoded — never tinted by theme
+- TopBar: household name + weather chip + time only. No user avatars.
+- Sidebar: brand red active state (all items). User name + role + MemberAvatar at bottom.
+  No user avatar in TopBar. Sidebar reads user session + role via useSession() + useHousehold() directly.
+- BottomNav: Home active = #EF4444, Chores active = #EF4444, Grocery = #F59E0B, Calendar = #3B82F6
 
 ## Logo
 - Placeholder logo lives in src/components/shared/RoostLogo.tsx
@@ -331,7 +347,7 @@ src/lib/auth/index.ts                          better-auth server config
 src/lib/auth/client.ts                         better-auth client (signIn, signUp, signOut, useSession)
 src/lib/auth/helpers.ts                        requireSession, requireHouseholdMember, requireHouseholdAdmin, requirePremium, blockChild
 src/lib/constants/colors.ts                    All 8 section colors, always import from here
-src/lib/constants/themes.ts                    8 themes: warm, slate, midnight, forest, rose, sand, lavender, charcoal
+src/lib/constants/themes.ts                    5 themes: default (Roost Red), midnight, forest, slate, sand
 src/lib/store/themeStore.ts                    Zustand store: { theme, setTheme }
 src/lib/db/index.ts                            Neon + Drizzle instance
 src/db/schema/auth.ts                          better-auth tables (user, session, account, verification)
@@ -786,7 +802,7 @@ Designer brief (send this when hiring):
 At the start of each new session fetch this file to restore context.
 Share GitHub file URLs, paste code, or describe what was built.
 Update this file after every major decision or completed phase.
-Last updated: 2026-04-06 (desktop layout: PageContainer max-w-4xl on all pages; dashboard restructured to stacked layout; /activity page created; activity API supports pagination)
+Last updated: 2026-04-06 (theme overhaul: 5 themes with brand red #EF4444; sidebar/topbar/bottomnav updated; new CSS vars for sidebar + weather; dashboard date hardcoded #9B9590)
 
 ## Bugs Found and Fixed (2026-04-05)
 - No default grocery list created on household signup: `GET /api/grocery/lists` now

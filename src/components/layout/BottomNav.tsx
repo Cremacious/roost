@@ -33,7 +33,7 @@ interface NavItem {
 }
 
 const NAV_ITEMS: NavItem[] = [
-  { label: "Home",     href: "/dashboard", icon: Home,        activeColor: "#3B82F6" },
+  { label: "Home",     href: "/dashboard", icon: Home,        activeColor: "#EF4444" },
   { label: "Chores",   href: "/chores",    icon: CheckSquare, activeColor: "#EF4444" },
   { label: "Grocery",  href: "/grocery",   icon: ShoppingCart, activeColor: "#F59E0B" },
   { label: "Calendar", href: "/calendar",  icon: Calendar,    activeColor: "#3B82F6" },
@@ -62,8 +62,8 @@ export default function BottomNav({ hasIncompleteChores = false }: BottomNavProp
       <nav
         className="fixed bottom-0 left-0 right-0 z-40 flex h-16 border-t md:hidden"
         style={{
-          backgroundColor: "var(--roost-surface)",
-          borderTopColor: "var(--roost-topbar-border)",
+          backgroundColor: "var(--roost-sidebar-bg)",
+          borderTopColor: "var(--roost-sidebar-border)",
         }}
       >
         {NAV_ITEMS.map((item) => {
@@ -78,7 +78,7 @@ export default function BottomNav({ hasIncompleteChores = false }: BottomNavProp
               <div className="relative">
                 <Icon
                   className="size-5"
-                  style={{ color: isActive ? item.activeColor : "var(--roost-text-muted)" }}
+                  style={{ color: isActive ? item.activeColor : "var(--roost-sidebar-inactive-text)" }}
                 />
                 {item.label === "Chores" && hasIncompleteChores && (
                   <span className="absolute -right-1 -top-1 size-2 rounded-full bg-[#EF4444]" />
@@ -105,11 +105,11 @@ export default function BottomNav({ hasIncompleteChores = false }: BottomNavProp
         >
           <MoreHorizontal
             className="size-5"
-            style={{ color: "var(--roost-text-muted)" }}
+            style={{ color: "var(--roost-sidebar-inactive-text)" }}
           />
           <span
             className="text-[10px]"
-            style={{ color: "var(--roost-text-muted)", fontWeight: 600 }}
+            style={{ color: "var(--roost-sidebar-inactive-text)", fontWeight: 600 }}
           >
             More
           </span>

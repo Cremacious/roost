@@ -514,6 +514,10 @@ src/components/shared/ReminderBanner.tsx      Dismissible banner below TopBar wh
 vercel.json                                   Cron schedule: /api/cron/reminders every 15 minutes
 src/components/layout/PageContainer.tsx        Content width constraint: max-w-4xl (896px) centered, full width mobile
 src/app/(app)/activity/page.tsx               Full activity feed: paginated list, 20 per page, Load more button
+src/app/page.tsx                              Public marketing homepage (server component, no app shell)
+src/app/(auth)/login/page.tsx                 Split layout: red left panel (desktop), form right panel; slab inputs on #FFF5F5
+src/app/(auth)/signup/page.tsx                Split layout matching login; all validation logic preserved
+src/app/(auth)/child-login/page.tsx           Single centered column on #FFF5F5; styled PIN pad with red dots
 
 ## Reminders UX Patterns
 - Reminder types: once (completes after firing) and recurring (daily/weekly/monthly/custom)
@@ -669,6 +673,26 @@ src/app/(app)/activity/page.tsx               Full activity feed: paginated list
 - No em dashes and no double hyphens in any UI-facing text, placeholders, copy, or JSX string content.
   Use commas, colons, periods, or reword instead. This applies to ALL files forever.
 - Text opacity: never use opacity below /70 for text. Use --roost-text-muted instead of text-primary/50.
+## Routing Rules (src/proxy.ts)
+- / is always public, never redirected, no auth check
+- /login, /signup, /child-login are public; if already signed in, redirect to /dashboard
+- All /(app)/* routes require auth; if not signed in, redirect to /login with callbackUrl
+- /onboarding requires auth, no household check
+- API routes (/api/*) bypass middleware entirely and handle their own auth (return 401/403, not redirect)
+- Public assets (/brand/*, /images/*, static files) bypass middleware via matcher config
+
+## Auth Page Layout
+- Login and Signup: desktop = flex row split layout (40% red left panel, 60% form right panel)
+- Left panel: red background #EF4444, centered logo + wordmark + tagline + 3 feature highlights
+- Right panel: background #FFF5F5, centered form, max-width 400px
+- Mobile: left panel hidden (hidden sm:flex), right panel full width on #FFF5F5
+- Mobile-only logo block: flex sm:hidden at top of form
+- Inputs use border: 1.5px solid #F5C5C5, borderBottom: 3px solid #D4CFC9, borderRadius 14px
+- Submit button: background #EF4444, borderBottom: 3px solid #C93B3B, borderRadius 14px
+- Child login: no split layout, single centered column, max-width 360px, background #FFF5F5
+- Child login PIN dots: filled = #EF4444, empty = #F5C5C5
+- Child login PIN pad buttons: white bg, border 1.5px solid #F5C5C5, borderBottom 3px solid #D4CFC9
+
 - HIDE_NAV_ROUTES = ['/onboarding']: AppShell hides Sidebar, TopBar, and BottomNav on these routes.
   Add routes here when a page has its own full-screen layout. AppShell also removes the main padding
   offsets (pt-14, pb-16, md:pl-55) on hidden-nav routes.
@@ -862,7 +886,7 @@ Designer brief (send this when hiring):
 At the start of each new session fetch this file to restore context.
 Share GitHub file URLs, paste code, or describe what was built.
 Update this file after every major decision or completed phase.
-Last updated: 2026-04-06 (section color consistency pass: EmptyState icon box uses section color borderBottom, PageHeader accepts color prop for badge, calendar nav arrows are simple circular (no slab), tasks+reminders filter pills use section color for active state, chores completion circles use section color at 40% when incomplete, grocery/chores custom empty states updated, dashboard See All links use brand red)
+Last updated: 2026-04-06 (public homepage + auth page redesign + routing fix: / is always public, /login/signup redirect to dashboard if signed in, auth pages use split desktop layout with red left panel)
 
 ## Bugs Found and Fixed (2026-04-05)
 - No default grocery list created on household signup: `GET /api/grocery/lists` now

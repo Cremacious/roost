@@ -3,14 +3,38 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 import { toast } from "sonner";
 import { signIn } from "@/lib/auth/client";
-import { Eye, EyeOff, Loader2 } from "lucide-react";
+import { CheckSquare, DollarSign, Eye, EyeOff, Loader2, ShoppingCart } from "lucide-react";
 import { motion } from "framer-motion";
-import RoostLogo from "@/components/shared/RoostLogo";
 
-const inputClass =
-  "flex h-12 w-full rounded-xl border bg-transparent px-4 text-sm placeholder:italic focus:outline-none transition-colors";
+const FEATURES = [
+  {
+    icon: CheckSquare,
+    title: "Chores sorted",
+    desc: "Assign, track, and actually get them done.",
+  },
+  {
+    icon: ShoppingCart,
+    title: "Groceries covered",
+    desc: "One list the whole house uses.",
+  },
+  {
+    icon: DollarSign,
+    title: "Bills split fairly",
+    desc: "No more awkward money conversations.",
+  },
+];
+
+const inputStyle: React.CSSProperties = {
+  border: "1.5px solid #F5C5C5",
+  borderBottom: "3px solid #D4CFC9",
+  color: "#1A0505",
+  fontWeight: 600,
+  backgroundColor: "transparent",
+  borderRadius: 14,
+};
 
 export default function LoginPage() {
   const router = useRouter();
@@ -24,7 +48,9 @@ export default function LoginPage() {
     setLoading(true);
     const { error } = await signIn.email({ email, password });
     if (error) {
-      toast.error(error.message ?? "Sign in failed");
+      toast.error(error.message ?? "Sign in failed", {
+        description: "Check your email and password and try again.",
+      });
       setLoading(false);
       return;
     }
@@ -32,149 +58,193 @@ export default function LoginPage() {
   }
 
   return (
-    <div
-      className="flex min-h-screen flex-col items-center justify-center p-4"
-      style={{ backgroundColor: "var(--roost-bg)" }}
-    >
-      <motion.div
-        initial={{ opacity: 0, y: 12 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.18, ease: "easeOut" }}
-        className="w-full max-w-sm space-y-8"
+    <div style={{ display: "flex", minHeight: "100vh", fontFamily: "var(--font-nunito)" }}>
+      {/* Left panel — desktop only */}
+      <div
+        className="hidden sm:flex"
+        style={{
+          width: "40%",
+          backgroundColor: "#EF4444",
+          flexDirection: "column",
+          alignItems: "center",
+          justifyContent: "center",
+          padding: 48,
+        }}
       >
-        {/* Logo + greeting */}
-        <div className="flex flex-col items-center gap-3 text-center">
-          <RoostLogo size="lg" variant="dark" />
-          <div>
-            <h1
-              className="text-3xl"
-              style={{ color: "var(--roost-text-primary)", fontWeight: 900 }}
-            >
-              Welcome back.
-            </h1>
-            <p
-              className="mt-1 text-sm"
-              style={{ color: "var(--roost-text-secondary)", fontWeight: 600 }}
-            >
-              Your household is waiting.
-            </p>
-          </div>
-        </div>
+        {/* Logo */}
+        <Image
+          src="/brand/roost-icon.png"
+          alt="Roost"
+          width={48}
+          height={48}
+          style={{ borderRadius: 14, objectFit: "cover" }}
+        />
+        <p style={{ fontWeight: 900, fontSize: 28, color: "white", marginTop: 12, marginBottom: 6 }}>Roost</p>
+        <p style={{ fontWeight: 700, fontSize: 16, color: "rgba(255,255,255,0.8)", marginBottom: 40 }}>
+          Home, sorted.
+        </p>
 
-        {/* Form */}
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-1.5">
-            <label
-              htmlFor="email"
-              className="text-sm"
-              style={{ color: "var(--roost-text-primary)", fontWeight: 700 }}
-            >
-              Email
-            </label>
-            <input
-              id="email"
-              type="email"
-              autoComplete="email"
-              required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="you@example.com"
-              className={inputClass}
-              style={{
-                border: "1.5px solid var(--roost-border)",
-                borderBottom: "3px solid var(--roost-border-bottom)",
-                color: "var(--roost-text-primary)",
-                fontWeight: 600,
-              }}
-            />
-          </div>
-
-          <div className="space-y-1.5">
-            <div className="flex items-center justify-between">
-              <label
-                htmlFor="password"
-                className="text-sm"
-                style={{ color: "var(--roost-text-primary)", fontWeight: 700 }}
-              >
-                Password
-              </label>
-              <button
-                type="button"
-                className="text-xs"
-                style={{ color: "var(--roost-text-secondary)", fontWeight: 600 }}
-              >
-                Forgot password?
-              </button>
-            </div>
-            <div className="relative">
-              <input
-                id="password"
-                type={showPassword ? "text" : "password"}
-                autoComplete="current-password"
-                required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="Your password"
-                className={`${inputClass} pr-11`}
+        {/* Feature highlights */}
+        <div style={{ width: "100%", maxWidth: 280 }}>
+          {FEATURES.map(({ icon: Icon, title, desc }) => (
+            <div key={title} style={{ display: "flex", gap: 12, marginBottom: 20 }}>
+              <div
                 style={{
-                  border: "1.5px solid var(--roost-border)",
-                  borderBottom: "3px solid var(--roost-border-bottom)",
-                  color: "var(--roost-text-primary)",
-                  fontWeight: 600,
+                  width: 32,
+                  height: 32,
+                  borderRadius: "50%",
+                  backgroundColor: "rgba(255,255,255,0.2)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  flexShrink: 0,
                 }}
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword((v) => !v)}
-                className="absolute right-3 top-1/2 -translate-y-1/2"
-                style={{ color: "var(--roost-text-muted)" }}
-                tabIndex={-1}
               >
-                {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
-              </button>
+                <Icon size={15} color="white" />
+              </div>
+              <div>
+                <p style={{ fontWeight: 700, fontSize: 14, color: "white", marginBottom: 2 }}>{title}</p>
+                <p style={{ fontWeight: 600, fontSize: 13, color: "rgba(255,255,255,0.75)", lineHeight: 1.4 }}>{desc}</p>
+              </div>
             </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Right panel — form */}
+      <div
+        style={{
+          flex: 1,
+          backgroundColor: "#FFF5F5",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          padding: "48px 24px",
+          minHeight: "100vh",
+        }}
+      >
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.18, ease: "easeOut" }}
+          style={{ width: "100%", maxWidth: 400 }}
+        >
+          {/* Mobile-only logo */}
+          <div className="flex sm:hidden" style={{ flexDirection: "column", alignItems: "center", marginBottom: 28 }}>
+            <Image
+              src="/brand/roost-icon.png"
+              alt="Roost"
+              width={48}
+              height={48}
+              style={{ borderRadius: 14, objectFit: "cover" }}
+            />
+            <p style={{ fontWeight: 900, fontSize: 20, color: "#1A0505", marginTop: 8 }}>Roost</p>
           </div>
 
-          <motion.button
-            type="submit"
-            disabled={loading}
-            whileTap={{ y: 2 }}
-            className="flex h-12 w-full items-center justify-center rounded-xl text-sm text-white disabled:opacity-60"
-            style={{
-              backgroundColor: "var(--roost-text-primary)",
-              border: "1.5px solid var(--roost-text-primary)",
-              borderBottom: "3px solid rgba(0,0,0,0.25)",
-              fontWeight: 800,
-            }}
-          >
-            {loading ? <Loader2 className="size-4 animate-spin" /> : "Sign in"}
-          </motion.button>
-        </form>
+          {/* Heading */}
+          <h1 style={{ fontSize: 28, fontWeight: 900, color: "#1A0505", marginBottom: 4 }}>Welcome back.</h1>
+          <p style={{ fontSize: 14, fontWeight: 600, color: "#5A2020", marginBottom: 28 }}>
+            Your household is waiting.
+          </p>
 
-        {/* Footer links */}
-        <div className="space-y-3 text-center">
-          <p
-            className="text-sm"
-            style={{ color: "var(--roost-text-secondary)", fontWeight: 600 }}
-          >
-            New here?{" "}
+          {/* Form */}
+          <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+            {/* Email */}
+            <div>
+              <label style={{ display: "block", fontSize: 13, fontWeight: 700, color: "#1A0505", marginBottom: 6 }}>
+                Email
+              </label>
+              <input
+                type="email"
+                autoComplete="email"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="you@example.com"
+                style={{ ...inputStyle, width: "100%", height: 48, padding: "0 16px", fontSize: 14, outline: "none", boxSizing: "border-box" }}
+              />
+            </div>
+
+            {/* Password */}
+            <div>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
+                <label style={{ fontSize: 13, fontWeight: 700, color: "#1A0505" }}>Password</label>
+                <button type="button" style={{ fontSize: 13, fontWeight: 700, color: "#EF4444", background: "none", border: "none", cursor: "pointer" }}>
+                  Forgot password?
+                </button>
+              </div>
+              <div style={{ position: "relative" }}>
+                <input
+                  type={showPassword ? "text" : "password"}
+                  autoComplete="current-password"
+                  required
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Your password"
+                  style={{ ...inputStyle, width: "100%", height: 48, padding: "0 44px 0 16px", fontSize: 14, outline: "none", boxSizing: "border-box" }}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((v) => !v)}
+                  tabIndex={-1}
+                  style={{ position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)", color: "#9B6060", background: "none", border: "none", cursor: "pointer" }}
+                >
+                  {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
+              </div>
+            </div>
+
+            {/* Submit */}
+            <motion.button
+              type="submit"
+              disabled={loading}
+              whileTap={{ y: 2 }}
+              style={{
+                width: "100%",
+                height: 50,
+                backgroundColor: "#EF4444",
+                color: "white",
+                fontWeight: 800,
+                fontSize: 15,
+                borderRadius: 14,
+                border: "1.5px solid #EF4444",
+                borderBottom: "3px solid #C93B3B",
+                cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                opacity: loading ? 0.7 : 1,
+                marginTop: 4,
+              }}
+            >
+              {loading ? <Loader2 size={18} className="animate-spin" /> : "Sign in"}
+            </motion.button>
+          </form>
+
+          {/* Divider */}
+          <div style={{ display: "flex", alignItems: "center", gap: 12, margin: "20px 0" }}>
+            <div style={{ flex: 1, height: 1, backgroundColor: "#F5C5C5" }} />
+            <span style={{ fontSize: 13, fontWeight: 700, color: "#9B6060" }}>or</span>
+            <div style={{ flex: 1, height: 1, backgroundColor: "#F5C5C5" }} />
+          </div>
+
+          {/* Footer links */}
+          <div style={{ textAlign: "center" }}>
             <Link
               href="/signup"
-              className="underline underline-offset-4"
-              style={{ color: "var(--roost-text-primary)", fontWeight: 700 }}
+              style={{ fontSize: 14, fontWeight: 700, color: "#EF4444", textDecoration: "none", display: "block", marginBottom: 16 }}
             >
-              Create an account
+              New here? Create an account
             </Link>
-          </p>
-          <Link
-            href="/child-login"
-            className="block text-xs underline underline-offset-4"
-            style={{ color: "var(--roost-text-muted)", fontWeight: 600 }}
-          >
-            Sign in as a child
-          </Link>
-        </div>
-      </motion.div>
+            <Link
+              href="/child-login"
+              style={{ fontSize: 13, fontWeight: 600, color: "#9B6060", textDecoration: "none", display: "block" }}
+            >
+              Sign in as a child
+            </Link>
+          </div>
+        </motion.div>
+      </div>
     </div>
   );
 }

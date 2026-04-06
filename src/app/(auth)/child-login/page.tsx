@@ -3,10 +3,10 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 import { toast } from "sonner";
 import { Delete, Loader2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import RoostLogo from "@/components/shared/RoostLogo";
 
 const PIN_ROWS: string[][] = [
   ["1", "2", "3"],
@@ -39,13 +39,17 @@ export default function ChildLoginPage() {
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        toast.error(data.error ?? "Check your code and PIN and try again.");
+        toast.error(data.error ?? "Check your code and PIN and try again.", {
+          description: "Ask a parent if you need help.",
+        });
         setLoading(false);
         return;
       }
       router.push("/dashboard");
     } catch {
-      toast.error("Something went wrong. Please try again.");
+      toast.error("Something went wrong. Please try again.", {
+        description: "Check your connection and try again.",
+      });
       setLoading(false);
     }
   }
@@ -54,40 +58,62 @@ export default function ChildLoginPage() {
 
   return (
     <div
-      className="flex min-h-screen flex-col items-center justify-center p-4"
-      style={{ backgroundColor: "var(--roost-bg)" }}
+      style={{
+        minHeight: "100vh",
+        backgroundColor: "#FFF5F5",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        padding: "32px 20px",
+        fontFamily: "var(--font-nunito)",
+      }}
     >
       <motion.div
-        initial={{ opacity: 0, y: 12 }}
+        initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.18, ease: "easeOut" }}
-        className="w-full max-w-sm space-y-8"
+        style={{ width: "100%", maxWidth: 360 }}
       >
-        {/* Heading */}
-        <div className="text-center">
-          <div className="mb-4 flex justify-center">
-            <RoostLogo size="xl" variant="red" showWordmark={false} />
-          </div>
-          <h1
-            className="text-3xl"
-            style={{ color: "var(--roost-text-primary)", fontWeight: 900 }}
-          >
-            Hey! Enter your code.
-          </h1>
-          <p
-            className="mt-1.5 text-sm"
-            style={{ color: "var(--roost-text-secondary)", fontWeight: 600 }}
-          >
-            Ask a grown-up for the household code.
-          </p>
+        {/* Logo */}
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", marginBottom: 24 }}>
+          <Image
+            src="/brand/roost-icon.png"
+            alt="Roost"
+            width={56}
+            height={56}
+            style={{ borderRadius: 16, objectFit: "cover" }}
+          />
         </div>
 
+        {/* Heading */}
+        <h1
+          style={{
+            fontSize: 28,
+            fontWeight: 900,
+            color: "#1A0505",
+            textAlign: "center",
+            marginBottom: 6,
+            lineHeight: 1.15,
+          }}
+        >
+          Hey! Enter your code.
+        </h1>
+        <p
+          style={{
+            fontSize: 14,
+            fontWeight: 600,
+            color: "#5A2020",
+            textAlign: "center",
+            marginBottom: 28,
+            lineHeight: 1.5,
+          }}
+        >
+          Ask a parent for your household code and PIN.
+        </p>
+
         {/* Household code input */}
-        <div className="space-y-2">
-          <label
-            className="text-sm"
-            style={{ color: "var(--roost-text-primary)", fontWeight: 700 }}
-          >
+        <div style={{ marginBottom: 24 }}>
+          <label style={{ display: "block", fontSize: 13, fontWeight: 700, color: "#1A0505", marginBottom: 6 }}>
             Household code
           </label>
           <input
@@ -101,37 +127,41 @@ export default function ChildLoginPage() {
             value={householdCode}
             onChange={(e) => setHouseholdCode(e.target.value.toUpperCase())}
             placeholder="6-letter code from your housemate"
-            className="flex h-14 w-full rounded-xl bg-transparent px-4 font-mono text-2xl tracking-[0.3em] text-center placeholder:text-base placeholder:not-italic placeholder:tracking-normal focus:outline-none"
             style={{
-              border: "1.5px solid var(--roost-border)",
-              borderBottom: "3px solid var(--roost-border-bottom)",
-              color: "var(--roost-text-primary)",
+              width: "100%",
+              height: 56,
+              border: "1.5px solid #F5C5C5",
+              borderBottom: "3px solid #D4CFC9",
+              borderRadius: 14,
+              backgroundColor: "white",
+              fontFamily: "monospace",
+              fontSize: 22,
+              letterSpacing: "0.3em",
+              textAlign: "center",
+              color: "#1A0505",
               fontWeight: 700,
+              outline: "none",
+              boxSizing: "border-box",
             }}
           />
         </div>
 
-        {/* PIN display dots */}
-        <div className="space-y-3">
-          <label
-            className="text-sm"
-            style={{ color: "var(--roost-text-primary)", fontWeight: 700 }}
-          >
+        {/* PIN label + dots */}
+        <div style={{ marginBottom: 16 }}>
+          <label style={{ display: "block", fontSize: 13, fontWeight: 700, color: "#1A0505", marginBottom: 12, textAlign: "center" }}>
             PIN
           </label>
-          <div className="flex justify-center gap-4">
+          <div style={{ display: "flex", justifyContent: "center", gap: 14 }}>
             {Array.from({ length: 4 }).map((_, i) => (
               <motion.div
                 key={i}
-                animate={{ scale: pin.length === i + 1 ? [1, 1.2, 1] : 1 }}
+                animate={{ scale: pin.length === i + 1 ? [1, 1.25, 1] : 1 }}
                 transition={{ duration: 0.15 }}
-                className="h-4 w-4 rounded-full"
                 style={{
-                  backgroundColor:
-                    i < pin.length
-                      ? "var(--roost-text-primary)"
-                      : "var(--roost-border)",
-                  border: "2px solid var(--roost-border-bottom)",
+                  width: 14,
+                  height: 14,
+                  borderRadius: "50%",
+                  backgroundColor: i < pin.length ? "#EF4444" : "#F5C5C5",
                 }}
               />
             ))}
@@ -139,23 +169,28 @@ export default function ChildLoginPage() {
         </div>
 
         {/* PIN pad */}
-        <div className="space-y-2">
-          {/* Rows 1-3: digits 1-9 */}
+        <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 20 }}>
           {PIN_ROWS.map((row, ri) => (
-            <div key={`row-${ri}`} className="grid grid-cols-3 gap-2">
+            <div key={`row-${ri}`} style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8 }}>
               {row.map((digit) => (
                 <motion.button
                   key={`pin-${digit}`}
                   type="button"
                   onClick={() => handlePinPress(digit)}
-                  whileTap={{ y: 2, scale: 0.97 }}
-                  className="flex h-16 items-center justify-center rounded-2xl text-xl"
+                  whileTap={{ y: 1, scale: 0.97 }}
                   style={{
-                    backgroundColor: "var(--roost-surface)",
-                    border: "1.5px solid var(--roost-border)",
-                    borderBottom: "4px solid var(--roost-border-bottom)",
-                    color: "var(--roost-text-primary)",
-                    fontWeight: 800,
+                    height: 70,
+                    backgroundColor: "white",
+                    border: "1.5px solid #F5C5C5",
+                    borderBottom: "3px solid #D4CFC9",
+                    borderRadius: 14,
+                    fontSize: 22,
+                    fontWeight: 900,
+                    color: "#1A0505",
+                    cursor: "pointer",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
                   }}
                 >
                   {digit}
@@ -164,40 +199,48 @@ export default function ChildLoginPage() {
             </div>
           ))}
 
-          {/* Row 4: 0 centered + backspace */}
-          <div className="grid grid-cols-3 gap-2">
-            <div key="pin-empty" />
+          {/* Row 4: 0 + backspace */}
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8 }}>
+            <div />
             <motion.button
-              key="pin-0"
               type="button"
               onClick={() => handlePinPress("0")}
-              whileTap={{ y: 2, scale: 0.97 }}
-              className="flex h-16 items-center justify-center rounded-2xl text-xl"
+              whileTap={{ y: 1, scale: 0.97 }}
               style={{
-                backgroundColor: "var(--roost-surface)",
-                border: "1.5px solid var(--roost-border)",
-                borderBottom: "4px solid var(--roost-border-bottom)",
-                color: "var(--roost-text-primary)",
-                fontWeight: 800,
+                height: 70,
+                backgroundColor: "white",
+                border: "1.5px solid #F5C5C5",
+                borderBottom: "3px solid #D4CFC9",
+                borderRadius: 14,
+                fontSize: 22,
+                fontWeight: 900,
+                color: "#1A0505",
+                cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
               }}
             >
               0
             </motion.button>
             <motion.button
-              key="pin-backspace"
               type="button"
               onClick={() => handlePinPress("del")}
-              whileTap={{ y: 2, scale: 0.97 }}
-              className="flex h-16 items-center justify-center rounded-2xl"
+              whileTap={{ y: 1, scale: 0.97 }}
               style={{
-                backgroundColor: "var(--roost-surface)",
-                border: "1.5px solid var(--roost-border)",
-                borderBottom: "4px solid var(--roost-border-bottom)",
-                color: "var(--roost-text-primary)",
-                fontWeight: 700,
+                height: 70,
+                backgroundColor: "white",
+                border: "1.5px solid #F5C5C5",
+                borderBottom: "3px solid #D4CFC9",
+                borderRadius: 14,
+                cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                color: "#1A0505",
               }}
             >
-              <Delete className="size-5" />
+              <Delete size={20} />
             </motion.button>
           </div>
         </div>
@@ -210,32 +253,42 @@ export default function ChildLoginPage() {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: 6 }}
               transition={{ duration: 0.15 }}
+              style={{ marginBottom: 20 }}
             >
               <motion.button
                 type="button"
                 onClick={handleSubmit}
                 disabled={loading}
                 whileTap={{ y: 2 }}
-                className="flex h-14 w-full items-center justify-center rounded-xl text-base text-white disabled:opacity-60"
                 style={{
-                  backgroundColor: "var(--roost-text-primary)",
-                  border: "1.5px solid var(--roost-text-primary)",
-                  borderBottom: "3px solid rgba(0,0,0,0.25)",
+                  width: "100%",
+                  height: 52,
+                  backgroundColor: "#EF4444",
+                  color: "white",
                   fontWeight: 800,
+                  fontSize: 15,
+                  borderRadius: 14,
+                  border: "1.5px solid #EF4444",
+                  borderBottom: "3px solid #C93B3B",
+                  cursor: loading ? "not-allowed" : "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  opacity: loading ? 0.7 : 1,
                 }}
               >
-                {loading ? <Loader2 className="size-5 animate-spin" /> : "Sign in"}
+                {loading ? <Loader2 size={18} className="animate-spin" /> : "Sign in"}
               </motion.button>
             </motion.div>
           )}
         </AnimatePresence>
 
-        <p className="text-center text-sm" style={{ color: "var(--roost-text-muted)", fontWeight: 600 }}>
+        {/* Adult link */}
+        <p style={{ textAlign: "center", fontSize: 13, fontWeight: 600, color: "#9B6060" }}>
           Adult account?{" "}
           <Link
             href="/login"
-            className="underline underline-offset-4"
-            style={{ color: "var(--roost-text-primary)", fontWeight: 700 }}
+            style={{ fontWeight: 700, color: "#EF4444", textDecoration: "none" }}
           >
             Sign in here
           </Link>

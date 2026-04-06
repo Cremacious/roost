@@ -25,6 +25,16 @@ import GroceryListSheet, {
   type GroceryListData,
 } from '@/components/grocery/GroceryListSheet';
 import { Sheet, SheetContent } from '@/components/ui/sheet';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import UpgradePrompt from '@/components/shared/UpgradePrompt';
 
 const COLOR = SECTION_COLORS.grocery; // #F59E0B
@@ -349,6 +359,7 @@ export default function GroceryPage() {
   const [showListSheet, setShowListSheet] = useState(false);
   const [listToEdit, setListToEdit] = useState<GroceryListData | null>(null);
   const [upgradeCode, setUpgradeCode] = useState<string | null>(null);
+  const [showDeleteListConfirm, setShowDeleteListConfirm] = useState(false);
 
   const PLACEHOLDERS = ['Add milk...', 'Add eggs...', 'Add anything...'];
   const [placeholderIdx, setPlaceholderIdx] = useState(0);
@@ -695,15 +706,7 @@ export default function GroceryPage() {
                 isAdmin={isAdmin}
                 onRename={openRenameList}
                 onClear={() => clearCheckedMutation.mutate()}
-                onDelete={() => {
-                  if (
-                    window.confirm(
-                      `Delete "${activeList.name}"? All items in it will be removed.`,
-                    )
-                  ) {
-                    deleteListMutation.mutate(activeList.id);
-                  }
-                }}
+                onDelete={() => setShowDeleteListConfirm(true)}
               />
             </div>
           </div>
@@ -925,6 +928,59 @@ export default function GroceryPage() {
           list={listToEdit}
           isPremium={isPremium}
         />
+
+        {/* Delete list confirmation */}
+        <AlertDialog open={showDeleteListConfirm} onOpenChange={setShowDeleteListConfirm}>
+          <AlertDialogContent
+            style={{
+              backgroundColor: 'var(--roost-surface)',
+              border: '1.5px solid var(--roost-border)',
+              borderRadius: 20,
+            }}
+          >
+            <AlertDialogHeader>
+              <AlertDialogTitle style={{ color: 'var(--roost-text-primary)', fontWeight: 800 }}>
+                Delete list?
+              </AlertDialogTitle>
+              <AlertDialogDescription style={{ color: 'var(--roost-text-secondary)', fontWeight: 600 }}>
+                {activeList
+                  ? `"${activeList.name}" and all its items will be permanently removed.`
+                  : 'This list and all its items will be permanently removed.'}
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel
+                style={{
+                  backgroundColor: 'var(--roost-bg)',
+                  border: '1.5px solid var(--roost-border)',
+                  borderBottom: '3px solid var(--roost-border-bottom)',
+                  color: 'var(--roost-text-primary)',
+                  borderRadius: 12,
+                  fontWeight: 700,
+                }}
+              >
+                Cancel
+              </AlertDialogCancel>
+              <AlertDialogAction
+                onClick={() => activeList && deleteListMutation.mutate(activeList.id)}
+                disabled={deleteListMutation.isPending}
+                style={{
+                  backgroundColor: '#EF4444',
+                  borderBottom: '3px solid #C93B3B',
+                  color: '#fff',
+                  borderRadius: 12,
+                  fontWeight: 700,
+                }}
+              >
+                {deleteListMutation.isPending ? (
+                  <Loader2 className="size-4 animate-spin" />
+                ) : (
+                  'Delete'
+                )}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
 
         {/* Upgrade prompt */}
         <Sheet

@@ -518,6 +518,11 @@ src/app/api/allowances/route.ts               GET: payout history for household,
 src/app/api/allowances/child/route.ts         GET: allowance settings + payouts + current week progress for current user
 src/app/api/cron/allowances/route.ts          Vercel cron GET (Sunday 11pm UTC): evaluate chore completion, create expense entries
 src/components/shared/AllowanceWidget.tsx     Child-only widget: weekly progress bar, status message, last 4 weeks history
+src/lib/utils/googleVision.ts               parseReceiptImage(base64) calls Vision TEXT_DETECTION, returns ParsedReceipt
+src/lib/utils/imageUpload.ts                fileToBase64(File), validateReceiptImage(File) client-side helpers
+src/app/api/expenses/scan/route.ts          POST: premium + non-child only, accepts { imageBase64 }, returns { receipt: ParsedReceipt }
+src/components/expenses/ReceiptScanner.tsx  Scan flow UI: idle (camera + upload buttons), scanning (animated), error (retry)
+src/components/expenses/LineItemEditor.tsx  Edit scanned line items, assign per member or split equally, confirm to pre-fill form
 src/app/page.tsx                              Public marketing homepage (server component, no app shell)
 src/app/(auth)/login/page.tsx                 Split layout: red left panel (desktop), form right panel; slab inputs on #FFF5F5
 src/app/(auth)/signup/page.tsx                Split layout matching login; all validation logic preserved
@@ -655,6 +660,22 @@ src/app/(auth)/child-login/page.tsx           Single centered column on #FFF5F5;
   checked_by_name, checked_by_avatar, created_at for all items.
 - Quick add bar: Enter key and inline + button both call the same handleQuickAdd() function.
   + button is type="button" with onClick. Input has onKeyDown for Enter. No form element needed.
+- Grocery header: one row — list name h1 on left (single list free), or list pills + "+ Shopping List"
+  pill for premium/multi-list. Right side always has + add item and ... more menu.
+
+## Receipt Scanning Rules
+- Uses Google Vision TEXT_DETECTION feature via /api/expenses/scan (premium + non-child only)
+- Images converted to base64 client-side before POST (fileToBase64 in src/lib/utils/imageUpload.ts)
+- Max image size: 10MB. Accepted types: jpg, png, webp, heic
+- Mobile: camera input uses capture="environment". Desktop: file picker, no capture attribute
+- Both paths send JSON { imageBase64 } to the same /api/expenses/scan endpoint
+- Line items are editable (description + amount) in LineItemEditor before confirming
+- Per-item assignment: assignedTo[] empty = split equally, non-empty = split among those members
+- "Or enter items manually" skips scanning and goes straight to LineItemEditor with empty lineItems
+- After LineItemEditor confirm: title, amount, and customSplits auto-filled in ExpenseSheet form
+- receipt_data stored as JSON string in expenses.receipt_data column (schema already had this column)
+- Expense list rows with receipt_data show a small green Receipt icon badge next to the title
+- View mode shows collapsible "Receipt items" section when receipt_data has lineItems
 
 ## Key Rules
 - Toasts: use sonner only. Import { toast } from "sonner" in client components.
@@ -747,7 +768,7 @@ Phase 2: Daily Use
 Phase 3: Money (premium)
   Expenses: DONE, manual entry, split 3 ways, settle up, debt simplification, premium gate
   Bill splitting: DONE (part of expenses module)
-  Receipt scanning: Google Vision, editable line items
+  Receipt scanning: DONE, Google Vision TEXT_DETECTION, editable line items, per-member assignment
 
 Phase 4: Polish
   Ambient tablet mode + widget customization
@@ -904,7 +925,7 @@ Update this file after every major decision or completed phase.
 - Activity types: allowance_earned (green dot, maps to expenses), allowance_missed (amber dot)
 - vercel.json cron: /api/cron/allowances runs "0 23 * * 0" (Sunday 11pm UTC)
 
-Last updated: 2026-04-06 (allowance system complete: payouts schema, cron job, child widget, expenses section, settings note)
+Last updated: 2026-04-06 (receipt scanning complete: Vision API, scan route, ReceiptScanner, LineItemEditor, ExpenseSheet scan flow, receipt_data in GET/POST)
 
 ## Bugs Found and Fixed (2026-04-05)
 - No default grocery list created on household signup: `GET /api/grocery/lists` now

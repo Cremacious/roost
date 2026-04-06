@@ -5,7 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useSession } from "@/lib/auth/client";
 import { useHousehold } from "@/lib/hooks/useHousehold";
 import { motion } from "framer-motion";
-import { DollarSign, PiggyBank, Plus, Sparkles, TrendingDown, TrendingUp } from "lucide-react";
+import { DollarSign, PiggyBank, Plus, Receipt, Sparkles, TrendingDown, TrendingUp } from "lucide-react";
 import Link from "next/link";
 import { format, parseISO, startOfWeek, endOfWeek } from "date-fns";
 import { relativeTime } from "@/lib/utils/time";
@@ -119,9 +119,14 @@ function ExpenseRow({
 
       {/* Info */}
       <div className="min-w-0 flex-1">
-        <p className="truncate text-sm" style={{ color: "var(--roost-text-primary)", fontWeight: 700 }}>
-          {expense.title}
-        </p>
+        <div className="flex items-center gap-1.5">
+          <p className="truncate text-sm" style={{ color: "var(--roost-text-primary)", fontWeight: 700 }}>
+            {expense.title}
+          </p>
+          {expense.receipt_data && (
+            <Receipt className="size-3 shrink-0" style={{ color: COLOR }} />
+          )}
+        </div>
         <div className="flex items-center gap-1.5">
           {expense.payer_name && (
             <MemberAvatar name={expense.payer_name} avatarColor={expense.payer_avatar} size="sm" />

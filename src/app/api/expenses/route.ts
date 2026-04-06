@@ -90,6 +90,7 @@ export async function GET(request: NextRequest): Promise<Response> {
       total_amount: expenses.total_amount,
       paid_by: expenses.paid_by,
       category: expenses.category,
+      receipt_data: expenses.receipt_data,
       created_at: expenses.created_at,
       updated_at: expenses.updated_at,
       payer_name: users.name,
@@ -224,6 +225,7 @@ export async function POST(request: NextRequest): Promise<Response> {
     paid_by?: string;
     category?: string;
     splits?: { user_id: string; amount: number }[];
+    receipt_data?: string;
   };
   try {
     body = await request.json();
@@ -260,6 +262,7 @@ export async function POST(request: NextRequest): Promise<Response> {
       total_amount: body.total_amount.toFixed(2),
       paid_by: body.paid_by,
       category: body.category?.trim() || null,
+      receipt_data: body.receipt_data ?? null,
     })
     .returning();
 

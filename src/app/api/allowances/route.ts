@@ -41,7 +41,7 @@ export async function GET(request: NextRequest): Promise<Response> {
       expense_id: allowance_payouts.expense_id,
       created_at: allowance_payouts.created_at,
       child_name: users.name,
-      child_avatar: users.avatarColor,
+      child_avatar: users.avatar_color,
     })
     .from(allowance_payouts)
     .innerJoin(users, eq(users.id, allowance_payouts.user_id))

@@ -240,6 +240,7 @@
 
 .roost-calendar-compact {
   --cell-size: 30px;
+  max-width: 300px !important;
 }
 
 .roost-calendar-compact .rdp-month_caption {

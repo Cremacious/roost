@@ -558,21 +558,22 @@ export default function EventSheet({
           </div>
 
           {/* RIGHT COLUMN — calendar, desktop only */}
-          <div className="hidden sm:flex sm:flex-col">
-            <p className="mb-2 text-xs" style={{ color: "var(--roost-text-muted)", fontWeight: 700 }}>
+          <div className="hidden sm:flex sm:flex-col sm:items-start sm:pt-6">
+            <p className="mb-3 text-xs" style={{ color: "var(--roost-text-muted)", fontWeight: 700 }}>
               Date
             </p>
-            <div
-              className="overflow-hidden rounded-xl"
-              style={{ border: "1.5px solid var(--roost-border)", borderBottom: `3px solid ${COLOR_DARK}40`, "--primary": COLOR, "--primary-foreground": "#ffffff" } as React.CSSProperties}
-            >
-              <Calendar
-                mode="single"
-                selected={selectedDate}
-                onSelect={(d) => d && setSelectedDate(d)}
-                className="roost-calendar-compact w-full"
-                classNames={{ root: "w-full" }}
-              />
+            <div style={{ maxWidth: "300px", width: "100%" }}>
+              <div
+                className="overflow-hidden rounded-xl"
+                style={{ border: "1.5px solid var(--roost-border)", borderBottom: `3px solid ${COLOR_DARK}40`, "--primary": COLOR, "--primary-foreground": "#ffffff" } as React.CSSProperties}
+              >
+                <Calendar
+                  mode="single"
+                  selected={selectedDate}
+                  onSelect={(d) => d && setSelectedDate(d)}
+                  className="roost-calendar-compact"
+                />
+              </div>
             </div>
           </div>
 

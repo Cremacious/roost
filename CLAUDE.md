@@ -427,7 +427,8 @@ src/app/api/dev/toggle-premium/route.ts       POST: dev-only, toggles household 
 - Event color: #3B82F6, border-bottom: #1A5CB5
 - EventSheet create/edit: mobile = single column (calendar inline, collapses after date pick); desktop (sm:) = two-column grid, left col has all form fields, right col has always-visible Calendar using `.roost-calendar-compact`
 - EventSheet SheetContent: `sm:rounded-2xl sm:max-w-215 sm:w-215` (860px) for desktop two-column layout
-- `.roost-calendar-compact` in globals.css: sets `--cell-size: 30px` to shrink the react-day-picker v9 grid; targets `.rdp-weekday`, `.rdp-day`, `.rdp-day_button`
+- Desktop right column calendar: max-width 300px, left-aligned (sm:items-start), not stretched to fill column width
+- `.roost-calendar-compact` in globals.css: sets `--cell-size: 30px` and `max-width: 300px !important` to prevent stretching; targets `.rdp-weekday`, `.rdp-day`, `.rdp-day_button`
 
 ## Task UX Patterns
 - Tasks grouped by: Overdue (red header), Due today (pink), Upcoming, No due date, Completed
@@ -663,7 +664,7 @@ Designer brief (send this when hiring):
 At the start of each new session fetch this file to restore context.
 Share GitHub file URLs, paste code, or describe what was built.
 Update this file after every major decision or completed phase.
-Last updated: 2026-04-05 (added Phase 5 Allowance System roadmap; added Brand Voice/slogan section; weather unit roadmap; EventSheet desktop two-column layout; premium stack verified)
+Last updated: 2026-04-05 (desktop calendar capped at 300px, left-aligned; Phase 5 Allowance System roadmap; Brand Voice/slogan section; EventSheet desktop two-column layout; premium stack verified)
 
 ## Bugs Found and Fixed (2026-04-05)
 - No default grocery list created on household signup: `GET /api/grocery/lists` now

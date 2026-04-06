@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useSession } from "@/lib/auth/client";
+import { useHousehold } from "@/lib/hooks/useHousehold";
 import { toast } from "sonner";
 import {
   AlertCircle,
@@ -494,6 +495,7 @@ export default function RemindersPage() {
   const { data: sessionData } = useSession();
   const currentUserId = sessionData?.user?.id ?? "";
   const queryClient = useQueryClient();
+  const { isPremium } = useHousehold();
 
   const [filter, setFilter] = useState<FilterKey>("all");
   const [upgradeCode, setUpgradeCode] = useState<string | null>(null);
@@ -842,6 +844,7 @@ export default function RemindersPage() {
         mode={sheetMode}
         reminder={selectedReminder}
         householdMembers={members}
+        isPremium={isPremium}
         onUpgradeRequired={(code) => { setSheetOpen(false); setUpgradeCode(code); }}
       />
 

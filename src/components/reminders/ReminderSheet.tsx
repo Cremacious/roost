@@ -10,7 +10,7 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
-import { Loader2, Home, User, Users } from "lucide-react";
+import { Loader2, Lock, Home, User, Users } from "lucide-react";
 import { format } from "date-fns";
 import MemberAvatar from "@/components/shared/MemberAvatar";
 
@@ -47,6 +47,7 @@ interface ReminderSheetProps {
   mode: "create" | "edit";
   reminder?: ReminderData | null;
   householdMembers: Member[];
+  isPremium?: boolean;
   onUpgradeRequired?: (code: string) => void;
 }
 
@@ -59,6 +60,8 @@ const FREQUENCIES = [
   { value: "monthly", label: "Monthly" },
   { value: "custom", label: "Custom" },
 ] as const;
+
+const PREMIUM_FREQUENCIES = ["daily", "weekly", "monthly", "custom"] as const;
 
 const DAYS = [
   { value: 1, label: "Mon" },
@@ -88,6 +91,7 @@ export default function ReminderSheet({
   mode,
   reminder,
   householdMembers,
+  isPremium = false,
   onUpgradeRequired,
 }: ReminderSheetProps) {
   const queryClient = useQueryClient();
@@ -330,20 +334,25 @@ export default function ReminderSheet({
             <div className="flex gap-2 flex-wrap">
               {FREQUENCIES.map((f) => {
                 const active = frequency === f.value;
+                const isLocked = (PREMIUM_FREQUENCIES as readonly string[]).includes(f.value) && !isPremium;
                 return (
                   <button
                     key={f.value}
                     type="button"
-                    onClick={() => set("frequency", f.value)}
-                    className="h-10 flex-1 rounded-xl text-sm"
+                    onClick={() => {
+                      if (isLocked) { onUpgradeRequired?.("RECURRING_REMINDERS_PREMIUM"); return; }
+                      set("frequency", f.value);
+                    }}
+                    className="flex h-10 flex-1 items-center justify-center gap-1 rounded-xl text-sm"
                     style={{
                       border: active ? `1.5px solid ${COLOR}` : "1.5px solid var(--roost-border)",
                       borderBottom: active ? `3px solid ${COLOR_DARK}` : "3px solid var(--roost-border-bottom)",
                       backgroundColor: active ? `${COLOR}18` : "transparent",
-                      color: active ? COLOR : "var(--roost-text-secondary)",
+                      color: isLocked ? "var(--roost-text-muted)" : active ? COLOR : "var(--roost-text-secondary)",
                       fontWeight: 700,
                     }}
                   >
+                    {isLocked && <Lock className="size-3" style={{ color: "var(--roost-text-muted)" }} />}
                     {f.label}
                   </button>
                 );

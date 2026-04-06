@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useSession } from "@/lib/auth/client";
+import { useHousehold } from "@/lib/hooks/useHousehold";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -19,6 +20,7 @@ import {
   ChevronRight,
   Clock,
   Lightbulb,
+  Lock,
   Loader2,
   Plus,
   ShoppingCart,
@@ -134,6 +136,7 @@ export default function MealsPage() {
   const queryClient = useQueryClient();
   const { data: sessionData } = useSession();
   const userId = sessionData?.user?.id ?? "";
+  const { isPremium } = useHousehold();
   const isAdmin = false; // will be refined via useHousehold if needed
 
   const [tab, setTab] = useState<Tab>("planner");
@@ -721,19 +724,68 @@ export default function MealsPage() {
 
     if (suggestions.length === 0) {
       return (
-        <EmptyState
-          icon={Lightbulb}
-          title="No suggestions yet."
-          body="Anyone in the household can suggest a meal. Even the kids get a vote."
-          buttonLabel="Suggest a meal"
-          onButtonClick={() => setSuggestionSheet(true)}
-          color={COLOR}
-        />
+        <>
+          {!isPremium && (
+            <div
+              className="flex items-center gap-2 rounded-xl px-4 py-3"
+              style={{
+                background: "rgba(239,68,68,0.06)",
+                border: "1.5px solid rgba(239,68,68,0.15)",
+              }}
+            >
+              <Lock className="size-3.5 shrink-0" style={{ color: "#EF4444" }} />
+              <p className="flex-1 text-[13px]" style={{ color: "var(--roost-text-secondary)", fontWeight: 600 }}>
+                Meal suggestions are a premium feature. Upgrade to let your household vote on dinner.
+              </p>
+              <button
+                type="button"
+                onClick={() => setUpgradeCode("MEAL_SUGGESTIONS_PREMIUM")}
+                className="shrink-0 text-[13px]"
+                style={{ color: "#EF4444", fontWeight: 700 }}
+              >
+                Upgrade
+              </button>
+            </div>
+          )}
+          <EmptyState
+            icon={Lightbulb}
+            title="No suggestions yet."
+            body="Anyone in the household can suggest a meal. Even the kids get a vote."
+            buttonLabel="Suggest a meal"
+            onButtonClick={() => {
+              if (!isPremium) { setUpgradeCode("MEAL_SUGGESTIONS_PREMIUM"); return; }
+              setSuggestionSheet(true);
+            }}
+            color={COLOR}
+          />
+        </>
       );
     }
 
     return (
       <div className="space-y-3">
+        {!isPremium && (
+          <div
+            className="flex items-center gap-2 rounded-xl px-4 py-3"
+            style={{
+              background: "rgba(239,68,68,0.06)",
+              border: "1.5px solid rgba(239,68,68,0.15)",
+            }}
+          >
+            <Lock className="size-3.5 shrink-0" style={{ color: "#EF4444" }} />
+            <p className="flex-1 text-[13px]" style={{ color: "var(--roost-text-secondary)", fontWeight: 600 }}>
+              Meal suggestions are a premium feature. Upgrade to let your household vote on dinner.
+            </p>
+            <button
+              type="button"
+              onClick={() => setUpgradeCode("MEAL_SUGGESTIONS_PREMIUM")}
+              className="shrink-0 text-[13px]"
+              style={{ color: "#EF4444", fontWeight: 700 }}
+            >
+              Upgrade
+            </button>
+          </div>
+        )}
         {suggestions.map((s, i) => {
           const isTop = i === 0 && s.upvotes > 0;
           const userUpvoted = s.userVote === "up";
@@ -894,7 +946,10 @@ export default function MealsPage() {
             <motion.button
               type="button"
               whileTap={{ y: 2 }}
-              onClick={() => setSuggestionSheet(true)}
+              onClick={() => {
+                if (!isPremium) { setUpgradeCode("MEAL_SUGGESTIONS_PREMIUM"); return; }
+                setSuggestionSheet(true);
+              }}
               className="flex h-10 w-10 items-center justify-center rounded-xl text-white"
               style={{
                 backgroundColor: COLOR,
@@ -902,7 +957,7 @@ export default function MealsPage() {
                 borderBottom: `3px solid ${COLOR_DARK}`,
               }}
             >
-              <Plus className="size-5" />
+              {isPremium ? <Plus className="size-5" /> : <Lock className="size-4" />}
             </motion.button>
           ) : undefined
         }

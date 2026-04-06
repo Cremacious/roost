@@ -412,6 +412,19 @@ src/components/expenses/SettleSheet.tsx       Settle-up confirmation: shows debt
 src/components/expenses/MockExpensesPreview.tsx  Static non-functional expenses preview used in PremiumGate blurred background
 src/app/api/household/me/route.ts             GET: current user's household + role + permissions (most recently joined)
 src/app/api/dev/toggle-premium/route.ts       POST: dev-only, toggles household subscription_status between free and premium
+src/db/schema/meals.ts                        meals, meal_plan_slots, meal_suggestions, meal_suggestion_votes
+src/app/api/meals/route.ts                    GET (meal bank list, ordered by name) + POST (create meal, blockChild)
+src/app/api/meals/[id]/route.ts               PATCH (edit, creator or admin) + DELETE (soft delete)
+src/app/api/meals/[id]/add-to-grocery/route.ts  POST: push meal ingredients to default grocery list + activity log
+src/app/api/meals/planner/route.ts            GET (week slots, ?weekStart=YYYY-MM-DD, joins meals+users) + POST (upsert via onConflictDoUpdate)
+src/app/api/meals/planner/[id]/route.ts       DELETE: hard delete slot (creator or admin)
+src/app/api/meals/suggestions/route.ts        GET (pending, vote counts, userVote, sorted by upvotes) + POST (all roles including children)
+src/app/api/meals/suggestions/[id]/vote/route.ts  POST: toggle up/down vote (same vote = remove)
+src/app/api/meals/suggestions/[id]/approve/route.ts  POST: admin only, sets status=approved, optionally inserts into meals bank
+src/components/meals/MealSheet.tsx            Create/edit meal: name, category pills, description, prep time, dynamic ingredients list
+src/components/meals/MealSlotSheet.tsx        Slot picker: menu mode, bank search, quick add, view/remove existing slot
+src/components/meals/SuggestionSheet.tsx      Suggest a meal: name + note + submit (all roles)
+src/app/(app)/meals/page.tsx                  Full meals module: Planner/Meal Bank/Suggestions tabs
 
 ## Expense UX Patterns
 - Premium-gated: free tier sees blurred mock expense list with upgrade CTA overlay
@@ -440,6 +453,32 @@ src/app/api/dev/toggle-premium/route.ts       POST: dev-only, toggles household 
 - EventSheet SheetContent: `sm:rounded-2xl sm:max-w-215 sm:w-215` (860px) for desktop two-column layout
 - Desktop right column calendar: fills the 260px fixed column (w-full, classNames root w-full), no maxWidth constraint
 - `.roost-calendar-compact` in globals.css: sets `--cell-size: 30px`, `width: 100%`, `max-width: 100%`; targets `.rdp-weekday`, `.rdp-day`, `.rdp-day_button`
+
+## Meal UX Patterns
+- Three tabs: Planner, Meal Bank, Suggestions
+- Meals section color: #F97316 (orange), slab border-bottom: #C4581A
+- Weekly planner: Mon-Sun grid, 4 slots per day (breakfast, lunch, dinner, snack)
+  Week navigation: prev/next arrows + "This week" jump button
+  Empty slot: dashed slab card, tap opens MealSlotSheet
+  Filled slot: orange-tinted slab card, tap opens MealSlotSheet (view/remove/change)
+  Desktop: horizontal scroll with minWidth 980px, each day column flex-1
+  MealSlotSheet: menu mode (pick bank / quick add), bank search mode, quick add mode
+- Meal Bank: searchable, filterable by category (All/Breakfast/Lunch/Dinner/Snack)
+  Meal cards: name, category badge, prep time, ingredient count, description truncated
+  Actions: "Add to planner" (opens slot picker), grocery cart icon (pushes ingredients), edit icon
+  Ingredients stored as JSON array in meals.ingredients text column
+- Suggestions: ranked by upvotes desc, anyone including children can suggest
+  Top suggestion (i=0, upvotes>0) gets Trophy badge
+  Voting: optimistic UI, same vote = toggle off, up = orange, down = muted red
+  Admin sees "Add to bank" button on each suggestion
+- Grocery integration: POST /api/meals/[id]/add-to-grocery inserts each ingredient
+  as a grocery_item in the default grocery list
+- Activity types: meal_planned, meal_suggested (both map to 'meals' section color in dashboard)
+- Dashboard meals tile: shows "Tonight: [meal name]" or "Nothing planned tonight"
+  via a separate planner-tonight query against /api/meals/planner
+- meal_plan_slots has unique constraint on (household_id, slot_date, slot_type)
+  Upsert uses .onConflictDoUpdate() — planning same slot replaces the existing one
+- slot_date is Postgres DATE column (returns 'YYYY-MM-DD' string from Drizzle)
 
 ## Task UX Patterns
 - Tasks grouped by: Overdue (red header), Due today (pink), Upcoming, No due date, Completed
@@ -537,7 +576,7 @@ Phase 3: Money (premium)
 
 Phase 4: Polish
   Ambient tablet mode + widget customization
-  Meal planning
+  Meal planning: DONE, weekly planner, meal bank, suggestions + voting, grocery integration
   Expo iOS app
   Android submission
   i18n Spanish pass
@@ -675,7 +714,7 @@ Designer brief (send this when hiring):
 At the start of each new session fetch this file to restore context.
 Share GitHub file URLs, paste code, or describe what was built.
 Update this file after every major decision or completed phase.
-Last updated: 2026-04-05 (desktop sheet centering via globals.css [data-slot] selector; EventSheet two-column [1fr_240px]; Phase 5 Allowance System; Brand Voice; premium stack verified)
+Last updated: 2026-04-05 (meal planning module complete: planner, bank, suggestions, voting, grocery integration; Phase 5 Allowance System roadmap; desktop sheet centering via globals.css)
 
 ## Bugs Found and Fixed (2026-04-05)
 - No default grocery list created on household signup: `GET /api/grocery/lists` now

@@ -89,6 +89,8 @@ const TYPE_TO_SECTION: Record<string, SectionKey> = {
   event_added: "calendar",
   note_added: "notes",
   expense_added: "expenses",
+  meal_planned: "meals",
+  meal_suggested: "meals",
   member_joined: "tasks",
 };
 
@@ -307,6 +309,24 @@ export default function DashboardPage() {
     enabled: isPremium,
   });
 
+  const { data: mealsTonightData } = useQuery<{ slots: { slot_type: string; meal_name: string | null; custom_meal_name: string | null }[] }>({
+    queryKey: ["planner-tonight"],
+    queryFn: async () => {
+      const today = new Date();
+      const dow = today.getDay();
+      const diff = (dow === 0 ? -6 : 1 - dow);
+      const monday = new Date(today);
+      monday.setDate(today.getDate() + diff);
+      const weekStart = monday.toISOString().slice(0, 10);
+      const r = await fetch(`/api/meals/planner?weekStart=${weekStart}`);
+      if (!r.ok) return { slots: [] };
+      return r.json();
+    },
+    staleTime: 10_000,
+    refetchInterval: 10_000,
+    retry: 1,
+  });
+
   const {
     data: activityData,
     isError: activityError,
@@ -363,10 +383,23 @@ export default function DashboardPage() {
     return "All settled";
   }
 
+  function mealsStatusText(): string {
+    const todayStr = new Date().toISOString().slice(0, 10);
+    const tonightSlot = (mealsTonightData?.slots ?? []).find(
+      (s) => s.slot_type === "dinner"
+    );
+    if (tonightSlot) {
+      const name = tonightSlot.meal_name ?? tonightSlot.custom_meal_name;
+      if (name) return `Tonight: ${name}`;
+    }
+    return "Nothing planned tonight";
+  }
 
-  const tiles = TILES.map((t) =>
-    t.key === "expenses" ? { ...t, statusText: expensesStatusText() } : t
-  );
+  const tiles = TILES.map((t) => {
+    if (t.key === "expenses") return { ...t, statusText: expensesStatusText() };
+    if (t.key === "meals") return { ...t, statusText: mealsStatusText() };
+    return t;
+  });
 
   return (
     <motion.div

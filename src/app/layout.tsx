@@ -22,8 +22,67 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Roost",
-  description: "The household OS for families and roommates",
+  title: {
+    default: "Roost",
+    template: "%s | Roost",
+  },
+  description: "Home, sorted. The household app for families and roommates.",
+  keywords: [
+    "household management",
+    "chores",
+    "grocery list",
+    "bill splitting",
+    "family organizer",
+    "roommate app",
+  ],
+  authors: [{ name: "Roost" }],
+  creator: "Roost",
+  icons: {
+    icon: [
+      { url: "/favicon-16x16.png", sizes: "16x16", type: "image/png" },
+      { url: "/favicon-32x32.png", sizes: "32x32", type: "image/png" },
+    ],
+    apple: [
+      { url: "/apple-touch-icon.png", sizes: "180x180" },
+    ],
+    other: [
+      {
+        rel: "mask-icon",
+        url: "/favicon.ico",
+      },
+    ],
+  },
+  manifest: "/site.webmanifest",
+  openGraph: {
+    type: "website",
+    locale: "en_US",
+    url: process.env.NEXT_PUBLIC_APP_URL,
+    title: "Roost",
+    description: "Home, sorted.",
+    siteName: "Roost",
+    images: [
+      {
+        url: "/og-image.png",
+        width: 1200,
+        height: 630,
+        alt: "Roost — Home, sorted.",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Roost",
+    description: "Home, sorted.",
+    images: ["/og-image.png"],
+  },
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "Roost",
+  },
+  formatDetection: {
+    telephone: false,
+  },
 };
 
 export default async function RootLayout({

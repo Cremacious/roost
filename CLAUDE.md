@@ -681,6 +681,13 @@ NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
 GOOGLE_VISION_API_KEY
 EXPO_ACCESS_TOKEN
 
+## OG Image (needs manual creation)
+- Path: public/og-image.png
+- Size: 1200x630px
+- Design: red background #EF4444, Roost logo centered (~200px tall), "Home, sorted." tagline below in white Nunito 900
+- Used by: OpenGraph (social shares) and Twitter card meta tags in root layout
+- No image generation pipeline exists — create manually in Figma or similar and drop into public/
+
 ## Logo Swap Checklist (when final logo arrives)
 
 When the designer delivers the final logo files, follow

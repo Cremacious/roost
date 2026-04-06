@@ -43,6 +43,7 @@ import {
 } from "@/components/ui/dialog";
 import ReminderSheet, { type ReminderData, type Member } from "@/components/reminders/ReminderSheet";
 import { SECTION_COLORS } from "@/lib/constants/colors";
+import { PageContainer } from "@/components/layout/PageContainer";
 
 const COLOR = SECTION_COLORS.reminders; // #06B6D4
 const COLOR_DARK = "#0891B2";
@@ -706,9 +707,10 @@ export default function RemindersPage() {
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.18, ease: "easeOut" }}
-      className="flex flex-col gap-4 p-4 pb-24 md:p-6"
+      className="py-4 pb-24 md:py-6"
       style={{ backgroundColor: "var(--roost-bg)" }}
     >
+      <PageContainer className="flex flex-col gap-4">
       {/* Header */}
       <PageHeader
         title="Reminders"
@@ -871,6 +873,7 @@ export default function RemindersPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      </PageContainer>
     </motion.div>
   );
 }

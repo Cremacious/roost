@@ -21,6 +21,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { formatDistanceToNow } from "date-fns";
 import { motion } from "framer-motion";
 import { SECTION_COLORS, type SectionKey } from "@/lib/constants/colors";
+import { PageContainer } from "@/components/layout/PageContainer";
+import SlabCard from "@/components/shared/SlabCard";
 
 // ---- Types ------------------------------------------------------------------
 
@@ -45,6 +47,8 @@ interface ActivityAPIItem {
 
 interface ActivityResponse {
   activity: ActivityAPIItem[];
+  total: number;
+  hasMore: boolean;
 }
 
 interface ActivityItem {
@@ -121,22 +125,24 @@ const TILES: Tile[] = [
 
 function DashboardSkeleton() {
   return (
-    <div className="flex flex-col gap-5 p-4 pb-24 md:p-6">
-      <div className="space-y-1">
-        <Skeleton className="h-8 w-48 rounded-xl" />
-        <Skeleton className="h-4 w-64 rounded-lg" />
-      </div>
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-        {Array.from({ length: 8 }).map((_, i) => (
-          <Skeleton key={i} className="h-24 rounded-2xl" />
-        ))}
-      </div>
-      <div className="space-y-2">
-        <Skeleton className="h-5 w-32 rounded-lg" />
-        {Array.from({ length: 4 }).map((_, i) => (
-          <Skeleton key={i} className="h-14 rounded-2xl" />
-        ))}
-      </div>
+    <div className="py-4 pb-24 md:py-6" style={{ backgroundColor: "var(--roost-bg)" }}>
+      <PageContainer className="flex flex-col gap-5">
+        <div className="space-y-1 py-2">
+          <Skeleton className="h-8 w-48 rounded-xl" />
+          <Skeleton className="h-4 w-64 rounded-lg" />
+        </div>
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          {Array.from({ length: 8 }).map((_, i) => (
+            <Skeleton key={i} className="h-24 rounded-2xl" />
+          ))}
+        </div>
+        <div className="space-y-2">
+          <Skeleton className="h-5 w-32 rounded-lg" />
+          {Array.from({ length: 4 }).map((_, i) => (
+            <Skeleton key={i} className="h-14 rounded-2xl" />
+          ))}
+        </div>
+      </PageContainer>
     </div>
   );
 }
@@ -197,13 +203,23 @@ function abbrev(name: string): string {
   return name.split(" ").slice(0, 2).map((w) => w[0]).join("").toUpperCase();
 }
 
-function ActivityFeed({ items }: { items: ActivityItem[] }) {
+function ActivityFeed({
+  items,
+  hasMore,
+  onSeeAll,
+}: {
+  items: ActivityItem[];
+  hasMore: boolean;
+  onSeeAll: () => void;
+}) {
   if (items.length === 0) {
     return (
       <div>
-        <h2 className="mb-3 text-base" style={{ color: "var(--roost-text-primary)", fontWeight: 800 }}>
-          Recent Activity
-        </h2>
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-base" style={{ color: "var(--roost-text-primary)", fontWeight: 800 }}>
+            Recent Activity
+          </h2>
+        </div>
         <div
           className="flex flex-col items-center gap-2 rounded-2xl px-6 py-10 text-center"
           style={{
@@ -225,9 +241,19 @@ function ActivityFeed({ items }: { items: ActivityItem[] }) {
 
   return (
     <div>
-      <h2 className="mb-3 text-base" style={{ color: "var(--roost-text-primary)", fontWeight: 800 }}>
-        Recent Activity
-      </h2>
+      <div className="flex items-center justify-between mb-3">
+        <h2 className="text-base" style={{ color: "var(--roost-text-primary)", fontWeight: 800 }}>
+          Recent Activity
+        </h2>
+        <button
+          type="button"
+          onClick={onSeeAll}
+          className="text-sm"
+          style={{ color: "#3B82F6", fontWeight: 700 }}
+        >
+          See all
+        </button>
+      </div>
       <div
         className="overflow-hidden rounded-2xl"
         style={{
@@ -262,6 +288,21 @@ function ActivityFeed({ items }: { items: ActivityItem[] }) {
             </div>
           );
         })}
+        {hasMore && (
+          <div
+            className="border-t px-4 py-3 text-center"
+            style={{ borderColor: "var(--roost-border)" }}
+          >
+            <button
+              type="button"
+              onClick={onSeeAll}
+              className="text-sm"
+              style={{ color: "#3B82F6", fontWeight: 700 }}
+            >
+              See all activity
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -346,7 +387,7 @@ export default function DashboardPage() {
   } = useQuery<ActivityResponse>({
     queryKey: ["household-activity"],
     queryFn: async () => {
-      const r = await fetch("/api/household/activity");
+      const r = await fetch("/api/household/activity?limit=5");
       if (!r.ok) {
         const d = await r.json().catch(() => ({}));
         throw new Error(d.error ?? "Failed to load activity");
@@ -362,8 +403,10 @@ export default function DashboardPage() {
 
   if (membersError) {
     return (
-      <div className="p-4 md:p-6" style={{ backgroundColor: "var(--roost-bg)" }}>
-        <ErrorState onRetry={refetchMembers} />
+      <div className="py-4 pb-24 md:py-6" style={{ backgroundColor: "var(--roost-bg)" }}>
+        <PageContainer>
+          <ErrorState onRetry={refetchMembers} />
+        </PageContainer>
       </div>
     );
   }
@@ -371,15 +414,17 @@ export default function DashboardPage() {
   // Guard: user has no household yet
   if (membersData && !membersData.household) {
     return (
-      <div className="p-4 md:p-6" style={{ backgroundColor: "var(--roost-bg)" }}>
-        <EmptyState
-          icon={Home}
-          title="You are not in a household yet."
-          body="Create one or join an existing one with a code from a housemate."
-          buttonLabel="Get started"
-          onButtonClick={() => router.push("/onboarding")}
-          color="var(--roost-text-secondary)"
-        />
+      <div className="py-4 pb-24 md:py-6" style={{ backgroundColor: "var(--roost-bg)" }}>
+        <PageContainer>
+          <EmptyState
+            icon={Home}
+            title="You are not in a household yet."
+            body="Create one or join an existing one with a code from a housemate."
+            buttonLabel="Get started"
+            onButtonClick={() => router.push("/onboarding")}
+            color="var(--roost-text-secondary)"
+          />
+        </PageContainer>
       </div>
     );
   }
@@ -403,7 +448,6 @@ export default function DashboardPage() {
   }
 
   function mealsStatusText(): string {
-    const todayStr = new Date().toISOString().slice(0, 10);
     const tonightSlot = (mealsTonightData?.slots ?? []).find(
       (s) => s.slot_type === "dinner"
     );
@@ -426,13 +470,13 @@ export default function DashboardPage() {
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.18, ease: "easeOut" }}
-      className="flex flex-col gap-5 p-4 pb-24 md:flex-row md:items-start md:p-6"
+      className="py-4 pb-24 md:py-6"
       style={{ backgroundColor: "var(--roost-bg)" }}
     >
-      {/* Main column */}
-      <div className="min-w-0 flex-1 space-y-5">
+      <PageContainer className="flex flex-col gap-6">
+        {/* Greeting */}
         {userName && (
-          <div>
+          <div className="pt-2">
             <h1
               className="text-2xl md:text-3xl"
               style={{ color: "var(--roost-text-primary)", fontWeight: 900 }}
@@ -446,27 +490,27 @@ export default function DashboardPage() {
           </div>
         )}
 
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+        {/* Feature tiles grid */}
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
           {tiles.map((tile, i) => (
             <TileCard key={tile.key} tile={tile} index={i} />
           ))}
         </div>
 
-        <div className="lg:hidden">
+        {/* Recent Activity */}
+        <div className="mb-4">
           {activityError
             ? <ErrorState onRetry={refetchActivity} />
-            : <ActivityFeed items={activityItems} />
+            : (
+              <ActivityFeed
+                items={activityItems}
+                hasMore={activityData?.hasMore ?? false}
+                onSeeAll={() => router.push("/activity")}
+              />
+            )
           }
         </div>
-      </div>
-
-      {/* Activity feed: desktop */}
-      <div className="hidden w-80 shrink-0 lg:block">
-        {activityError
-          ? <ErrorState onRetry={refetchActivity} />
-          : <ActivityFeed items={activityItems} />
-        }
-      </div>
+      </PageContainer>
     </motion.div>
   );
 }

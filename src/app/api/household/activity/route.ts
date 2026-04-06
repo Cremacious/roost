@@ -2,7 +2,7 @@ import { NextRequest } from "next/server";
 import { requireSession } from "@/lib/auth/helpers";
 import { db } from "@/lib/db";
 import { household_activity, users } from "@/db/schema";
-import { and, desc, eq } from "drizzle-orm";
+import { count, desc, eq } from "drizzle-orm";
 import { getUserHousehold } from "@/app/api/chores/route";
 
 export async function GET(request: NextRequest): Promise<Response> {
@@ -18,6 +18,17 @@ export async function GET(request: NextRequest): Promise<Response> {
     return Response.json({ error: "No household found" }, { status: 404 });
   }
   const { householdId } = membership;
+
+  const url = new URL(request.url);
+  const limit = Math.min(parseInt(url.searchParams.get("limit") ?? "20", 10), 100);
+  const offset = parseInt(url.searchParams.get("offset") ?? "0", 10);
+
+  const [totalResult] = await db
+    .select({ total: count() })
+    .from(household_activity)
+    .where(eq(household_activity.household_id, householdId));
+
+  const total = totalResult?.total ?? 0;
 
   const rawActivity = await db
     .select({
@@ -35,7 +46,12 @@ export async function GET(request: NextRequest): Promise<Response> {
     .innerJoin(users, eq(household_activity.user_id, users.id))
     .where(eq(household_activity.household_id, householdId))
     .orderBy(desc(household_activity.created_at))
-    .limit(20);
+    .limit(limit)
+    .offset(offset);
 
-  return Response.json({ activity: rawActivity });
+  return Response.json({
+    activity: rawActivity,
+    total,
+    hasMore: offset + rawActivity.length < total,
+  });
 }

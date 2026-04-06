@@ -21,6 +21,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Switch } from "@/components/ui/switch";
 import MemberSheet, { type SheetMember } from "@/components/settings/MemberSheet";
+import { PageContainer } from "@/components/layout/PageContainer";
 
 // ---- Constants --------------------------------------------------------------
 
@@ -528,9 +529,10 @@ export default function SettingsPage() {
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.18, ease: "easeOut" }}
-      className="flex gap-8 p-4 pb-24 md:p-6"
+      className="py-4 pb-24 md:py-6"
       style={{ backgroundColor: "var(--roost-bg)" }}
     >
+      <PageContainer className="flex gap-8">
       {/* Desktop left nav */}
       <nav className="hidden w-44 shrink-0 lg:block">
         <div className="sticky top-20 space-y-1">
@@ -1432,6 +1434,7 @@ export default function SettingsPage() {
         onClose={() => setSelectedMember(null)}
         onRefetch={refetchMembers}
       />
+      </PageContainer>
     </motion.div>
   );
 }

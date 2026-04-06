@@ -29,6 +29,7 @@ import StatCard from "@/components/shared/StatCard";
 import SectionColorBadge from "@/components/shared/SectionColorBadge";
 import ErrorState from "@/components/shared/ErrorState";
 import { Skeleton } from "@/components/ui/skeleton";
+import { PageContainer } from "@/components/layout/PageContainer";
 
 // ---- Types ------------------------------------------------------------------
 
@@ -215,9 +216,10 @@ export default function ChoresPage() {
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.18, ease: "easeOut" }}
-      className="flex flex-col gap-4 p-4 pb-24 md:p-6"
+      className="py-4 pb-24 md:py-6"
       style={{ backgroundColor: "var(--roost-bg)" }}
     >
+      <PageContainer className="flex flex-col gap-4">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2.5">
@@ -487,6 +489,7 @@ export default function ChoresPage() {
 
       <ChoreSheet open={sheetOpen} onClose={() => setSheetOpen(false)} chore={editingChore} members={members} isAdmin={isAdmin} />
       <LeaderboardSheet open={leaderboardOpen} onClose={() => setLeaderboardOpen(false)} />
+      </PageContainer>
     </motion.div>
   );
 }

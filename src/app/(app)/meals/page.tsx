@@ -43,6 +43,7 @@ import {
 import MealSheet, { type MealData } from "@/components/meals/MealSheet";
 import MealSlotSheet, { type MealRow, type SlotRow } from "@/components/meals/MealSlotSheet";
 import SuggestionSheet from "@/components/meals/SuggestionSheet";
+import { PageContainer } from "@/components/layout/PageContainer";
 
 const COLOR = SECTION_COLORS.meals;
 const COLOR_DARK = "#C4581A";
@@ -861,9 +862,10 @@ export default function MealsPage() {
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.18, ease: "easeOut" }}
-      className="flex flex-col gap-4 p-4 pb-24 md:p-6"
+      className="py-4 pb-24 md:py-6"
       style={{ backgroundColor: "var(--roost-bg)", minHeight: "100vh" }}
     >
+      <PageContainer className="flex flex-col gap-4">
       <PageHeader
         title="Meals"
         color={COLOR}
@@ -1082,6 +1084,7 @@ export default function MealsPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      </PageContainer>
     </motion.div>
   );
 }

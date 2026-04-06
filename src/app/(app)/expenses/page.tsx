@@ -16,6 +16,7 @@ import MemberAvatar from "@/components/shared/MemberAvatar";
 import ExpenseSheet, { type ExpenseData } from "@/components/expenses/ExpenseSheet";
 import SettleSheet from "@/components/expenses/SettleSheet";
 import { SECTION_COLORS } from "@/lib/constants/colors";
+import { PageContainer } from "@/components/layout/PageContainer";
 
 const COLOR = SECTION_COLORS.expenses; // #22C55E
 const COLOR_DARK = "#16A34A";
@@ -296,9 +297,10 @@ export default function ExpensesPage() {
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.18, ease: "easeOut" }}
-      className="flex flex-col gap-4 p-4 pb-24 md:p-6"
+      className="py-4 pb-24 md:py-6"
       style={{ backgroundColor: "var(--roost-bg)" }}
     >
+      <PageContainer className="flex flex-col gap-4">
       {/* Header */}
       <PageHeader
         title="Expenses"
@@ -440,6 +442,7 @@ export default function ExpensesPage() {
         currentUserId={currentUserId}
         memberAvatars={memberAvatars}
       />
+      </PageContainer>
     </motion.div>
   );
 }

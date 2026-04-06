@@ -18,6 +18,7 @@ import { relativeTime } from "@/lib/utils/time";
 import MemberAvatar from "@/components/shared/MemberAvatar";
 import ErrorState from "@/components/shared/ErrorState";
 import { Skeleton } from "@/components/ui/skeleton";
+import { PageContainer } from "@/components/layout/PageContainer";
 import GroceryItemSheet from "@/components/grocery/GroceryItemSheet";
 import GroceryListSheet, {
   type GroceryListData,
@@ -584,22 +585,26 @@ export default function GroceryPage() {
 
   if (listsQuery.isLoading) {
     return (
-      <div className="flex flex-col gap-4 p-4 pb-28 md:p-6" style={{ backgroundColor: "var(--roost-bg)" }}>
-        <Skeleton className="h-9 w-48 rounded-2xl" />
-        <Skeleton className="h-14 rounded-xl" />
-        <div className="space-y-2">
-          {Array.from({ length: 5 }).map((_, i) => (
-            <Skeleton key={i} className="h-16 rounded-2xl" />
-          ))}
-        </div>
+      <div className="py-4 pb-28 md:py-6" style={{ backgroundColor: "var(--roost-bg)" }}>
+        <PageContainer className="flex flex-col gap-4">
+          <Skeleton className="h-9 w-48 rounded-2xl" />
+          <Skeleton className="h-14 rounded-xl" />
+          <div className="space-y-2">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <Skeleton key={i} className="h-16 rounded-2xl" />
+            ))}
+          </div>
+        </PageContainer>
       </div>
     );
   }
 
   if (listsQuery.isError) {
     return (
-      <div className="p-4 md:p-6" style={{ backgroundColor: "var(--roost-bg)" }}>
-        <ErrorState onRetry={() => listsQuery.refetch()} />
+      <div className="py-4 pb-28 md:py-6" style={{ backgroundColor: "var(--roost-bg)" }}>
+        <PageContainer>
+          <ErrorState onRetry={() => listsQuery.refetch()} />
+        </PageContainer>
       </div>
     );
   }
@@ -609,9 +614,10 @@ export default function GroceryPage() {
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.18, ease: "easeOut" }}
-      className="flex flex-col gap-4 p-4 pb-28 md:p-6"
+      className="py-4 pb-28 md:py-6"
       style={{ backgroundColor: "var(--roost-bg)" }}
     >
+      <PageContainer className="flex flex-col gap-4">
       {/* List pill switcher (multiple lists only) */}
       {lists.length > 1 && (
         <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
@@ -877,6 +883,7 @@ export default function GroceryPage() {
         list={listToEdit}
         isPremium={isPremium}
       />
+      </PageContainer>
     </motion.div>
 
   );

@@ -14,6 +14,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import MemberAvatar from "@/components/shared/MemberAvatar";
 import NoteSheet, { type NoteData } from "@/components/notes/NoteSheet";
 import { SECTION_COLORS } from "@/lib/constants/colors";
+import { PageContainer } from "@/components/layout/PageContainer";
 
 const COLOR = SECTION_COLORS.notes; // #A855F7
 const COLOR_DARK = "#7C28C8";
@@ -252,9 +253,10 @@ export default function NotesPage() {
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.18, ease: "easeOut" }}
-      className="flex flex-col gap-4 p-4 pb-24 md:p-6"
+      className="py-4 pb-24 md:py-6"
       style={{ backgroundColor: "var(--roost-bg)" }}
     >
+      <PageContainer className="flex flex-col gap-4">
       {/* Header */}
       <PageHeader
         title="Notes"
@@ -329,7 +331,7 @@ export default function NotesPage() {
 
       {/* Notes grid (masonry via CSS columns) */}
       {!isLoading && !isError && allNotes.length > 0 && (
-        <div className="columns-1 gap-3 md:columns-2 lg:columns-3">
+        <div className="columns-1 gap-3 sm:columns-2 lg:columns-3">
           {allNotes.map((note, i) => (
             <div key={note.id} className="mb-3 break-inside-avoid">
               <NoteCard
@@ -351,6 +353,7 @@ export default function NotesPage() {
         currentUserId={currentUserId}
         isAdmin={isAdmin}
       />
+      </PageContainer>
     </motion.div>
   );
 }

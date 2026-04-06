@@ -252,6 +252,13 @@ Tasks: one-off to-dos
 - Slab design = bottom border only for the 3D effect. No left/right/top border as color accents.
   Section colors appear only in: icon background, icon stroke, badge pills, border-bottom of
   section-specific cards. Never as a left/right stripe or top accent.
+- PageContainer component (src/components/layout/PageContainer.tsx): max-w-4xl (896px) centered
+  on desktop, full width on mobile. All pages wrap their content in PageContainer.
+  Exception: Calendar uses an inline div with max-w-5xl (1024px) for the 7-column grid.
+  Dashboard: tiles grid (2 cols mobile, 4 cols desktop) + activity feed stacked vertically.
+  Activity feed on dashboard: max 5 items, "See all" links to /activity.
+  Activity page (/activity): full feed with "Load more" pagination, 20 items per page.
+  Notes: masonry grid columns-1 sm:columns-2 lg:columns-3 inside PageContainer.
 - CarPlay-inspired large tile grid on tablet + desktop
 - Bottom tab bar on mobile (Home, Chores, Grocery, Calendar, More)
   More opens a sheet with Profile and Settings links
@@ -371,7 +378,7 @@ src/app/api/grocery/lists/[id]/route.ts        PATCH: rename (non-default, non-c
 src/app/api/grocery/lists/[id]/items/route.ts  GET: all items with user data; POST: add item + log activity
 src/app/api/grocery/lists/[id]/clear/route.ts  POST: soft delete all checked items in list
 src/app/api/grocery/items/[id]/route.ts        PATCH: check/uncheck + edit name/qty + log check activity; DELETE: soft delete
-src/app/api/household/activity/route.ts        GET: last 20 activity items joined with users, ordered by created_at desc
+src/app/api/household/activity/route.ts        GET: activity items with pagination (limit/offset params), returns { activity, total, hasMore }
 src/components/layout/TopBar.tsx               Household name, weather, clock, avatars -- all CSS variable colors
 src/components/layout/BottomNav.tsx            Mobile 4-tab nav + More sheet (Profile, Settings)
 src/components/layout/Sidebar.tsx              Desktop 220px sidebar with icon+label for all 9 nav items
@@ -451,6 +458,8 @@ src/app/(app)/reminders/page.tsx              Full reminders module: grouped sec
 src/components/reminders/ReminderSheet.tsx    Create/edit: title, note, date+time picker, frequency + custom days, notify type + member list
 src/components/shared/ReminderBanner.tsx      Dismissible banner below TopBar when reminders due (polls every 60s, session-dismissed)
 vercel.json                                   Cron schedule: /api/cron/reminders every 15 minutes
+src/components/layout/PageContainer.tsx        Content width constraint: max-w-4xl (896px) centered, full width mobile
+src/app/(app)/activity/page.tsx               Full activity feed: paginated list, 20 per page, Load more button
 
 ## Reminders UX Patterns
 - Reminder types: once (completes after firing) and recurring (daily/weekly/monthly/custom)
@@ -777,7 +786,7 @@ Designer brief (send this when hiring):
 At the start of each new session fetch this file to restore context.
 Share GitHub file URLs, paste code, or describe what was built.
 Update this file after every major decision or completed phase.
-Last updated: 2026-04-06 (settings page: full rewrite with 8 sections; 11 new API routes for profile, password change, household management, member permissions, allowance; MemberSheet component; allowance_settings schema; chore_reminders_enabled on users)
+Last updated: 2026-04-06 (desktop layout: PageContainer max-w-4xl on all pages; dashboard restructured to stacked layout; /activity page created; activity API supports pagination)
 
 ## Bugs Found and Fixed (2026-04-05)
 - No default grocery list created on household signup: `GET /api/grocery/lists` now

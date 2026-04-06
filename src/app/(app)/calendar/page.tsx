@@ -333,9 +333,10 @@ export default function CalendarPage() {
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.18, ease: "easeOut" }}
-      className="flex flex-col gap-4 p-4 pb-24 md:p-6"
+      className="py-4 pb-24 md:py-6"
       style={{ backgroundColor: "var(--roost-bg)" }}
     >
+      <div className="w-full mx-auto px-4 sm:px-6 sm:max-w-5xl flex flex-col gap-4">
       {/* Header */}
       <div className="flex items-center justify-between gap-3">
         <h1 className="text-2xl" style={{ color: "var(--roost-text-primary)", fontWeight: 900 }}>
@@ -676,6 +677,7 @@ export default function CalendarPage() {
         isAdmin={isAdmin}
         queryKeys={allQueryKeys}
       />
+      </div>
     </motion.div>
   );
 }

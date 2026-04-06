@@ -31,6 +31,7 @@ import {
 } from "@/components/ui/dialog";
 import TaskSheet, { type TaskData, type Member } from "@/components/tasks/TaskSheet";
 import { SECTION_COLORS } from "@/lib/constants/colors";
+import { PageContainer } from "@/components/layout/PageContainer";
 
 const COLOR = SECTION_COLORS.tasks; // #EC4899
 
@@ -612,9 +613,10 @@ export default function TasksPage() {
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.18, ease: "easeOut" }}
-      className="flex flex-col gap-4 p-4 pb-24 md:p-6"
+      className="py-4 pb-24 md:py-6"
       style={{ backgroundColor: "var(--roost-bg)" }}
     >
+      <PageContainer className="flex flex-col gap-4">
       {/* Header */}
       <PageHeader
         title="Tasks"
@@ -959,6 +961,7 @@ export default function TasksPage() {
         currentUserId={currentUserId}
         isAdmin={isAdmin}
       />
+      </PageContainer>
     </motion.div>
   );
 }

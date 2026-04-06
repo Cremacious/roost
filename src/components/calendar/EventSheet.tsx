@@ -389,7 +389,7 @@ export default function EventSheet({
     <Sheet open={open} onOpenChange={(v) => !v && onClose()}>
       <SheetContent
         side="bottom"
-        className="rounded-t-2xl px-4 pb-8 pt-2"
+        className="rounded-t-2xl px-4 pb-8 pt-2 "
         style={{ backgroundColor: "var(--roost-surface)", maxHeight: "96dvh", overflowY: "auto" }}
       >
         <div className="mx-auto mb-4 h-1 w-10 rounded-full" style={{ backgroundColor: "var(--roost-border)" }} />
@@ -399,158 +399,183 @@ export default function EventSheet({
           </SheetTitle>
         </SheetHeader>
 
-        <div className="space-y-4">
-          {/* Title */}
-          <div>
-            <label className="mb-1.5 block text-xs" style={{ color: "var(--roost-text-muted)", fontWeight: 700 }}>
-              Title
-            </label>
-            <input
-              ref={titleRef}
-              type="text"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder="e.g. Family dinner, Rent due"
-              className="h-12 w-full rounded-xl px-4 text-sm focus:outline-none"
-              style={inputStyle}
-            />
+        {/* Two-column on desktop, single column on mobile */}
+        <div className="space-y-4 sm:grid sm:grid-cols-2 sm:items-start sm:gap-6 sm:space-y-0">
+
+          {/* LEFT COLUMN — form fields */}
+          <div className="space-y-4 sm:flex sm:flex-col">
+
+            {/* Title */}
+            <div>
+              <label className="mb-1.5 block text-xs" style={{ color: "var(--roost-text-muted)", fontWeight: 700 }}>
+                Title
+              </label>
+              <input
+                ref={titleRef}
+                type="text"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                placeholder="e.g. Family dinner, Rent due"
+                className="h-12 w-full rounded-xl px-4 text-sm focus:outline-none"
+                style={inputStyle}
+              />
+            </div>
+
+            {/* Date — mobile only, hidden on desktop (calendar lives in right column there) */}
+            <div className="sm:hidden">
+              <label className="mb-1.5 block text-xs" style={{ color: "var(--roost-text-muted)", fontWeight: 700 }}>
+                Date
+              </label>
+              <div
+                className="overflow-hidden rounded-xl"
+                style={{ border: "1.5px solid var(--roost-border)", borderBottom: "3px solid var(--roost-border-bottom)", "--primary": COLOR, "--primary-foreground": "#ffffff" } as React.CSSProperties}
+              >
+                <Calendar
+                  mode="single"
+                  selected={selectedDate}
+                  onSelect={(d) => d && setSelectedDate(d)}
+                  className="w-full"
+                />
+              </div>
+            </div>
+
+            {/* All day toggle */}
+            <div className="flex items-center justify-between">
+              <span className="text-sm" style={{ color: "var(--roost-text-primary)", fontWeight: 700 }}>
+                All day
+              </span>
+              <Switch checked={allDay} onCheckedChange={setAllDay} />
+            </div>
+
+            {/* Time inputs */}
+            {!allDay && (
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="mb-1.5 block text-xs" style={{ color: "var(--roost-text-muted)", fontWeight: 700 }}>
+                    Start time
+                  </label>
+                  <input
+                    type="time"
+                    value={startTime}
+                    onChange={(e) => setStartTime(e.target.value)}
+                    className="h-12 w-full rounded-xl px-4 text-sm focus:outline-none"
+                    style={inputStyle}
+                  />
+                </div>
+                <div>
+                  <label className="mb-1.5 block text-xs" style={{ color: "var(--roost-text-muted)", fontWeight: 700 }}>
+                    End time
+                  </label>
+                  <input
+                    type="time"
+                    value={endTime}
+                    onChange={(e) => setEndTime(e.target.value)}
+                    className="h-12 w-full rounded-xl px-4 text-sm focus:outline-none"
+                    style={inputStyle}
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* Description */}
+            <div>
+              <label className="mb-1.5 block text-xs" style={{ color: "var(--roost-text-muted)", fontWeight: 700 }}>
+                Description
+              </label>
+              <textarea
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                placeholder="Any details..."
+                rows={2}
+                className="w-full resize-none rounded-xl px-4 py-3 text-sm focus:outline-none"
+                style={inputStyle}
+              />
+            </div>
+
+            {/* Attendees */}
+            {householdMembers.length > 0 && (
+              <div>
+                <label className="mb-2 block text-xs" style={{ color: "var(--roost-text-muted)", fontWeight: 700 }}>
+                  Attendees
+                </label>
+                <div className="flex flex-wrap gap-2">
+                  {householdMembers.map((m) => {
+                    const selected = attendeeIds.has(m.userId);
+                    return (
+                      <button
+                        key={m.userId}
+                        type="button"
+                        onClick={() => toggleAttendee(m.userId)}
+                        className="flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs"
+                        style={{
+                          backgroundColor: selected ? COLOR + "18" : "var(--roost-bg)",
+                          border: selected ? `1.5px solid ${COLOR}40` : "1.5px solid var(--roost-border)",
+                          color: selected ? COLOR : "var(--roost-text-primary)",
+                          fontWeight: selected ? 700 : 600,
+                        }}
+                      >
+                        <MemberAvatar name={m.name} avatarColor={m.avatarColor} size="sm" />
+                        {m.name.split(" ")[0]}
+                        {selected && <X className="size-3" />}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* Save + Cancel — pushed to bottom of left column on desktop */}
+            <div className="space-y-2 sm:mt-auto sm:pt-4">
+              <motion.button
+                type="button"
+                onClick={() => saveMutation.mutate()}
+                disabled={saveMutation.isPending}
+                whileTap={{ y: 2 }}
+                className="flex h-12 w-full items-center justify-center gap-2 rounded-xl text-sm text-white"
+                style={{
+                  backgroundColor: COLOR,
+                  border: `1.5px solid ${COLOR}`,
+                  borderBottom: `3px solid ${COLOR_DARK}`,
+                  fontWeight: 800,
+                  opacity: saveMutation.isPending ? 0.7 : 1,
+                }}
+              >
+                {saveMutation.isPending
+                  ? <Loader2 className="size-4 animate-spin" />
+                  : mode === "create" ? "Add Event" : "Save Changes"}
+              </motion.button>
+
+              <button
+                type="button"
+                onClick={onClose}
+                className="flex h-11 w-full items-center justify-center rounded-xl text-sm"
+                style={{ color: "var(--roost-text-muted)", fontWeight: 700 }}
+              >
+                Cancel
+              </button>
+            </div>
+
           </div>
 
-          {/* Inline calendar date picker */}
-          <div>
-            <label className="mb-1.5 block text-xs" style={{ color: "var(--roost-text-muted)", fontWeight: 700 }}>
+          {/* RIGHT COLUMN — calendar, desktop only */}
+          <div className="hidden sm:flex sm:flex-col">
+            <p className="mb-2 text-xs" style={{ color: "var(--roost-text-muted)", fontWeight: 700 }}>
               Date
-            </label>
+            </p>
             <div
               className="overflow-hidden rounded-xl"
-              style={{ border: "1.5px solid var(--roost-border)", borderBottom: "3px solid var(--roost-border-bottom)", "--primary": COLOR, "--primary-foreground": "#ffffff" } as React.CSSProperties}
+              style={{ border: "1.5px solid var(--roost-border)", borderBottom: `3px solid ${COLOR_DARK}40`, "--primary": COLOR, "--primary-foreground": "#ffffff" } as React.CSSProperties}
             >
               <Calendar
                 mode="single"
                 selected={selectedDate}
                 onSelect={(d) => d && setSelectedDate(d)}
-                className="w-full"
+                className="roost-calendar-compact w-full"
+                classNames={{ root: "w-full" }}
               />
             </div>
           </div>
 
-          {/* All day toggle */}
-          <div className="flex items-center justify-between">
-            <span className="text-sm" style={{ color: "var(--roost-text-primary)", fontWeight: 700 }}>
-              All day
-            </span>
-            <Switch
-              checked={allDay}
-              onCheckedChange={setAllDay}
-            />
-          </div>
-
-          {/* Time inputs */}
-          {!allDay && (
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="mb-1.5 block text-xs" style={{ color: "var(--roost-text-muted)", fontWeight: 700 }}>
-                  Start time
-                </label>
-                <input
-                  type="time"
-                  value={startTime}
-                  onChange={(e) => setStartTime(e.target.value)}
-                  className="h-12 w-full rounded-xl px-4 text-sm focus:outline-none"
-                  style={inputStyle}
-                />
-              </div>
-              <div>
-                <label className="mb-1.5 block text-xs" style={{ color: "var(--roost-text-muted)", fontWeight: 700 }}>
-                  End time
-                </label>
-                <input
-                  type="time"
-                  value={endTime}
-                  onChange={(e) => setEndTime(e.target.value)}
-                  className="h-12 w-full rounded-xl px-4 text-sm focus:outline-none"
-                  style={inputStyle}
-                />
-              </div>
-            </div>
-          )}
-
-          {/* Description */}
-          <div>
-            <label className="mb-1.5 block text-xs" style={{ color: "var(--roost-text-muted)", fontWeight: 700 }}>
-              Description
-            </label>
-            <textarea
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder="Any details..."
-              rows={2}
-              className="w-full resize-none rounded-xl px-4 py-3 text-sm focus:outline-none"
-              style={inputStyle}
-            />
-          </div>
-
-          {/* Attendees */}
-          {householdMembers.length > 0 && (
-            <div>
-              <label className="mb-2 block text-xs" style={{ color: "var(--roost-text-muted)", fontWeight: 700 }}>
-                Attendees
-              </label>
-              <div className="flex flex-wrap gap-2">
-                {householdMembers.map((m) => {
-                  const selected = attendeeIds.has(m.userId);
-                  return (
-                    <button
-                      key={m.userId}
-                      type="button"
-                      onClick={() => toggleAttendee(m.userId)}
-                      className="flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs"
-                      style={{
-                        backgroundColor: selected ? COLOR + "18" : "var(--roost-bg)",
-                        border: selected ? `1.5px solid ${COLOR}40` : "1.5px solid var(--roost-border)",
-                        color: selected ? COLOR : "var(--roost-text-primary)",
-                        fontWeight: selected ? 700 : 600,
-                      }}
-                    >
-                      <MemberAvatar name={m.name} avatarColor={m.avatarColor} size="sm" />
-                      {m.name.split(" ")[0]}
-                      {selected && <X className="size-3" />}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-
-          {/* Save button */}
-          <motion.button
-            type="button"
-            onClick={() => saveMutation.mutate()}
-            disabled={saveMutation.isPending}
-            whileTap={{ y: 2 }}
-            className="mt-2 flex h-12 w-full items-center justify-center gap-2 rounded-xl text-sm text-white"
-            style={{
-              backgroundColor: COLOR,
-              border: `1.5px solid ${COLOR}`,
-              borderBottom: `3px solid ${COLOR_DARK}`,
-              fontWeight: 800,
-              opacity: saveMutation.isPending ? 0.7 : 1,
-            }}
-          >
-            {saveMutation.isPending
-              ? <Loader2 className="size-4 animate-spin" />
-              : mode === "create" ? "Add Event" : "Save Changes"}
-          </motion.button>
-
-          {/* Cancel */}
-          <button
-            type="button"
-            onClick={onClose}
-            className="flex h-11 w-full items-center justify-center rounded-xl text-sm"
-            style={{ color: "var(--roost-text-muted)", fontWeight: 700 }}
-          >
-            Cancel
-          </button>
         </div>
       </SheetContent>
     </Sheet>

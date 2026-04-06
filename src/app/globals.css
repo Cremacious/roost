@@ -235,3 +235,35 @@
   background: var(--roost-surface) !important;
   border-color: var(--roost-border) !important;
 }
+
+/* ---- Compact calendar (EventSheet desktop right column) ---------------- */
+
+.roost-calendar-compact {
+  --cell-size: 30px;
+}
+
+.roost-calendar-compact .rdp-month_caption {
+  font-size: 13px;
+  font-weight: 800;
+  padding-bottom: 4px;
+}
+
+.roost-calendar-compact .rdp-weekday {
+  font-size: 10px;
+  font-weight: 700;
+  width: var(--cell-size);
+  height: var(--cell-size);
+}
+
+.roost-calendar-compact .rdp-day {
+  width: var(--cell-size);
+  height: var(--cell-size);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.roost-calendar-compact .rdp-day_button {
+  width: var(--cell-size);
+  height: var(--cell-size);
+  font-size: 12px;
+}

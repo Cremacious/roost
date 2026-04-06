@@ -14,6 +14,17 @@ OurHome combined. Key differentiators: receipt scanning, child
 accounts with nagging notifications, ambient tablet mode,
 per-household pricing.
 
+## Brand Voice
+App slogan options (decision pending):
+  Leading candidate: "Home, sorted."
+  Runner up: "Get your house in order."
+  
+  Slogan should appear on:
+    Login page below the logo
+    App Store description first line
+    Marketing/landing page hero
+    Onboarding welcome screen
+
 ## Tech Stack
 - Next.js 16 App Router, TypeScript, Tailwind v4
 - Drizzle ORM + Neon (PostgreSQL)
@@ -414,6 +425,9 @@ src/app/api/dev/toggle-premium/route.ts       POST: dev-only, toggles household 
 - Permission check: calendar.add permission in member_permissions table (default true for members)
 - Children blocked from adding/editing/deleting events
 - Event color: #3B82F6, border-bottom: #1A5CB5
+- EventSheet create/edit: mobile = single column (calendar inline, collapses after date pick); desktop (sm:) = two-column grid, left col has all form fields, right col has always-visible Calendar using `.roost-calendar-compact`
+- EventSheet SheetContent: `sm:rounded-2xl sm:max-w-215 sm:w-215` (860px) for desktop two-column layout
+- `.roost-calendar-compact` in globals.css: sets `--cell-size: 30px` to shrink the react-day-picker v9 grid; targets `.rdp-weekday`, `.rdp-day`, `.rdp-day_button`
 
 ## Task UX Patterns
 - Tasks grouped by: Overdue (red header), Due today (pink), Upcoming, No due date, Completed
@@ -515,6 +529,83 @@ Phase 4: Polish
   Expo iOS app
   Android submission
   i18n Spanish pass
+  Weather Temperature Units (build later):
+    Currently hardcoded location (Orlando 28.5, -81.4) and unit (Celsius default).
+    Need to make it location-aware and user-controlled.
+    1. Auto-detect user location on first app load
+       Use browser Geolocation API: navigator.geolocation.getCurrentPosition()
+       Store lat/lon in users table
+       Add columns: latitude (numeric), longitude (numeric) to users schema
+    2. Auto-select temperature unit based on location
+       United States: Fahrenheit. All other countries: Celsius.
+       Detection: reverse geocode lat/lon via Open-Meteo geocoding API, or check
+       if timezone contains "America/" prefix as a simple US detection method
+    3. Store preference in users table
+       Add column: temperature_unit text default 'fahrenheit' (fahrenheit | celsius)
+    4. Open-Meteo API supports both units:
+       Fahrenheit: add &temperature_unit=fahrenheit
+       Celsius: default, no param needed
+    5. User can override in Settings > Preferences:
+       Toggle: Fahrenheit / Celsius
+       Saves to users.temperature_unit via PATCH /api/user/preferences
+    6. Update TopBar weather display:
+       Read temperature_unit from useHousehold() or a new useUserPreferences() hook
+       Pass correct unit param to Open-Meteo fetch
+       Display "72F" or "22C" accordingly
+    7. Also store and use user's actual location for accurate weather (not hardcoded Orlando):
+       On first load: request location permission
+       If granted: use real lat/lon
+       If denied: fall back to household timezone to approximate location, or show no weather
+    Current hardcoded values to replace:
+      Latitude: 28.5 (Orlando), Longitude: -81.4 (Orlando), Unit: Celsius (Open-Meteo default)
+    Files to update when building:
+      src/db/schema/users.ts (add columns)
+      src/components/layout/TopBar.tsx (use real location + unit)
+      src/app/(app)/settings/page.tsx (add preference toggle)
+      src/app/api/user/preferences/route.ts (new route)
+
+Phase 5: Allowance System (premium only, build after Phase 4)
+  Parent-controlled allowance tied to chore completion.
+  Unique to Roost, no competitor has this feature.
+  Requires: chores module + expenses module.
+
+  How it works:
+    Parent sets weekly allowance amount per child
+    Parent sets chore completion threshold (e.g. 80% of assigned chores that week)
+    Vercel cron runs every Sunday night, evaluates each child's weekly completion rate
+    If child hits threshold:
+      Allowance logged as an expense entry (parent "owes" child)
+      Child gets push notification: "You earned your $5 allowance this week!"
+    If child misses threshold:
+      No allowance logged
+      Child gets push notification: "You missed your allowance this week. You completed X of Y chores."
+      Parent gets a summary notification
+
+  Child view:
+    Earned weeks in green, missed weeks in red
+    Running total of what parent owes them
+
+  Parent view:
+    Each child's weekly completion rate
+    Amount earned vs missed, total owed across all children
+
+  Schema additions (build later):
+    allowance_settings: id, household_id, user_id (child), weekly_amount (numeric),
+      threshold_percent (integer, e.g. 80), enabled (boolean), created_by, created_at
+    allowance_payouts: id, household_id, user_id (child), week_start (date),
+      amount (numeric), earned (boolean), completion_rate (integer),
+      expense_id (references expenses, nullable), created_at
+
+  UI additions (build later):
+    Settings page: Allowance section
+      Per-child amount input, threshold slider (0-100%), enable/disable toggle per child
+      "Preview this week" button showing current completion rates
+    Child dashboard: Allowance widget
+      This week's progress bar toward threshold
+      Projected allowance if they finish, past earnings history
+    Expenses page: Allowance section
+      Separate from regular expenses, shows pending payouts
+      Parent can mark as paid (cash/Venmo)
 
 ## Environment Variables
 DATABASE_URL
@@ -572,7 +663,7 @@ Designer brief (send this when hiring):
 At the start of each new session fetch this file to restore context.
 Share GitHub file URLs, paste code, or describe what was built.
 Update this file after every major decision or completed phase.
-Last updated: 2026-04-05 (premium stack verified: schema sync confirmed, requirePremium returns JSON 403, db:push clean)
+Last updated: 2026-04-05 (added Phase 5 Allowance System roadmap; added Brand Voice/slogan section; weather unit roadmap; EventSheet desktop two-column layout; premium stack verified)
 
 ## Bugs Found and Fixed (2026-04-05)
 - No default grocery list created on household signup: `GET /api/grocery/lists` now

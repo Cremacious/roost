@@ -16,13 +16,13 @@ export async function GET(request: NextRequest): Promise<Response> {
 
   const [user] = await db
     .select({
-      temperature_unit: users.temperature_unit,
-      latitude: users.latitude,
-      longitude: users.longitude,
+      id: users.id,
+      name: users.name,
+      email: users.email,
+      avatar_color: users.avatar_color,
       timezone: users.timezone,
       language: users.language,
       theme: users.theme,
-      chore_reminders_enabled: users.chore_reminders_enabled,
     })
     .from(users)
     .where(eq(users.id, session.user.id))
@@ -32,7 +32,7 @@ export async function GET(request: NextRequest): Promise<Response> {
     return Response.json({ error: "User not found" }, { status: 404 });
   }
 
-  return Response.json(user);
+  return Response.json({ user });
 }
 
 // ---- PATCH ------------------------------------------------------------------
@@ -46,12 +46,12 @@ export async function PATCH(request: NextRequest): Promise<Response> {
   }
 
   let body: {
-    temperature_unit?: string;
-    latitude?: number;
-    longitude?: number;
+    name?: string;
+    email?: string;
+    avatar_color?: string;
     timezone?: string;
     language?: string;
-    chore_reminders_enabled?: boolean;
+    push_token?: string;
   };
   try {
     body = await request.json();
@@ -59,34 +59,43 @@ export async function PATCH(request: NextRequest): Promise<Response> {
     return Response.json({ error: "Invalid request body" }, { status: 400 });
   }
 
-  if (
-    body.temperature_unit !== undefined &&
-    !["fahrenheit", "celsius"].includes(body.temperature_unit)
-  ) {
-    return Response.json({ error: "Invalid temperature_unit" }, { status: 400 });
+  if (body.email !== undefined) {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(body.email)) {
+      return Response.json({ error: "Invalid email address" }, { status: 400 });
+    }
+    // Check email not already taken by another user
+    const [existing] = await db
+      .select({ id: users.id })
+      .from(users)
+      .where(eq(users.email, body.email))
+      .limit(1);
+    if (existing && existing.id !== session.user.id) {
+      return Response.json({ error: "Email already in use" }, { status: 409 });
+    }
   }
 
   const updates: Record<string, unknown> = { updated_at: new Date() };
-  if (body.temperature_unit !== undefined) updates.temperature_unit = body.temperature_unit;
-  if (body.latitude !== undefined) updates.latitude = String(body.latitude);
-  if (body.longitude !== undefined) updates.longitude = String(body.longitude);
+  if (body.name !== undefined) updates.name = body.name.trim();
+  if (body.email !== undefined) updates.email = body.email.trim().toLowerCase();
+  if (body.avatar_color !== undefined) updates.avatar_color = body.avatar_color;
   if (body.timezone !== undefined) updates.timezone = body.timezone;
   if (body.language !== undefined) updates.language = body.language;
-  if (body.chore_reminders_enabled !== undefined) updates.chore_reminders_enabled = body.chore_reminders_enabled;
+  if (body.push_token !== undefined) updates.push_token = body.push_token;
 
   const [updated] = await db
     .update(users)
     .set(updates)
     .where(eq(users.id, session.user.id))
     .returning({
-      temperature_unit: users.temperature_unit,
-      latitude: users.latitude,
-      longitude: users.longitude,
+      id: users.id,
+      name: users.name,
+      email: users.email,
+      avatar_color: users.avatar_color,
       timezone: users.timezone,
       language: users.language,
       theme: users.theme,
-      chore_reminders_enabled: users.chore_reminders_enabled,
     });
 
-  return Response.json(updated);
+  return Response.json({ user: updated });
 }

@@ -12,3 +12,4 @@ export * from "./notifications";
 export * from "./activity";
 export * from "./meals";
 export * from "./reminders";
+export * from "./allowances";

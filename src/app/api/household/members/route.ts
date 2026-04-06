@@ -41,6 +41,7 @@ export async function GET(request: NextRequest): Promise<Response> {
       joinedAt: household_members.joined_at,
       name: users.name,
       avatarColor: users.avatar_color,
+      email: users.email,
     })
     .from(household_members)
     .innerJoin(users, eq(household_members.user_id, users.id))

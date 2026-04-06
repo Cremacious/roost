@@ -329,7 +329,7 @@ src/lib/store/themeStore.ts                    Zustand store: { theme, setTheme 
 src/lib/db/index.ts                            Neon + Drizzle instance
 src/db/schema/auth.ts                          better-auth tables (user, session, account, verification)
 src/db/schema/households.ts
-src/db/schema/users.ts                         App user table; includes theme column (text, default 'warm')
+src/db/schema/users.ts                         App user table; includes theme, latitude, longitude, temperature_unit, chore_reminders_enabled columns
 src/db/schema/members.ts                       household_members, member_permissions
 src/db/schema/chores.ts                        chores, chore_completions, chore_streaks
 src/db/schema/grocery.ts                       grocery_lists, grocery_items
@@ -339,6 +339,7 @@ src/db/schema/notes.ts
 src/db/schema/expenses.ts                      expenses, expense_splits
 src/db/schema/notifications.ts                 notification_queue
 src/db/schema/activity.ts                      household_activity table (id, household_id, user_id, type, entity_id, entity_type, description, created_at)
+src/db/schema/allowances.ts                    allowance_settings table: id, household_id, user_id, enabled, weekly_amount, threshold_percent, created_by, created_at, updated_at
 src/db/schema/index.ts                         Re-exports all tables
 src/app/(auth)/login/page.tsx
 src/app/(auth)/signup/page.tsx                 Email/password + strength meter + confirm field
@@ -346,7 +347,7 @@ src/app/(auth)/child-login/page.tsx            Household code + PIN, 64px inputs
 src/app/(app)/layout.tsx                       App shell: TopBar + Sidebar + BottomNav + QueryProvider
 src/app/(app)/onboarding/page.tsx              3-step create/join household flow
 src/app/(app)/dashboard/page.tsx               Tile grid + activity feed, all CSS variable colors
-src/app/(app)/settings/page.tsx                Appearance + Profile sections; 8-theme grid picker
+src/app/(app)/settings/page.tsx                Full settings page: Profile, Appearance, Preferences, Household, Members (admin), Notifications, Billing, Danger Zone (admin)
 src/app/(app)/chores/page.tsx                  Chores list, summary bar, view toggle, optimistic completion + uncheck
 src/app/layout.tsx                             Root layout: Nunito font, ThemeProvider with server-side theme
 src/app/globals.css                            Tailwind + shadcn vars + --roost-* CSS variable defaults
@@ -354,7 +355,12 @@ src/app/api/auth/[...all]/route.ts             better-auth catch-all handler
 src/app/api/auth/child-login/route.ts          PIN auth, creates session via internalAdapter
 src/app/api/household/create/route.ts          POST: create household, generate unique code
 src/app/api/household/join/route.ts            POST: join by code, premium multi-household check
-src/app/api/household/members/route.ts         GET: household info + member list with user data
+src/app/api/household/members/route.ts         GET: household info + member list with user data (includes email)
+src/app/api/household/members/[id]/route.ts    DELETE: remove member (admin only, cannot remove admin or self)
+src/app/api/household/members/[id]/role/route.ts  PATCH: change member role; child role locks all child-locked permissions
+src/app/api/household/members/[id]/permissions/route.ts  GET + PATCH: 12 permission toggles; child-locked perms cannot be enabled for child role
+src/app/api/household/members/[id]/pin/route.ts  PATCH (admin only): set/change child PIN, hashed before storage
+src/app/api/household/members/[id]/allowance/route.ts  GET + PATCH (admin only): allowance settings per child member
 src/app/api/user/theme/route.ts                PATCH: update users.theme for current user
 src/app/api/chores/route.ts                    GET (list with joins) + POST (create); exports getUserHousehold + calcNextDueAt
 src/app/api/chores/[id]/route.ts               PATCH (update) + DELETE (soft delete)
@@ -375,7 +381,13 @@ src/lib/utils/activity.ts                      logActivity(params) helper -- wra
 src/lib/utils/time.ts                          relativeTime(date) -- returns "Just now", "Xm ago", "Xh ago", "Yesterday", "Xd ago"
 src/lib/hooks/useHousehold.ts                  Client hook: returns { household, role, permissions, isPremium, isLoading, error } via /api/household/me
 src/lib/hooks/useUserPreferences.ts            Client hook: returns { temperatureUnit, latitude, longitude, updatePreferences } via /api/user/preferences
-src/app/api/user/preferences/route.ts          GET + PATCH: temperature_unit, latitude, longitude, timezone, language
+src/app/api/user/preferences/route.ts          GET + PATCH: temperature_unit, latitude, longitude, timezone, language, chore_reminders_enabled
+src/app/api/user/profile/route.ts              GET + PATCH: name, email (unique check), avatar_color, timezone, language, push_token
+src/app/api/user/change-password/route.ts      POST: verifyPassword current via account table, hashPassword new; strength validation
+src/app/api/household/[id]/route.ts            PATCH: rename household (admin); DELETE: hard delete all content + household
+src/app/api/household/[id]/delete-data/route.ts  POST (admin only): hard delete all household content in FK order, household row remains
+src/app/api/household/[id]/regenerate-code/route.ts  POST (admin only): generates new unique 6-char invite code
+src/app/api/household/[id]/transfer-admin/route.ts  POST (admin only): demotes self to member, promotes target to admin (not child)
 src/components/shared/RoostLogo.tsx            Centralized logo: sizes xs/sm/md/lg/xl, variants dark/light/red
 src/components/shared/SlabCard.tsx             Base card: rounded-2xl, border + 4px slab bottom, press effect
 src/components/shared/EmptyState.tsx           Sassy empty state: dashed slab card, icon, title, body, optional button
@@ -385,6 +397,7 @@ src/components/shared/PageHeader.tsx           Page title + subtitle + optional 
 src/components/shared/SectionColorBadge.tsx    Inline color badge pill: bg color+18, border color+30
 src/components/shared/MemberAvatar.tsx         Initials avatar, sizes sm/md/lg, color prop
 src/components/shared/PremiumGate.tsx          Premium upgrade prompt: icon, copy, price card, upgrade button, blurred feature preview
+src/components/settings/MemberSheet.tsx        Admin member management: role picker, 12 permission toggles, child PIN change, allowance config, remove member
 src/components/dev/DevTools.tsx                Dev-only floating toolbar: premium toggle switch, user info, household info
 src/components/chores/ChoreSheet.tsx           Add/edit sheet: slab inputs, slab freq toggles, slab day buttons
 src/components/chores/LeaderboardSheet.tsx     Weekly leaderboard: slab cards, gold/silver/bronze rank badges
@@ -606,6 +619,12 @@ vercel.json                                   Cron schedule: /api/cron/reminders
 - PremiumGate component handles all premium feature gates. Props: feature (string union).
   Each variant has its own copy, icon, and optional blurred preview component.
   Link upgrade button to /settings/billing.
+- Danger zone actions require the user to type "DELETE" into a confirmation input before the destructive button enables. Never allow destructive household actions (delete all data, delete household) with a single click or simple OK dialog.
+- Child financial permissions (expenses.view, expenses.add) are always locked off regardless of admin checklist. The API enforces this: enabling child-locked permissions for a child role returns 400.
+- PIN is always hashed before storage (hashPassword from better-auth/crypto). Never store child PINs in plain text.
+- Settings page sections: Profile (avatar color, name, email, timezone, password change), Appearance (theme grid), Preferences (temperature unit, location, language), Household (rename, invite code, transfer admin), Members (admin only, opens MemberSheet), Notifications (chore reminders toggle), Billing (plan status, upgrade), Danger Zone (admin only, delete data, delete household).
+- MemberSheet (admin only): role changes, 12 permission toggles, child PIN change (nested sheet), allowance config (child only), remove member. Child-locked permissions rendered as disabled switches.
+- The 12 member permissions: expenses.view, expenses.add, chores.add, chores.edit, grocery.add, grocery.create_list, calendar.add, calendar.edit, tasks.add, notes.add, meals.plan, meals.suggest
 - Add flow pattern per feature page:
     Grocery: quick add bar at top for fast adds (h-14, amber border, cycling placeholder).
       Top-right + opens GroceryItemSheet for detailed add with name + quantity.
@@ -624,6 +643,7 @@ Phase 1: Foundation (COMPLETE)
 Phase 2: Daily Use
   Design system pass: DONE, all auth+app pages, ChoreSheet, LeaderboardSheet, Sidebar (220px), BottomNav (4 tabs + More sheet), shared components
   Theme system: DONE, 8 themes, per-user, instant apply, settings picker
+  Settings page: DONE, 8 sections (Profile, Appearance, Preferences, Household, Members, Notifications, Billing, Danger Zone), MemberSheet, allowance config
   Chores: DONE, list, create, edit, complete, uncheck, streaks, leaderboard, optimistic UI
   Grocery: DONE, lists (free: 1, premium: multiple), items, check/uncheck optimistic, clear checked, activity logging
   Activity feed: DONE, household_activity table, logged for chores + grocery, dashboard reads real data
@@ -757,7 +777,7 @@ Designer brief (send this when hiring):
 At the start of each new session fetch this file to restore context.
 Share GitHub file URLs, paste code, or describe what was built.
 Update this file after every major decision or completed phase.
-Last updated: 2026-04-06 (weather: location-aware with user-controlled temp unit; useUserPreferences hook; /api/user/preferences GET+PATCH; Settings > Preferences section)
+Last updated: 2026-04-06 (settings page: full rewrite with 8 sections; 11 new API routes for profile, password change, household management, member permissions, allowance; MemberSheet component; allowance_settings schema; chore_reminders_enabled on users)
 
 ## Bugs Found and Fixed (2026-04-05)
 - No default grocery list created on household signup: `GET /api/grocery/lists` now

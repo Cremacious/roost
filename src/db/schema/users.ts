@@ -1,4 +1,4 @@
-import { numeric, pgTable, text, timestamp } from "drizzle-orm/pg-core";
+import { boolean, numeric, pgTable, text, timestamp } from "drizzle-orm/pg-core";
 
 export const users = pgTable("users", {
   id: text("id").primaryKey(),
@@ -12,6 +12,7 @@ export const users = pgTable("users", {
   latitude: numeric("latitude"),
   longitude: numeric("longitude"),
   temperature_unit: text("temperature_unit").notNull().default("fahrenheit"),
+  chore_reminders_enabled: boolean("chore_reminders_enabled").notNull().default(false),
   created_at: timestamp("created_at").defaultNow(),
   updated_at: timestamp("updated_at").defaultNow(),
   deleted_at: timestamp("deleted_at"),

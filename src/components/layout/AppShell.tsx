@@ -4,6 +4,7 @@ import { usePathname } from "next/navigation";
 import TopBar from "@/components/layout/TopBar";
 import Sidebar from "@/components/layout/Sidebar";
 import BottomNav from "@/components/layout/BottomNav";
+import ReminderBanner from "@/components/shared/ReminderBanner";
 import dynamic from "next/dynamic";
 
 const DevTools = dynamic(() => import("@/components/dev/DevTools"), { ssr: false });
@@ -26,6 +27,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
             : "flex min-h-screen flex-col pt-14 pb-16 md:pb-0 md:pl-55"
         }
       >
+        {!hideNav && <ReminderBanner />}
         {children}
       </main>
 

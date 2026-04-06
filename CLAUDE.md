@@ -425,6 +425,33 @@ src/components/meals/MealSheet.tsx            Create/edit meal: name, category p
 src/components/meals/MealSlotSheet.tsx        Slot picker: menu mode, bank search, quick add, date-pick mode (preSelectedMeal prop), view/remove existing slot
 src/components/meals/SuggestionSheet.tsx      Suggest a meal: name, category pills, note, prep time, dynamic ingredients list (all roles)
 src/app/(app)/meals/page.tsx                  Full meals module: Planner/Meal Bank/Suggestions tabs
+src/db/schema/reminders.ts                    reminders + reminder_receipts tables (frequency, notify_type, next_remind_at)
+src/app/api/reminders/route.ts                GET (filtered by notify_type + user) + POST (create + receipts + activity log)
+src/app/api/reminders/[id]/route.ts           PATCH + DELETE (creator or admin, soft delete, recalculates next_remind_at)
+src/app/api/reminders/[id]/complete/route.ts  POST: complete (once) or advance (recurring); DELETE: undo one-time only
+src/app/api/reminders/[id]/seen/route.ts      POST: upsert reminder_receipt seen=true for current user
+src/app/api/reminders/due/route.ts            GET: reminders due in next 24h for current user (used by banner + dashboard)
+src/app/api/cron/reminders/route.ts           Vercel cron GET (every 15min): process due reminders, create receipts, advance recurring
+src/app/(app)/reminders/page.tsx              Full reminders module: grouped sections (overdue/today/week/later/done), filter, stats
+src/components/reminders/ReminderSheet.tsx    Create/edit: title, note, date+time picker, frequency + custom days, notify type + member list
+src/components/shared/ReminderBanner.tsx      Dismissible banner below TopBar when reminders due (polls every 60s, session-dismissed)
+vercel.json                                   Cron schedule: /api/cron/reminders every 15 minutes
+
+## Reminders UX Patterns
+- Reminder types: once (completes after firing) and recurring (daily/weekly/monthly/custom)
+- Notify types: self (only creator), specific (chosen members), household (everyone)
+- notify_user_ids stored as JSON string in DB
+- next_remind_at is the next fire time; remind_at is the original time set by user
+- Completing a recurring reminder advances next_remind_at, does NOT mark completed
+- Completing a once reminder marks completed = true
+- In-app banner polls /api/reminders/due every 60 seconds
+- Banner dismisses per-session via sessionStorage key "roost-reminder-banner-dismissed"
+- Cron job runs every 15 minutes on Vercel, secured with CRON_SECRET env var
+- Cron creates reminder_receipts (seen=false) for all notified users when reminder fires
+- Push notifications: TODO when Expo app is built (push_token on users table)
+- Dashboard reminders tile: dynamic statusText "X due today" or "Nothing due today"
+- vercel.json created with cron schedule at root of project
+- calcNextRemindAt() helper exported from src/app/api/reminders/route.ts
 
 ## Expense UX Patterns
 - Premium-gated: free tier sees blurred mock expense list with upgrade CTA overlay
@@ -583,6 +610,7 @@ Phase 2: Daily Use
   Calendar: DONE, month grid + agenda view, DaySheet, EventSheet, attendees, permissions
   Tasks: DONE, create, assign, due date, priority, complete, grouped sections, filter row
   Notes: DONE, quick add bar, masonry grid, view/edit/delete sheet, 1000 char limit
+  Reminders: DONE, create/edit/complete, recurring, notify types, banner, cron job
   Push notification setup (Expo)
 
 Phase 3: Money (premium)
@@ -685,6 +713,7 @@ STRIPE_WEBHOOK_SECRET
 NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
 GOOGLE_VISION_API_KEY
 EXPO_ACCESS_TOKEN
+CRON_SECRET
 
 ## OG Image (needs manual creation)
 - Path: public/og-image.png
@@ -737,7 +766,7 @@ Designer brief (send this when hiring):
 At the start of each new session fetch this file to restore context.
 Share GitHub file URLs, paste code, or describe what was built.
 Update this file after every major decision or completed phase.
-Last updated: 2026-04-05 (meal planning module complete: planner, bank, suggestions, voting, grocery integration; Phase 5 Allowance System roadmap; desktop sheet centering via globals.css; meal UX patterns updated: confirmation dialogs, suggestion form fields, date-mode slot picker, query invalidation; MealSlotSheet edit mode: two options + AlertDialog remove confirm)
+Last updated: 2026-04-06 (reminders module complete: schema + db:push, 5 API routes, cron job, ReminderSheet, ReminderBanner in AppShell, dashboard tile dynamic, vercel.json, CRON_SECRET added)
 
 ## Bugs Found and Fixed (2026-04-05)
 - No default grocery list created on household signup: `GET /api/grocery/lists` now

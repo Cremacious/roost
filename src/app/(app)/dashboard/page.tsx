@@ -309,6 +309,18 @@ export default function DashboardPage() {
     enabled: isPremium,
   });
 
+  const { data: remindersDueData } = useQuery<{ due: { id: string; title: string }[] }>({
+    queryKey: ["reminders-due"],
+    queryFn: async () => {
+      const r = await fetch("/api/reminders/due");
+      if (!r.ok) return { due: [] };
+      return r.json();
+    },
+    staleTime: 60_000,
+    refetchInterval: 60_000,
+    retry: 1,
+  });
+
   const { data: mealsTonightData } = useQuery<{ slots: { slot_type: string; meal_name: string | null; custom_meal_name: string | null }[] }>({
     queryKey: ["planner-tonight"],
     queryFn: async () => {
@@ -383,6 +395,13 @@ export default function DashboardPage() {
     return "All settled";
   }
 
+  function remindersStatusText(): string {
+    const dueCount = remindersDueData?.due?.length ?? 0;
+    if (dueCount === 0) return "Nothing due today";
+    if (dueCount === 1) return "1 due today";
+    return `${dueCount} due today`;
+  }
+
   function mealsStatusText(): string {
     const todayStr = new Date().toISOString().slice(0, 10);
     const tonightSlot = (mealsTonightData?.slots ?? []).find(
@@ -398,6 +417,7 @@ export default function DashboardPage() {
   const tiles = TILES.map((t) => {
     if (t.key === "expenses") return { ...t, statusText: expensesStatusText() };
     if (t.key === "meals") return { ...t, statusText: mealsStatusText() };
+    if (t.key === "reminders") return { ...t, statusText: remindersStatusText() };
     return t;
   });
 

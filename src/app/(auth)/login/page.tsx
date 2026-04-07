@@ -28,9 +28,9 @@ const FEATURES = [
 ];
 
 const inputStyle: React.CSSProperties = {
-  border: "1.5px solid #F5C5C5",
-  borderBottom: "3px solid #D4CFC9",
-  color: "#1A0505",
+  border: "1.5px solid #E5E7EB",
+  borderBottom: "3px solid #D1D5DB",
+  color: "#111827",
   fontWeight: 600,
   backgroundColor: "transparent",
   borderRadius: 14,
@@ -115,7 +115,7 @@ export default function LoginPage() {
       <div
         style={{
           flex: 1,
-          backgroundColor: "#FFF5F5",
+          backgroundColor: "#F9FAFB",
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
@@ -138,12 +138,12 @@ export default function LoginPage() {
               height={48}
               style={{ borderRadius: 14, objectFit: "cover" }}
             />
-            <p style={{ fontWeight: 900, fontSize: 20, color: "#1A0505", marginTop: 8 }}>Roost</p>
+            <p style={{ fontWeight: 900, fontSize: 20, color: "#111827", marginTop: 8 }}>Roost</p>
           </div>
 
           {/* Heading */}
-          <h1 style={{ fontSize: 28, fontWeight: 900, color: "#1A0505", marginBottom: 4 }}>Welcome back.</h1>
-          <p style={{ fontSize: 14, fontWeight: 600, color: "#5A2020", marginBottom: 28 }}>
+          <h1 style={{ fontSize: 28, fontWeight: 900, color: "#111827", marginBottom: 4 }}>Welcome back.</h1>
+          <p style={{ fontSize: 14, fontWeight: 600, color: "#374151", marginBottom: 28 }}>
             Your household is waiting.
           </p>
 
@@ -151,7 +151,7 @@ export default function LoginPage() {
           <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 16 }}>
             {/* Email */}
             <div>
-              <label style={{ display: "block", fontSize: 13, fontWeight: 700, color: "#1A0505", marginBottom: 6 }}>
+              <label style={{ display: "block", fontSize: 13, fontWeight: 700, color: "#111827", marginBottom: 6 }}>
                 Email
               </label>
               <input
@@ -168,7 +168,7 @@ export default function LoginPage() {
             {/* Password */}
             <div>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
-                <label style={{ fontSize: 13, fontWeight: 700, color: "#1A0505" }}>Password</label>
+                <label style={{ fontSize: 13, fontWeight: 700, color: "#111827" }}>Password</label>
                 <button type="button" style={{ fontSize: 13, fontWeight: 700, color: "#EF4444", background: "none", border: "none", cursor: "pointer" }}>
                   Forgot password?
                 </button>
@@ -187,7 +187,7 @@ export default function LoginPage() {
                   type="button"
                   onClick={() => setShowPassword((v) => !v)}
                   tabIndex={-1}
-                  style={{ position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)", color: "#9B6060", background: "none", border: "none", cursor: "pointer" }}
+                  style={{ position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)", color: "#6B7280", background: "none", border: "none", cursor: "pointer" }}
                 >
                   {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                 </button>
@@ -224,9 +224,9 @@ export default function LoginPage() {
 
           {/* Divider */}
           <div style={{ display: "flex", alignItems: "center", gap: 12, margin: "20px 0" }}>
-            <div style={{ flex: 1, height: 1, backgroundColor: "#F5C5C5" }} />
-            <span style={{ fontSize: 13, fontWeight: 700, color: "#9B6060" }}>or</span>
-            <div style={{ flex: 1, height: 1, backgroundColor: "#F5C5C5" }} />
+            <div style={{ flex: 1, height: 1, backgroundColor: "#E5E7EB" }} />
+            <span style={{ fontSize: 13, fontWeight: 700, color: "#6B7280" }}>or</span>
+            <div style={{ flex: 1, height: 1, backgroundColor: "#E5E7EB" }} />
           </div>
 
           {/* Footer links */}
@@ -239,7 +239,7 @@ export default function LoginPage() {
             </Link>
             <Link
               href="/child-login"
-              style={{ fontSize: 13, fontWeight: 600, color: "#9B6060", textDecoration: "none", display: "block" }}
+              style={{ fontSize: 13, fontWeight: 600, color: "#6B7280", textDecoration: "none", display: "block" }}
             >
               Sign in as a child
             </Link>

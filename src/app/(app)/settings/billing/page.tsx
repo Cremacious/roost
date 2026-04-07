@@ -47,7 +47,6 @@ const PREMIUM_FEATURES = [
   "Recurring reminders, notify anyone",
   "Chore streaks and leaderboard",
   "Unlimited members and child accounts",
-  "All themes unlocked",
   "Allowance system for kids",
 ];
 
@@ -56,7 +55,6 @@ const CANCEL_LOSSES = [
   "Recurring chores and leaderboard",
   "Meal suggestions and voting",
   "Unlimited reminders",
-  "All themes (reverts to Roost Red)",
   "Allowance system for kids",
 ];
 
@@ -539,9 +537,9 @@ function BillingPageInner() {
             <div
               className="rounded-2xl p-4 space-y-3"
               style={{
-                backgroundColor: "rgba(239,68,68,0.06)",
-                border: "1.5px solid rgba(239,68,68,0.15)",
-                borderBottom: "4px solid #C93B3B",
+                backgroundColor: "rgba(0,0,0,0.04)",
+                border: "1.5px solid rgba(0,0,0,0.08)",
+                borderBottom: "4px solid #D1D5DB",
               }}
             >
               {CANCEL_LOSSES.map((item) => (

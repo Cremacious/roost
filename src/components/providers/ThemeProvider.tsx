@@ -5,7 +5,7 @@ import { toast } from "sonner";
 import { THEMES, DEFAULT_THEME, type ThemeKey } from "@/lib/constants/themes";
 import { useThemeStore } from "@/lib/store/themeStore";
 
-const VALID_THEME_KEYS = new Set(Object.keys(THEMES));
+const VALID_THEME_KEYS = new Set<string>(['default', 'midnight']);
 
 function resolveThemeKey(key: string): ThemeKey {
   return VALID_THEME_KEYS.has(key) ? (key as ThemeKey) : DEFAULT_THEME;
@@ -52,6 +52,15 @@ export function applyTheme(key: ThemeKey) {
   root.style.setProperty("--sidebar", theme.sidebarBg);
   root.style.setProperty("--sidebar-foreground", theme.textPrimary);
   root.style.setProperty("--sidebar-border", theme.sidebarBorder);
+
+  // Update shadcn --primary so Switch, Checkbox etc. use neutral, not red
+  if (theme.dark) {
+    root.style.setProperty("--primary", "oklch(0.985 0 0)");
+    root.style.setProperty("--primary-foreground", "oklch(0.145 0 0)");
+  } else {
+    root.style.setProperty("--primary", "oklch(0.145 0 0)");
+    root.style.setProperty("--primary-foreground", "oklch(0.985 0 0)");
+  }
 
   // Data attributes for CSS selectors (e.g. toast dark theme override)
   root.setAttribute("data-theme", key);

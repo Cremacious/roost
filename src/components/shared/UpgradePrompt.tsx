@@ -135,12 +135,12 @@ export default function UpgradePrompt({ code, onDismiss }: UpgradePromptProps) {
       <div
         className="flex h-12 w-12 items-center justify-center rounded-2xl"
         style={{
-          backgroundColor: "rgba(239,68,68,0.10)",
-          border: "1px solid rgba(239,68,68,0.20)",
-          borderBottom: "2px solid rgba(239,68,68,0.30)",
+          backgroundColor: "rgba(0,0,0,0.06)",
+          border: "1px solid rgba(0,0,0,0.10)",
+          borderBottom: "2px solid rgba(0,0,0,0.15)",
         }}
       >
-        <Icon className="size-5" style={{ color: "#EF4444" }} />
+        <Icon className="size-5" style={{ color: "#374151" }} />
       </div>
 
       {/* Text */}

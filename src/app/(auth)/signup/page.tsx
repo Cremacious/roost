@@ -53,9 +53,9 @@ const FEATURES = [
 // ---- Styles -----------------------------------------------------------------
 
 const inputStyle: React.CSSProperties = {
-  border: "1.5px solid #F5C5C5",
-  borderBottom: "3px solid #D4CFC9",
-  color: "#1A0505",
+  border: "1.5px solid #E5E7EB",
+  borderBottom: "3px solid #D1D5DB",
+  color: "#111827",
   fontWeight: 600,
   backgroundColor: "transparent",
   borderRadius: 14,
@@ -168,7 +168,7 @@ export default function SignupPage() {
       <div
         style={{
           flex: 1,
-          backgroundColor: "#FFF5F5",
+          backgroundColor: "#F9FAFB",
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
@@ -191,18 +191,18 @@ export default function SignupPage() {
               height={48}
               style={{ borderRadius: 14, objectFit: "cover" }}
             />
-            <p style={{ fontWeight: 900, fontSize: 20, color: "#1A0505", marginTop: 8 }}>Roost</p>
+            <p style={{ fontWeight: 900, fontSize: 20, color: "#111827", marginTop: 8 }}>Roost</p>
           </div>
 
-          <h1 style={{ fontSize: 28, fontWeight: 900, color: "#1A0505", marginBottom: 4 }}>Create your account.</h1>
-          <p style={{ fontSize: 14, fontWeight: 600, color: "#5A2020", marginBottom: 28 }}>
+          <h1 style={{ fontSize: 28, fontWeight: 900, color: "#111827", marginBottom: 4 }}>Create your account.</h1>
+          <p style={{ fontSize: 14, fontWeight: 600, color: "#374151", marginBottom: 28 }}>
             Let us get your household sorted.
           </p>
 
           <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 16 }}>
             {/* Name */}
             <div>
-              <label style={{ display: "block", fontSize: 13, fontWeight: 700, color: "#1A0505", marginBottom: 6 }}>
+              <label style={{ display: "block", fontSize: 13, fontWeight: 700, color: "#111827", marginBottom: 6 }}>
                 Your name
               </label>
               <input
@@ -220,7 +220,7 @@ export default function SignupPage() {
 
             {/* Email */}
             <div>
-              <label style={{ display: "block", fontSize: 13, fontWeight: 700, color: "#1A0505", marginBottom: 6 }}>
+              <label style={{ display: "block", fontSize: 13, fontWeight: 700, color: "#111827", marginBottom: 6 }}>
                 Email
               </label>
               <input
@@ -238,7 +238,7 @@ export default function SignupPage() {
 
             {/* Password */}
             <div>
-              <label style={{ display: "block", fontSize: 13, fontWeight: 700, color: "#1A0505", marginBottom: 6 }}>
+              <label style={{ display: "block", fontSize: 13, fontWeight: 700, color: "#111827", marginBottom: 6 }}>
                 Password
               </label>
               <div style={{ position: "relative" }}>
@@ -254,7 +254,7 @@ export default function SignupPage() {
                   type="button"
                   onClick={() => setShowPassword((v) => !v)}
                   tabIndex={-1}
-                  style={{ position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)", color: "#9B6060", background: "none", border: "none", cursor: "pointer" }}
+                  style={{ position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)", color: "#6B7280", background: "none", border: "none", cursor: "pointer" }}
                 >
                   {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                 </button>
@@ -271,7 +271,7 @@ export default function SignupPage() {
                           height: 4,
                           flex: 1,
                           borderRadius: 2,
-                          backgroundColor: i < cfg.segments ? cfg.color : "#F5C5C5",
+                          backgroundColor: i < cfg.segments ? cfg.color : "#E5E7EB",
                         }}
                       />
                     ))}
@@ -286,7 +286,7 @@ export default function SignupPage() {
 
             {/* Confirm password */}
             <div>
-              <label style={{ display: "block", fontSize: 13, fontWeight: 700, color: "#1A0505", marginBottom: 6 }}>
+              <label style={{ display: "block", fontSize: 13, fontWeight: 700, color: "#111827", marginBottom: 6 }}>
                 Confirm password
               </label>
               <div style={{ position: "relative" }}>
@@ -318,7 +318,7 @@ export default function SignupPage() {
                     type="button"
                     onClick={() => setShowConfirm((v) => !v)}
                     tabIndex={-1}
-                    style={{ color: "#9B6060", background: "none", border: "none", cursor: "pointer" }}
+                    style={{ color: "#6B7280", background: "none", border: "none", cursor: "pointer" }}
                   >
                     {showConfirm ? <EyeOff size={16} /> : <Eye size={16} />}
                   </button>

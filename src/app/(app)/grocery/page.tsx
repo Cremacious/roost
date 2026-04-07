@@ -812,8 +812,8 @@ export default function GroceryPage() {
             className="flex flex-col items-center gap-3 rounded-2xl px-6 py-12 text-center"
             style={{
               backgroundColor: 'var(--roost-surface)',
-              border: '2px dashed #FBD494',
-              borderBottom: '4px dashed #d9b826',
+              border: '2px dashed var(--roost-border)',
+              borderBottom: '2px dashed var(--roost-border)',
             }}
           >
             <div

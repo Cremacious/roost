@@ -54,23 +54,23 @@ html {
 
 :root {
   /* Roost theme variables — default theme values, overridden at runtime by ThemeProvider */
-  --roost-bg: #FFF5F5;
+  --roost-bg: #F9FAFB;
   --roost-surface: #FFFFFF;
-  --roost-border: #F5C5C5;
-  --roost-border-bottom: #C93B3B;
-  --roost-text-primary: #1A0505;
-  --roost-text-secondary: #5A2020;
-  --roost-text-muted: #9B6060;
+  --roost-border: #E5E7EB;
+  --roost-border-bottom: #D1D5DB;
+  --roost-text-primary: #111827;
+  --roost-text-secondary: #374151;
+  --roost-text-muted: #6B7280;
   --roost-topbar-bg: #FFFFFF;
-  --roost-topbar-border: #F5C5C5;
+  --roost-topbar-border: #E5E7EB;
   --roost-sidebar-bg: #FFFFFF;
-  --roost-sidebar-border: #F5C5C5;
-  --roost-sidebar-active-bg: rgba(239,68,68,0.10);
-  --roost-sidebar-active-text: #EF4444;
-  --roost-sidebar-inactive-text: #7A4040;
-  --roost-sidebar-divider: #F5C5C5;
-  --roost-weather-bg: rgba(239,68,68,0.08);
-  --roost-weather-color: #EF4444;
+  --roost-sidebar-border: #E5E7EB;
+  --roost-sidebar-active-bg: #F3F4F6;
+  --roost-sidebar-active-text: #111827;
+  --roost-sidebar-inactive-text: #6B7280;
+  --roost-sidebar-divider: #E5E7EB;
+  --roost-weather-bg: rgba(0,0,0,0.05);
+  --roost-weather-color: #374151;
 
   --background: oklch(1 0 0);
   --foreground: oklch(0.145 0 0);
@@ -78,7 +78,7 @@ html {
   --card-foreground: oklch(0.145 0 0);
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.577 0.245 27.325);
+  --primary: oklch(0.145 0 0);
   --primary-foreground: oklch(0.985 0 0);
   --secondary: oklch(0.97 0 0);
   --secondary-foreground: oklch(0.205 0 0);
@@ -292,4 +292,10 @@ html {
   width: var(--cell-size);
   height: var(--cell-size);
   font-size: 12px;
+}
+
+/* ---- Dark theme: feature card border override --------------------------- */
+
+[data-dark="true"] .feature-card {
+  border-color: #2A2D45 !important;
 }

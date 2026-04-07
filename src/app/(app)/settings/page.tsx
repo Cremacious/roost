@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Check, Copy, Eye, EyeOff, Lock, MapPin, RefreshCw, Thermometer } from "lucide-react";
+import { Check, Copy, Eye, EyeOff, MapPin, RefreshCw, Thermometer } from "lucide-react";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
 import { THEMES, type ThemeKey } from "@/lib/constants/themes";
@@ -164,37 +164,28 @@ function SlabRow({ children, topBorder = true }: { children: React.ReactNode; to
   );
 }
 
-function ThemeCard({ themeKey, isSelected, isLocked, onSelect, onLocked }: {
+function ThemeCard({ themeKey, isSelected, onSelect }: {
   themeKey: ThemeKey;
   isSelected: boolean;
-  isLocked?: boolean;
   onSelect: () => void;
-  onLocked?: () => void;
 }) {
   const t = THEMES[themeKey];
   return (
     <motion.button
       type="button"
-      onClick={isLocked ? onLocked : onSelect}
+      onClick={onSelect}
       whileTap={{ y: 1 }}
       className="relative flex flex-col gap-2 rounded-2xl p-3 text-left"
       style={{
         backgroundColor: "var(--roost-surface)",
         border: isSelected ? "2px solid #EF4444" : "1.5px solid var(--roost-border)",
         borderBottom: isSelected ? "4px solid #C93B3B" : `4px solid ${t.borderBottom}`,
-        opacity: isLocked ? 0.6 : 1,
       }}
     >
-      {isSelected && !isLocked && (
+      {isSelected && (
         <span className="absolute right-2 top-2 flex h-5 w-5 items-center justify-center rounded-full"
           style={{ backgroundColor: "#EF4444" }}>
           <Check className="size-3 text-white" strokeWidth={3} />
-        </span>
-      )}
-      {isLocked && (
-        <span className="absolute right-2 top-2 flex h-5 w-5 items-center justify-center rounded-full"
-          style={{ backgroundColor: "var(--roost-border)" }}>
-          <Lock className="size-3" style={{ color: "var(--roost-text-muted)" }} />
         </span>
       )}
       <div className="flex h-12 w-full flex-col gap-1 overflow-hidden rounded-xl p-1.5" style={{ backgroundColor: t.bg }}>
@@ -802,20 +793,15 @@ export default function SettingsPage() {
 
         {/* ---- SECTION 2: APPEARANCE --------------------------------------- */}
         <SettingsSection id="section-appearance" title="Appearance" subtitle="Your theme is only visible to you.">
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
-            {themeKeys.map((key) => {
-              const locked = !isPremium && key !== "default";
-              return (
-                <ThemeCard
-                  key={key}
-                  themeKey={key}
-                  isSelected={theme === key}
-                  isLocked={locked}
-                  onSelect={() => setTheme(key)}
-                  onLocked={() => setUpgradeCode("THEMES_PREMIUM")}
-                />
-              );
-            })}
+          <div className="grid grid-cols-2 gap-3">
+            {themeKeys.map((key) => (
+              <ThemeCard
+                key={key}
+                themeKey={key}
+                isSelected={theme === key}
+                onSelect={() => setTheme(key)}
+              />
+            ))}
           </div>
         </SettingsSection>
 

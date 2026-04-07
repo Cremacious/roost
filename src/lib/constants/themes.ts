@@ -1,111 +1,70 @@
-export const THEMES = {
+export type ThemeKey = 'default' | 'midnight'
+
+export const DEFAULT_THEME: ThemeKey = 'default'
+
+export const THEMES: Record<ThemeKey, Theme> = {
   default: {
-    name: 'Roost Red',
-    bg: '#ffffff',
+    name: 'Default',
+    bg: '#F9FAFB',
     surface: '#FFFFFF',
-    border: '#F5C5C5',
-    borderBottom: '#C93B3B',
-    textPrimary: '#1A0505',
-    textSecondary: '#5A2020',
-    textMuted: '#9B6060',
+    border: '#E5E7EB',
+    borderBottom: '#D1D5DB',
+    textPrimary: '#111827',
+    textSecondary: '#374151',
+    textMuted: '#6B7280',
     topbarBg: '#FFFFFF',
-    topbarBorder: '#F5C5C5',
+    topbarBorder: '#E5E7EB',
     sidebarBg: '#FFFFFF',
-    sidebarBorder: '#F5C5C5',
-    sidebarActiveBg: 'rgba(239,68,68,0.10)',
-    sidebarActiveText: '#EF4444',
-    sidebarInactiveText: '#7A4040',
-    sidebarDivider: '#F5C5C5',
-    weatherBg: 'rgba(239,68,68,0.08)',
-    weatherColor: '#EF4444',
+    sidebarBorder: '#E5E7EB',
+    sidebarActiveBg: '#F3F4F6',
+    sidebarActiveText: '#111827',
+    sidebarInactiveText: '#6B7280',
+    sidebarDivider: '#E5E7EB',
+    weatherBg: 'rgba(0,0,0,0.05)',
+    weatherColor: '#374151',
     dark: false,
   },
   midnight: {
     name: 'Midnight',
-    bg: '#0F1020',
-    surface: '#1A1C2E',
-    border: '#2A2D45',
-    borderBottom: '#3B3F5C',
-    textPrimary: '#E8EAFF',
-    textSecondary: '#A0A8CC',
-    textMuted: '#6870A0',
-    topbarBg: '#14162A',
-    topbarBorder: '#2A2D45',
-    sidebarBg: '#14162A',
-    sidebarBorder: '#2A2D45',
-    sidebarActiveBg: 'rgba(239,68,68,0.15)',
-    sidebarActiveText: '#EF4444',
-    sidebarInactiveText: '#A0A8CC',
-    sidebarDivider: '#2A2D45',
-    weatherBg: 'rgba(239,68,68,0.12)',
-    weatherColor: '#FF6B6B',
+    bg: '#111827',
+    surface: '#1F2937',
+    border: '#374151',
+    borderBottom: '#4B5563',
+    textPrimary: '#F9FAFB',
+    textSecondary: '#D1D5DB',
+    textMuted: '#9CA3AF',
+    topbarBg: '#1F2937',
+    topbarBorder: '#374151',
+    sidebarBg: '#1F2937',
+    sidebarBorder: '#374151',
+    sidebarActiveBg: '#374151',
+    sidebarActiveText: '#F9FAFB',
+    sidebarInactiveText: '#9CA3AF',
+    sidebarDivider: '#374151',
+    weatherBg: 'rgba(255,255,255,0.08)',
+    weatherColor: '#D1D5DB',
     dark: true,
   },
-  forest: {
-    name: 'Forest',
-    bg: '#EAF2EC',
-    surface: '#FFFFFF',
-    border: '#B8D9C0',
-    borderBottom: '#3A6B4A',
-    textPrimary: '#0A1E10',
-    textSecondary: '#2A5035',
-    textMuted: '#5A8060',
-    topbarBg: '#FFFFFF',
-    topbarBorder: '#B8D9C0',
-    sidebarBg: '#FFFFFF',
-    sidebarBorder: '#B8D9C0',
-    sidebarActiveBg: 'rgba(239,68,68,0.08)',
-    sidebarActiveText: '#EF4444',
-    sidebarInactiveText: '#2A5035',
-    sidebarDivider: '#B8D9C0',
-    weatherBg: 'rgba(239,68,68,0.08)',
-    weatherColor: '#EF4444',
-    dark: false,
-  },
-  slate: {
-    name: 'Slate',
-    bg: '#EEF2F7',
-    surface: '#FFFFFF',
-    border: '#C8D5E0',
-    borderBottom: '#5A7A90',
-    textPrimary: '#0A1520',
-    textSecondary: '#304050',
-    textMuted: '#607080',
-    topbarBg: '#FFFFFF',
-    topbarBorder: '#C8D5E0',
-    sidebarBg: '#FFFFFF',
-    sidebarBorder: '#C8D5E0',
-    sidebarActiveBg: 'rgba(239,68,68,0.08)',
-    sidebarActiveText: '#EF4444',
-    sidebarInactiveText: '#304050',
-    sidebarDivider: '#C8D5E0',
-    weatherBg: 'rgba(239,68,68,0.08)',
-    weatherColor: '#EF4444',
-    dark: false,
-  },
-  sand: {
-    name: 'Sand',
-    bg: '#FAF5EB',
-    surface: '#FFFFFF',
-    border: '#E8D9B8',
-    borderBottom: '#9A7040',
-    textPrimary: '#1A0E00',
-    textSecondary: '#4A3010',
-    textMuted: '#8A6840',
-    topbarBg: '#FFFFFF',
-    topbarBorder: '#E8D9B8',
-    sidebarBg: '#FFFFFF',
-    sidebarBorder: '#E8D9B8',
-    sidebarActiveBg: 'rgba(239,68,68,0.08)',
-    sidebarActiveText: '#EF4444',
-    sidebarInactiveText: '#4A3010',
-    sidebarDivider: '#E8D9B8',
-    weatherBg: 'rgba(239,68,68,0.08)',
-    weatherColor: '#EF4444',
-    dark: false,
-  },
-} as const;
+}
 
-export type ThemeKey = keyof typeof THEMES;
-export type Theme = (typeof THEMES)[ThemeKey];
-export const DEFAULT_THEME: ThemeKey = 'default';
+export interface Theme {
+  name: string
+  bg: string
+  surface: string
+  border: string
+  borderBottom: string
+  textPrimary: string
+  textSecondary: string
+  textMuted: string
+  topbarBg: string
+  topbarBorder: string
+  sidebarBg: string
+  sidebarBorder: string
+  sidebarActiveBg: string
+  sidebarActiveText: string
+  sidebarInactiveText: string
+  sidebarDivider: string
+  weatherBg: string
+  weatherColor: string
+  dark: boolean
+}

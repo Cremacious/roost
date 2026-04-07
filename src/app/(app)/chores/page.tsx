@@ -319,7 +319,7 @@ export default function ChoresPage() {
           style={{
             backgroundColor: "var(--roost-surface)",
             border: "2px dashed var(--roost-border)",
-            borderBottom: "4px dashed #C93B3B",
+            borderBottom: "2px dashed var(--roost-border-bottom)",
           }}
         >
           <div

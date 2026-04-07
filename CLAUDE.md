@@ -187,15 +187,16 @@ Tasks: one-off to-dos
 
 ## Features: Theme System
 - Each user has their own saved theme stored in users.theme (DB)
-- 5 themes: default, midnight, forest, slate, sand
-  default = "Roost Red" (brand default, light, red-tinted)
-  midnight = "Midnight" (dark, dark:true)
-  forest = "Forest" (light green)
-  slate = "Slate" (light blue-gray)
-  sand = "Sand" (light amber)
+- 2 themes only: default, midnight (both free, no premium gate)
+  default = "Default" (clean neutral light: bg #F9FAFB, surface #FFFFFF, borders #E5E7EB)
+  midnight = "Midnight" (soft dark gray: bg #111827, surface #1F2937, dark:true)
+- Red appears ONLY in: chores feature, brand/logo, destructive actions (delete, sign out),
+  auth page left panel, upgrade/billing CTAs, homepage hero. Nowhere else.
+- Sidebar active state: light gray fill (#F3F4F6) with dark text (#111827) on default.
+  No red in sidebar active state.
 - ThemeProvider reads user's theme server-side, applies CSS variables on mount
-- ThemeProvider accepts string for initialTheme and resolves unknown keys to DEFAULT_THEME
-  (handles existing users whose DB value may be an old theme name like 'warm')
+- ThemeProvider accepts string for initialTheme; any unknown key (forest/slate/sand/warm/etc.)
+  resolves to DEFAULT_THEME ('default')
 - useTheme() hook: { theme, setTheme } -- setTheme applies instantly + PATCHes API
 - CSS variables: --roost-bg, --roost-surface, --roost-border, --roost-border-bottom,
   --roost-text-primary, --roost-text-secondary, --roost-text-muted,
@@ -205,16 +206,19 @@ Tasks: one-off to-dos
   --roost-weather-bg, --roost-weather-color
 - ThemeProvider sets data-theme and data-dark attributes on <html> element
 - ThemeProvider also overrides shadcn CSS vars (--background, --card, etc.)
-  so existing Tailwind classes respond to theme automatically
+  and sets --primary: near-black (light) or near-white (dark) — NOT red.
+  This makes Switch, Checkbox, and other shadcn components use neutral color when active.
 - SlabCard is the base card for the entire app: rounded-2xl, border + 4px colored bottom
-- Settings page (/settings) has a theme picker grid (5 cards) -- changes apply instantly, no save button
+- Settings page (/settings) has a theme picker grid (2 cards) -- changes apply instantly, no save button
 - Selected theme card: border 2px solid #EF4444, border-bottom 4px solid #C93B3B
+  (brand red selection indicator is a meta-UI element, acceptable here)
 
 ## Brand Guidelines
 - Primary brand color: #EF4444 (Roost Red)
 - Primary dark: #C93B3B
-- Brand red used for: sidebar active state, bottom nav Home/Chores active, primary buttons,
-  "See all" links, selected theme card border, shadcn --primary (Switch, Checkbox etc.)
+- Brand red used for: chores section color, bottom nav Home/Chores active, primary CTA buttons,
+  "See all" links, selected theme card border, destructive actions, auth page left panel,
+  upgrade/billing CTAs, homepage hero. NOT used for sidebar active state or shadcn --primary.
 - Section colors unchanged (chores, grocery, calendar, expenses, meals, notes, reminders, tasks)
 - Date subheading on dashboard always uses #9B9590 hardcoded — never tinted by theme
 - TopBar: household name + weather chip + time only. No user avatars.
@@ -390,7 +394,7 @@ src/lib/auth/index.ts                          better-auth server config
 src/lib/auth/client.ts                         better-auth client (signIn, signUp, signOut, useSession)
 src/lib/auth/helpers.ts                        requireSession, requireHouseholdMember, requireHouseholdAdmin, requirePremium, blockChild
 src/lib/constants/colors.ts                    All 8 section colors, always import from here
-src/lib/constants/themes.ts                    5 themes: default (Roost Red), midnight, forest, slate, sand
+src/lib/constants/themes.ts                    2 themes: default (neutral light), midnight (dark). Both free.
 src/lib/store/themeStore.ts                    Zustand store: { theme, setTheme }
 src/lib/db/index.ts                            Neon + Drizzle instance
 src/db/schema/auth.ts                          better-auth tables (user, session, account, verification)
@@ -985,7 +989,7 @@ Update this file after every major decision or completed phase.
 - Dashboard tile selector: use `.locator('button, a').filter({ hasText: 'Chores' }).first()` to avoid strict mode (both button and inner `<p>` match plain `text=Chores`)
 - `uniqueUser` in test files must be a factory function `() => ({...})`, not a plain object — reusing the same email across tests causes "email already exists" failures when tests run serially
 
-Last updated: 2026-04-07 (Section color sweep: fixed var(--roost-border-bottom) bleed across all feature sheets/pages; calendar fully blue; EmptyState containerBorderColor prop added; form labels hardcoded #374151 across all sheets)
+Last updated: 2026-04-07 (Theme system redesign: 2 themes only (default neutral + midnight dark), red removed from default theme everywhere except chores. Sidebar active = light gray fill. --primary = near-black neutral. Auth pages neutralized. forest/slate/sand removed. Feature card border sweep also completed this session.)
 
 ## Stripe Billing Rules
 - Stripe Checkout used for payment (redirect to Stripe, return to /settings/billing?success=true)

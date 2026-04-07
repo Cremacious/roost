@@ -195,7 +195,7 @@ export default function Sidebar() {
             onMouseLeave={() => setHoverSignOut(false)}
             className="flex w-full items-center gap-2 rounded-[10px] px-2.5 py-2 text-xs"
             style={{
-              background: hoverSignOut ? "rgba(239,68,68,0.08)" : "transparent",
+              background: hoverSignOut ? "rgba(0,0,0,0.06)" : "transparent",
               color: hoverSignOut ? "#EF4444" : "var(--roost-text-muted)",
               fontWeight: 700,
               cursor: "pointer",

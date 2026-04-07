@@ -592,8 +592,11 @@ src/app/api/cron/subscription/route.ts        Daily cron: expire premium househo
 
 ## Calendar UX Patterns
 - Two views: Month grid (default) and Agenda list (next 60 days from today)
-- Month view: tap any day cell to open DaySheet showing that day's events
-- Event pills in day cells: blue bg (#3B82F6 at 15%), blue text, 11px, border-bottom slab
+- Month view: desktop (md:) = full month grid + DaySheet on tap; mobile = week strip + inline day event list
+- Mobile week strip: 7-day horizontal strip in blue-bordered slab card; prev/next arrows + month-year label; single-letter day names via format(day, "EEEEE"); today = filled blue circle; selected = #DBEAFE bg/#1D4ED8 text; 4px event dot below circle
+- Mobile week state: mobileWeekStart (startOfWeek weekStartsOn:0) + mobileSelectedDay (today); goMobileWeek(dir) shifts 7 days, syncs currentMonth at month boundaries
+- Mobile day event list: EEEE MMM d heading + count badge; event cards with 4px left blue accent bar + title/time/creator; dashed empty state "Nothing scheduled"
+- Event pills in day cells: blue bg (#3B82F6 at 15%), blue text, 11px, border-bottom slab (desktop only)
 - Today cell: date number has filled blue circle
 - DaySheet pre-fills the date when opening EventSheet from a specific day cell
 - Agenda view: groups events by date with sticky headers (Today/Tomorrow/date)
@@ -1001,7 +1004,7 @@ Update this file after every major decision or completed phase.
 - Dashboard tile selector: use `.locator('button, a').filter({ hasText: 'Chores' }).first()` to avoid strict mode (both button and inner `<p>` match plain `text=Chores`)
 - `uniqueUser` in test files must be a factory function `() => ({...})`, not a plain object — reusing the same email across tests causes "email already exists" failures when tests run serially
 
-Last updated: 2026-04-07 (Homepage redesigned: 9 sections with 6 alternating feature rows, comparison table, personas. Theme system redesign: 2 themes only. Feature card border sweep. Theme signout reset + onboarding button contrast fixes. Meals planner: desktop CSS grid + mobile vertical day list.)
+Last updated: 2026-04-07 (Homepage redesigned: 9 sections with 6 alternating feature rows, comparison table, personas. Theme system redesign: 2 themes only. Feature card border sweep. Theme signout reset + onboarding button contrast fixes. Meals planner: desktop CSS grid + mobile vertical day list. Calendar mobile: week strip + day event list replaces month grid on mobile.)
 
 ## Stripe Billing Rules
 - Stripe Checkout used for payment (redirect to Stripe, return to /settings/billing?success=true)

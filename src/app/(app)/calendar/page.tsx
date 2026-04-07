@@ -143,6 +143,14 @@ export default function CalendarPage() {
   const [selectedEvent, setSelectedEvent] = useState<CalendarEventFull | null>(null);
   const [initialDate, setInitialDate] = useState<Date | undefined>(undefined);
 
+  // Mobile week strip state
+  const [mobileWeekStart, setMobileWeekStart] = useState(() =>
+    startOfWeek(new Date(), { weekStartsOn: 0 })
+  );
+  const [mobileSelectedDay, setMobileSelectedDay] = useState<Date>(() =>
+    startOfDay(new Date())
+  );
+
   const month = currentMonth.getMonth() + 1;
   const year = currentMonth.getFullYear();
 
@@ -329,6 +337,26 @@ export default function CalendarPage() {
     return eventsByDay.get(key) ?? [];
   }, [selectedDay, eventsByDay]);
 
+  const mobileWeekDays = useMemo(
+    () => Array.from({ length: 7 }, (_, i) => addDays(mobileWeekStart, i)),
+    [mobileWeekStart]
+  );
+
+  const mobileSelectedEvents = useMemo(() => {
+    const key = format(mobileSelectedDay, "yyyy-MM-dd");
+    return eventsByDay.get(key) ?? [];
+  }, [mobileSelectedDay, eventsByDay]);
+
+  function goMobileWeek(dir: -1 | 1) {
+    const newStart = addDays(mobileWeekStart, dir * 7);
+    setMobileWeekStart(newStart);
+    setMobileSelectedDay(startOfDay(newStart));
+    const newMonth = startOfMonth(newStart);
+    if (!isSameMonth(newMonth, currentMonth)) {
+      setCurrentMonth(newMonth);
+    }
+  }
+
   // ---- Render ----------------------------------------------------------------
 
   return (
@@ -404,45 +432,172 @@ export default function CalendarPage() {
 
       {/* Month view */}
       {!mainQuery.isLoading && !mainQuery.isError && view === "month" && (
-        <div>
-          {/* Month navigation */}
-          <div className="mb-3 flex items-center justify-between">
-            <button
-              type="button"
-              onClick={() => setCurrentMonth((m) => subMonths(m, 1))}
-              className="flex h-9 w-9 items-center justify-center rounded-full"
+        <>
+          {/* ── Mobile: week strip + day event list ── */}
+          <div className="block md:hidden space-y-4">
+            {/* Week strip card */}
+            <div
+              className="overflow-hidden rounded-2xl"
               style={{
+                border: "1.5px solid #BAD3F7",
+                borderBottom: `4px solid ${COLOR_DARK}`,
                 backgroundColor: "var(--roost-surface)",
-                border: "1.5px solid var(--roost-border)",
-                color: "var(--roost-text-secondary)",
               }}
             >
-              <ChevronLeft className="size-4" />
-            </button>
-            <div className="text-center">
-              <p className="text-base" style={{ color: "var(--roost-text-primary)", fontWeight: 800 }}>
-                {format(currentMonth, "MMMM yyyy")}
-              </p>
-            </div>
-            <div className="flex items-center gap-1">
-              {!isSameMonth(currentMonth, new Date()) && (
+              {/* Week header: prev / label / next */}
+              <div
+                className="flex items-center justify-between px-3 py-2"
+                style={{ borderBottom: "1px solid var(--roost-border)" }}
+              >
                 <button
                   type="button"
-                  onClick={() => setCurrentMonth(startOfMonth(new Date()))}
-                  className="mr-1 flex h-7 items-center rounded-lg px-2.5 text-xs"
-                  style={{
-                    border: `1.5px solid ${COLOR}40`,
-                    borderBottom: `2px solid ${COLOR_DARK}`,
-                    color: COLOR,
-                    fontWeight: 700,
-                  }}
+                  onClick={() => goMobileWeek(-1)}
+                  className="flex h-8 w-8 items-center justify-center rounded-full"
+                  style={{ color: "var(--roost-text-secondary)" }}
                 >
-                  Today
+                  <ChevronLeft className="size-4" />
                 </button>
+                <p className="text-sm" style={{ color: "var(--roost-text-primary)", fontWeight: 900 }}>
+                  {format(mobileSelectedDay, "MMMM yyyy")}
+                </p>
+                <button
+                  type="button"
+                  onClick={() => goMobileWeek(1)}
+                  className="flex h-8 w-8 items-center justify-center rounded-full"
+                  style={{ color: "var(--roost-text-secondary)" }}
+                >
+                  <ChevronRight className="size-4" />
+                </button>
+              </div>
+
+              {/* Day columns */}
+              <div className="grid grid-cols-7">
+                {mobileWeekDays.map((day) => {
+                  const key = format(day, "yyyy-MM-dd");
+                  const hasEvents = (eventsByDay.get(key) ?? []).length > 0;
+                  const todayCell = isToday(day);
+                  const selected = isSameDay(day, mobileSelectedDay);
+                  return (
+                    <button
+                      key={key}
+                      type="button"
+                      onClick={() => setMobileSelectedDay(startOfDay(day))}
+                      className="flex flex-col items-center gap-0.5 py-3"
+                    >
+                      <span className="mb-0.5 text-[10px]" style={{ color: "var(--roost-text-muted)", fontWeight: 700 }}>
+                        {format(day, "EEEEE")}
+                      </span>
+                      <div
+                        className="flex h-9 w-9 items-center justify-center rounded-full text-sm"
+                        style={{
+                          backgroundColor: todayCell ? COLOR : selected ? "#DBEAFE" : undefined,
+                          color: todayCell ? "white" : selected ? "#1D4ED8" : "var(--roost-text-primary)",
+                          fontWeight: todayCell || selected ? 900 : 700,
+                        }}
+                      >
+                        {format(day, "d")}
+                      </div>
+                      {hasEvents && (
+                        <div
+                          className="h-1 w-1 rounded-full"
+                          style={{ backgroundColor: todayCell ? "white" : COLOR }}
+                        />
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Day event list */}
+            <div>
+              <div className="mb-3 flex items-center justify-between">
+                <p className="text-sm" style={{ color: "var(--roost-text-primary)", fontWeight: 800 }}>
+                  {format(mobileSelectedDay, "EEEE, MMM d")}
+                </p>
+                {mobileSelectedEvents.length > 0 && (
+                  <span
+                    className="flex h-5 items-center rounded-full px-2 text-[11px]"
+                    style={{ backgroundColor: COLOR + "18", color: COLOR, fontWeight: 700 }}
+                  >
+                    {mobileSelectedEvents.length}
+                  </span>
+                )}
+              </div>
+
+              {mobileSelectedEvents.length === 0 ? (
+                <div
+                  className="flex flex-col items-center gap-1.5 rounded-2xl px-6 py-8 text-center"
+                  style={{ border: "2px dashed rgba(59,130,246,0.3)" }}
+                >
+                  <p className="text-sm" style={{ color: "var(--roost-text-primary)", fontWeight: 700 }}>
+                    Nothing scheduled
+                  </p>
+                  <p className="text-xs" style={{ color: "var(--roost-text-muted)", fontWeight: 600 }}>
+                    Tap + to add an event
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {mobileSelectedEvents.map((ev, i) => (
+                    <motion.button
+                      key={ev.id}
+                      type="button"
+                      onClick={() => openView(ev)}
+                      whileTap={{ y: 1 }}
+                      initial={{ opacity: 0, y: 6 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: Math.min(i * 0.04, 0.2), duration: 0.15 }}
+                      className="flex w-full min-h-16 items-stretch gap-0 overflow-hidden rounded-xl text-left"
+                      style={{
+                        backgroundColor: "var(--roost-surface)",
+                        border: "1px solid #E2E8F0",
+                        borderBottom: "3px solid #E2E8F0",
+                      }}
+                    >
+                      <div className="w-1 shrink-0" style={{ backgroundColor: COLOR }} />
+                      <div className="min-w-0 flex-1 px-3 py-3">
+                        <p className="text-sm leading-tight" style={{ color: "var(--roost-text-primary)", fontWeight: 700 }}>
+                          {ev.title}
+                        </p>
+                        <p className="mt-0.5 text-xs" style={{ color: COLOR, fontWeight: 600 }}>
+                          {formatEventTime(ev)}
+                        </p>
+                        {(ev.creator_name || ev.attendees.length > 0) && (
+                          <div className="mt-1.5 flex items-center gap-1">
+                            {ev.creator_name && (
+                              <>
+                                <MemberAvatar name={ev.creator_name} avatarColor={ev.creator_avatar} size="sm" />
+                                <span className="text-xs" style={{ color: "var(--roost-text-muted)", fontWeight: 600 }}>
+                                  {firstName(ev.creator_name)}
+                                </span>
+                              </>
+                            )}
+                            {ev.attendees.slice(0, 2).map((a) => (
+                              <MemberAvatar key={a.userId} name={a.name ?? "?"} avatarColor={a.avatarColor} size="sm" />
+                            ))}
+                            {ev.attendees.length > 2 && (
+                              <span className="text-[10px]" style={{ color: "var(--roost-text-muted)", fontWeight: 600 }}>
+                                +{ev.attendees.length - 2}
+                              </span>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    </motion.button>
+                  ))}
+                </div>
               )}
+            </div>
+          </div>
+
+          {/* ── Desktop: full month grid + navigation (md: and above) ── */}
+          <div className="hidden md:block">
+            {/* Month navigation */}
+            <div className="mb-3 flex items-center justify-between">
               <button
                 type="button"
-                onClick={() => setCurrentMonth((m) => addMonths(m, 1))}
+                onClick={() => setCurrentMonth((m) => subMonths(m, 1))}
                 className="flex h-9 w-9 items-center justify-center rounded-full"
                 style={{
                   backgroundColor: "var(--roost-surface)",
@@ -450,95 +605,126 @@ export default function CalendarPage() {
                   color: "var(--roost-text-secondary)",
                 }}
               >
-                <ChevronRight className="size-4" />
+                <ChevronLeft className="size-4" />
               </button>
+              <div className="text-center">
+                <p className="text-base" style={{ color: "var(--roost-text-primary)", fontWeight: 800 }}>
+                  {format(currentMonth, "MMMM yyyy")}
+                </p>
+              </div>
+              <div className="flex items-center gap-1">
+                {!isSameMonth(currentMonth, new Date()) && (
+                  <button
+                    type="button"
+                    onClick={() => setCurrentMonth(startOfMonth(new Date()))}
+                    className="mr-1 flex h-7 items-center rounded-lg px-2.5 text-xs"
+                    style={{
+                      border: `1.5px solid ${COLOR}40`,
+                      borderBottom: `2px solid ${COLOR_DARK}`,
+                      color: COLOR,
+                      fontWeight: 700,
+                    }}
+                  >
+                    Today
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={() => setCurrentMonth((m) => addMonths(m, 1))}
+                  className="flex h-9 w-9 items-center justify-center rounded-full"
+                  style={{
+                    backgroundColor: "var(--roost-surface)",
+                    border: "1.5px solid var(--roost-border)",
+                    color: "var(--roost-text-secondary)",
+                  }}
+                >
+                  <ChevronRight className="size-4" />
+                </button>
+              </div>
             </div>
-          </div>
 
-          {/* Grid */}
-          <div
-            className="overflow-hidden rounded-2xl"
-            style={{
-              border: "1.5px solid #BAD3F7",
-              borderBottom: `4px solid ${COLOR_DARK}`,
-              backgroundColor: "var(--roost-surface)",
-            }}
-          >
-            {/* Day headers */}
-            <div className="grid grid-cols-7" style={{ borderBottom: "1px solid var(--roost-border)" }}>
-              {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((d) => (
-                <div key={d} className="py-2 text-center text-xs" style={{ color: "var(--roost-text-muted)", fontWeight: 700 }}>
-                  {d}
+            {/* Grid */}
+            <div
+              className="overflow-hidden rounded-2xl"
+              style={{
+                border: "1.5px solid #BAD3F7",
+                borderBottom: `4px solid ${COLOR_DARK}`,
+                backgroundColor: "var(--roost-surface)",
+              }}
+            >
+              {/* Day headers */}
+              <div className="grid grid-cols-7" style={{ borderBottom: "1px solid var(--roost-border)" }}>
+                {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((d) => (
+                  <div key={d} className="py-2 text-center text-xs" style={{ color: "var(--roost-text-muted)", fontWeight: 700 }}>
+                    {d}
+                  </div>
+                ))}
+              </div>
+
+              {/* Weeks */}
+              {weeks.map((week, wi) => (
+                <div
+                  key={wi}
+                  className="grid grid-cols-7"
+                  style={{ borderTop: wi > 0 ? "1px solid var(--roost-border)" : undefined }}
+                >
+                  {week.map((day) => {
+                    const key = format(day, "yyyy-MM-dd");
+                    const dayEvs = eventsByDay.get(key) ?? [];
+                    const inMonth = isSameMonth(day, currentMonth);
+                    const todayCell = isToday(day);
+                    const pastDay = isPast(day) && !todayCell;
+
+                    return (
+                      <button
+                        key={key}
+                        type="button"
+                        onClick={() => openDay(day)}
+                        className="flex min-h-12 flex-col gap-0.5 p-1 text-left md:min-h-20"
+                        style={{
+                          borderLeft: "1px solid var(--roost-border)",
+                          backgroundColor: todayCell ? COLOR + "06" : undefined,
+                        }}
+                      >
+                        <div className="flex h-6 w-6 items-center justify-center rounded-full text-xs"
+                          style={{
+                            backgroundColor: todayCell ? COLOR : undefined,
+                            color: todayCell
+                              ? "white"
+                              : !inMonth || pastDay
+                              ? "var(--roost-text-muted)"
+                              : "var(--roost-text-primary)",
+                            fontWeight: todayCell ? 900 : 700,
+                          }}>
+                          {format(day, "d")}
+                        </div>
+                        {dayEvs.slice(0, 2).map((ev) => (
+                          <div
+                            key={ev.id}
+                            className="w-full truncate rounded px-1 text-[11px] leading-5"
+                            style={{
+                              backgroundColor: COLOR + "26",
+                              color: COLOR,
+                              fontWeight: 700,
+                              borderBottom: `2px solid ${COLOR_DARK}`,
+                            }}
+                          >
+                            {ev.title}
+                          </div>
+                        ))}
+                        {dayEvs.length > 2 && (
+                          <span className="text-[10px]" style={{ color: COLOR, fontWeight: 700 }}>
+                            +{dayEvs.length - 2} more
+                          </span>
+                        )}
+                      </button>
+                    );
+                  })}
                 </div>
               ))}
             </div>
-
-            {/* Weeks */}
-            {weeks.map((week, wi) => (
-              <div
-                key={wi}
-                className="grid grid-cols-7"
-                style={{ borderTop: wi > 0 ? "1px solid var(--roost-border)" : undefined }}
-              >
-                {week.map((day) => {
-                  const key = format(day, "yyyy-MM-dd");
-                  const dayEvents = eventsByDay.get(key) ?? [];
-                  const inMonth = isSameMonth(day, currentMonth);
-                  const todayCell = isToday(day);
-                  const pastDay = isPast(day) && !todayCell;
-
-                  return (
-                    <button
-                      key={key}
-                      type="button"
-                      onClick={() => openDay(day)}
-                      className="flex min-h-[48px] flex-col gap-0.5 p-1 text-left md:min-h-[80px]"
-                      style={{
-                        borderLeft: "1px solid var(--roost-border)",
-                        backgroundColor: todayCell ? COLOR + "06" : undefined,
-                      }}
-                    >
-                      {/* Date number */}
-                      <div className="flex h-6 w-6 items-center justify-center rounded-full text-xs"
-                        style={{
-                          backgroundColor: todayCell ? COLOR : undefined,
-                          color: todayCell
-                            ? "white"
-                            : !inMonth || pastDay
-                            ? "var(--roost-text-muted)"
-                            : "var(--roost-text-primary)",
-                          fontWeight: todayCell ? 900 : 700,
-                        }}>
-                        {format(day, "d")}
-                      </div>
-
-                      {/* Event pills */}
-                      {dayEvents.slice(0, 2).map((ev) => (
-                        <div
-                          key={ev.id}
-                          className="w-full truncate rounded px-1 text-[11px] leading-5"
-                          style={{
-                            backgroundColor: COLOR + "26",
-                            color: COLOR,
-                            fontWeight: 700,
-                            borderBottom: `2px solid ${COLOR_DARK}`,
-                          }}
-                        >
-                          {ev.title}
-                        </div>
-                      ))}
-                      {dayEvents.length > 2 && (
-                        <span className="text-[10px]" style={{ color: COLOR, fontWeight: 700 }}>
-                          +{dayEvents.length - 2} more
-                        </span>
-                      )}
-                    </button>
-                  );
-                })}
-              </div>
-            ))}
           </div>
-        </div>
+        </>
       )}
 
       {/* Agenda view */}

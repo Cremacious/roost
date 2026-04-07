@@ -325,6 +325,7 @@ interface FeatureRowProps {
 function FeatureRow({ bg, reversed, mockup, tag, tagColor, headline, body, quote, quoteBg, quoteColor }: FeatureRowProps) {
   return (
     <section
+      className="feat-row"
       style={{
         backgroundColor: bg,
         padding: "64px 40px",
@@ -342,8 +343,10 @@ function FeatureRow({ bg, reversed, mockup, tag, tagColor, headline, body, quote
         }}
       >
         {/* Mockup */}
-        <div style={{ width: "46%", minWidth: 260, display: "flex", justifyContent: reversed ? "flex-end" : "flex-start" }}>
-          {mockup}
+        <div className="feat-mockup" style={{ width: "46%", minWidth: 260, display: "flex", justifyContent: reversed ? "flex-end" : "flex-start" }}>
+          <div className="feat-mock-card" style={{ width: "100%" }}>
+            {mockup}
+          </div>
         </div>
         {/* Copy */}
         <div style={{ flex: 1, minWidth: 260 }}>
@@ -387,28 +390,53 @@ export default function HomePage() {
   return (
     <main style={{ fontFamily: ff, margin: 0, padding: 0 }}>
 
+      <style>{`
+        @media (max-width: 640px) {
+          .nav-features-link { display: none !important; }
+          .nav-right { gap: 8px !important; }
+          .nav-signin { font-size: 12px !important; }
+          .nav-cta { font-size: 12px !important; padding: 6px 12px !important; }
+          .nav-logo-text { font-size: 17px !important; }
+          .feat-row { padding: 40px 20px !important; flex-direction: column !important; }
+          .feat-mockup { width: 100% !important; justify-content: center !important; align-items: center !important; }
+          .feat-mock-card { margin: 0 auto !important; }
+          .comp-section { padding: 48px 16px !important; }
+          .comp-table { width: 100% !important; border-radius: 10px !important; }
+          .comp-cell { padding: 8px 8px !important; font-size: 11px !important; }
+          .comp-feat-cell { padding: 8px 8px !important; font-size: 11px !important; }
+          .comp-val-cell { padding: 8px 6px !important; font-size: 11px !important; }
+          .personas-grid { grid-template-columns: 1fr !important; }
+          .personas-section { padding: 48px 20px !important; }
+          .problem-section { padding: 48px 20px !important; }
+          .hero-section { padding: 52px 20px 60px !important; }
+          .cta-section { padding: 52px 20px !important; }
+          .footer-inner { flex-direction: column !important; align-items: center !important; text-align: center !important; gap: 12px !important; }
+          .mobile-teaser { padding: 10px 16px !important; }
+        }
+      `}</style>
+
       {/* 1. NAV */}
       <nav style={{ backgroundColor: "#EF4444", height: 64, padding: "0 40px", display: "flex", alignItems: "center", justifyContent: "space-between", position: "sticky", top: 0, zIndex: 50 }}>
         <Link href="/" style={{ display: "flex", alignItems: "center", gap: 10, textDecoration: "none" }}>
           <Image src="/brand/roost-icon.png" alt="Roost" width={32} height={32} style={{ borderRadius: 9, objectFit: "cover" }} />
-          <span style={{ fontWeight: 900, fontSize: 20, color: "white", letterSpacing: "-0.3px", fontFamily: ff }}>Roost</span>
+          <span className="nav-logo-text" style={{ fontWeight: 900, fontSize: 20, color: "white", letterSpacing: "-0.3px", fontFamily: ff }}>Roost</span>
         </Link>
-        <div style={{ display: "flex", alignItems: "center", gap: 20 }}>
-          <a href="#features" style={{ fontSize: 14, fontWeight: 700, color: "rgba(255,255,255,0.85)", textDecoration: "none", fontFamily: ff }}>Features</a>
-          <Link href="/login" style={{ fontSize: 14, fontWeight: 700, color: "rgba(255,255,255,0.85)", textDecoration: "none", fontFamily: ff }}>Sign in</Link>
-          <Link href="/signup" style={{ backgroundColor: "white", color: "#EF4444", fontWeight: 800, fontSize: 13, padding: "8px 18px", borderRadius: 20, textDecoration: "none", fontFamily: ff }}>Get started free</Link>
+        <div className="nav-right" style={{ display: "flex", alignItems: "center", gap: 20 }}>
+          <a href="#features" className="nav-features-link" style={{ fontSize: 14, fontWeight: 700, color: "rgba(255,255,255,0.85)", textDecoration: "none", fontFamily: ff }}>Features</a>
+          <Link href="/login" className="nav-signin" style={{ fontSize: 14, fontWeight: 700, color: "rgba(255,255,255,0.85)", textDecoration: "none", fontFamily: ff }}>Sign in</Link>
+          <Link href="/signup" className="nav-cta" style={{ backgroundColor: "white", color: "#EF4444", fontWeight: 800, fontSize: 13, padding: "8px 18px", borderRadius: 20, textDecoration: "none", fontFamily: ff }}>Get started free</Link>
         </div>
       </nav>
 
       {/* 2. MOBILE TEASER BAR */}
-      <div style={{ backgroundColor: "#C93B3B", padding: "10px 40px", display: "flex", alignItems: "center", justifyContent: "center", gap: 10 }}>
+      <div className="mobile-teaser" style={{ backgroundColor: "#C93B3B", padding: "10px 40px", display: "flex", alignItems: "center", justifyContent: "center", gap: 10 }}>
         <span style={{ fontSize: 13, fontWeight: 700, color: "rgba(255,255,255,0.9)", fontFamily: ff }}>iOS and Android apps coming soon.</span>
         <span style={{ backgroundColor: "rgba(255,255,255,0.15)", color: "white", fontSize: 10, fontWeight: 800, padding: "3px 10px", borderRadius: 20, fontFamily: ff, letterSpacing: "0.3px" }}>COMING SOON</span>
       </div>
 
       {/* 3. HERO */}
-      <section style={{ backgroundColor: "#EF4444", padding: "80px 40px 88px", textAlign: "center" }}>
-        <h1 style={{ fontSize: "clamp(28px, 5vw, 50px)", fontWeight: 900, color: "white", lineHeight: 1.05, letterSpacing: "-2px", maxWidth: 700, margin: "0 auto 18px" }}>
+      <section className="hero-section" style={{ backgroundColor: "#EF4444", padding: "80px 40px 88px", textAlign: "center" }}>
+        <h1 style={{ fontSize: "clamp(28px, 5vw, 50px)", fontWeight: 900, color: "white", lineHeight: 1.05, letterSpacing: "-2px", maxWidth: 700, margin: "0 auto 18px", wordBreak: "break-word" }}>
           Your house deserves better than a group chat.
         </h1>
         <p style={{ fontSize: 17, fontWeight: 600, color: "rgba(255,255,255,0.88)", maxWidth: 480, margin: "0 auto 32px", lineHeight: 1.6, fontFamily: ff }}>
@@ -425,7 +453,7 @@ export default function HomePage() {
       </section>
 
       {/* 4. PROBLEM */}
-      <section style={{ backgroundColor: "#FFF0F0", padding: "72px 40px", textAlign: "center", borderBottom: "1px solid #FECACA" }}>
+      <section className="problem-section" style={{ backgroundColor: "#FFF0F0", padding: "72px 40px", textAlign: "center", borderBottom: "1px solid #FECACA" }}>
         <h2 style={{ fontSize: "clamp(24px, 4vw, 34px)", fontWeight: 900, color: "#1A0505", letterSpacing: "-0.8px", lineHeight: 1.2, maxWidth: 560, margin: "0 auto 14px" }}>
           You are running your home with four apps and a prayer.
         </h2>
@@ -511,7 +539,7 @@ export default function HomePage() {
       </div>
 
       {/* 6. COMPARISON TABLE */}
-      <section style={{ backgroundColor: "#FFF0F0", padding: "72px 40px" }}>
+      <section className="comp-section" style={{ backgroundColor: "#FFF0F0", padding: "72px 40px" }}>
         <div style={{ textAlign: "center", marginBottom: 32 }}>
           <div style={{ fontSize: 11, fontWeight: 800, color: "#C93B3B", textTransform: "uppercase", letterSpacing: "0.8px", marginBottom: 8 }}>How we stack up</div>
           <h2 style={{ fontSize: 32, fontWeight: 900, color: "#1A0505", letterSpacing: "-0.8px", marginBottom: 8, lineHeight: 1.2, margin: "0 0 8px" }}>
@@ -521,35 +549,35 @@ export default function HomePage() {
             Splitwise is great at bills. Cozi is decent at calendars. Roost does everything.
           </p>
         </div>
-        <div style={{ maxWidth: 680, margin: "0 auto", borderRadius: 16, overflow: "hidden", border: "1.5px solid #FECACA" }}>
+        <div className="comp-table" style={{ maxWidth: 680, margin: "0 auto", borderRadius: 16, overflow: "hidden", border: "1.5px solid #FECACA" }}>
           {/* Table header */}
           <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr 1fr 1fr" }}>
-            <div style={{ backgroundColor: "white", padding: "12px 16px", borderBottom: "1px solid #FECACA" }}>
+            <div className="comp-feat-cell" style={{ backgroundColor: "white", padding: "12px 16px", borderBottom: "1px solid #FECACA" }}>
               <span style={{ fontSize: 12, fontWeight: 700, color: "#374151" }}>Feature</span>
             </div>
-            <div style={{ backgroundColor: "#EF4444", padding: "12px 12px", textAlign: "center", borderBottom: "1px solid #C93B3B" }}>
+            <div className="comp-val-cell" style={{ backgroundColor: "#EF4444", padding: "12px 12px", textAlign: "center", borderBottom: "1px solid #C93B3B" }}>
               <span style={{ fontSize: 13, fontWeight: 800, color: "white" }}>Roost</span>
             </div>
-            <div style={{ backgroundColor: "white", padding: "12px 12px", textAlign: "center", borderBottom: "1px solid #FECACA" }}>
+            <div className="comp-val-cell" style={{ backgroundColor: "white", padding: "12px 12px", textAlign: "center", borderBottom: "1px solid #FECACA" }}>
               <span style={{ fontSize: 13, fontWeight: 700, color: "#9CA3AF" }}>Splitwise</span>
             </div>
-            <div style={{ backgroundColor: "white", padding: "12px 12px", textAlign: "center", borderBottom: "1px solid #FECACA" }}>
+            <div className="comp-val-cell" style={{ backgroundColor: "white", padding: "12px 12px", textAlign: "center", borderBottom: "1px solid #FECACA" }}>
               <span style={{ fontSize: 13, fontWeight: 700, color: "#9CA3AF" }}>Cozi</span>
             </div>
           </div>
           {/* Data rows */}
           {TABLE_ROWS.map((row, i) => (
             <div key={row.feature} style={{ display: "grid", gridTemplateColumns: "2fr 1fr 1fr 1fr", backgroundColor: i % 2 === 0 ? "white" : "#FFFAFA" }}>
-              <div style={{ padding: "12px 16px", borderBottom: "1px solid #FEF2F2" }}>
+              <div className="comp-feat-cell" style={{ padding: "12px 16px", borderBottom: "1px solid #FEF2F2" }}>
                 <span style={{ fontSize: 13, fontWeight: 700, color: "#1A0505" }}>{row.feature}</span>
               </div>
-              <div style={{ padding: "12px 12px", textAlign: "center", backgroundColor: "rgba(239,68,68,0.06)", borderBottom: "1px solid rgba(239,68,68,0.12)" }}>
+              <div className="comp-val-cell" style={{ padding: "12px 12px", textAlign: "center", backgroundColor: "rgba(239,68,68,0.06)", borderBottom: "1px solid rgba(239,68,68,0.12)" }}>
                 <TableCell value={row.roost} isRoost />
               </div>
-              <div style={{ padding: "12px 12px", textAlign: "center", borderBottom: "1px solid #FEF2F2" }}>
+              <div className="comp-val-cell" style={{ padding: "12px 12px", textAlign: "center", borderBottom: "1px solid #FEF2F2" }}>
                 <TableCell value={row.split} />
               </div>
-              <div style={{ padding: "12px 12px", textAlign: "center", borderBottom: "1px solid #FEF2F2" }}>
+              <div className="comp-val-cell" style={{ padding: "12px 12px", textAlign: "center", borderBottom: "1px solid #FEF2F2" }}>
                 <TableCell value={row.cozi} />
               </div>
             </div>
@@ -558,11 +586,11 @@ export default function HomePage() {
       </section>
 
       {/* 7. PERSONAS */}
-      <section style={{ backgroundColor: "white", padding: "72px 40px", borderTop: "1px solid #E5E7EB" }}>
+      <section className="personas-section" style={{ backgroundColor: "white", padding: "72px 40px", borderTop: "1px solid #E5E7EB" }}>
         <h2 style={{ fontSize: 32, fontWeight: 900, color: "#111827", letterSpacing: "-0.8px", textAlign: "center", marginBottom: 32, margin: "0 0 32px" }}>
           Whether you share a house or a last name.
         </h2>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 14, maxWidth: 860, margin: "0 auto" }}>
+        <div className="personas-grid" style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 14, maxWidth: 860, margin: "0 auto" }}>
           {[
             {
               Icon: Users,
@@ -592,7 +620,7 @@ export default function HomePage() {
       </section>
 
       {/* 8. BOTTOM CTA */}
-      <section style={{ backgroundColor: "#EF4444", padding: "72px 40px", textAlign: "center" }}>
+      <section className="cta-section" style={{ backgroundColor: "#EF4444", padding: "72px 40px", textAlign: "center" }}>
         <h2 style={{ fontSize: 38, fontWeight: 900, color: "white", letterSpacing: "-0.8px", marginBottom: 10, margin: "0 0 10px" }}>
           Your household is waiting.
         </h2>
@@ -610,7 +638,8 @@ export default function HomePage() {
       </section>
 
       {/* 9. FOOTER */}
-      <footer style={{ backgroundColor: "#EF4444", padding: "28px 40px", borderTop: "1px solid rgba(255,255,255,0.2)", display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 16 }}>
+      <footer style={{ backgroundColor: "#EF4444", padding: "28px 40px", borderTop: "1px solid rgba(255,255,255,0.2)" }}>
+      <div className="footer-inner" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 16 }}>
         <Link href="/" style={{ display: "flex", alignItems: "center", gap: 8, textDecoration: "none" }}>
           <Image src="/brand/roost-icon.png" alt="Roost" width={28} height={28} style={{ borderRadius: 8, objectFit: "cover" }} />
           <span style={{ fontWeight: 900, color: "white", fontSize: 15, fontFamily: ff }}>Roost</span>
@@ -621,6 +650,7 @@ export default function HomePage() {
           <Link href="/signup" style={{ fontSize: 12, fontWeight: 700, color: "rgba(255,255,255,0.65)", textDecoration: "none", fontFamily: ff }}>Sign up</Link>
           <Link href="/privacy" style={{ fontSize: 12, fontWeight: 700, color: "rgba(255,255,255,0.65)", textDecoration: "none", fontFamily: ff }}>Privacy</Link>
         </div>
+      </div>
       </footer>
 
     </main>

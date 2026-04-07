@@ -613,7 +613,12 @@ src/app/api/cron/subscription/route.ts        Daily cron: expire premium househo
   Week navigation: prev/next arrows + "This week" jump button
   Empty slot: dashed slab card, tap opens MealSlotSheet
   Filled slot: orange-tinted slab card, tap opens MealSlotSheet (view/remove/change)
-  Desktop: horizontal scroll with minWidth 980px, each day column flex-1
+  Desktop (sm+): CSS grid repeat(7,1fr), no overflow/scrollbar. className="hidden sm:grid w-full", gridTemplateColumns repeat(7,1fr)
+  Mobile (<sm): vertical day list, className="block sm:hidden". Each day is a card with 4 slot rows.
+  All slots fixed height 72px on desktop. Mobile slots use flex row (label + meal name or "Tap to plan").
+  Day headers fixed height 56px on desktop for column alignment.
+  Both views use same openSlot(day, slotType) handler and getSlot() lookup.
+  Empty state (desktop only, hidden sm:flex) only shown when slots.length === 0.
   MealSlotSheet: menu mode (pick bank / quick add), bank search mode, quick add mode, date mode
   "Add to planner" from the meal bank opens MealSlotSheet in date mode (preSelectedMeal prop set)
   Date mode: shows 7-day picker (Mon-Sun of current week) + slot type pills, then saves directly
@@ -996,7 +1001,7 @@ Update this file after every major decision or completed phase.
 - Dashboard tile selector: use `.locator('button, a').filter({ hasText: 'Chores' }).first()` to avoid strict mode (both button and inner `<p>` match plain `text=Chores`)
 - `uniqueUser` in test files must be a factory function `() => ({...})`, not a plain object — reusing the same email across tests causes "email already exists" failures when tests run serially
 
-Last updated: 2026-04-07 (Homepage redesigned: 9 sections with 6 alternating feature rows, comparison table, personas. Theme system redesign: 2 themes only. Feature card border sweep. Theme signout reset + onboarding button contrast fixes.)
+Last updated: 2026-04-07 (Homepage redesigned: 9 sections with 6 alternating feature rows, comparison table, personas. Theme system redesign: 2 themes only. Feature card border sweep. Theme signout reset + onboarding button contrast fixes. Meals planner: desktop CSS grid + mobile vertical day list.)
 
 ## Stripe Billing Rules
 - Stripe Checkout used for payment (redirect to Stripe, return to /settings/billing?success=true)

@@ -393,99 +393,214 @@ export default function MealsPage() {
           </div>
         )}
 
-        {/* Week grid */}
+        {/* Mobile week list — hidden on sm+ */}
         {!plannerQuery.isLoading && (
-          <div className="overflow-x-auto pb-2">
-            <div className="flex gap-3" style={{ minWidth: "980px" }}>
-              {weekDays.map((day) => {
-                const todayDay = isToday(day);
-                return (
-                  <div key={day.toISOString()} className="flex-1">
-                    {/* Day header */}
-                    <div className="mb-2 flex flex-col items-center gap-0.5">
-                      <span
-                        className="text-xs uppercase"
-                        style={{ color: "var(--roost-text-muted)", fontWeight: 700 }}
-                      >
-                        {format(day, "EEE")}
+          <div className="block sm:hidden">
+            {weekDays.map((day) => {
+              const todayDay = isToday(day);
+              return (
+                <div
+                  key={day.toISOString()}
+                  style={{
+                    borderRadius: 14,
+                    border: todayDay ? `1.5px solid ${COLOR}` : "1.5px solid var(--roost-border)",
+                    borderBottom: todayDay ? `3px solid ${COLOR_DARK}` : "3px solid var(--roost-border-bottom)",
+                    background: "var(--roost-surface)",
+                    overflow: "hidden",
+                    marginBottom: 10,
+                  }}
+                >
+                  {/* Day header */}
+                  <div
+                    style={{
+                      padding: "10px 14px",
+                      display: "flex",
+                      alignItems: "center",
+                      borderBottom: "1px solid var(--roost-border)",
+                      background: todayDay ? "rgba(249,115,22,0.05)" : "transparent",
+                      gap: 8,
+                    }}
+                  >
+                    <span style={{ fontSize: 14, fontWeight: 800, color: "var(--roost-text-primary)" }}>
+                      {format(day, "EEEE")}
+                    </span>
+                    <span style={{ fontSize: 12, fontWeight: 600, color: "var(--roost-text-muted)" }}>
+                      {format(day, "MMM d")}
+                    </span>
+                    {todayDay && (
+                      <span style={{ fontSize: 9, fontWeight: 800, background: COLOR, color: "white", padding: "2px 7px", borderRadius: 20 }}>
+                        TODAY
                       </span>
-                      <span
-                        className="flex h-7 w-7 items-center justify-center rounded-full text-sm"
-                        style={{
-                          backgroundColor: todayDay ? COLOR : "transparent",
-                          color: todayDay ? "#ffffff" : "var(--roost-text-primary)",
-                          fontWeight: 800,
-                        }}
-                      >
-                        {format(day, "d")}
-                      </span>
-                    </div>
-
-                    {/* Slots */}
-                    <div className="space-y-1.5">
-                      {SLOT_TYPES.map((slotType) => {
-                        const slot = getSlot(day, slotType);
-                        const mealName = slot?.meal_name ?? slot?.custom_meal_name;
-
-                        return slot ? (
-                          <motion.button
-                            key={slotType}
-                            type="button"
-                            onClick={() => openSlot(day, slotType)}
-                            whileTap={{ y: 1 }}
-                            className="w-full rounded-xl p-2 text-left"
-                            style={{
-                              backgroundColor: COLOR + "10",
-                              border: `1.5px solid ${COLOR}25`,
-                              borderBottom: `3px solid ${COLOR_DARK}40`,
-                            }}
-                          >
-                            <p
-                              className="truncate text-[11px] leading-tight"
-                              style={{ color: COLOR, fontWeight: 700 }}
-                            >
-                              {mealName}
-                            </p>
-                            <p
-                              className="mt-0.5 text-[10px] uppercase"
-                              style={{ color: "var(--roost-text-muted)", fontWeight: 600 }}
-                            >
-                              {SLOT_LABELS[slotType]}
-                            </p>
-                          </motion.button>
-                        ) : (
-                          <motion.button
-                            key={slotType}
-                            type="button"
-                            onClick={() => openSlot(day, slotType)}
-                            whileTap={{ y: 1 }}
-                            className="w-full rounded-xl p-2 text-left"
-                            style={{
-                              border: "1.5px dashed #E5E7EB",
-                              borderBottom: `3px dashed ${COLOR_DARK}`,
-                            }}
-                          >
-                            <p
-                              className="text-[10px] uppercase"
-                              style={{ color: "var(--roost-text-muted)", fontWeight: 600 }}
-                            >
-                              {SLOT_LABELS[slotType]}
-                            </p>
-                          </motion.button>
-                        );
-                      })}
-                    </div>
+                    )}
                   </div>
-                );
-              })}
-            </div>
+
+                  {/* Meal slots */}
+                  <div style={{ padding: "8px 14px 10px" }}>
+                    {SLOT_TYPES.map((slotType) => {
+                      const slot = getSlot(day, slotType);
+                      const mealName = slot?.meal_name ?? slot?.custom_meal_name;
+                      return (
+                        <button
+                          key={slotType}
+                          type="button"
+                          onClick={() => openSlot(day, slotType)}
+                          style={{
+                            width: "100%",
+                            marginBottom: 6,
+                            borderRadius: 10,
+                            padding: "9px 12px",
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 10,
+                            cursor: "pointer",
+                            textAlign: "left",
+                            border: "none",
+                            ...(mealName ? {
+                              background: "rgba(249,115,22,0.07)",
+                              borderLeft: `3px solid ${COLOR}`,
+                            } : {
+                              background: "transparent",
+                              border: "1.5px dashed rgba(249,115,22,0.3)",
+                            }),
+                          }}
+                        >
+                          <span style={{ fontSize: 10, fontWeight: 800, color: mealName ? COLOR_DARK : "var(--roost-text-muted)", textTransform: "uppercase", letterSpacing: "0.5px", width: 64, flexShrink: 0 }}>
+                            {SLOT_LABELS[slotType]}
+                          </span>
+                          {mealName ? (
+                            <span style={{ fontSize: 13, fontWeight: 800, color: "var(--roost-text-primary)", flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                              {mealName}
+                            </span>
+                          ) : (
+                            <span style={{ fontSize: 12, fontWeight: 600, color: "var(--roost-text-muted)" }}>
+                              Tap to plan
+                            </span>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })}
           </div>
         )}
 
-        {/* Empty state */}
+        {/* Desktop week grid — hidden on mobile */}
+        {!plannerQuery.isLoading && (
+          <div
+            className="hidden sm:grid w-full"
+            style={{ gridTemplateColumns: "repeat(7, 1fr)", gap: 8 }}
+          >
+            {weekDays.map((day) => {
+              const todayDay = isToday(day);
+              return (
+                <div key={day.toISOString()}>
+                  {/* Day header */}
+                  <div
+                    style={{
+                      height: 56,
+                      display: "flex",
+                      flexDirection: "column",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      marginBottom: 6,
+                    }}
+                  >
+                    <span style={{ fontSize: 10, fontWeight: 700, color: "var(--roost-text-muted)", textTransform: "uppercase", marginBottom: 3 }}>
+                      {format(day, "EEE")}
+                    </span>
+                    <span
+                      style={{
+                        display: "flex",
+                        height: 28,
+                        width: 28,
+                        alignItems: "center",
+                        justifyContent: "center",
+                        borderRadius: "50%",
+                        fontSize: 13,
+                        fontWeight: 800,
+                        backgroundColor: todayDay ? COLOR : "transparent",
+                        color: todayDay ? "#ffffff" : "var(--roost-text-primary)",
+                      }}
+                    >
+                      {format(day, "d")}
+                    </span>
+                  </div>
+
+                  {/* Slots */}
+                  <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                    {SLOT_TYPES.map((slotType) => {
+                      const slot = getSlot(day, slotType);
+                      const mealName = slot?.meal_name ?? slot?.custom_meal_name;
+
+                      return slot ? (
+                        <motion.button
+                          key={slotType}
+                          type="button"
+                          onClick={() => openSlot(day, slotType)}
+                          whileTap={{ y: 1 }}
+                          style={{
+                            height: 72,
+                            minHeight: 72,
+                            display: "flex",
+                            flexDirection: "column",
+                            justifyContent: "center",
+                            overflow: "hidden",
+                            width: "100%",
+                            borderRadius: 10,
+                            padding: "0 8px",
+                            textAlign: "left",
+                            backgroundColor: COLOR + "10",
+                            border: `1.5px solid ${COLOR}25`,
+                            borderBottom: `3px solid ${COLOR_DARK}40`,
+                          }}
+                        >
+                          <p style={{ fontSize: 9, fontWeight: 800, textTransform: "uppercase", color: "var(--roost-text-muted)", marginBottom: 3 }}>
+                            {SLOT_LABELS[slotType]}
+                          </p>
+                          <p style={{ fontSize: 11, fontWeight: 800, color: COLOR, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: "100%" }}>
+                            {mealName}
+                          </p>
+                        </motion.button>
+                      ) : (
+                        <motion.button
+                          key={slotType}
+                          type="button"
+                          onClick={() => openSlot(day, slotType)}
+                          whileTap={{ y: 1 }}
+                          style={{
+                            height: 72,
+                            minHeight: 72,
+                            display: "flex",
+                            flexDirection: "column",
+                            justifyContent: "center",
+                            overflow: "hidden",
+                            width: "100%",
+                            borderRadius: 10,
+                            padding: "0 8px",
+                            border: "1.5px dashed #E5E7EB",
+                            borderBottom: `3px dashed ${COLOR_DARK}`,
+                            background: "transparent",
+                          }}
+                        >
+                          <p style={{ fontSize: 9, fontWeight: 800, textTransform: "uppercase", color: "var(--roost-text-muted)" }}>
+                            {SLOT_LABELS[slotType]}
+                          </p>
+                        </motion.button>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        {/* Empty state — desktop only, shown when entire week is empty */}
         {!plannerQuery.isLoading && slots.length === 0 && (
           <div
-            className="flex flex-col items-center gap-2 rounded-2xl px-6 py-10 text-center"
+            className="hidden sm:flex flex-col items-center gap-2 rounded-2xl px-6 py-10 text-center"
             style={{
               border: "1.5px dashed #E5E7EB",
               borderBottom: `3px dashed ${COLOR_DARK}`,

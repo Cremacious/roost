@@ -535,7 +535,7 @@ src/lib/utils/imageUpload.ts                fileToBase64(File), validateReceiptI
 src/app/api/expenses/scan/route.ts          POST: premium + non-child only, accepts { imageBase64 }, returns { receipt: ParsedReceipt }
 src/components/expenses/ReceiptScanner.tsx  Scan flow UI: idle (camera + upload buttons), scanning (animated), error (retry)
 src/components/expenses/LineItemEditor.tsx  Edit scanned line items, assign per member or split equally, confirm to pre-fill form
-src/app/page.tsx                              Public marketing homepage (server component, no app shell)
+src/app/page.tsx                              Public marketing homepage (server component, no app shell). Sections: Nav, mobile teaser bar, hero, problem, 6 alternating feature rows (Chores/Grocery/Calendar/Expenses/Reminders/Meals each with realistic UI mockup), comparison table vs Splitwise/Cozi, personas (3 cards), bottom CTA, footer. No pricing section. Red nav and footer, warm-tinted feature sections, no dark sections.
 src/app/(auth)/login/page.tsx                 Split layout: red left panel (desktop), form right panel; slab inputs on #FFF5F5
 src/app/(auth)/signup/page.tsx                Split layout matching login; all validation logic preserved
 src/app/(auth)/child-login/page.tsx           Single centered column on #FFF5F5; styled PIN pad with red dots
@@ -989,7 +989,7 @@ Update this file after every major decision or completed phase.
 - Dashboard tile selector: use `.locator('button, a').filter({ hasText: 'Chores' }).first()` to avoid strict mode (both button and inner `<p>` match plain `text=Chores`)
 - `uniqueUser` in test files must be a factory function `() => ({...})`, not a plain object — reusing the same email across tests causes "email already exists" failures when tests run serially
 
-Last updated: 2026-04-07 (Theme system redesign: 2 themes only (default neutral + midnight dark), red removed from default theme everywhere except chores. Sidebar active = light gray fill. --primary = near-black neutral. Auth pages neutralized. forest/slate/sand removed. Feature card border sweep also completed this session.)
+Last updated: 2026-04-07 (Homepage redesigned: 9 sections with 6 alternating feature rows, comparison table, personas. Theme system redesign: 2 themes only. Feature card border sweep.)
 
 ## Stripe Billing Rules
 - Stripe Checkout used for payment (redirect to Stripe, return to /settings/billing?success=true)

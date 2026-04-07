@@ -1,6 +1,5 @@
 import { boolean, pgTable, text, timestamp, unique, uuid } from "drizzle-orm/pg-core";
 import { households } from "./households";
-import { users } from "./users";
 
 export const household_members = pgTable(
   "household_members",
@@ -9,9 +8,7 @@ export const household_members = pgTable(
     household_id: uuid("household_id")
       .references(() => households.id)
       .notNull(),
-    user_id: text("user_id")
-      .references(() => users.id)
-      .notNull(),
+    user_id: text("user_id").notNull(),
     role: text("role").notNull().default("member"),
     pin: text("pin"),
     joined_at: timestamp("joined_at").defaultNow(),
@@ -26,9 +23,7 @@ export const member_permissions = pgTable(
     household_id: uuid("household_id")
       .references(() => households.id)
       .notNull(),
-    user_id: text("user_id")
-      .references(() => users.id)
-      .notNull(),
+    user_id: text("user_id").notNull(),
     permission: text("permission").notNull(),
     enabled: boolean("enabled").notNull().default(true),
   },

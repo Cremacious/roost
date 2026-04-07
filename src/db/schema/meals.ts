@@ -1,7 +1,5 @@
 import { date, integer, pgTable, text, timestamp, unique, uuid } from "drizzle-orm/pg-core";
-
 import { households } from "./households";
-import { users } from "./users";
 
 export const meals = pgTable("meals", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -13,9 +11,7 @@ export const meals = pgTable("meals", {
   category: text("category").notNull().default("dinner"),
   ingredients: text("ingredients"), // JSON array of strings
   prep_time: integer("prep_time"),
-  created_by: text("created_by")
-    .references(() => users.id)
-    .notNull(),
+  created_by: text("created_by").notNull(),
   created_at: timestamp("created_at").defaultNow(),
   updated_at: timestamp("updated_at").defaultNow(),
   deleted_at: timestamp("deleted_at"),
@@ -32,9 +28,7 @@ export const meal_plan_slots = pgTable(
     custom_meal_name: text("custom_meal_name"),
     slot_date: date("slot_date").notNull(),
     slot_type: text("slot_type").notNull(),
-    assigned_by: text("assigned_by")
-      .references(() => users.id)
-      .notNull(),
+    assigned_by: text("assigned_by").notNull(),
     created_at: timestamp("created_at").defaultNow(),
   },
   (t) => [unique().on(t.household_id, t.slot_date, t.slot_type)]
@@ -45,9 +39,7 @@ export const meal_suggestions = pgTable("meal_suggestions", {
   household_id: uuid("household_id")
     .references(() => households.id)
     .notNull(),
-  suggested_by: text("suggested_by")
-    .references(() => users.id)
-    .notNull(),
+  suggested_by: text("suggested_by").notNull(),
   meal_name: text("meal_name").notNull(),
   note: text("note"),
   category: text("category").notNull().default("dinner"),
@@ -64,9 +56,7 @@ export const meal_suggestion_votes = pgTable(
     suggestion_id: uuid("suggestion_id")
       .references(() => meal_suggestions.id)
       .notNull(),
-    user_id: text("user_id")
-      .references(() => users.id)
-      .notNull(),
+    user_id: text("user_id").notNull(),
     vote: text("vote").notNull(),
     created_at: timestamp("created_at").defaultNow(),
   },

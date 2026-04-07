@@ -1,6 +1,5 @@
 import { boolean, date, integer, numeric, pgTable, text, timestamp, unique, uuid } from "drizzle-orm/pg-core";
 import { households } from "./households";
-import { users } from "./users";
 import { expenses } from "./expenses";
 
 export const allowance_settings = pgTable(
@@ -10,15 +9,11 @@ export const allowance_settings = pgTable(
     household_id: uuid("household_id")
       .references(() => households.id)
       .notNull(),
-    user_id: text("user_id")
-      .references(() => users.id)
-      .notNull(),
+    user_id: text("user_id").notNull(),
     enabled: boolean("enabled").notNull().default(false),
     weekly_amount: numeric("weekly_amount").notNull().default("0"),
     threshold_percent: integer("threshold_percent").notNull().default(80),
-    created_by: text("created_by")
-      .references(() => users.id)
-      .notNull(),
+    created_by: text("created_by").notNull(),
     created_at: timestamp("created_at").defaultNow(),
     updated_at: timestamp("updated_at").defaultNow(),
   },
@@ -35,9 +30,7 @@ export const allowance_payouts = pgTable(
     household_id: uuid("household_id")
       .references(() => households.id)
       .notNull(),
-    user_id: text("user_id")
-      .references(() => users.id)
-      .notNull(),
+    user_id: text("user_id").notNull(),
     week_start: date("week_start").notNull(),
     amount: numeric("amount").notNull(),
     earned: boolean("earned").notNull(),

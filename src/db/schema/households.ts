@@ -1,5 +1,4 @@
 import { pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
-import { users } from "./users";
 
 export const households = pgTable("households", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -10,7 +9,7 @@ export const households = pgTable("households", {
   stripe_customer_id: text("stripe_customer_id"),
   stripe_price_id: text("stripe_price_id"),
   premium_expires_at: timestamp("premium_expires_at"),
-  created_by: text("created_by").references(() => users.id),
+  created_by: text("created_by"),
   created_at: timestamp("created_at").defaultNow(),
   updated_at: timestamp("updated_at").defaultNow(),
   deleted_at: timestamp("deleted_at"),

@@ -22,13 +22,17 @@ export const auth = betterAuth({
     user: {
       create: {
         after: async (user) => {
-          await db.insert(users).values({
-            id: user.id,
-            email: user.email ?? undefined,
-            name: user.name,
-            timezone: "America/New_York",
-            language: "en",
-          }).onConflictDoNothing();
+          try {
+            await db.insert(users).values({
+              id: user.id,
+              email: user.email ?? undefined,
+              name: user.name,
+              timezone: "America/New_York",
+              language: "en",
+            }).onConflictDoNothing();
+          } catch (err) {
+            console.error("[auth hook] Failed to mirror user into users table:", err);
+          }
         },
       },
     },

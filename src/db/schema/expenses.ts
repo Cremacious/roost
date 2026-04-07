@@ -1,6 +1,5 @@
 import { boolean, numeric, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
 import { households } from "./households";
-import { users } from "./users";
 
 export const expenses = pgTable("expenses", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -9,9 +8,7 @@ export const expenses = pgTable("expenses", {
     .notNull(),
   title: text("title").notNull(),
   total_amount: numeric("total_amount").notNull(),
-  paid_by: text("paid_by")
-    .references(() => users.id)
-    .notNull(),
+  paid_by: text("paid_by").notNull(),
   category: text("category"),
   receipt_url: text("receipt_url"),
   receipt_data: text("receipt_data"),
@@ -25,9 +22,7 @@ export const expense_splits = pgTable("expense_splits", {
   expense_id: uuid("expense_id")
     .references(() => expenses.id)
     .notNull(),
-  user_id: text("user_id")
-    .references(() => users.id)
-    .notNull(),
+  user_id: text("user_id").notNull(),
   amount: numeric("amount").notNull(),
   settled: boolean("settled").notNull().default(false),
   settled_at: timestamp("settled_at"),

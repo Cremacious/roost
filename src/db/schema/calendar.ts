@@ -1,6 +1,5 @@
 import { boolean, pgTable, text, timestamp, unique, uuid } from "drizzle-orm/pg-core";
 import { households } from "./households";
-import { users } from "./users";
 
 export const calendar_events = pgTable("calendar_events", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -12,9 +11,7 @@ export const calendar_events = pgTable("calendar_events", {
   start_time: timestamp("start_time").notNull(),
   end_time: timestamp("end_time"),
   all_day: boolean("all_day").notNull().default(false),
-  created_by: text("created_by")
-    .references(() => users.id)
-    .notNull(),
+  created_by: text("created_by").notNull(),
   created_at: timestamp("created_at").defaultNow(),
   updated_at: timestamp("updated_at").defaultNow(),
   deleted_at: timestamp("deleted_at"),
@@ -27,9 +24,7 @@ export const event_attendees = pgTable(
     event_id: uuid("event_id")
       .references(() => calendar_events.id)
       .notNull(),
-    user_id: text("user_id")
-      .references(() => users.id)
-      .notNull(),
+    user_id: text("user_id").notNull(),
   },
   (t) => [unique().on(t.event_id, t.user_id)]
 );

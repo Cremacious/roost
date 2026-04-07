@@ -1,6 +1,5 @@
 import { boolean, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
 import { households } from "./households";
-import { users } from "./users";
 
 export const tasks = pgTable("tasks", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -9,15 +8,13 @@ export const tasks = pgTable("tasks", {
     .notNull(),
   title: text("title").notNull(),
   description: text("description"),
-  assigned_to: text("assigned_to").references(() => users.id),
+  assigned_to: text("assigned_to"),
   due_date: timestamp("due_date"),
   priority: text("priority").notNull().default("medium"),
   completed: boolean("completed").notNull().default(false),
-  completed_by: text("completed_by").references(() => users.id),
+  completed_by: text("completed_by"),
   completed_at: timestamp("completed_at"),
-  created_by: text("created_by")
-    .references(() => users.id)
-    .notNull(),
+  created_by: text("created_by").notNull(),
   created_at: timestamp("created_at").defaultNow(),
   updated_at: timestamp("updated_at").defaultNow(),
   deleted_at: timestamp("deleted_at"),

@@ -1,15 +1,12 @@
 import { pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
 import { households } from "./households";
-import { users } from "./users";
 
 export const household_activity = pgTable("household_activity", {
   id: uuid("id").primaryKey().defaultRandom(),
   household_id: uuid("household_id")
     .references(() => households.id)
     .notNull(),
-  user_id: text("user_id")
-    .references(() => users.id)
-    .notNull(),
+  user_id: text("user_id").notNull(),
   type: text("type").notNull(),
   entity_id: uuid("entity_id"),
   entity_type: text("entity_type"),

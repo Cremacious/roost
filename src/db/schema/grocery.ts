@@ -1,6 +1,5 @@
 import { boolean, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
 import { households } from "./households";
-import { users } from "./users";
 
 export const grocery_lists = pgTable("grocery_lists", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -9,9 +8,7 @@ export const grocery_lists = pgTable("grocery_lists", {
     .notNull(),
   name: text("name").notNull().default("Shopping List"),
   is_default: boolean("is_default").notNull().default(false),
-  created_by: text("created_by")
-    .references(() => users.id)
-    .notNull(),
+  created_by: text("created_by").notNull(),
   created_at: timestamp("created_at").defaultNow(),
   deleted_at: timestamp("deleted_at"),
 });
@@ -26,11 +23,9 @@ export const grocery_items = pgTable("grocery_items", {
     .notNull(),
   name: text("name").notNull(),
   quantity: text("quantity"),
-  added_by: text("added_by")
-    .references(() => users.id)
-    .notNull(),
+  added_by: text("added_by").notNull(),
   checked: boolean("checked").notNull().default(false),
-  checked_by: text("checked_by").references(() => users.id),
+  checked_by: text("checked_by"),
   checked_at: timestamp("checked_at"),
   created_at: timestamp("created_at").defaultNow(),
   deleted_at: timestamp("deleted_at"),

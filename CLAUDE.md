@@ -527,6 +527,14 @@ src/app/page.tsx                              Public marketing homepage (server 
 src/app/(auth)/login/page.tsx                 Split layout: red left panel (desktop), form right panel; slab inputs on #FFF5F5
 src/app/(auth)/signup/page.tsx                Split layout matching login; all validation logic preserved
 src/app/(auth)/child-login/page.tsx           Single centered column on #FFF5F5; styled PIN pad with red dots
+src/lib/utils/stripe.ts                       Stripe client + STRIPE_PRICE_ID + APP_URL exports
+src/app/api/stripe/checkout/route.ts          POST: create Stripe Checkout session (admin only)
+src/app/api/stripe/webhook/route.ts           POST (raw body): handles Stripe events, updates subscription_status
+src/app/api/stripe/cancel/route.ts            POST: cancel_at_period_end=true (admin only)
+src/app/api/stripe/reactivate/route.ts        POST: remove cancel_at_period_end (admin only)
+src/app/api/stripe/portal/route.ts            POST: create Stripe Customer Portal session (admin only)
+src/app/(app)/settings/billing/page.tsx       Full billing page: free/premium/cancelling states, retention cancel sheet
+src/app/api/cron/subscription/route.ts        Daily cron: expire premium households past premium_expires_at
 
 ## Reminders UX Patterns
 - Reminder types: once (completes after firing) and recurring (daily/weekly/monthly/custom)
@@ -778,6 +786,7 @@ Phase 3: Money (premium)
   Expenses: DONE, manual entry, split 3 ways, settle up, debt simplification, premium gate
   Bill splitting: DONE (part of expenses module)
   Receipt scanning: DONE, Google Vision TEXT_DETECTION, editable line items, per-member assignment
+  Stripe billing: DONE, Checkout, webhooks, cancel/reactivate, Customer Portal, /settings/billing
 
 Phase 4: Polish
   Ambient tablet mode + widget customization
@@ -968,7 +977,33 @@ Update this file after every major decision or completed phase.
 - Dashboard tile selector: use `.locator('button, a').filter({ hasText: 'Chores' }).first()` to avoid strict mode (both button and inner `<p>` match plain `text=Chores`)
 - `uniqueUser` in test files must be a factory function `() => ({...})`, not a plain object — reusing the same email across tests causes "email already exists" failures when tests run serially
 
-Last updated: 2026-04-06 (receipt parser improved; Playwright e2e selectors fixed: flexible waitForURL, data-testid attributes, mobile project scoping, serial workers, grocery checkbox/checked-state selectors, DEV panel interaction, uniqueUser factory pattern)
+Last updated: 2026-04-07 (Stripe billing complete: Checkout, webhooks, cancel/reactivate, Customer Portal, billing page, daily expiry cron)
+
+## Stripe Billing Rules
+- Stripe Checkout used for payment (redirect to Stripe, return to /settings/billing?success=true)
+- Webhook (POST /api/stripe/webhook, raw body) confirms and updates subscription_status in DB
+- households.subscription_status is the single source of truth for premium: 'free' | 'premium'
+- households.premium_expires_at: set when cancel_at_period_end=true; null when active or expired
+- households.stripe_customer_id: created on first checkout, saved immediately before Checkout session
+- isCancelled: subscription_status='premium' AND premium_expires_at IS NOT NULL AND expiry > now()
+  This means: premium but will expire at period end (cancel_at_period_end=true in Stripe)
+- isPremium in useHousehold: status='premium' AND (premium_expires_at is null OR expiry > now())
+- Cancel flow: sets cancel_at_period_end=true via Stripe, webhook fires customer.subscription.updated
+  which sets premium_expires_at. Household stays premium until that date.
+- Reactivate: removes cancel_at_period_end=false, webhook clears premium_expires_at
+- Daily cron /api/cron/subscription: expires households where premium_expires_at < now()
+  (safety net in case webhook fires late; runs at midnight UTC via vercel.json)
+- Webhook events handled: checkout.session.completed, customer.subscription.updated,
+  customer.subscription.deleted, invoice.payment_succeeded, invoice.payment_failed
+- payment_failed does NOT revoke premium immediately; Stripe retries, subscription.deleted fires last
+- Stripe API version: 2024-12-18.acacia. current_period_end is on subscription item (items.data[0])
+- Customer Portal route: /api/stripe/portal, POST, admin only, returns { url } to redirect to
+- Admin-only gate on all Stripe routes: role must be 'admin', returns 403 otherwise
+- /api/stripe/webhook has NO session auth — verified via Stripe signature only
+- Retention screen shown before cancel: lists what the household will lose, "Keep Premium" vs "Cancel"
+- /settings/billing: free users see upgrade card; premium users see features + manage/cancel; 
+  cancelling users see amber warning + reactivate; success/cancelled URL params show dismissing banners
+- STRIPE_PRICE_ID env var: the monthly $3 price ID (price_...) from Stripe dashboard
 
 ## Bugs Found and Fixed (2026-04-05)
 - No default grocery list created on household signup: `GET /api/grocery/lists` now

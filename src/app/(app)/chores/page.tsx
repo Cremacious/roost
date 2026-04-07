@@ -70,7 +70,7 @@ interface Member {
 }
 
 interface MembersResponse {
-  household: { id: string; name: string };
+  household: { id: string; name: string; subscriptionStatus: string };
   members: Member[];
 }
 

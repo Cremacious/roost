@@ -65,7 +65,7 @@ export async function POST(request: NextRequest): Promise<Response> {
   const session = await ctx.internalAdapter.createSession(matchedUserId);
 
   const cookieName = ctx.authCookies.sessionToken.name;
-  const cookieOptions = ctx.authCookies.sessionToken.options;
+  const cookieOptions = ctx.authCookies.sessionToken.attributes;
 
   const setCookie = await serializeSignedCookie(
     cookieName,

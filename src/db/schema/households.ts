@@ -8,6 +8,8 @@ export const households = pgTable("households", {
   subscription_status: text("subscription_status").notNull().default("free"),
   stripe_subscription_id: text("stripe_subscription_id"),
   stripe_customer_id: text("stripe_customer_id"),
+  stripe_price_id: text("stripe_price_id"),
+  premium_expires_at: timestamp("premium_expires_at"),
   created_by: text("created_by").references(() => users.id),
   created_at: timestamp("created_at").defaultNow(),
   updated_at: timestamp("updated_at").defaultNow(),

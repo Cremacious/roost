@@ -1159,7 +1159,7 @@ export default function SettingsPage() {
               )}
               {isPremium && (
                 <motion.button type="button" whileTap={{ y: 1 }}
-                  onClick={() => toast.info("Billing management coming soon.")}
+                  onClick={() => router.push("/settings/billing")}
                   className="mt-3 flex h-11 w-full items-center justify-center rounded-xl text-sm"
                   style={{
                     backgroundColor: "var(--roost-bg)",

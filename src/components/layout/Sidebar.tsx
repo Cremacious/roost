@@ -163,7 +163,7 @@ export default function Sidebar() {
           <div className="mt-2 flex items-center gap-2.5 px-3 py-2">
             <MemberAvatar
               name={userName || "?"}
-              color={avatarColor}
+              avatarColor={avatarColor}
               size="sm"
             />
             <div className="min-w-0 flex-1">

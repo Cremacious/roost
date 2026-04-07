@@ -12,7 +12,8 @@ import {
   MoreHorizontal,
   Plus,
   ShoppingCart,
-  Trash2, ClipboardList,
+  Trash2,
+  ClipboardList,
 } from 'lucide-react';
 import { SECTION_COLORS } from '@/lib/constants/colors';
 import { relativeTime } from '@/lib/utils/time';
@@ -669,7 +670,7 @@ export default function GroceryPage() {
                 style={{
                   backgroundColor: 'var(--roost-surface)',
                   border: '1.5px solid var(--roost-border)',
-                  borderBottom: '3px solid #E5E7EB',
+                  borderBottom: `3px solid ${COLOR_DARK}`,
                   color: 'var(--roost-text-secondary)',
                   fontWeight: 700,
                 }}
@@ -680,7 +681,9 @@ export default function GroceryPage() {
                   <Lock className="size-3.5" />
                 )}
                 <span className="hidden sm:inline">Shopping List</span>
-                <span className=" md:hidden"><ClipboardList className="size-3.5" /></span>
+                <span className=" md:hidden">
+                  <ClipboardList className="size-3.5" />
+                </span>
               </motion.button>
 
               {/* + add item */}
@@ -692,7 +695,7 @@ export default function GroceryPage() {
                 style={{
                   backgroundColor: 'var(--roost-surface)',
                   border: '1.5px solid var(--roost-border)',
-                  borderBottom: '3px solid #E5E7EB',
+                  borderBottom: `3px solid ${COLOR_DARK}`,
                   color: 'var(--roost-text-secondary)',
                 }}
                 title="Add item with details"
@@ -809,7 +812,8 @@ export default function GroceryPage() {
             className="flex flex-col items-center gap-3 rounded-2xl px-6 py-12 text-center"
             style={{
               backgroundColor: 'var(--roost-surface)',
-              border: '2px dashed var(--roost-border)',
+              border: '2px dashed #FBD494',
+              borderBottom: '4px dashed #d9b826',
             }}
           >
             <div
@@ -931,7 +935,10 @@ export default function GroceryPage() {
         />
 
         {/* Delete list confirmation */}
-        <AlertDialog open={showDeleteListConfirm} onOpenChange={setShowDeleteListConfirm}>
+        <AlertDialog
+          open={showDeleteListConfirm}
+          onOpenChange={setShowDeleteListConfirm}
+        >
           <AlertDialogContent
             style={{
               backgroundColor: 'var(--roost-surface)',
@@ -940,10 +947,17 @@ export default function GroceryPage() {
             }}
           >
             <AlertDialogHeader>
-              <AlertDialogTitle style={{ color: 'var(--roost-text-primary)', fontWeight: 800 }}>
+              <AlertDialogTitle
+                style={{ color: 'var(--roost-text-primary)', fontWeight: 800 }}
+              >
                 Delete list?
               </AlertDialogTitle>
-              <AlertDialogDescription style={{ color: 'var(--roost-text-secondary)', fontWeight: 600 }}>
+              <AlertDialogDescription
+                style={{
+                  color: 'var(--roost-text-secondary)',
+                  fontWeight: 600,
+                }}
+              >
                 {activeList
                   ? `"${activeList.name}" and all its items will be permanently removed.`
                   : 'This list and all its items will be permanently removed.'}
@@ -963,7 +977,9 @@ export default function GroceryPage() {
                 Cancel
               </AlertDialogCancel>
               <AlertDialogAction
-                onClick={() => activeList && deleteListMutation.mutate(activeList.id)}
+                onClick={() =>
+                  activeList && deleteListMutation.mutate(activeList.id)
+                }
                 disabled={deleteListMutation.isPending}
                 style={{
                   backgroundColor: '#EF4444',

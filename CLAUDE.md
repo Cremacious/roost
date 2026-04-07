@@ -279,6 +279,14 @@ Tasks: one-off to-dos
   Dashboard tiles are neutral containers: border-bottom = var(--roost-border-bottom).
   Dashboard "See all" and activity links: #EF4444 brand red.
   Calendar nav arrows: simple rounded-full, no slab style (NO borderBottom slab effect).
+  Calendar month grid container: border: 1.5px solid #BAD3F7, borderBottom: 4px solid #1A5CB5.
+  Calendar empty state (EmptyState): pass containerBorderColor="rgba(59,130,246,0.4)" for uniform blue dashed border.
+  Calendar DaySheet empty state button: border: 2px dashed rgba(59,130,246,0.4) uniform all sides.
+  EventSheet calendars (mobile + desktop): set --primary: #3B82F6 on the wrapper so today/selected circle is blue.
+  EmptyState containerBorderColor prop: when provided, overrides container to uniform 2px dashed with that color (no separate borderBottom).
+  Month/Agenda toggle: border: 1.5px solid #BAD3F7, borderBottom: 3px solid #1A5CB5. Inactive button text: #304050. Divider: 1px solid #BAD3F7.
+  All day Switch: wrapped in div with style={{ "--primary": COLOR }} to override shadcn --primary from brand red to calendar blue.
+  Form labels in ALL feature sheets: hardcoded #374151 (neutral dark gray), never var(--roost-text-muted) or var(--roost-text-secondary). Applies to EventSheet, ExpenseSheet, TaskSheet, NoteSheet, ReminderSheet (and any sheet with <label> elements). fontWeight: 700.
   PageHeader badge: pass color={SECTION_COLOR} prop so badge uses section color, not theme color.
 
 ## Empty State Rules (overrides all previous empty state styling)
@@ -977,7 +985,7 @@ Update this file after every major decision or completed phase.
 - Dashboard tile selector: use `.locator('button, a').filter({ hasText: 'Chores' }).first()` to avoid strict mode (both button and inner `<p>` match plain `text=Chores`)
 - `uniqueUser` in test files must be a factory function `() => ({...})`, not a plain object — reusing the same email across tests causes "email already exists" failures when tests run serially
 
-Last updated: 2026-04-07 (Stripe billing complete: Checkout, webhooks, cancel/reactivate, Customer Portal, billing page, daily expiry cron)
+Last updated: 2026-04-07 (Section color sweep: fixed var(--roost-border-bottom) bleed across all feature sheets/pages; calendar fully blue; EmptyState containerBorderColor prop added; form labels hardcoded #374151 across all sheets)
 
 ## Stripe Billing Rules
 - Stripe Checkout used for payment (redirect to Stripe, return to /settings/billing?success=true)

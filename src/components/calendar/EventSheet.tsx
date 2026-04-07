@@ -307,7 +307,7 @@ export default function EventSheet({
               {/* Attendees */}
               {event.attendees.length > 0 && (
                 <div>
-                  <p className="mb-2 text-xs" style={{ color: "var(--roost-text-muted)", fontWeight: 700 }}>
+                  <p className="mb-2 text-xs" style={{ color: "#374151", fontWeight: 700 }}>
                     Attendees
                   </p>
                   <div className="flex flex-wrap gap-2">
@@ -417,7 +417,7 @@ export default function EventSheet({
 
             {/* Title */}
             <div>
-              <label className="mb-1.5 block text-xs" style={{ color: "var(--roost-text-muted)", fontWeight: 700 }}>
+              <label className="mb-1.5 block text-xs" style={{ color: "#374151", fontWeight: 700 }}>
                 Title
               </label>
               <input
@@ -433,7 +433,7 @@ export default function EventSheet({
 
             {/* Date — mobile only, hidden on desktop (calendar lives in right column there) */}
             <div className="sm:hidden">
-              <label className="mb-1.5 block text-xs" style={{ color: "var(--roost-text-muted)", fontWeight: 700 }}>
+              <label className="mb-1.5 block text-xs" style={{ color: "#374151", fontWeight: 700 }}>
                 Date
               </label>
               <div
@@ -454,14 +454,16 @@ export default function EventSheet({
               <span className="text-sm" style={{ color: "var(--roost-text-primary)", fontWeight: 700 }}>
                 All day
               </span>
-              <Switch checked={allDay} onCheckedChange={setAllDay} />
+              <div style={{ "--primary": COLOR, "--primary-foreground": "#ffffff" } as React.CSSProperties}>
+                <Switch checked={allDay} onCheckedChange={setAllDay} />
+              </div>
             </div>
 
             {/* Time inputs */}
             {!allDay && (
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="mb-1.5 block text-xs" style={{ color: "var(--roost-text-muted)", fontWeight: 700 }}>
+                  <label className="mb-1.5 block text-xs" style={{ color: "#374151", fontWeight: 700 }}>
                     Start time
                   </label>
                   <input
@@ -473,7 +475,7 @@ export default function EventSheet({
                   />
                 </div>
                 <div>
-                  <label className="mb-1.5 block text-xs" style={{ color: "var(--roost-text-muted)", fontWeight: 700 }}>
+                  <label className="mb-1.5 block text-xs" style={{ color: "#374151", fontWeight: 700 }}>
                     End time
                   </label>
                   <input
@@ -489,7 +491,7 @@ export default function EventSheet({
 
             {/* Description */}
             <div>
-              <label className="mb-1.5 block text-xs" style={{ color: "var(--roost-text-muted)", fontWeight: 700 }}>
+              <label className="mb-1.5 block text-xs" style={{ color: "#374151", fontWeight: 700 }}>
                 Description
               </label>
               <textarea
@@ -505,7 +507,7 @@ export default function EventSheet({
             {/* Attendees */}
             {householdMembers.length > 0 && (
               <div>
-                <label className="mb-2 block text-xs" style={{ color: "var(--roost-text-muted)", fontWeight: 700 }}>
+                <label className="mb-2 block text-xs" style={{ color: "#374151", fontWeight: 700 }}>
                   Attendees
                 </label>
                 <div className="flex flex-wrap gap-2">
@@ -559,7 +561,7 @@ export default function EventSheet({
                 type="button"
                 onClick={onClose}
                 className="flex h-11 w-full items-center justify-center rounded-xl text-sm"
-                style={{ color: "var(--roost-text-muted)", fontWeight: 700 }}
+                style={{ color: "#374151", fontWeight: 700 }}
               >
                 Cancel
               </button>
@@ -568,8 +570,8 @@ export default function EventSheet({
           </div>
 
           {/* RIGHT COLUMN — calendar, desktop only */}
-          <div className="hidden sm:block sm:w-full sm:pt-6">
-            <p className="mb-3 text-xs" style={{ color: "var(--roost-text-muted)", fontWeight: 700 }}>
+          <div className="hidden sm:block sm:w-full sm:pt-6" style={{ "--primary": COLOR, "--primary-foreground": "#ffffff" } as React.CSSProperties}>
+            <p className="mb-3 text-xs" style={{ color: "#374151", fontWeight: 700 }}>
               Date
             </p>
             <Calendar

@@ -350,8 +350,8 @@ export default function CalendarPage() {
           <div
             className="flex overflow-hidden rounded-xl"
             style={{
-              border: "1.5px solid var(--roost-border)",
-              borderBottom: "3px solid #E5E7EB",
+              border: "1.5px solid #BAD3F7",
+              borderBottom: "3px solid #1A5CB5",
             }}
           >
             {(["month", "agenda"] as ViewMode[]).map((v, i) => (
@@ -361,9 +361,9 @@ export default function CalendarPage() {
                 onClick={() => setView(v)}
                 className="flex h-9 items-center px-3 text-sm"
                 style={{
-                  borderLeft: i > 0 ? "1px solid var(--roost-border)" : undefined,
+                  borderLeft: i > 0 ? "1px solid #BAD3F7" : undefined,
                   backgroundColor: view === v ? COLOR : "var(--roost-surface)",
-                  color: view === v ? "white" : "var(--roost-text-secondary)",
+                  color: view === v ? "white" : "#304050",
                   fontWeight: view === v ? 800 : 600,
                 }}
               >
@@ -459,7 +459,7 @@ export default function CalendarPage() {
           <div
             className="overflow-hidden rounded-2xl"
             style={{
-              border: "1.5px solid var(--roost-border)",
+              border: "1.5px solid #BAD3F7",
               borderBottom: `4px solid ${COLOR_DARK}`,
               backgroundColor: "var(--roost-surface)",
             }}
@@ -552,6 +552,7 @@ export default function CalendarPage() {
               buttonLabel="Add an event"
               onButtonClick={() => openCreate()}
               color={COLOR}
+              containerBorderColor="rgba(59,130,246,0.4)"
             />
           ) : (
             agendaGroups.map((group) => {

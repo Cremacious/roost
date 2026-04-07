@@ -55,7 +55,7 @@ export default function DaySheet({
         className="rounded-t-2xl px-4 pb-8 pt-2"
         style={{ backgroundColor: "var(--roost-surface)", maxHeight: "80dvh", overflowY: "auto" }}
       >
-        <div className="mx-auto mb-4 h-1 w-10 rounded-full" style={{ backgroundColor: "var(--roost-border)" }} />
+        <div className="mx-auto mb-4 h-1 w-10 rounded-full" style={{ backgroundColor: "#3B82F6" }} />
         <SheetHeader className="mb-4 text-left">
           <SheetTitle style={{ color: "var(--roost-text-primary)", fontWeight: 800 }}>
             {dateLabel}
@@ -70,8 +70,7 @@ export default function DaySheet({
               whileTap={{ y: 1 }}
               className="flex w-full flex-col items-center gap-2 rounded-2xl px-6 py-8 text-center"
               style={{
-                border: "1.5px dashed #E5E7EB",
-                borderBottom: "3px dashed #1A5CB5",
+                border: "2px dashed rgba(59,130,246,0.4)",
                 color: "var(--roost-text-muted)",
               }}
             >

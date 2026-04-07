@@ -406,7 +406,7 @@ export default function ExpenseSheet({
             {/* Splits */}
             {expense.splits.length > 0 && (
               <div className="mb-4 space-y-2">
-                <p className="text-xs" style={{ color: "var(--roost-text-muted)", fontWeight: 700 }}>
+                <p className="text-xs" style={{ color: "#374151", fontWeight: 700 }}>
                   Splits
                 </p>
                 {expense.splits.map((split) => (
@@ -433,7 +433,7 @@ export default function ExpenseSheet({
                         </span>
                       ) : (
                         split.user_id !== expense.paid_by && (
-                          <span className="rounded-full px-2 py-0.5 text-xs" style={{ backgroundColor: "var(--roost-border)", color: "var(--roost-text-muted)", fontWeight: 700 }}>
+                          <span className="rounded-full px-2 py-0.5 text-xs" style={{ backgroundColor: "var(--roost-border)", color: "#374151", fontWeight: 700 }}>
                             Pending
                           </span>
                         )
@@ -453,7 +453,7 @@ export default function ExpenseSheet({
                   className="flex w-full items-center gap-2"
                 >
                   <Receipt className="size-3.5" style={{ color: COLOR }} />
-                  <span className="flex-1 text-left text-xs" style={{ color: "var(--roost-text-muted)", fontWeight: 700 }}>
+                  <span className="flex-1 text-left text-xs" style={{ color: "#374151", fontWeight: 700 }}>
                     Receipt items
                   </span>
                   <ChevronDown
@@ -583,7 +583,7 @@ export default function ExpenseSheet({
                 type="button"
                 onClick={() => setScanView("form")}
                 className="text-sm"
-                style={{ color: "var(--roost-text-muted)", fontWeight: 700 }}
+                style={{ color: "#374151", fontWeight: 700 }}
               >
                 Back to form
               </button>
@@ -603,7 +603,7 @@ export default function ExpenseSheet({
                 type="button"
                 onClick={() => setScanView("form")}
                 className="text-sm"
-                style={{ color: "var(--roost-text-muted)", fontWeight: 700 }}
+                style={{ color: "#374151", fontWeight: 700 }}
               >
                 Back to form
               </button>
@@ -683,7 +683,7 @@ export default function ExpenseSheet({
 
               {/* Title */}
               <div>
-                <label className="mb-1.5 block text-xs" style={{ color: "var(--roost-text-muted)", fontWeight: 700 }}>
+                <label className="mb-1.5 block text-xs" style={{ color: "#374151", fontWeight: 700 }}>
                   What was it for?
                 </label>
                 <input
@@ -698,13 +698,13 @@ export default function ExpenseSheet({
 
               {/* Amount */}
               <div>
-                <label className="mb-1.5 block text-xs" style={{ color: "var(--roost-text-muted)", fontWeight: 700 }}>
+                <label className="mb-1.5 block text-xs" style={{ color: "#374151", fontWeight: 700 }}>
                   Amount
                 </label>
                 <div className="relative">
                   <span
                     className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-sm"
-                    style={{ color: "var(--roost-text-muted)", fontWeight: 700 }}
+                    style={{ color: "#374151", fontWeight: 700 }}
                   >
                     $
                   </span>
@@ -726,7 +726,7 @@ export default function ExpenseSheet({
               {/* Paid by */}
               {mode === "create" && (
                 <div>
-                  <label className="mb-1.5 block text-xs" style={{ color: "var(--roost-text-muted)", fontWeight: 700 }}>
+                  <label className="mb-1.5 block text-xs" style={{ color: "#374151", fontWeight: 700 }}>
                     Paid by
                   </label>
                   <div className="flex flex-wrap gap-2">
@@ -757,7 +757,7 @@ export default function ExpenseSheet({
 
               {/* Category */}
               <div>
-                <label className="mb-1.5 block text-xs" style={{ color: "var(--roost-text-muted)", fontWeight: 700 }}>
+                <label className="mb-1.5 block text-xs" style={{ color: "#374151", fontWeight: 700 }}>
                   Category (optional)
                 </label>
                 <div className="flex flex-wrap gap-2">
@@ -787,7 +787,7 @@ export default function ExpenseSheet({
               {/* Split method — create only */}
               {mode === "create" && (
                 <div>
-                  <label className="mb-1.5 block text-xs" style={{ color: "var(--roost-text-muted)", fontWeight: 700 }}>
+                  <label className="mb-1.5 block text-xs" style={{ color: "#374151", fontWeight: 700 }}>
                     Split
                   </label>
                   <div className="flex gap-2">
@@ -832,7 +832,7 @@ export default function ExpenseSheet({
                           <div className="relative w-28">
                             <span
                               className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm"
-                              style={{ color: "var(--roost-text-muted)", fontWeight: 700 }}
+                              style={{ color: "#374151", fontWeight: 700 }}
                             >
                               $
                             </span>
@@ -905,7 +905,7 @@ export default function ExpenseSheet({
                 type="button"
                 onClick={onClose}
                 className="flex h-11 w-full items-center justify-center rounded-xl text-sm"
-                style={{ color: "var(--roost-text-muted)", fontWeight: 700 }}
+                style={{ color: "#374151", fontWeight: 700 }}
               >
                 Cancel
               </button>

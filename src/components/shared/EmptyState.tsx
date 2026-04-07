@@ -10,6 +10,7 @@ interface EmptyStateProps {
   buttonLabel?: string;
   onButtonClick?: () => void;
   color?: string;
+  containerBorderColor?: string;
 }
 
 export default function EmptyState({
@@ -19,6 +20,7 @@ export default function EmptyState({
   buttonLabel,
   onButtonClick,
   color = "var(--roost-text-secondary)",
+  containerBorderColor,
 }: EmptyStateProps) {
   return (
     <motion.div
@@ -28,8 +30,9 @@ export default function EmptyState({
       className="flex flex-col items-center gap-4 rounded-2xl px-6 py-12 text-center"
       style={{
         backgroundColor: "var(--roost-surface)",
-        border: "1.5px dashed var(--roost-border)",
-        borderBottom: "4px dashed var(--roost-border-bottom)",
+        border: containerBorderColor
+          ? `2px dashed ${containerBorderColor}`
+          : "1.5px dashed var(--roost-border)",
       }}
     >
       {/* Icon box */}

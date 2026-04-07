@@ -214,7 +214,7 @@ export default function TaskSheet({
           <div className="space-y-4">
             {/* Title */}
             <div>
-              <label className="mb-1.5 block text-xs" style={{ color: "var(--roost-text-muted)", fontWeight: 700 }}>
+              <label className="mb-1.5 block text-xs" style={{ color: "#374151", fontWeight: 700 }}>
                 Title
               </label>
               <input
@@ -231,7 +231,7 @@ export default function TaskSheet({
 
             {/* Description */}
             <div>
-              <label className="mb-1.5 block text-xs" style={{ color: "var(--roost-text-muted)", fontWeight: 700 }}>
+              <label className="mb-1.5 block text-xs" style={{ color: "#374151", fontWeight: 700 }}>
                 Description
               </label>
               <textarea
@@ -246,7 +246,7 @@ export default function TaskSheet({
 
             {/* Assign to */}
             <div>
-              <label className="mb-1.5 block text-xs" style={{ color: "var(--roost-text-muted)", fontWeight: 700 }}>
+              <label className="mb-1.5 block text-xs" style={{ color: "#374151", fontWeight: 700 }}>
                 Assign to
               </label>
               <select
@@ -266,7 +266,7 @@ export default function TaskSheet({
 
             {/* Due date */}
             <div>
-              <label className="mb-1.5 block text-xs" style={{ color: "var(--roost-text-muted)", fontWeight: 700 }}>
+              <label className="mb-1.5 block text-xs" style={{ color: "#374151", fontWeight: 700 }}>
                 Due date
               </label>
               <div className="flex items-center gap-2">
@@ -297,7 +297,7 @@ export default function TaskSheet({
 
             {/* Priority */}
             <div>
-              <label className="mb-1.5 block text-xs" style={{ color: "var(--roost-text-muted)", fontWeight: 700 }}>
+              <label className="mb-1.5 block text-xs" style={{ color: "#374151", fontWeight: 700 }}>
                 Priority
               </label>
               <div className="flex gap-2">

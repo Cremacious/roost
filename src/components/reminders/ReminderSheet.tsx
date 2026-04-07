@@ -254,7 +254,7 @@ export default function ReminderSheet({
         <div className="space-y-5">
           {/* Title */}
           <div>
-            <label className="mb-1.5 block text-xs" style={{ color: "var(--roost-text-muted)", fontWeight: 700 }}>
+            <label className="mb-1.5 block text-xs" style={{ color: "#374151", fontWeight: 700 }}>
               What do you need to remember?
             </label>
             <input
@@ -270,7 +270,7 @@ export default function ReminderSheet({
 
           {/* Note */}
           <div>
-            <label className="mb-1.5 block text-xs" style={{ color: "var(--roost-text-muted)", fontWeight: 700 }}>
+            <label className="mb-1.5 block text-xs" style={{ color: "#374151", fontWeight: 700 }}>
               Note (optional)
             </label>
             <textarea
@@ -285,7 +285,7 @@ export default function ReminderSheet({
 
           {/* Date and time */}
           <div>
-            <label className="mb-1.5 block text-xs" style={{ color: "var(--roost-text-muted)", fontWeight: 700 }}>
+            <label className="mb-1.5 block text-xs" style={{ color: "#374151", fontWeight: 700 }}>
               When?
             </label>
             <div className="flex gap-2">
@@ -328,7 +328,7 @@ export default function ReminderSheet({
 
           {/* Frequency */}
           <div>
-            <label className="mb-1.5 block text-xs" style={{ color: "var(--roost-text-muted)", fontWeight: 700 }}>
+            <label className="mb-1.5 block text-xs" style={{ color: "#374151", fontWeight: 700 }}>
               Repeat
             </label>
             <div className="flex gap-2 flex-wrap">
@@ -388,7 +388,7 @@ export default function ReminderSheet({
 
           {/* Who to remind */}
           <div>
-            <label className="mb-1.5 block text-xs" style={{ color: "var(--roost-text-muted)", fontWeight: 700 }}>
+            <label className="mb-1.5 block text-xs" style={{ color: "#374151", fontWeight: 700 }}>
               Who to remind
             </label>
             <div className="space-y-2">
@@ -492,7 +492,7 @@ export default function ReminderSheet({
             type="button"
             onClick={onClose}
             className="flex h-11 w-full items-center justify-center rounded-xl text-sm"
-            style={{ color: "var(--roost-text-muted)", fontWeight: 700 }}
+            style={{ color: "#374151", fontWeight: 700 }}
           >
             Cancel
           </button>

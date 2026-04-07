@@ -290,7 +290,7 @@ export default function NoteSheet({
         <div className="space-y-4">
           {/* Title (optional) */}
           <div>
-            <label className="mb-1.5 block text-xs" style={{ color: "var(--roost-text-muted)", fontWeight: 700 }}>
+            <label className="mb-1.5 block text-xs" style={{ color: "#374151", fontWeight: 700 }}>
               Title (optional)
             </label>
             <input
@@ -305,7 +305,7 @@ export default function NoteSheet({
 
           {/* Content */}
           <div>
-            <label className="mb-1.5 block text-xs" style={{ color: "var(--roost-text-muted)", fontWeight: 700 }}>
+            <label className="mb-1.5 block text-xs" style={{ color: "#374151", fontWeight: 700 }}>
               Note
             </label>
             <textarea
@@ -350,7 +350,7 @@ export default function NoteSheet({
             type="button"
             onClick={onClose}
             className="flex h-11 w-full items-center justify-center rounded-xl text-sm"
-            style={{ color: "var(--roost-text-muted)", fontWeight: 700 }}
+            style={{ color: "#374151", fontWeight: 700 }}
           >
             Cancel
           </button>

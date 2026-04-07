@@ -180,7 +180,7 @@ function ReminderMoreMenu({
             style={{
               backgroundColor: "var(--roost-surface)",
               border: "1.5px solid var(--roost-border)",
-              borderBottom: "3px solid var(--roost-border-bottom)",
+              borderBottom: "3px solid #E5E7EB",
               boxShadow: "0 4px 12px rgba(0,0,0,0.08)",
             }}
           >
@@ -251,7 +251,7 @@ function ReminderRow({
         style={{
           backgroundColor: "var(--roost-bg)",
           border: "1.5px solid var(--roost-border)",
-          borderBottom: "4px solid var(--roost-border-bottom)",
+          borderBottom: "4px solid #0891B2",
           minHeight: 64,
         }}
       >
@@ -399,7 +399,7 @@ function ReminderRow({
               type="button"
               onClick={() => setConfirmOpen(false)}
               className="flex h-11 flex-1 items-center justify-center rounded-xl text-sm"
-              style={{ border: "1.5px solid var(--roost-border)", borderBottom: "3px solid var(--roost-border-bottom)", color: "var(--roost-text-primary)", fontWeight: 700 }}
+              style={{ border: "1.5px solid #E5E7EB", borderBottom: "3px solid #E5E7EB", color: "var(--roost-text-primary)", fontWeight: 700 }}
             >
               Cancel
             </button>
@@ -752,7 +752,7 @@ export default function RemindersPage() {
               style={{
                 backgroundColor: active ? COLOR : "var(--roost-surface)",
                 border: active ? `1.5px solid ${COLOR}` : "1.5px solid var(--roost-border)",
-                borderBottom: active ? `3px solid ${COLOR_DARK}` : "3px solid var(--roost-border-bottom)",
+                borderBottom: active ? `3px solid ${COLOR_DARK}` : "3px solid #E5E7EB",
                 color: active ? "white" : "var(--roost-text-secondary)",
                 fontWeight: 700,
               }}
@@ -765,9 +765,9 @@ export default function RemindersPage() {
 
       {/* Stats */}
       <div className="grid grid-cols-3 gap-3">
-        <StatCard value={activeDueTodayCount} label="Due today" color={activeDueTodayCount > 0 ? COLOR : undefined} />
-        <StatCard value={activeIn7DaysCount} label="This week" />
-        <StatCard value={recurringCount} label="Recurring" color={recurringCount > 0 ? COLOR : undefined} />
+        <StatCard value={activeDueTodayCount} label="Due today" color={activeDueTodayCount > 0 ? COLOR : undefined} borderColor="#0891B2" />
+        <StatCard value={activeIn7DaysCount} label="This week" borderColor="#0891B2" />
+        <StatCard value={recurringCount} label="Recurring" color={recurringCount > 0 ? COLOR : undefined} borderColor="#0891B2" />
       </div>
 
       {/* Loading */}
@@ -872,7 +872,7 @@ export default function RemindersPage() {
               type="button"
               onClick={() => setDeleteDialogOpen(false)}
               className="flex h-11 flex-1 items-center justify-center rounded-xl text-sm"
-              style={{ border: "1.5px solid var(--roost-border)", borderBottom: "3px solid var(--roost-border-bottom)", color: "var(--roost-text-primary)", fontWeight: 700 }}
+              style={{ border: "1.5px solid #E5E7EB", borderBottom: "3px solid #E5E7EB", color: "var(--roost-text-primary)", fontWeight: 700 }}
             >
               Cancel
             </button>

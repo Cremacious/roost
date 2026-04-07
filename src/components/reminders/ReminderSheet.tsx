@@ -76,11 +76,11 @@ const DAYS = [
 // ---- Input style ------------------------------------------------------------
 
 const inputStyle: React.CSSProperties = {
-  border: "1.5px solid var(--roost-border)",
-  borderBottom: "3px solid var(--roost-border-bottom)",
+  backgroundColor: "var(--roost-surface)",
+  border: "1.5px solid #E5E7EB",
+  borderBottom: "3px solid #E5E7EB",
   color: "var(--roost-text-primary)",
   fontWeight: 600,
-  backgroundColor: "transparent",
 };
 
 // ---- Component --------------------------------------------------------------
@@ -244,7 +244,7 @@ export default function ReminderSheet({
         className="rounded-t-2xl px-4 pb-8 pt-2"
         style={{ backgroundColor: "var(--roost-surface)", maxHeight: "92dvh", overflowY: "auto" }}
       >
-        <div className="mx-auto mb-4 h-1 w-10 rounded-full" style={{ backgroundColor: "var(--roost-border)" }} />
+        <div className="mx-auto mb-4 h-1 w-10 rounded-full" style={{ backgroundColor: "#06B6D4" }} />
         <SheetHeader className="mb-5 text-left">
           <SheetTitle style={{ color: "var(--roost-text-primary)", fontWeight: 800 }}>
             {mode === "create" ? "Set a Reminder" : "Edit Reminder"}
@@ -345,8 +345,8 @@ export default function ReminderSheet({
                     }}
                     className="flex h-10 flex-1 items-center justify-center gap-1 rounded-xl text-sm"
                     style={{
-                      border: active ? `1.5px solid ${COLOR}` : "1.5px solid var(--roost-border)",
-                      borderBottom: active ? `3px solid ${COLOR_DARK}` : "3px solid var(--roost-border-bottom)",
+                      border: active ? `1.5px solid ${COLOR}` : "1.5px solid #E5E7EB",
+                      borderBottom: active ? `3px solid ${COLOR_DARK}` : "3px solid #E5E7EB",
                       backgroundColor: active ? `${COLOR}18` : "transparent",
                       color: isLocked ? "var(--roost-text-muted)" : active ? COLOR : "var(--roost-text-secondary)",
                       fontWeight: 700,
@@ -371,8 +371,8 @@ export default function ReminderSheet({
                       onClick={() => toggleDay(d.value)}
                       className="flex h-9 flex-1 items-center justify-center rounded-xl text-xs"
                       style={{
-                        border: active ? `1.5px solid ${COLOR}` : "1.5px solid var(--roost-border)",
-                        borderBottom: active ? `3px solid ${COLOR_DARK}` : "3px solid var(--roost-border-bottom)",
+                        border: active ? `1.5px solid ${COLOR}` : "1.5px solid #E5E7EB",
+                        borderBottom: active ? `3px solid ${COLOR_DARK}` : "3px solid #E5E7EB",
                         backgroundColor: active ? `${COLOR}18` : "transparent",
                         color: active ? COLOR : "var(--roost-text-muted)",
                         fontWeight: 700,
@@ -407,14 +407,14 @@ export default function ReminderSheet({
                     onClick={() => set("notifyType", value)}
                     className="flex w-full items-center gap-3 rounded-xl px-4 py-3 text-left"
                     style={{
-                      border: active ? `1.5px solid ${COLOR}` : "1.5px solid var(--roost-border)",
-                      borderBottom: active ? `3px solid ${COLOR_DARK}` : "3px solid var(--roost-border-bottom)",
+                      border: active ? `1.5px solid ${COLOR}` : "1.5px solid #E5E7EB",
+                      borderBottom: active ? `3px solid ${COLOR_DARK}` : "3px solid #E5E7EB",
                       backgroundColor: active ? `${COLOR}18` : "transparent",
                     }}
                   >
                     <div
                       className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl"
-                      style={{ backgroundColor: active ? `${COLOR}30` : "var(--roost-border)", }}
+                      style={{ backgroundColor: active ? `${COLOR}30` : "#F3F4F6", }}
                     >
                       <Icon className="size-4" style={{ color: active ? COLOR : "var(--roost-text-muted)" }} />
                     </div>
@@ -442,8 +442,8 @@ export default function ReminderSheet({
                         onClick={() => toggleSpecificUser(m.userId)}
                         className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5"
                         style={{
-                          border: checked ? `1.5px solid ${COLOR}40` : "1.5px solid var(--roost-border)",
-                          borderBottom: checked ? `3px solid ${COLOR_DARK}40` : "3px solid var(--roost-border-bottom)",
+                          border: checked ? `1.5px solid ${COLOR}40` : "1.5px solid #E5E7EB",
+                          borderBottom: checked ? `3px solid ${COLOR_DARK}40` : "3px solid #E5E7EB",
                           backgroundColor: checked ? `${COLOR}10` : "transparent",
                         }}
                       >

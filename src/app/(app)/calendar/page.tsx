@@ -351,7 +351,7 @@ export default function CalendarPage() {
             className="flex overflow-hidden rounded-xl"
             style={{
               border: "1.5px solid var(--roost-border)",
-              borderBottom: "3px solid var(--roost-border-bottom)",
+              borderBottom: "3px solid #E5E7EB",
             }}
           >
             {(["month", "agenda"] as ViewMode[]).map((v, i) => (
@@ -431,8 +431,8 @@ export default function CalendarPage() {
                   onClick={() => setCurrentMonth(startOfMonth(new Date()))}
                   className="mr-1 flex h-7 items-center rounded-lg px-2.5 text-xs"
                   style={{
-                    border: "1.5px solid var(--roost-border)",
-                    borderBottom: "2px solid var(--roost-border-bottom)",
+                    border: `1.5px solid ${COLOR}40`,
+                    borderBottom: `2px solid ${COLOR_DARK}`,
                     color: COLOR,
                     fontWeight: 700,
                   }}

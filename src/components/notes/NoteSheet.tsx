@@ -50,11 +50,11 @@ interface NoteSheetProps {
 // ---- Input style ------------------------------------------------------------
 
 const inputStyle: React.CSSProperties = {
-  border: "1.5px solid var(--roost-border)",
-  borderBottom: "3px solid var(--roost-border-bottom)",
+  backgroundColor: "var(--roost-surface)",
+  border: "1.5px solid #E5E7EB",
+  borderBottom: "3px solid #E5E7EB",
   color: "var(--roost-text-primary)",
   fontWeight: 600,
-  backgroundColor: "transparent",
 };
 
 // ---- Component --------------------------------------------------------------
@@ -178,7 +178,7 @@ export default function NoteSheet({
             className="rounded-t-2xl px-4 pb-8 pt-2"
             style={{ backgroundColor: "var(--roost-surface)", maxHeight: "88dvh", overflowY: "auto" }}
           >
-            <div className="mx-auto mb-4 h-1 w-10 rounded-full" style={{ backgroundColor: "var(--roost-border)" }} />
+            <div className="mx-auto mb-4 h-1 w-10 rounded-full" style={{ backgroundColor: "#A855F7" }} />
 
             {/* Header with edit button */}
             <div className="mb-4 flex items-start justify-between gap-3">
@@ -195,8 +195,8 @@ export default function NoteSheet({
                   onClick={() => setMode("edit")}
                   className="flex h-9 shrink-0 items-center gap-1.5 rounded-xl px-3 text-sm"
                   style={{
-                    border: "1.5px solid var(--roost-border)",
-                    borderBottom: "3px solid var(--roost-border-bottom)",
+                    border: "1.5px solid #E5E7EB",
+                    borderBottom: "3px solid #E5E7EB",
                     color: "var(--roost-text-secondary)",
                     fontWeight: 700,
                   }}
@@ -254,7 +254,7 @@ export default function NoteSheet({
             <DialogFooter className="mt-2 gap-2">
               <button type="button" onClick={() => setDeleteDialogOpen(false)}
                 className="flex h-11 flex-1 items-center justify-center rounded-xl text-sm"
-                style={{ border: "1.5px solid var(--roost-border)", borderBottom: "3px solid var(--roost-border-bottom)", color: "var(--roost-text-primary)", fontWeight: 700 }}>
+                style={{ border: "1.5px solid #E5E7EB", borderBottom: "3px solid #E5E7EB", color: "var(--roost-text-primary)", fontWeight: 700 }}>
                 Cancel
               </button>
               <motion.button type="button" whileTap={{ y: 1 }}
@@ -280,7 +280,7 @@ export default function NoteSheet({
         className="rounded-t-2xl px-4 pb-8 pt-2"
         style={{ backgroundColor: "var(--roost-surface)", maxHeight: "88dvh", overflowY: "auto" }}
       >
-        <div className="mx-auto mb-4 h-1 w-10 rounded-full" style={{ backgroundColor: "var(--roost-border)" }} />
+        <div className="mx-auto mb-4 h-1 w-10 rounded-full" style={{ backgroundColor: "#A855F7" }} />
         <SheetHeader className="mb-5 text-left">
           <SheetTitle style={{ color: "var(--roost-text-primary)", fontWeight: 800 }}>
             {mode === "create" ? "New Note" : "Edit Note"}

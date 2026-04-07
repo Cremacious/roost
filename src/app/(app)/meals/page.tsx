@@ -346,7 +346,7 @@ export default function MealsPage() {
             className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl"
             style={{
               border: "1.5px solid var(--roost-border)",
-              borderBottom: "3px solid var(--roost-border-bottom)",
+              borderBottom: "3px solid #E5E7EB",
               backgroundColor: "var(--roost-surface)",
             }}
           >
@@ -376,7 +376,7 @@ export default function MealsPage() {
             className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl"
             style={{
               border: "1.5px solid var(--roost-border)",
-              borderBottom: "3px solid var(--roost-border-bottom)",
+              borderBottom: "3px solid #E5E7EB",
               backgroundColor: "var(--roost-surface)",
             }}
           >
@@ -461,8 +461,8 @@ export default function MealsPage() {
                             whileTap={{ y: 1 }}
                             className="w-full rounded-xl p-2 text-left"
                             style={{
-                              border: "1.5px dashed var(--roost-border)",
-                              borderBottom: "3px dashed var(--roost-border-bottom)",
+                              border: "1.5px dashed #E5E7EB",
+                              borderBottom: `3px dashed ${COLOR_DARK}`,
                             }}
                           >
                             <p
@@ -487,8 +487,8 @@ export default function MealsPage() {
           <div
             className="flex flex-col items-center gap-2 rounded-2xl px-6 py-10 text-center"
             style={{
-              border: "1.5px dashed var(--roost-border)",
-              borderBottom: "3px dashed var(--roost-border-bottom)",
+              border: "1.5px dashed #E5E7EB",
+              borderBottom: `3px dashed ${COLOR_DARK}`,
             }}
           >
             <p className="text-sm" style={{ color: "var(--roost-text-primary)", fontWeight: 700 }}>
@@ -534,8 +534,8 @@ export default function MealsPage() {
           placeholder="Search your meal bank..."
           className="flex h-12 w-full rounded-xl px-4 text-sm placeholder:italic focus:outline-none"
           style={{
-            border: "1.5px solid var(--roost-border)",
-            borderBottom: "3px solid var(--roost-border-bottom)",
+            border: "1.5px solid #E5E7EB",
+            borderBottom: "3px solid #E5E7EB",
             color: "var(--roost-text-primary)",
             fontWeight: 600,
             backgroundColor: "var(--roost-surface)",
@@ -556,7 +556,7 @@ export default function MealsPage() {
                 style={{
                   backgroundColor: active ? COLOR : "var(--roost-surface)",
                   border: `1.5px solid ${active ? COLOR : "var(--roost-border)"}`,
-                  borderBottom: active ? `3px solid ${COLOR_DARK}` : "3px solid var(--roost-border-bottom)",
+                  borderBottom: active ? `3px solid ${COLOR_DARK}` : "3px solid #E5E7EB",
                   color: active ? "#ffffff" : "var(--roost-text-secondary)",
                   fontWeight: active ? 800 : 600,
                 }}
@@ -594,7 +594,7 @@ export default function MealsPage() {
                   style={{
                     backgroundColor: "var(--roost-surface)",
                     border: "1.5px solid var(--roost-border)",
-                    borderBottom: "4px solid var(--roost-border-bottom)",
+                    borderBottom: `4px solid ${COLOR_DARK}`,
                   }}
                 >
                   {/* Header */}
@@ -691,10 +691,10 @@ export default function MealsPage() {
                       whileTap={{ y: 1 }}
                       className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl"
                       style={{
-                        border: "1.5px solid var(--roost-border)",
-                        borderBottom: "3px solid var(--roost-border-bottom)",
+                        border: "1.5px solid #E5E7EB",
+                        borderBottom: "3px solid #E5E7EB",
                         color: "var(--roost-text-muted)",
-                        backgroundColor: "var(--roost-bg)",
+                        backgroundColor: "var(--roost-surface)",
                       }}
                     >
                       <UtensilsCrossed className="size-4" />
@@ -801,7 +801,7 @@ export default function MealsPage() {
               style={{
                 backgroundColor: "var(--roost-surface)",
                 border: "1.5px solid var(--roost-border)",
-                borderBottom: "4px solid var(--roost-border-bottom)",
+                borderBottom: `4px solid ${COLOR_DARK}`,
               }}
             >
               {/* Top pick badge */}
@@ -859,7 +859,7 @@ export default function MealsPage() {
                   style={{
                     backgroundColor: userUpvoted ? COLOR + "18" : "var(--roost-bg)",
                     border: `1.5px solid ${userUpvoted ? COLOR + "40" : "var(--roost-border)"}`,
-                    borderBottom: `3px solid ${userUpvoted ? COLOR_DARK + "60" : "var(--roost-border-bottom)"}`,
+                    borderBottom: `3px solid ${userUpvoted ? COLOR_DARK + "60" : "#E5E7EB"}`,
                     color: userUpvoted ? COLOR : "var(--roost-text-muted)",
                   }}
                 >
@@ -877,7 +877,7 @@ export default function MealsPage() {
                   style={{
                     backgroundColor: userDownvoted ? "#EF444418" : "var(--roost-bg)",
                     border: `1.5px solid ${userDownvoted ? "#EF444440" : "var(--roost-border)"}`,
-                    borderBottom: `3px solid ${userDownvoted ? "#C93B3B60" : "var(--roost-border-bottom)"}`,
+                    borderBottom: `3px solid ${userDownvoted ? "#C93B3B60" : "#E5E7EB"}`,
                     color: userDownvoted ? "#EF4444" : "var(--roost-text-muted)",
                   }}
                 >
@@ -1073,7 +1073,7 @@ export default function MealsPage() {
                   style={{
                     backgroundColor: "var(--roost-bg)",
                     border: "1.5px solid var(--roost-border)",
-                    borderBottom: "3px solid var(--roost-border-bottom)",
+                    borderBottom: "3px solid #E5E7EB",
                     color: "var(--roost-text-secondary)",
                     fontWeight: 700,
                   }}
@@ -1126,7 +1126,7 @@ export default function MealsPage() {
               style={{
                 backgroundColor: "var(--roost-bg)",
                 border: "1.5px solid var(--roost-border)",
-                borderBottom: "3px solid var(--roost-border-bottom)",
+                borderBottom: "3px solid #E5E7EB",
                 color: "var(--roost-text-secondary)",
                 fontWeight: 700,
               }}

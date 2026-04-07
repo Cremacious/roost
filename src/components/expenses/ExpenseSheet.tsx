@@ -72,11 +72,11 @@ interface ExpenseSheetProps {
 // ---- Input style ------------------------------------------------------------
 
 const inputStyle: React.CSSProperties = {
-  border: "1.5px solid var(--roost-border)",
-  borderBottom: "3px solid var(--roost-border-bottom)",
+  backgroundColor: "var(--roost-surface)",
+  border: "1.5px solid #E5E7EB",
+  borderBottom: "3px solid #E5E7EB",
   color: "var(--roost-text-primary)",
   fontWeight: 600,
-  backgroundColor: "transparent",
 };
 
 // ---- Split methods ----------------------------------------------------------
@@ -354,7 +354,7 @@ export default function ExpenseSheet({
             className="rounded-t-2xl px-4 pb-8 pt-2"
             style={{ backgroundColor: "var(--roost-surface)", maxHeight: "88dvh", overflowY: "auto" }}
           >
-            <div className="mx-auto mb-4 h-1 w-10 rounded-full" style={{ backgroundColor: "var(--roost-border)" }} />
+            <div className="mx-auto mb-4 h-1 w-10 rounded-full" style={{ backgroundColor: "#22C55E" }} />
 
             <div className="mb-4 flex items-start justify-between gap-3">
               <div>
@@ -373,8 +373,8 @@ export default function ExpenseSheet({
                   onClick={() => setMode("edit")}
                   className="flex h-9 shrink-0 items-center gap-1.5 rounded-xl px-3 text-sm"
                   style={{
-                    border: "1.5px solid var(--roost-border)",
-                    borderBottom: "3px solid var(--roost-border-bottom)",
+                    border: "1.5px solid #E5E7EB",
+                    borderBottom: "3px solid #E5E7EB",
                     color: "var(--roost-text-secondary)",
                     fontWeight: 700,
                   }}
@@ -413,7 +413,7 @@ export default function ExpenseSheet({
                   <div
                     key={split.id}
                     className="flex items-center justify-between rounded-xl px-3 py-2.5"
-                    style={{ border: "1.5px solid var(--roost-border)", borderBottom: "3px solid var(--roost-border-bottom)" }}
+                    style={{ border: "1.5px solid var(--roost-border)", borderBottom: "3px solid #E5E7EB" }}
                   >
                     <div className="flex items-center gap-2">
                       {split.user_name && (
@@ -536,7 +536,7 @@ export default function ExpenseSheet({
                 type="button"
                 onClick={() => setDeleteDialogOpen(false)}
                 className="flex h-11 flex-1 items-center justify-center rounded-xl text-sm"
-                style={{ border: "1.5px solid var(--roost-border)", borderBottom: "3px solid var(--roost-border-bottom)", color: "var(--roost-text-primary)", fontWeight: 700 }}
+                style={{ border: "1.5px solid #E5E7EB", borderBottom: "3px solid #E5E7EB", color: "var(--roost-text-primary)", fontWeight: 700 }}
               >
                 Cancel
               </button>
@@ -573,7 +573,7 @@ export default function ExpenseSheet({
         className="rounded-t-2xl px-4 pb-8 pt-2"
         style={{ backgroundColor: "var(--roost-surface)", maxHeight: "88dvh", overflowY: "auto" }}
       >
-        <div className="mx-auto mb-4 h-1 w-10 rounded-full" style={{ backgroundColor: "var(--roost-border)" }} />
+        <div className="mx-auto mb-4 h-1 w-10 rounded-full" style={{ backgroundColor: "#22C55E" }} />
 
         {/* ---- Scanner view ---- */}
         {scanView === "scanner" && (
@@ -740,7 +740,7 @@ export default function ExpenseSheet({
                           className="flex h-10 items-center gap-2 rounded-xl px-3 text-sm"
                           style={{
                             border: active ? `1.5px solid ${COLOR}` : "1.5px solid var(--roost-border)",
-                            borderBottom: active ? `3px solid ${COLOR_DARK}` : "3px solid var(--roost-border-bottom)",
+                            borderBottom: active ? `3px solid ${COLOR_DARK}` : "3px solid #E5E7EB",
                             backgroundColor: active ? `${COLOR}18` : "transparent",
                             color: active ? COLOR : "var(--roost-text-secondary)",
                             fontWeight: 700,
@@ -770,8 +770,8 @@ export default function ExpenseSheet({
                         onClick={() => setCategory(active ? "" : cat)}
                         className="h-9 rounded-xl px-3 text-xs"
                         style={{
-                          border: active ? `1.5px solid ${COLOR}` : "1.5px solid var(--roost-border)",
-                          borderBottom: active ? `3px solid ${COLOR_DARK}` : "3px solid var(--roost-border-bottom)",
+                          border: active ? `1.5px solid ${COLOR}` : "1.5px solid #E5E7EB",
+                          borderBottom: active ? `3px solid ${COLOR_DARK}` : "3px solid #E5E7EB",
                           backgroundColor: active ? `${COLOR}18` : "transparent",
                           color: active ? COLOR : "var(--roost-text-secondary)",
                           fontWeight: 700,
@@ -806,8 +806,8 @@ export default function ExpenseSheet({
                           onClick={() => setSplitMethod(value)}
                           className="h-10 flex-1 rounded-xl text-sm"
                           style={{
-                            border: active ? `1.5px solid ${COLOR}` : "1.5px solid var(--roost-border)",
-                            borderBottom: active ? `3px solid ${COLOR_DARK}` : "3px solid var(--roost-border-bottom)",
+                            border: active ? `1.5px solid ${COLOR}` : "1.5px solid #E5E7EB",
+                            borderBottom: active ? `3px solid ${COLOR_DARK}` : "3px solid #E5E7EB",
                             backgroundColor: active ? `${COLOR}18` : "transparent",
                             color: active ? COLOR : "var(--roost-text-secondary)",
                             fontWeight: 700,

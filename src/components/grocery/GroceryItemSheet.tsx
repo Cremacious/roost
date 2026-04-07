@@ -56,11 +56,11 @@ export default function GroceryItemSheet({
   }, [item, open]);
 
   const inputStyle: React.CSSProperties = {
-    border: "1.5px solid var(--roost-border)",
-    borderBottom: "3px solid var(--roost-border-bottom)",
+    backgroundColor: "var(--roost-surface)",
+    border: "1.5px solid #E5E7EB",
+    borderBottom: "3px solid #E5E7EB",
     color: "var(--roost-text-primary)",
     fontWeight: 600,
-    backgroundColor: "transparent",
   };
 
   // ---- Mutations ------------------------------------------------------------
@@ -124,9 +124,10 @@ export default function GroceryItemSheet({
     <Sheet open={open} onOpenChange={(v) => !v && onClose()}>
       <SheetContent
         side="bottom"
-        className="max-h-[85dvh] overflow-y-auto rounded-t-2xl px-4 pb-8 pt-4"
-        style={{ backgroundColor: "var(--roost-bg)" }}
+        className="max-h-[85dvh] overflow-y-auto rounded-t-2xl px-4 pb-8 pt-2"
+        style={{ backgroundColor: "var(--roost-surface)" }}
       >
+        <div className="mx-auto mb-4 h-1 w-10 rounded-full" style={{ backgroundColor: "#F59E0B" }} />
         <SheetHeader className="mb-5">
           <SheetTitle
             className="text-lg"
@@ -213,8 +214,8 @@ export default function GroceryItemSheet({
               className="flex h-12 w-full items-center justify-center gap-2 rounded-xl text-sm"
               style={{
                 backgroundColor: "var(--roost-surface)",
-                border: "1.5px solid var(--roost-border)",
-                borderBottom: "3px solid var(--roost-border-bottom)",
+                border: "1.5px solid #E5E7EB",
+                borderBottom: "3px solid #E5E7EB",
                 color: "#EF4444",
                 fontWeight: 700,
               }}

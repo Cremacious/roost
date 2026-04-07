@@ -154,7 +154,7 @@ export default function SettleSheet({
                 type="button"
                 onClick={() => setConfirmed(false)}
                 className="flex h-12 flex-1 items-center justify-center rounded-xl text-sm"
-                style={{ border: "1.5px solid var(--roost-border)", borderBottom: "3px solid var(--roost-border-bottom)", color: "var(--roost-text-primary)", fontWeight: 700 }}
+                style={{ border: "1.5px solid #E5E7EB", borderBottom: "3px solid #E5E7EB", color: "var(--roost-text-primary)", fontWeight: 700 }}
               >
                 Cancel
               </button>

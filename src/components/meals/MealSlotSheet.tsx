@@ -68,11 +68,11 @@ const SLOT_LABELS: Record<string, string> = {
 };
 
 const inputStyle: React.CSSProperties = {
-  border: "1.5px solid var(--roost-border)",
-  borderBottom: "3px solid var(--roost-border-bottom)",
+  backgroundColor: "var(--roost-surface)",
+  border: "1.5px solid #E5E7EB",
+  borderBottom: "3px solid #E5E7EB",
   color: "var(--roost-text-primary)",
   fontWeight: 600,
-  backgroundColor: "transparent",
 };
 
 function getDayLabel(d: Date): string {
@@ -226,7 +226,7 @@ export default function MealSlotSheet({
           className="rounded-t-2xl px-4 pb-8 pt-2"
           style={{ backgroundColor: "var(--roost-surface)", maxHeight: "88dvh", overflowY: "auto" }}
         >
-          <div className="mx-auto mb-4 h-1 w-10 rounded-full" style={{ backgroundColor: "var(--roost-border)" }} />
+          <div className="mx-auto mb-4 h-1 w-10 rounded-full" style={{ backgroundColor: "#F97316" }} />
           <SheetHeader className="mb-5 text-left">
             <SheetTitle style={{ color: "var(--roost-text-primary)", fontWeight: 800 }}>
               {sheetTitle}
@@ -262,8 +262,8 @@ export default function MealSlotSheet({
                         className="relative flex shrink-0 flex-col items-center gap-0.5 rounded-xl px-3 py-2"
                         style={{
                           backgroundColor: active ? COLOR + "18" : "var(--roost-bg)",
-                          border: active ? `1.5px solid ${COLOR}40` : "1.5px solid var(--roost-border)",
-                          borderBottom: active ? `3px solid ${COLOR_DARK}60` : "3px solid var(--roost-border-bottom)",
+                          border: active ? `1.5px solid ${COLOR}40` : "1.5px solid #E5E7EB",
+                          borderBottom: active ? `3px solid ${COLOR_DARK}60` : "3px solid #E5E7EB",
                           minWidth: 56,
                         }}
                       >
@@ -302,8 +302,8 @@ export default function MealSlotSheet({
                         className="flex h-11 items-center justify-center rounded-xl text-sm capitalize"
                         style={{
                           backgroundColor: active ? COLOR + "18" : "var(--roost-surface)",
-                          border: active ? `1.5px solid ${COLOR}40` : "1.5px solid var(--roost-border)",
-                          borderBottom: active ? `3px solid ${COLOR_DARK}70` : "3px solid var(--roost-border-bottom)",
+                          border: active ? `1.5px solid ${COLOR}40` : "1.5px solid #E5E7EB",
+                          borderBottom: active ? `3px solid ${COLOR_DARK}70` : "3px solid #E5E7EB",
                           color: active ? COLOR : "var(--roost-text-secondary)",
                           fontWeight: active ? 800 : 600,
                         }}
@@ -372,9 +372,9 @@ export default function MealSlotSheet({
                 whileTap={{ y: 1 }}
                 className="flex w-full flex-col gap-1 rounded-2xl p-5 text-left"
                 style={{
-                  backgroundColor: "var(--roost-bg)",
+                  backgroundColor: "var(--roost-surface)",
                   border: "1.5px solid var(--roost-border)",
-                  borderBottom: "4px solid var(--roost-border-bottom)",
+                  borderBottom: `4px solid ${COLOR_DARK}`,
                 }}
               >
                 <p className="text-sm" style={{ color: "var(--roost-text-primary)", fontWeight: 800 }}>
@@ -394,8 +394,8 @@ export default function MealSlotSheet({
                   className="flex h-12 w-full items-center justify-center gap-2 rounded-xl text-sm"
                   style={{
                     backgroundColor: "transparent",
-                    border: "1.5px solid var(--roost-border)",
-                    borderBottom: "3px solid var(--roost-border-bottom)",
+                    border: "1.5px solid #E5E7EB",
+                    borderBottom: "3px solid #E5E7EB",
                     color: "#EF4444",
                     fontWeight: 700,
                   }}
@@ -443,9 +443,9 @@ export default function MealSlotSheet({
                       transition={{ delay: i * 0.03, duration: 0.12 }}
                       className="flex w-full items-center gap-3 rounded-xl px-4 py-3 text-left disabled:opacity-50"
                       style={{
-                        backgroundColor: "var(--roost-bg)",
+                        backgroundColor: "var(--roost-surface)",
                         border: "1.5px solid var(--roost-border)",
-                        borderBottom: "3px solid var(--roost-border-bottom)",
+                        borderBottom: `3px solid ${COLOR_DARK}`,
                       }}
                     >
                       <div className="min-w-0 flex-1">
@@ -528,7 +528,7 @@ export default function MealSlotSheet({
               style={{
                 backgroundColor: "var(--roost-bg)",
                 border: "1.5px solid var(--roost-border)",
-                borderBottom: "3px solid var(--roost-border-bottom)",
+                borderBottom: "3px solid #E5E7EB",
                 color: "var(--roost-text-primary)",
                 fontWeight: 700,
                 borderRadius: 12,

@@ -118,7 +118,7 @@ export default function ActivityPage() {
               style={{
                 backgroundColor: "var(--roost-surface)",
                 border: "1.5px solid var(--roost-border)",
-                borderBottom: "4px solid var(--roost-border-bottom)",
+                borderBottom: "4px solid #E5E7EB",
               }}
             >
               {allItems.map((item, i) => {
@@ -163,7 +163,7 @@ export default function ActivityPage() {
                   style={{
                     backgroundColor: "var(--roost-surface)",
                     border: "1.5px solid var(--roost-border)",
-                    borderBottom: "3px solid var(--roost-border-bottom)",
+                    borderBottom: "3px solid #E5E7EB",
                     color: "var(--roost-text-primary)",
                     fontWeight: 700,
                   }}

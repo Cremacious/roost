@@ -72,11 +72,11 @@ const DAYS = [
 // ---- Shared input style -----------------------------------------------------
 
 const inputStyle: React.CSSProperties = {
-  border: "1.5px solid var(--roost-border)",
-  borderBottom: "3px solid var(--roost-border-bottom)",
+  backgroundColor: "var(--roost-surface)",
+  border: "1.5px solid #E5E7EB",
+  borderBottom: "3px solid #E5E7EB",
   color: "var(--roost-text-primary)",
   fontWeight: 600,
-  backgroundColor: "transparent",
 };
 
 // ---- Component --------------------------------------------------------------
@@ -205,7 +205,7 @@ export default function ChoreSheet({
         <SheetContent
           side="bottom"
           className="max-h-[90dvh] overflow-y-auto rounded-t-2xl px-4 pb-8 pt-4"
-          style={{ backgroundColor: "var(--roost-bg)" }}
+          style={{ backgroundColor: "var(--roost-surface)" }}
         >
           <div className="mx-auto mb-4 h-1 w-10 rounded-full" style={{ backgroundColor: "#EF4444" }} />
           <SheetHeader className="mb-5">
@@ -309,7 +309,7 @@ export default function ChoreSheet({
                           : "1.5px solid var(--roost-border)",
                         borderBottom: active
                           ? `3px solid ${COLOR}70`
-                          : "3px solid var(--roost-border-bottom)",
+                          : "3px solid #E5E7EB",
                         color: locked ? "var(--roost-text-muted)" : active ? COLOR : "var(--roost-text-secondary)",
                         fontWeight: active ? 800 : 600,
                       }}
@@ -353,7 +353,7 @@ export default function ChoreSheet({
                             : "1.5px solid var(--roost-border)",
                           borderBottom: active
                             ? `3px solid ${COLOR}70`
-                            : "3px solid var(--roost-border-bottom)",
+                            : "3px solid #E5E7EB",
                           color: active ? COLOR : "var(--roost-text-secondary)",
                           fontWeight: active ? 800 : 600,
                         }}
@@ -399,8 +399,8 @@ export default function ChoreSheet({
                 className="flex h-12 w-full items-center justify-center gap-2 rounded-xl text-sm"
                 style={{
                   backgroundColor: "var(--roost-surface)",
-                  border: "1.5px solid var(--roost-border)",
-                  borderBottom: "3px solid var(--roost-border-bottom)",
+                  border: "1.5px solid #E5E7EB",
+                  borderBottom: "3px solid #E5E7EB",
                   color: "#EF4444",
                   fontWeight: 700,
                 }}
@@ -438,7 +438,7 @@ export default function ChoreSheet({
               style={{
                 backgroundColor: "var(--roost-bg)",
                 border: "1.5px solid var(--roost-border)",
-                borderBottom: "3px solid var(--roost-border-bottom)",
+                borderBottom: "3px solid #E5E7EB",
                 color: "var(--roost-text-secondary)",
                 fontWeight: 700,
               }}

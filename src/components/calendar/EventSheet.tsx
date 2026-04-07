@@ -70,11 +70,11 @@ interface EventSheetProps {
 // ---- Input style ------------------------------------------------------------
 
 const inputStyle: React.CSSProperties = {
-  border: "1.5px solid var(--roost-border)",
-  borderBottom: "3px solid var(--roost-border-bottom)",
+  backgroundColor: "var(--roost-surface)",
+  border: "1.5px solid #E5E7EB",
+  borderBottom: "3px solid #E5E7EB",
   color: "var(--roost-text-primary)",
   fontWeight: 600,
-  backgroundColor: "transparent",
 };
 
 // ---- Time formatting --------------------------------------------------------
@@ -262,7 +262,7 @@ export default function EventSheet({
             className="rounded-t-2xl px-4 pb-8 pt-2 "
             style={{ backgroundColor: "var(--roost-surface)", maxHeight: "88dvh", overflowY: "auto" }}
           >
-            <div className="mx-auto mb-4 h-1 w-10 rounded-full" style={{ backgroundColor: "var(--roost-border)" }} />
+            <div className="mx-auto mb-4 h-1 w-10 rounded-full" style={{ backgroundColor: "#3B82F6" }} />
             <SheetHeader className="mb-4 text-left">
               <SheetTitle style={{ color: "var(--roost-text-primary)", fontWeight: 800, fontSize: 20 }}>
                 {event.title}
@@ -349,8 +349,8 @@ export default function EventSheet({
                     onClick={() => setDeleteDialogOpen(true)}
                     className="flex h-11 w-12 items-center justify-center rounded-xl"
                     style={{
-                      border: "1.5px solid var(--roost-border)",
-                      borderBottom: "3px solid var(--roost-border-bottom)",
+                      border: "1.5px solid #E5E7EB",
+                      borderBottom: "3px solid #E5E7EB",
                       color: "#EF4444",
                     }}
                   >
@@ -376,7 +376,7 @@ export default function EventSheet({
             <DialogFooter className="mt-2 gap-2">
               <button type="button" onClick={() => setDeleteDialogOpen(false)}
                 className="flex h-11 flex-1 items-center justify-center rounded-xl text-sm"
-                style={{ border: "1.5px solid var(--roost-border)", borderBottom: "3px solid var(--roost-border-bottom)", color: "var(--roost-text-primary)", fontWeight: 700 }}>
+                style={{ border: "1.5px solid #E5E7EB", borderBottom: "3px solid #E5E7EB", color: "var(--roost-text-primary)", fontWeight: 700 }}>
                 Cancel
               </button>
               <motion.button type="button" whileTap={{ y: 1 }}
@@ -402,7 +402,7 @@ export default function EventSheet({
         className="rounded-t-2xl px-4 pb-8 pt-2 "
         style={{ backgroundColor: "var(--roost-surface)", maxHeight: "96dvh", overflowY: "auto" }}
       >
-        <div className="mx-auto mb-4 h-1 w-10 rounded-full" style={{ backgroundColor: "var(--roost-border)" }} />
+        <div className="mx-auto mb-4 h-1 w-10 rounded-full" style={{ backgroundColor: "#3B82F6" }} />
         <SheetHeader className="mb-5 text-left">
           <SheetTitle style={{ color: "var(--roost-text-primary)", fontWeight: 800 }}>
             {mode === "create" ? "New Event" : "Edit Event"}
@@ -438,7 +438,7 @@ export default function EventSheet({
               </label>
               <div
                 className="overflow-hidden rounded-xl"
-                style={{ border: "1.5px solid var(--roost-border)", borderBottom: "3px solid var(--roost-border-bottom)", "--primary": COLOR, "--primary-foreground": "#ffffff" } as React.CSSProperties}
+                style={{ border: "1.5px solid #E5E7EB", borderBottom: `3px solid ${COLOR_DARK}`, "--primary": COLOR, "--primary-foreground": "#ffffff" } as React.CSSProperties}
               >
                 <Calendar
                   mode="single"

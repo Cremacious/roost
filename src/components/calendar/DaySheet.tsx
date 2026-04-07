@@ -70,8 +70,8 @@ export default function DaySheet({
               whileTap={{ y: 1 }}
               className="flex w-full flex-col items-center gap-2 rounded-2xl px-6 py-8 text-center"
               style={{
-                border: "1.5px dashed var(--roost-border)",
-                borderBottom: "3px dashed var(--roost-border-bottom)",
+                border: "1.5px dashed #E5E7EB",
+                borderBottom: "3px dashed #1A5CB5",
                 color: "var(--roost-text-muted)",
               }}
             >

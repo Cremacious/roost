@@ -43,11 +43,11 @@ const CATEGORIES = [
 ];
 
 const inputStyle: React.CSSProperties = {
-  border: "1.5px solid var(--roost-border)",
-  borderBottom: "3px solid var(--roost-border-bottom)",
+  backgroundColor: "var(--roost-surface)",
+  border: "1.5px solid #E5E7EB",
+  borderBottom: "3px solid #E5E7EB",
   color: "var(--roost-text-primary)",
   fontWeight: 600,
-  backgroundColor: "transparent",
 };
 
 // ---- Component --------------------------------------------------------------
@@ -150,7 +150,7 @@ export default function MealSheet({ open, onClose, meal, onUpgradeRequired }: Me
         className="rounded-t-2xl px-4 pb-8 pt-2"
         style={{ backgroundColor: "var(--roost-surface)", maxHeight: "92dvh", overflowY: "auto" }}
       >
-        <div className="mx-auto mb-4 h-1 w-10 rounded-full" style={{ backgroundColor: "var(--roost-border)" }} />
+        <div className="mx-auto mb-4 h-1 w-10 rounded-full" style={{ backgroundColor: "#F97316" }} />
         <SheetHeader className="mb-5 text-left">
           <SheetTitle style={{ color: "var(--roost-text-primary)", fontWeight: 800 }}>
             {isEdit ? "Edit meal" : "Add to meal bank"}
@@ -191,7 +191,7 @@ export default function MealSheet({ open, onClose, meal, onUpgradeRequired }: Me
                     style={{
                       backgroundColor: active ? COLOR + "18" : "var(--roost-surface)",
                       border: active ? `1.5px solid ${COLOR}40` : "1.5px solid var(--roost-border)",
-                      borderBottom: active ? `3px solid ${COLOR_DARK}70` : "3px solid var(--roost-border-bottom)",
+                      borderBottom: active ? `3px solid ${COLOR_DARK}70` : "3px solid #E5E7EB",
                       color: active ? COLOR : "var(--roost-text-secondary)",
                       fontWeight: active ? 800 : 600,
                     }}
@@ -269,8 +269,8 @@ export default function MealSheet({ open, onClose, meal, onUpgradeRequired }: Me
                     onClick={() => removeIngredient(i)}
                     className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl"
                     style={{
-                      border: "1.5px solid var(--roost-border)",
-                      borderBottom: "3px solid var(--roost-border-bottom)",
+                      border: "1.5px solid #E5E7EB",
+                      borderBottom: "3px solid #E5E7EB",
                       color: "var(--roost-text-muted)",
                     }}
                   >
@@ -284,8 +284,8 @@ export default function MealSheet({ open, onClose, meal, onUpgradeRequired }: Me
                 whileTap={{ y: 1 }}
                 className="flex h-11 w-full items-center justify-center gap-2 rounded-xl text-sm"
                 style={{
-                  border: `1.5px dashed var(--roost-border)`,
-                  borderBottom: "3px dashed var(--roost-border-bottom)",
+                  border: "1.5px dashed #E5E7EB",
+                  borderBottom: "3px dashed #E5E7EB",
                   color: "var(--roost-text-muted)",
                   fontWeight: 700,
                 }}

@@ -251,7 +251,7 @@ export default function ChoresPage() {
           style={{
             backgroundColor: "var(--roost-surface)",
             border: "1.5px solid var(--roost-border)",
-            borderBottom: "3px solid var(--roost-border-bottom)",
+            borderBottom: "3px solid #E5E7EB",
             color: "var(--roost-text-primary)",
             fontWeight: 700,
           }}
@@ -264,9 +264,9 @@ export default function ChoresPage() {
 
       {/* Stats bar */}
       <div className="grid grid-cols-3 gap-2">
-        <StatCard value={doneToday} label="Done today" color={COLOR} />
-        <StatCard value={remaining} label="Remaining" />
-        <StatCard value={`${myStreak}d`} label="Streak" color="#F59E0B" />
+        <StatCard value={doneToday} label="Done today" color={COLOR} borderColor="#C93B3B" />
+        <StatCard value={remaining} label="Remaining" borderColor="#C93B3B" />
+        <StatCard value={`${myStreak}d`} label="Streak" color="#F59E0B" borderColor="#C93B3B" />
       </div>
 
       {/* View toggle */}
@@ -274,7 +274,7 @@ export default function ChoresPage() {
         className="flex overflow-hidden rounded-xl"
         style={{
           border: "1.5px solid var(--roost-border)",
-          borderBottom: "3px solid var(--roost-border-bottom)",
+          borderBottom: "3px solid #E5E7EB",
         }}
       >
         {(["mine", "all"] as const).map((v, i) => (
@@ -319,7 +319,7 @@ export default function ChoresPage() {
           style={{
             backgroundColor: "var(--roost-surface)",
             border: "2px dashed var(--roost-border)",
-            borderBottom: "4px dashed var(--roost-border-bottom)",
+            borderBottom: "4px dashed #C93B3B",
           }}
         >
           <div
@@ -469,8 +469,8 @@ export default function ChoresPage() {
               onClick={() => setPendingCompleteId(null)}
               className="flex h-11 flex-1 items-center justify-center rounded-xl text-sm"
               style={{
-                border: "1.5px solid var(--roost-border)",
-                borderBottom: "3px solid var(--roost-border-bottom)",
+                border: "1.5px solid #E5E7EB",
+                borderBottom: "3px solid #E5E7EB",
                 color: "var(--roost-text-primary)",
                 fontWeight: 700,
               }}
@@ -551,9 +551,7 @@ function ChoreItem({
       style={{
         backgroundColor: "var(--roost-surface)",
         border: "1.5px solid var(--roost-border)",
-        borderBottom: isOverdue
-          ? `4px solid ${SECTION_COLORS.chores}`
-          : "4px solid var(--roost-border-bottom)",
+        borderBottom: `4px solid ${isOverdue ? SECTION_COLORS.chores : "#C93B3B"}`,
         opacity: done ? 0.6 : 1,
         transition: "opacity 0.15s",
       }}

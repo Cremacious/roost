@@ -58,7 +58,7 @@ function ItemRow({
       style={{
         backgroundColor: "var(--roost-surface)",
         border: "1.5px solid var(--roost-border)",
-        borderBottom: "3px solid var(--roost-border-bottom)",
+        borderBottom: "3px solid #159040",
       }}
     >
       {/* Description + amount row */}
@@ -87,11 +87,11 @@ function ItemRow({
             placeholder="0.00"
             className="h-9 w-24 rounded-xl pl-6 pr-2 text-sm focus:outline-none"
             style={{
-              border: "1.5px solid var(--roost-border)",
-              borderBottom: "2px solid var(--roost-border-bottom)",
+              border: "1.5px solid #E5E7EB",
+              borderBottom: "2px solid #E5E7EB",
               color: "var(--roost-text-primary)",
               fontWeight: 800,
-              backgroundColor: "transparent",
+              backgroundColor: "var(--roost-surface)",
             }}
           />
         </div>
@@ -327,8 +327,8 @@ export default function LineItemEditor({
           className="flex h-11 w-full items-center justify-center gap-2 rounded-xl text-sm"
           style={{
             backgroundColor: "var(--roost-surface)",
-            border: "1.5px solid var(--roost-border)",
-            borderBottom: "3px solid var(--roost-border-bottom)",
+            border: "1.5px solid #E5E7EB",
+            borderBottom: "3px solid #E5E7EB",
             color: "var(--roost-text-secondary)",
             fontWeight: 700,
           }}

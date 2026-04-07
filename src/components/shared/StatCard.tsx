@@ -2,16 +2,17 @@ interface StatCardProps {
   value: string | number;
   label: string;
   color?: string;
+  borderColor?: string;
 }
 
-export default function StatCard({ value, label, color }: StatCardProps) {
+export default function StatCard({ value, label, color, borderColor }: StatCardProps) {
   return (
     <div
       className="rounded-2xl px-3 py-3 text-center"
       style={{
         backgroundColor: "var(--roost-surface)",
         border: "1.5px solid var(--roost-border)",
-        borderBottom: "4px solid var(--roost-border-bottom)",
+        borderBottom: `4px solid ${borderColor ?? "var(--roost-border-bottom)"}`,
       }}
     >
       <p

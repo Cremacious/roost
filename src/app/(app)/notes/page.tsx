@@ -58,7 +58,7 @@ function NoteCard({
   const CHAR_LIMIT = 200;
   const isLong = note.content.length > CHAR_LIMIT;
   const displayContent = expanded || !isLong ? note.content : note.content.slice(0, CHAR_LIMIT) + "…";
-  const borderColor = note.title ? COLOR_DARK : "var(--roost-border-bottom)";
+  const borderColor = COLOR_DARK;
 
   return (
     <motion.div

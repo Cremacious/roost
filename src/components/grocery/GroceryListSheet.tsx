@@ -91,8 +91,8 @@ function UpgradePrompt({ onClose }: { onClose: () => void }) {
         className="flex h-11 w-full items-center justify-center rounded-xl text-sm"
         style={{
           backgroundColor: "var(--roost-surface)",
-          border: "1.5px solid var(--roost-border)",
-          borderBottom: "3px solid var(--roost-border-bottom)",
+          border: "1.5px solid #E5E7EB",
+          borderBottom: "3px solid #E5E7EB",
           color: "var(--roost-text-secondary)",
           fontWeight: 700,
         }}
@@ -124,11 +124,11 @@ export default function GroceryListSheet({
   }, [list, open]);
 
   const inputStyle: React.CSSProperties = {
-    border: "1.5px solid var(--roost-border)",
-    borderBottom: "3px solid var(--roost-border-bottom)",
+    backgroundColor: "var(--roost-surface)",
+    border: "1.5px solid #E5E7EB",
+    borderBottom: "3px solid #E5E7EB",
     color: "var(--roost-text-primary)",
     fontWeight: 600,
-    backgroundColor: "transparent",
   };
 
   const saveMutation = useMutation({
@@ -167,9 +167,10 @@ export default function GroceryListSheet({
       <Sheet open={open} onOpenChange={(v) => !v && onClose()}>
         <SheetContent
           side="bottom"
-          className="rounded-t-2xl px-4 pb-8 pt-4"
-          style={{ backgroundColor: "var(--roost-bg)" }}
+          className="rounded-t-2xl px-4 pb-8 pt-2"
+          style={{ backgroundColor: "var(--roost-surface)" }}
         >
+          <div className="mx-auto mb-4 h-1 w-10 rounded-full" style={{ backgroundColor: "#F59E0B" }} />
           <SheetHeader className="mb-5">
             <SheetTitle
               className="text-lg"

@@ -54,11 +54,11 @@ interface TaskSheetProps {
 // ---- Shared input style -----------------------------------------------------
 
 const inputStyle: React.CSSProperties = {
-  border: "1.5px solid var(--roost-border)",
-  borderBottom: "3px solid var(--roost-border-bottom)",
+  backgroundColor: "var(--roost-surface)",
+  border: "1.5px solid #E5E7EB",
+  borderBottom: "3px solid #E5E7EB",
   color: "var(--roost-text-primary)",
   fontWeight: 600,
-  backgroundColor: "transparent",
 };
 
 // ---- Priority config --------------------------------------------------------
@@ -204,7 +204,7 @@ export default function TaskSheet({
           style={{ backgroundColor: "var(--roost-surface)", maxHeight: "92dvh", overflowY: "auto" }}
         >
           {/* Drag handle */}
-          <div className="mx-auto mb-4 h-1 w-10 rounded-full" style={{ backgroundColor: "var(--roost-border)" }} />
+          <div className="mx-auto mb-4 h-1 w-10 rounded-full" style={{ backgroundColor: "#EC4899" }} />
           <SheetHeader className="mb-5 text-left">
             <SheetTitle style={{ color: "var(--roost-text-primary)", fontWeight: 800 }}>
               {mode === "create" ? "New Task" : "Edit Task"}
@@ -283,8 +283,8 @@ export default function TaskSheet({
                     onClick={() => setDueDate("")}
                     className="h-12 rounded-xl px-4 text-sm"
                     style={{
-                      border: "1.5px solid var(--roost-border)",
-                      borderBottom: "3px solid var(--roost-border-bottom)",
+                      border: "1.5px solid #E5E7EB",
+                      borderBottom: "3px solid #E5E7EB",
                       color: "var(--roost-text-muted)",
                       fontWeight: 700,
                     }}
@@ -313,14 +313,14 @@ export default function TaskSheet({
                       className="flex h-10 flex-1 items-center justify-center rounded-xl text-sm"
                       style={{
                         backgroundColor: active
-                          ? (isHigh ? "#EF4444" : isMedium ? "#F59E0B" : "var(--roost-border)")
+                          ? (isHigh ? "#EF4444" : isMedium ? "#F59E0B" : "#E5E7EB")
                           : "var(--roost-surface)",
                         border: active
-                          ? `1.5px solid ${isHigh ? "#C93B3B" : isMedium ? "#C87D00" : "var(--roost-border)"}`
-                          : "1.5px solid var(--roost-border)",
+                          ? `1.5px solid ${isHigh ? "#C93B3B" : isMedium ? "#C87D00" : "#E5E7EB"}`
+                          : "1.5px solid #E5E7EB",
                         borderBottom: active
-                          ? `3px solid ${isHigh ? "#A63030" : isMedium ? "#A66A00" : "var(--roost-border-bottom)"}`
-                          : "3px solid var(--roost-border-bottom)",
+                          ? `3px solid ${isHigh ? "#A63030" : isMedium ? "#A66A00" : "#C5C9CD"}`
+                          : "3px solid #E5E7EB",
                         color: active
                           ? (isHigh || isMedium ? "white" : "var(--roost-text-primary)")
                           : p.color,
@@ -389,8 +389,8 @@ export default function TaskSheet({
               onClick={() => setDeleteDialogOpen(false)}
               className="flex h-11 flex-1 items-center justify-center rounded-xl text-sm"
               style={{
-                border: "1.5px solid var(--roost-border)",
-                borderBottom: "3px solid var(--roost-border-bottom)",
+                border: "1.5px solid #E5E7EB",
+                borderBottom: "3px solid #E5E7EB",
                 color: "var(--roost-text-primary)",
                 fontWeight: 700,
               }}

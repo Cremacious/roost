@@ -108,7 +108,7 @@ function ItemRow({
       style={{
         backgroundColor: 'var(--roost-surface)',
         border: '1.5px solid var(--roost-border)',
-        borderBottom: `4px solid ${item.checked ? COLOR_DARK : 'var(--roost-border-bottom)'}`,
+        borderBottom: '4px solid #C87D00',
       }}
     >
       {/* Checkbox */}
@@ -669,7 +669,7 @@ export default function GroceryPage() {
                 style={{
                   backgroundColor: 'var(--roost-surface)',
                   border: '1.5px solid var(--roost-border)',
-                  borderBottom: '3px solid var(--roost-border-bottom)',
+                  borderBottom: '3px solid #E5E7EB',
                   color: 'var(--roost-text-secondary)',
                   fontWeight: 700,
                 }}
@@ -692,7 +692,7 @@ export default function GroceryPage() {
                 style={{
                   backgroundColor: 'var(--roost-surface)',
                   border: '1.5px solid var(--roost-border)',
-                  borderBottom: '3px solid var(--roost-border-bottom)',
+                  borderBottom: '3px solid #E5E7EB',
                   color: 'var(--roost-text-secondary)',
                 }}
                 title="Add item with details"
@@ -733,7 +733,7 @@ export default function GroceryPage() {
                       : '1.5px solid var(--roost-border)',
                     borderBottom: active
                       ? `3px solid ${COLOR}60`
-                      : '3px solid var(--roost-border-bottom)',
+                      : '3px solid #E5E7EB',
                     color: active ? COLOR : 'var(--roost-text-primary)',
                     fontWeight: active ? 800 : 600,
                   }}
@@ -954,7 +954,7 @@ export default function GroceryPage() {
                 style={{
                   backgroundColor: 'var(--roost-bg)',
                   border: '1.5px solid var(--roost-border)',
-                  borderBottom: '3px solid var(--roost-border-bottom)',
+                  borderBottom: '3px solid #E5E7EB',
                   color: 'var(--roost-text-primary)',
                   borderRadius: 12,
                   fontWeight: 700,

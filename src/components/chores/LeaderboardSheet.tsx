@@ -130,7 +130,7 @@ export default function LeaderboardSheet({ open, onClose }: LeaderboardSheetProp
                     ? `4px solid ${COLOR}40`
                     : rank
                     ? `4px solid ${rank.border}`
-                    : "4px solid var(--roost-border-bottom)",
+                    : "4px solid #C93B3B",
                 }}
               >
                 {/* Rank badge */}

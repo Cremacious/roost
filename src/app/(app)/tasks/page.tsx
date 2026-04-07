@@ -202,7 +202,7 @@ function TaskRow({
       style={{
         backgroundColor: "var(--roost-surface)",
         border: "1.5px solid var(--roost-border)",
-        borderBottom: "4px solid var(--roost-border-bottom)",
+        borderBottom: "4px solid #B02878",
         opacity: task.completed ? 0.65 : 1,
         transition: "opacity 0.15s",
       }}
@@ -662,7 +662,7 @@ export default function TasksPage() {
               style={{
                 backgroundColor: active ? COLOR : "var(--roost-surface)",
                 border: active ? `1.5px solid ${COLOR}` : "1.5px solid var(--roost-border)",
-                borderBottom: active ? "3px solid #B02878" : "3px solid var(--roost-border-bottom)",
+                borderBottom: active ? "3px solid #B02878" : "3px solid #E5E7EB",
                 color: active ? "white" : "var(--roost-text-secondary)",
                 fontWeight: active ? 800 : 600,
               }}
@@ -675,9 +675,9 @@ export default function TasksPage() {
 
       {/* Stats row */}
       <div className="grid grid-cols-3 gap-2">
-        <StatCard value={overdueCount} label="Overdue" color={overdueCount > 0 ? "#EF4444" : undefined} />
-        <StatCard value={dueTodayCount} label="Due today" color={dueTodayCount > 0 ? COLOR : undefined} />
-        <StatCard value={completedThisWeekCount} label="Done this week" />
+        <StatCard value={overdueCount} label="Overdue" color={overdueCount > 0 ? "#EF4444" : undefined} borderColor="#B02878" />
+        <StatCard value={dueTodayCount} label="Due today" color={dueTodayCount > 0 ? COLOR : undefined} borderColor="#B02878" />
+        <StatCard value={completedThisWeekCount} label="Done this week" borderColor="#B02878" />
       </div>
 
       {/* Loading */}
@@ -880,8 +880,8 @@ export default function TasksPage() {
               onClick={() => setPendingCompleteId(null)}
               className="flex h-11 flex-1 items-center justify-center rounded-xl text-sm"
               style={{
-                border: "1.5px solid var(--roost-border)",
-                borderBottom: "3px solid var(--roost-border-bottom)",
+                border: "1.5px solid #E5E7EB",
+                borderBottom: "3px solid #E5E7EB",
                 color: "var(--roost-text-primary)",
                 fontWeight: 700,
               }}
@@ -928,8 +928,8 @@ export default function TasksPage() {
               onClick={() => setPendingDeleteId(null)}
               className="flex h-11 flex-1 items-center justify-center rounded-xl text-sm"
               style={{
-                border: "1.5px solid var(--roost-border)",
-                borderBottom: "3px solid var(--roost-border-bottom)",
+                border: "1.5px solid #E5E7EB",
+                borderBottom: "3px solid #E5E7EB",
                 color: "var(--roost-text-primary)",
                 fontWeight: 700,
               }}

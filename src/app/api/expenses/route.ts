@@ -1,7 +1,7 @@
 import { NextRequest } from "next/server";
 import { requireSession } from "@/lib/auth/helpers";
 import { db } from "@/lib/db";
-import { expenses, expense_splits, users, households } from "@/db/schema";
+import { expenses, expense_splits, user, users, households } from "@/db/schema";
 import { and, desc, eq, inArray, isNull } from "drizzle-orm";
 import { getUserHousehold } from "@/app/api/chores/route";
 import { logActivity } from "@/lib/utils/activity";
@@ -83,6 +83,7 @@ export async function GET(request: NextRequest): Promise<Response> {
   const isPremium = household?.subscription_status === "premium";
 
   // Fetch expenses with payer info
+  // Use aliases to join both auth `user` (guaranteed name) and app `users` (avatar_color).
   const expenseRows = await db
     .select({
       id: expenses.id,
@@ -93,10 +94,11 @@ export async function GET(request: NextRequest): Promise<Response> {
       receipt_data: expenses.receipt_data,
       created_at: expenses.created_at,
       updated_at: expenses.updated_at,
-      payer_name: users.name,
+      payer_name: user.name,
       payer_avatar: users.avatar_color,
     })
     .from(expenses)
+    .leftJoin(user, eq(expenses.paid_by, user.id))
     .leftJoin(users, eq(expenses.paid_by, users.id))
     .where(and(eq(expenses.household_id, householdId), isNull(expenses.deleted_at)))
     .orderBy(desc(expenses.created_at));
@@ -123,10 +125,11 @@ export async function GET(request: NextRequest): Promise<Response> {
         amount: expense_splits.amount,
         settled: expense_splits.settled,
         settled_at: expense_splits.settled_at,
-        user_name: users.name,
+        user_name: user.name,
         user_avatar: users.avatar_color,
       })
       .from(expense_splits)
+      .leftJoin(user, eq(expense_splits.user_id, user.id))
       .leftJoin(users, eq(expense_splits.user_id, users.id))
       .where(inArray(expense_splits.expense_id, expenseIds));
   }

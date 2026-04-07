@@ -34,6 +34,8 @@ import {
 } from "@/components/ui/dialog";
 import { motion } from "framer-motion";
 import { signOut } from "@/lib/auth/client";
+import { applyTheme } from "@/components/providers/ThemeProvider";
+import { DEFAULT_THEME } from "@/lib/constants/themes";
 
 interface NavItem {
   label: string;
@@ -72,6 +74,7 @@ export default function BottomNav({ hasIncompleteChores = false }: BottomNavProp
 
   async function handleSignOut() {
     setSigningOut(true);
+    applyTheme(DEFAULT_THEME);
     await signOut();
     router.push("/login");
   }

@@ -8,7 +8,7 @@ export const users = pgTable("users", {
   push_token: text("push_token"),
   avatar_color: text("avatar_color"),
   language: text("language").notNull().default("en"),
-  theme: text("theme").notNull().default("warm"),
+  theme: text("theme").notNull().default("default"),
   latitude: numeric("latitude"),
   longitude: numeric("longitude"),
   temperature_unit: text("temperature_unit").notNull().default("fahrenheit"),

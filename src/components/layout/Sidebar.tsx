@@ -9,6 +9,8 @@ import { signOut } from "@/lib/auth/client";
 import { useHousehold } from "@/lib/hooks/useHousehold";
 import RoostLogo from "@/components/shared/RoostLogo";
 import MemberAvatar from "@/components/shared/MemberAvatar";
+import { applyTheme } from "@/components/providers/ThemeProvider";
+import { DEFAULT_THEME } from "@/lib/constants/themes";
 import {
   Dialog,
   DialogContent,
@@ -64,6 +66,7 @@ export default function Sidebar() {
 
   async function handleSignOut() {
     setSigningOut(true);
+    applyTheme(DEFAULT_THEME);
     await signOut();
     router.push("/login");
   }

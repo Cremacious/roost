@@ -935,7 +935,14 @@ Designer brief (send this when hiring):
 - Settings theme picker: non-default themes show Lock icon overlay for free users, click shows UpgradePrompt
 - Expenses: free users see inline upgrade pitch card (no blurred preview), premium users see full module
 - Sign out: AlertDialog confirmation in both Sidebar (desktop) and BottomNav More sheet (mobile)
-  Calls signOut() from better-auth client then router.push('/login'), no toast on success
+  Calls applyTheme(DEFAULT_THEME) BEFORE signOut() to immediately reset CSS vars, then router.push('/login'), no toast on success
+  This prevents midnight theme bleeding into the login page or a new user's session
+- Theme on signout: always reset to DEFAULT_THEME immediately in handleSignOut (both Sidebar and BottomNav)
+  Do NOT wait for page reload — call applyTheme(DEFAULT_THEME) synchronously before signOut()
+- ThemeProvider does NOT read from localStorage. Theme comes exclusively from the server-side initialTheme prop
+  (read from users.theme in DB in RootLayout). New users without a users row get DEFAULT_THEME.
+- users.theme DB default is 'default' (not 'warm' or any removed theme). Unknown theme keys resolve to DEFAULT_THEME.
+- Onboarding CTA buttons always use #EF4444 brand red (never var(--roost-text-primary) which breaks on midnight)
 
 ## Session Handoff
 At the start of each new session fetch this file to restore context.
@@ -989,7 +996,7 @@ Update this file after every major decision or completed phase.
 - Dashboard tile selector: use `.locator('button, a').filter({ hasText: 'Chores' }).first()` to avoid strict mode (both button and inner `<p>` match plain `text=Chores`)
 - `uniqueUser` in test files must be a factory function `() => ({...})`, not a plain object — reusing the same email across tests causes "email already exists" failures when tests run serially
 
-Last updated: 2026-04-07 (Homepage redesigned: 9 sections with 6 alternating feature rows, comparison table, personas. Theme system redesign: 2 themes only. Feature card border sweep.)
+Last updated: 2026-04-07 (Homepage redesigned: 9 sections with 6 alternating feature rows, comparison table, personas. Theme system redesign: 2 themes only. Feature card border sweep. Theme signout reset + onboarding button contrast fixes.)
 
 ## Stripe Billing Rules
 - Stripe Checkout used for payment (redirect to Stripe, return to /settings/billing?success=true)

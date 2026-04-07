@@ -213,9 +213,9 @@ export default function OnboardingPage() {
                   whileTap={{ y: 2 }}
                   className="flex h-12 w-full items-center justify-center rounded-xl text-sm text-white disabled:opacity-60"
                   style={{
-                    backgroundColor: "var(--roost-text-primary)",
-                    border: "1.5px solid var(--roost-text-primary)",
-                    borderBottom: "3px solid rgba(0,0,0,0.25)",
+                    backgroundColor: "#EF4444",
+                    border: "1.5px solid #EF4444",
+                    borderBottom: "3px solid #C93B3B",
                     fontWeight: 800,
                   }}
                 >
@@ -276,9 +276,9 @@ export default function OnboardingPage() {
                   whileTap={{ y: 2 }}
                   className="flex h-12 w-full items-center justify-center rounded-xl text-sm text-white disabled:opacity-60"
                   style={{
-                    backgroundColor: "var(--roost-text-primary)",
-                    border: "1.5px solid var(--roost-text-primary)",
-                    borderBottom: "3px solid rgba(0,0,0,0.25)",
+                    backgroundColor: "#EF4444",
+                    border: "1.5px solid #EF4444",
+                    borderBottom: "3px solid #C93B3B",
                     fontWeight: 800,
                   }}
                 >

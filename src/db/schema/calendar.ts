@@ -1,4 +1,4 @@
-import { boolean, pgTable, text, timestamp, unique, uuid } from "drizzle-orm/pg-core";
+import { boolean, integer, pgTable, text, timestamp, unique, uuid } from "drizzle-orm/pg-core";
 import { households } from "./households";
 
 export const calendar_events = pgTable("calendar_events", {
@@ -15,6 +15,12 @@ export const calendar_events = pgTable("calendar_events", {
   created_at: timestamp("created_at").defaultNow(),
   updated_at: timestamp("updated_at").defaultNow(),
   deleted_at: timestamp("deleted_at"),
+  // Recurrence fields (expand-on-fetch — no child rows, no cron)
+  recurring: boolean("recurring").notNull().default(false),
+  frequency: text("frequency"), // 'daily' | 'weekly' | 'biweekly' | 'monthly' | 'yearly'
+  repeat_end_type: text("repeat_end_type"), // 'forever' | 'until_date' | 'after_occurrences'
+  repeat_until: timestamp("repeat_until"),
+  repeat_occurrences: integer("repeat_occurrences"),
 });
 
 export const event_attendees = pgTable(

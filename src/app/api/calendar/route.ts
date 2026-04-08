@@ -7,6 +7,7 @@ import { getUserHousehold } from "@/app/api/chores/route";
 import { logActivity } from "@/lib/utils/activity";
 import { checkCalendarEventLimit } from "@/lib/utils/premiumGating";
 import { FREE_TIER_LIMITS } from "@/lib/constants/freeTierLimits";
+import { expandEventsForRange } from "@/lib/utils/recurrence";
 
 // ---- Permission helper -------------------------------------------------------
 
@@ -54,7 +55,8 @@ export async function GET(request: NextRequest): Promise<Response> {
   const monthStart = new Date(year, month - 1, 1, 0, 0, 0, 0);
   const monthEnd = new Date(year, month, 1, 0, 0, 0, 0);
 
-  const eventRows = await db
+  // Query 1: non-recurring events that start in this month
+  const nonRecurringRows = await db
     .select({
       id: calendar_events.id,
       title: calendar_events.title,
@@ -66,6 +68,11 @@ export async function GET(request: NextRequest): Promise<Response> {
       created_at: calendar_events.created_at,
       creator_name: users.name,
       creator_avatar: users.avatar_color,
+      recurring: calendar_events.recurring,
+      frequency: calendar_events.frequency,
+      repeat_end_type: calendar_events.repeat_end_type,
+      repeat_until: calendar_events.repeat_until,
+      repeat_occurrences: calendar_events.repeat_occurrences,
     })
     .from(calendar_events)
     .leftJoin(users, eq(calendar_events.created_by, users.id))
@@ -73,18 +80,59 @@ export async function GET(request: NextRequest): Promise<Response> {
       and(
         eq(calendar_events.household_id, householdId),
         isNull(calendar_events.deleted_at),
+        eq(calendar_events.recurring, false),
         gte(calendar_events.start_time, monthStart),
         lt(calendar_events.start_time, monthEnd)
       )
     )
     .orderBy(calendar_events.start_time);
 
-  if (eventRows.length === 0) {
+  // Query 2: all recurring templates for this household (expand-on-fetch)
+  // Only fetch templates that could produce instances in this range:
+  //   started before the end of the range AND not expired before range start
+  const recurringRows = await db
+    .select({
+      id: calendar_events.id,
+      title: calendar_events.title,
+      description: calendar_events.description,
+      start_time: calendar_events.start_time,
+      end_time: calendar_events.end_time,
+      all_day: calendar_events.all_day,
+      created_by: calendar_events.created_by,
+      created_at: calendar_events.created_at,
+      creator_name: users.name,
+      creator_avatar: users.avatar_color,
+      recurring: calendar_events.recurring,
+      frequency: calendar_events.frequency,
+      repeat_end_type: calendar_events.repeat_end_type,
+      repeat_until: calendar_events.repeat_until,
+      repeat_occurrences: calendar_events.repeat_occurrences,
+    })
+    .from(calendar_events)
+    .leftJoin(users, eq(calendar_events.created_by, users.id))
+    .where(
+      and(
+        eq(calendar_events.household_id, householdId),
+        isNull(calendar_events.deleted_at),
+        eq(calendar_events.recurring, true),
+        lt(calendar_events.start_time, monthEnd) // started before range end
+      )
+    );
+
+  // Combine: non-recurring rows as-is, recurring rows expanded for this range
+  const expandedRecurring = expandEventsForRange(recurringRows, monthStart, monthEnd);
+
+  const allEventRows = [
+    ...nonRecurringRows.map((e) => ({ ...e, isRecurring: false as const, template_start_time: null })),
+    ...expandedRecurring,
+  ];
+
+  if (allEventRows.length === 0) {
     return Response.json({ events: [] });
   }
 
-  // Fetch attendees for all events
-  const eventIds = eventRows.map((e) => e.id);
+  // Fetch attendees — dedup IDs since recurring instances share the template ID
+  const uniqueEventIds = [...new Set(allEventRows.map((e) => e.id))];
   const attendeeRows = await db
     .select({
       event_id: event_attendees.event_id,
@@ -94,7 +142,7 @@ export async function GET(request: NextRequest): Promise<Response> {
     })
     .from(event_attendees)
     .leftJoin(users, eq(event_attendees.user_id, users.id))
-    .where(inArray(event_attendees.event_id, eventIds));
+    .where(inArray(event_attendees.event_id, uniqueEventIds));
 
   const attendeesByEvent = new Map<string, { userId: string; name: string | null; avatarColor: string | null }[]>();
   for (const a of attendeeRows) {
@@ -106,7 +154,7 @@ export async function GET(request: NextRequest): Promise<Response> {
     });
   }
 
-  const events = eventRows.map((e) => ({
+  const events = allEventRows.map((e) => ({
     ...e,
     attendees: attendeesByEvent.get(e.id) ?? [],
   }));
@@ -146,6 +194,10 @@ export async function POST(request: NextRequest): Promise<Response> {
     all_day?: boolean;
     attendee_ids?: string[];
     recurring?: boolean;
+    frequency?: string;
+    repeat_end_type?: string;
+    repeat_until?: string;
+    repeat_occurrences?: number;
   };
   try {
     body = await request.json();
@@ -159,6 +211,26 @@ export async function POST(request: NextRequest): Promise<Response> {
   }
   if (!body.start_time) {
     return Response.json({ error: "Start time is required" }, { status: 400 });
+  }
+
+  // Validate recurring fields
+  if (body.recurring) {
+    if (!body.frequency || !["daily", "weekly", "biweekly", "monthly", "yearly"].includes(body.frequency)) {
+      return Response.json({ error: "Frequency is required for recurring events" }, { status: 400 });
+    }
+    if (body.repeat_end_type === "until_date") {
+      if (!body.repeat_until) {
+        return Response.json({ error: "End date is required" }, { status: 400 });
+      }
+      if (new Date(body.repeat_until) <= new Date(body.start_time)) {
+        return Response.json({ error: "End date must be after the start date" }, { status: 400 });
+      }
+    }
+    if (body.repeat_end_type === "after_occurrences") {
+      if (!body.repeat_occurrences || body.repeat_occurrences < 1 || body.repeat_occurrences > 365) {
+        return Response.json({ error: "Occurrences must be between 1 and 365" }, { status: 400 });
+      }
+    }
   }
 
   // Premium checks
@@ -200,6 +272,11 @@ export async function POST(request: NextRequest): Promise<Response> {
       end_time: body.end_time ? new Date(body.end_time) : null,
       all_day: body.all_day ?? false,
       created_by: session.user.id,
+      recurring: body.recurring ?? false,
+      frequency: body.recurring ? (body.frequency ?? null) : null,
+      repeat_end_type: body.recurring ? (body.repeat_end_type ?? "forever") : null,
+      repeat_until: body.recurring && body.repeat_until ? new Date(body.repeat_until) : null,
+      repeat_occurrences: body.recurring && body.repeat_occurrences ? body.repeat_occurrences : null,
     })
     .returning();
 

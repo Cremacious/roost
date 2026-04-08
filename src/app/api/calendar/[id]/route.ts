@@ -55,6 +55,13 @@ export async function PATCH(
     start_time?: string;
     end_time?: string | null;
     all_day?: boolean;
+    // Recurring fields — editing a recurring template updates ALL instances
+    // since instances are generated dynamically on fetch from this row.
+    recurring?: boolean;
+    frequency?: string | null;
+    repeat_end_type?: string | null;
+    repeat_until?: string | null;
+    repeat_occurrences?: number | null;
   };
   try {
     body = await request.json();
@@ -81,6 +88,19 @@ export async function PATCH(
           ? body.end_time ? new Date(body.end_time) : null
           : existing.end_time,
       all_day: body.all_day ?? existing.all_day,
+      recurring: body.recurring ?? existing.recurring,
+      frequency: body.recurring !== undefined
+        ? (body.recurring ? (body.frequency ?? existing.frequency) : null)
+        : existing.frequency,
+      repeat_end_type: body.recurring !== undefined
+        ? (body.recurring ? (body.repeat_end_type ?? existing.repeat_end_type ?? "forever") : null)
+        : existing.repeat_end_type,
+      repeat_until: body.repeat_until !== undefined
+        ? (body.repeat_until ? new Date(body.repeat_until) : null)
+        : existing.repeat_until,
+      repeat_occurrences: body.repeat_occurrences !== undefined
+        ? body.repeat_occurrences
+        : existing.repeat_occurrences,
       updated_at: new Date(),
     })
     .where(eq(calendar_events.id, id))
@@ -133,6 +153,8 @@ export async function DELETE(
     return Response.json({ error: "Forbidden" }, { status: 403 });
   }
 
+  // Deleting a recurring event removes all instances since they are generated
+  // dynamically from this template row — no child rows to clean up.
   await db
     .update(calendar_events)
     .set({ deleted_at: new Date() })

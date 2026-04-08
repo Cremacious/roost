@@ -19,9 +19,10 @@ import {
 } from "@/components/ui/dialog";
 import { Switch } from "@/components/ui/switch";
 import { Calendar } from "@/components/ui/calendar";
-import { Loader2, Pencil, Trash2, X } from "lucide-react";
+import { Loader2, Lock, Pencil, Repeat, Trash2, X } from "lucide-react";
 import { format } from "date-fns";
 import MemberAvatar from "@/components/shared/MemberAvatar";
+import { useHousehold } from "@/lib/hooks/useHousehold";
 
 const COLOR = "#3B82F6";
 const COLOR_DARK = "#1A5CB5";
@@ -45,6 +46,17 @@ export interface CalendarEventFull {
   creator_name: string | null;
   creator_avatar: string | null;
   attendees: Attendee[];
+  // Recurrence fields
+  recurring?: boolean;
+  frequency?: string | null;
+  repeat_end_type?: string | null;
+  repeat_until?: string | null;
+  repeat_occurrences?: number | null;
+  // Set to true on expanded instances; false/undefined for one-off events
+  isRecurring?: boolean;
+  // Original template start_time — used in edit mode so editing always targets
+  // the template anchor date rather than the specific instance occurrence date
+  template_start_time?: string | null;
 }
 
 export interface Member {
@@ -66,6 +78,22 @@ interface EventSheetProps {
   queryKeys: (string | number)[][];
   onUpgradeRequired?: (code: string) => void;
 }
+
+// ---- Constants --------------------------------------------------------------
+
+const FREQUENCIES = [
+  { value: "daily",    label: "Daily" },
+  { value: "weekly",   label: "Weekly" },
+  { value: "biweekly", label: "Biweekly" },
+  { value: "monthly",  label: "Monthly" },
+  { value: "yearly",   label: "Yearly" },
+] as const;
+
+const END_TYPES = [
+  { value: "forever",           label: "Never" },
+  { value: "until_date",        label: "On date" },
+  { value: "after_occurrences", label: "After" },
+] as const;
 
 // ---- Input style ------------------------------------------------------------
 
@@ -92,6 +120,188 @@ function firstName(name: string | null): string {
   return name.split(" ")[0];
 }
 
+function frequencyLabel(frequency: string | null | undefined): string {
+  if (!frequency) return "";
+  return FREQUENCIES.find((f) => f.value === frequency)?.label ?? frequency;
+}
+
+// ---- RecurringFields sub-component ------------------------------------------
+
+interface RecurringFieldsProps {
+  recurring: boolean;
+  frequency: string;
+  repeatEndType: string;
+  repeatUntil: Date | null;
+  repeatOccurrences: number | null;
+  isPremium: boolean | undefined;
+  onChange: (update: {
+    recurring?: boolean;
+    frequency?: string;
+    repeatEndType?: string;
+    repeatUntil?: Date | null;
+    repeatOccurrences?: number | null;
+  }) => void;
+  onUpgradeRequired?: (code: string) => void;
+}
+
+function RecurringFields({
+  recurring,
+  frequency,
+  repeatEndType,
+  repeatUntil,
+  repeatOccurrences,
+  isPremium,
+  onChange,
+  onUpgradeRequired,
+}: RecurringFieldsProps) {
+  return (
+    <div
+      className="rounded-2xl p-3 space-y-3"
+      style={{
+        backgroundColor: "var(--roost-bg)",
+        border: "1.5px solid var(--roost-border)",
+        borderBottom: "3px solid var(--roost-border-bottom)",
+      }}
+    >
+      {/* Repeat toggle row */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <Repeat className="size-4" style={{ color: recurring ? COLOR : "var(--roost-text-muted)" }} />
+          <span className="text-sm" style={{ color: "var(--roost-text-primary)", fontWeight: 700 }}>
+            Repeat
+          </span>
+          {isPremium === false && (
+            <Lock className="size-3" style={{ color: "var(--roost-text-muted)" }} />
+          )}
+        </div>
+        <div style={{ "--primary": COLOR, "--primary-foreground": "#ffffff" } as React.CSSProperties}>
+          <Switch
+            checked={recurring}
+            onCheckedChange={(checked) => {
+              if (checked && isPremium === false) {
+                onUpgradeRequired?.("RECURRING_EVENTS_PREMIUM");
+                return;
+              }
+              onChange({ recurring: checked });
+            }}
+          />
+        </div>
+      </div>
+
+      {/* Expanded recurring options */}
+      {recurring && (
+        <>
+          {/* Frequency pills */}
+          <div>
+            <p className="mb-2 text-xs" style={{ color: "#374151", fontWeight: 700 }}>Frequency</p>
+            <div className="grid grid-cols-5 gap-1.5">
+              {FREQUENCIES.map((f) => {
+                const active = frequency === f.value;
+                return (
+                  <motion.button
+                    key={f.value}
+                    type="button"
+                    whileTap={{ y: 1 }}
+                    onClick={() => onChange({ frequency: f.value })}
+                    className="flex h-9 items-center justify-center rounded-lg text-xs"
+                    style={{
+                      backgroundColor: active ? COLOR + "18" : "var(--roost-surface)",
+                      border: active ? `1.5px solid ${COLOR}40` : "1.5px solid var(--roost-border)",
+                      borderBottom: active ? `3px solid ${COLOR_DARK}60` : "3px solid var(--roost-border-bottom)",
+                      color: active ? COLOR : "var(--roost-text-secondary)",
+                      fontWeight: active ? 800 : 600,
+                    }}
+                  >
+                    {f.label}
+                  </motion.button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* End condition */}
+          <div>
+            <p className="mb-2 text-xs" style={{ color: "#374151", fontWeight: 700 }}>Ends</p>
+            <div className="grid grid-cols-3 gap-1.5">
+              {END_TYPES.map((et) => {
+                const active = repeatEndType === et.value;
+                return (
+                  <motion.button
+                    key={et.value}
+                    type="button"
+                    whileTap={{ y: 1 }}
+                    onClick={() => onChange({ repeatEndType: et.value })}
+                    className="flex h-9 items-center justify-center rounded-lg text-xs"
+                    style={{
+                      backgroundColor: active ? COLOR + "18" : "var(--roost-surface)",
+                      border: active ? `1.5px solid ${COLOR}40` : "1.5px solid var(--roost-border)",
+                      borderBottom: active ? `3px solid ${COLOR_DARK}60` : "3px solid var(--roost-border-bottom)",
+                      color: active ? COLOR : "var(--roost-text-secondary)",
+                      fontWeight: active ? 800 : 600,
+                    }}
+                  >
+                    {et.label}
+                  </motion.button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Until date picker */}
+          {repeatEndType === "until_date" && (
+            <div>
+              <label className="mb-1.5 block text-xs" style={{ color: "#374151", fontWeight: 700 }}>
+                End date
+              </label>
+              <input
+                type="date"
+                value={repeatUntil ? format(repeatUntil, "yyyy-MM-dd") : ""}
+                onChange={(e) =>
+                  onChange({
+                    repeatUntil: e.target.value
+                      ? new Date(`${e.target.value}T00:00:00`)
+                      : null,
+                  })
+                }
+                className="h-12 w-full rounded-xl px-4 text-sm focus:outline-none"
+                style={inputStyle}
+              />
+            </div>
+          )}
+
+          {/* After N occurrences */}
+          {repeatEndType === "after_occurrences" && (
+            <div>
+              <label className="mb-1.5 block text-xs" style={{ color: "#374151", fontWeight: 700 }}>
+                Number of times
+              </label>
+              <div className="flex items-center gap-3">
+                <input
+                  type="number"
+                  value={repeatOccurrences ?? ""}
+                  onChange={(e) =>
+                    onChange({
+                      repeatOccurrences: e.target.value ? parseInt(e.target.value, 10) : null,
+                    })
+                  }
+                  placeholder="10"
+                  min={1}
+                  max={365}
+                  className="h-12 w-28 rounded-xl px-4 text-sm focus:outline-none"
+                  style={inputStyle}
+                />
+                <span className="text-sm" style={{ color: "var(--roost-text-muted)", fontWeight: 600 }}>
+                  occurrences total
+                </span>
+              </div>
+            </div>
+          )}
+        </>
+      )}
+    </div>
+  );
+}
+
 // ---- Component --------------------------------------------------------------
 
 export default function EventSheet({
@@ -108,6 +318,7 @@ export default function EventSheet({
 }: EventSheetProps) {
   const queryClient = useQueryClient();
   const titleRef = useRef<HTMLInputElement>(null);
+  const { isPremium } = useHousehold();
 
   const [mode, setMode] = useState(initialMode);
   const [title, setTitle] = useState("");
@@ -118,6 +329,13 @@ export default function EventSheet({
   const [description, setDescription] = useState("");
   const [attendeeIds, setAttendeeIds] = useState<Set<string>>(new Set());
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+
+  // Recurring state
+  const [recurring, setRecurring] = useState(false);
+  const [frequency, setFrequency] = useState("weekly");
+  const [repeatEndType, setRepeatEndType] = useState("forever");
+  const [repeatUntil, setRepeatUntil] = useState<Date | null>(null);
+  const [repeatOccurrences, setRepeatOccurrences] = useState<number | null>(null);
 
   const canEdit = mode === "view" && event &&
     (event.created_by === currentUserId || isAdmin);
@@ -135,20 +353,49 @@ export default function EventSheet({
       setEndTime("");
       setDescription("");
       setAttendeeIds(new Set());
+      setRecurring(false);
+      setFrequency("weekly");
+      setRepeatEndType("forever");
+      setRepeatUntil(null);
+      setRepeatOccurrences(null);
     } else if (event) {
       setTitle(event.title);
-      setSelectedDate(new Date(event.start_time));
+      // In edit mode, use the template's original start_time as the date anchor
+      // so the user edits the pattern start, not the specific instance occurrence.
+      const editDate = event.template_start_time
+        ? new Date(event.template_start_time)
+        : new Date(event.start_time);
+      setSelectedDate(editDate);
       setAllDay(event.all_day);
-      setStartTime(event.all_day ? "09:00" : format(new Date(event.start_time), "HH:mm"));
+      setStartTime(event.all_day ? "09:00" : format(editDate, "HH:mm"));
       setEndTime(event.end_time && !event.all_day ? format(new Date(event.end_time), "HH:mm") : "");
       setDescription(event.description ?? "");
       setAttendeeIds(new Set(event.attendees.map((a) => a.userId)));
+      setRecurring(event.recurring ?? false);
+      setFrequency(event.frequency ?? "weekly");
+      setRepeatEndType(event.repeat_end_type ?? "forever");
+      setRepeatUntil(event.repeat_until ? new Date(event.repeat_until) : null);
+      setRepeatOccurrences(event.repeat_occurrences ?? null);
     }
 
     if (initialMode !== "view") {
       setTimeout(() => titleRef.current?.focus(), 120);
     }
   }, [open, initialMode, event, initialDate]);
+
+  function handleRecurringChange(update: {
+    recurring?: boolean;
+    frequency?: string;
+    repeatEndType?: string;
+    repeatUntil?: Date | null;
+    repeatOccurrences?: number | null;
+  }) {
+    if (update.recurring !== undefined) setRecurring(update.recurring);
+    if (update.frequency !== undefined) setFrequency(update.frequency);
+    if (update.repeatEndType !== undefined) setRepeatEndType(update.repeatEndType);
+    if (update.repeatUntil !== undefined) setRepeatUntil(update.repeatUntil);
+    if (update.repeatOccurrences !== undefined) setRepeatOccurrences(update.repeatOccurrences);
+  }
 
   function buildDatetime(date: Date, time: string): string {
     const [h, m] = time.split(":").map(Number);
@@ -176,14 +423,26 @@ export default function EventSheet({
         ? buildDatetime(selectedDate, endTime)
         : undefined;
 
-      const payload = {
+      const payload: Record<string, unknown> = {
         title: title.trim(),
         description: description.trim() || undefined,
         start_time: startISO,
         end_time: endISO ?? null,
         all_day: allDay,
         attendee_ids: Array.from(attendeeIds),
+        recurring,
       };
+
+      if (recurring) {
+        payload.frequency = frequency;
+        payload.repeat_end_type = repeatEndType;
+        if (repeatEndType === "until_date" && repeatUntil) {
+          payload.repeat_until = repeatUntil.toISOString();
+        }
+        if (repeatEndType === "after_occurrences" && repeatOccurrences) {
+          payload.repeat_occurrences = repeatOccurrences;
+        }
+      }
 
       if (mode === "create") {
         const r = await fetch("/api/calendar", {
@@ -264,9 +523,20 @@ export default function EventSheet({
           >
             <div className="mx-auto mb-4 h-1 w-10 rounded-full" style={{ backgroundColor: "#3B82F6" }} />
             <SheetHeader className="mb-4 text-left">
-              <SheetTitle style={{ color: "var(--roost-text-primary)", fontWeight: 800, fontSize: 20 }}>
-                {event.title}
-              </SheetTitle>
+              <div className="flex items-start gap-2">
+                <SheetTitle style={{ color: "var(--roost-text-primary)", fontWeight: 800, fontSize: 20, flex: 1 }}>
+                  {event.title}
+                </SheetTitle>
+                {event.isRecurring && (
+                  <span
+                    className="mt-0.5 flex shrink-0 items-center gap-1 rounded-full px-2 py-0.5 text-[11px]"
+                    style={{ backgroundColor: COLOR + "18", color: COLOR, fontWeight: 700 }}
+                  >
+                    <Repeat className="size-3" />
+                    Repeating
+                  </span>
+                )}
+              </div>
             </SheetHeader>
 
             <div className="space-y-4">
@@ -285,6 +555,11 @@ export default function EventSheet({
                 <p className="mt-0.5 text-sm" style={{ color: COLOR + "CC", fontWeight: 600 }}>
                   {formatEventTime(event)}
                 </p>
+                {event.isRecurring && event.frequency && (
+                  <p className="mt-1 text-xs" style={{ color: COLOR + "99", fontWeight: 600 }}>
+                    Repeats {frequencyLabel(event.frequency).toLowerCase()}
+                  </p>
+                )}
               </div>
 
               {/* Description */}
@@ -367,11 +642,16 @@ export default function EventSheet({
           <DialogContent>
             <DialogHeader>
               <DialogTitle style={{ color: "var(--roost-text-primary)", fontWeight: 800 }}>
-                Delete event?
+                {event.isRecurring ? "Delete recurring event?" : "Delete event?"}
               </DialogTitle>
             </DialogHeader>
             <p className="text-sm" style={{ color: "var(--roost-text-secondary)", fontWeight: 600 }}>
               {event.title}
+              {event.isRecurring && (
+                <span className="block mt-1" style={{ color: "var(--roost-text-muted)" }}>
+                  All occurrences of this event will be removed.
+                </span>
+              )}
             </p>
             <DialogFooter className="mt-2 gap-2">
               <button type="button" onClick={() => setDeleteDialogOpen(false)}
@@ -408,6 +688,22 @@ export default function EventSheet({
             {mode === "create" ? "New Event" : "Edit Event"}
           </SheetTitle>
         </SheetHeader>
+
+        {/* Edit recurring note */}
+        {mode === "edit" && event?.isRecurring && (
+          <div
+            className="mb-4 flex items-center gap-2 rounded-xl px-3 py-2.5"
+            style={{
+              backgroundColor: COLOR + "0D",
+              border: `1px solid ${COLOR}30`,
+            }}
+          >
+            <Repeat className="size-3.5 shrink-0" style={{ color: COLOR }} />
+            <p className="text-xs" style={{ color: COLOR, fontWeight: 600 }}>
+              Editing this event will update all occurrences.
+            </p>
+          </div>
+        )}
 
         {/* Two-column on desktop, single column on mobile */}
         <div className="space-y-4 sm:grid sm:grid-cols-[1fr_240px] sm:items-start sm:gap-6 sm:space-y-0">
@@ -536,6 +832,18 @@ export default function EventSheet({
               </div>
             )}
 
+            {/* Recurring fields */}
+            <RecurringFields
+              recurring={recurring}
+              frequency={frequency}
+              repeatEndType={repeatEndType}
+              repeatUntil={repeatUntil}
+              repeatOccurrences={repeatOccurrences}
+              isPremium={isPremium}
+              onChange={handleRecurringChange}
+              onUpgradeRequired={onUpgradeRequired}
+            />
+
             {/* Save + Cancel — pushed to bottom of left column on desktop */}
             <div className="space-y-2 sm:mt-auto sm:pt-4">
               <motion.button
@@ -554,7 +862,9 @@ export default function EventSheet({
               >
                 {saveMutation.isPending
                   ? <Loader2 className="size-4 animate-spin" />
-                  : mode === "create" ? "Add Event" : "Save Changes"}
+                  : mode === "create"
+                    ? recurring ? "Add Recurring Event" : "Add Event"
+                    : "Save Changes"}
               </motion.button>
 
               <button

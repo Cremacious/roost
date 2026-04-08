@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Plus } from "lucide-react";
+import { Plus, Repeat } from "lucide-react";
 import { format } from "date-fns";
 import {
   Sheet,
@@ -82,7 +82,7 @@ export default function DaySheet({
           ) : (
             events.map((event, i) => (
               <motion.button
-                key={event.id}
+                key={`${event.id}-${event.start_time}`}
                 type="button"
                 onClick={() => { onClose(); onViewEvent(event); }}
                 whileTap={{ y: 1 }}
@@ -115,9 +115,12 @@ export default function DaySheet({
 
                 {/* Content */}
                 <div className="min-w-0 flex-1">
-                  <p className="text-sm leading-tight" style={{ color: "var(--roost-text-primary)", fontWeight: 700 }}>
-                    {event.title}
-                  </p>
+                  <div className="flex items-center gap-1.5">
+                    {event.isRecurring && <Repeat className="size-3 shrink-0" style={{ color: "var(--roost-text-muted)" }} />}
+                    <p className="text-sm leading-tight" style={{ color: "var(--roost-text-primary)", fontWeight: 700 }}>
+                      {event.title}
+                    </p>
+                  </div>
                   <p className="mt-1 text-xs" style={{ color: COLOR, fontWeight: 600 }}>
                     {formatEventTime(event)}
                   </p>

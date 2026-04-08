@@ -120,6 +120,14 @@
 #### Grocery (Premium)
 - Multiple named grocery lists (Costco run, Target, weekly shop, etc.)
 
+#### Calendar (Premium)
+- Recurring events (daily, weekly, biweekly, monthly, yearly)
+  - End conditions: never, on a specific date, or after N occurrences
+  - Expand-on-fetch architecture — no cron, no child rows
+  - Edit or delete always affects all occurrences
+  - Repeat icon shown on event pills, mobile day list, agenda, and DaySheet
+  - Premium gate: RECURRING_EVENTS_PREMIUM error code
+
 #### Reminders (Premium)
 - Recurring reminders (daily, weekly, monthly)
 - More than 5 active reminders
@@ -152,10 +160,6 @@
 
 **Premium Themes**
 Unlock 6 additional app themes beyond Default and Midnight: Forest, Slate, Sand, Ocean, Rose, Carbon. CSS-only, zero operating cost.
-Premium feature.
-
-**Recurring Calendar Events**
-Set events to repeat weekly, biweekly, monthly, or yearly. Rent due dates, trash day, family dinners — set once, always there.
 Premium feature.
 
 **Household Stats Page**

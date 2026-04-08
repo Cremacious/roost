@@ -21,7 +21,7 @@ import {
   addDays,
 } from "date-fns";
 import { motion, AnimatePresence } from "framer-motion";
-import { CalendarX, ChevronLeft, ChevronRight, MoreHorizontal, Plus } from "lucide-react";
+import { CalendarX, ChevronLeft, ChevronRight, MoreHorizontal, Plus, Repeat } from "lucide-react";
 import { toast } from "sonner";
 import { useMutation } from "@tanstack/react-query";
 import EmptyState from "@/components/shared/EmptyState";
@@ -541,7 +541,7 @@ export default function CalendarPage() {
                 <div className="space-y-2">
                   {mobileSelectedEvents.map((ev, i) => (
                     <motion.button
-                      key={ev.id}
+                      key={`${ev.id}-${ev.start_time}`}
                       type="button"
                       onClick={() => openView(ev)}
                       whileTap={{ y: 1 }}
@@ -557,9 +557,12 @@ export default function CalendarPage() {
                     >
                       <div className="w-1 shrink-0" style={{ backgroundColor: COLOR }} />
                       <div className="min-w-0 flex-1 px-3 py-3">
-                        <p className="text-sm leading-tight" style={{ color: "var(--roost-text-primary)", fontWeight: 700 }}>
-                          {ev.title}
-                        </p>
+                        <div className="flex items-center gap-1.5">
+                          {ev.isRecurring && <Repeat className="size-3 shrink-0" style={{ color: "var(--roost-text-muted)" }} />}
+                          <p className="text-sm leading-tight" style={{ color: "var(--roost-text-primary)", fontWeight: 700 }}>
+                            {ev.title}
+                          </p>
+                        </div>
                         <p className="mt-0.5 text-xs" style={{ color: COLOR, fontWeight: 600 }}>
                           {formatEventTime(ev)}
                         </p>
@@ -700,8 +703,8 @@ export default function CalendarPage() {
                         </div>
                         {dayEvs.slice(0, 2).map((ev) => (
                           <div
-                            key={ev.id}
-                            className="w-full truncate rounded px-1 text-[11px] leading-5"
+                            key={`${ev.id}-${ev.start_time}`}
+                            className="flex w-full items-center gap-0.5 truncate rounded px-1 text-[11px] leading-5"
                             style={{
                               backgroundColor: COLOR + "26",
                               color: COLOR,
@@ -709,7 +712,8 @@ export default function CalendarPage() {
                               borderBottom: `2px solid ${COLOR_DARK}`,
                             }}
                           >
-                            {ev.title}
+                            {ev.isRecurring && <Repeat className="size-2.5 shrink-0" />}
+                            <span className="truncate">{ev.title}</span>
                           </div>
                         ))}
                         {dayEvs.length > 2 && (
@@ -763,7 +767,7 @@ export default function CalendarPage() {
                       const canEdit = ev.created_by === currentUserId || isAdmin;
                       return (
                         <motion.div
-                          key={ev.id}
+                          key={`${ev.id}-${ev.start_time}`}
                           initial={{ opacity: 0, y: 6 }}
                           animate={{ opacity: 1, y: 0 }}
                           transition={{ delay: Math.min(i * 0.04, 0.2), duration: 0.15 }}
@@ -799,9 +803,12 @@ export default function CalendarPage() {
                             onClick={() => openView(ev)}
                             className="min-w-0 flex-1 py-1 text-left"
                           >
-                            <p className="text-sm leading-tight" style={{ color: "var(--roost-text-primary)", fontWeight: 700 }}>
-                              {ev.title}
-                            </p>
+                            <div className="flex items-center gap-1.5">
+                              {ev.isRecurring && <Repeat className="size-3 shrink-0" style={{ color: "var(--roost-text-muted)" }} />}
+                              <p className="text-sm leading-tight" style={{ color: "var(--roost-text-primary)", fontWeight: 700 }}>
+                                {ev.title}
+                              </p>
+                            </div>
                             <p className="mt-0.5 text-xs" style={{ color: COLOR, fontWeight: 600 }}>
                               {formatEventTime(ev)}
                             </p>

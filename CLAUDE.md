@@ -17,9 +17,10 @@ Priority order:
    - Status: PLANNED
 
 2. Recurring calendar events
-   - Server-side code exists, UI not built
-   - Weekly, biweekly, monthly, yearly
-   - Status: PLANNED
+   - Daily, weekly, biweekly, monthly, yearly
+   - End conditions: never, on date, after N occurrences
+   - Expand-on-fetch (no cron, no child rows)
+   - Status: DONE
 
 3. Household stats page (/stats or /insights)
    - Uses existing data, no new APIs needed
@@ -745,6 +746,17 @@ src/app/api/cron/subscription/route.ts        Daily cron: expire premium househo
 - EventSheet SheetContent: `sm:rounded-2xl sm:max-w-215 sm:w-215` (860px) for desktop two-column layout
 - Desktop right column calendar: fills the 260px fixed column (w-full, classNames root w-full), no maxWidth constraint
 - `.roost-calendar-compact` in globals.css: sets `--cell-size: 30px`, `width: 100%`, `max-width: 100%`; targets `.rdp-weekday`, `.rdp-day`, `.rdp-day_button`
+- Recurring events: expand-on-fetch architecture. Template row stored once; GET route generates instances dynamically for the queried month range. No child rows, no cron.
+- Recurring fields on calendar_events: recurring (bool), frequency (daily/weekly/biweekly/monthly/yearly), repeat_end_type (forever/until_date/after_occurrences), repeat_until (timestamp), repeat_occurrences (integer)
+- recurrence.ts utility: expandRecurringEvent() + expandEventsForRange() in src/lib/utils/recurrence.ts
+- Recurring instances share their template's ID — editing or deleting any instance always affects the whole series
+- isRecurring: true on expanded instances; template_start_time carries the original start so edit mode uses the anchor date
+- EventSheet edit mode shows "Editing this event will update all occurrences" notice when isRecurring
+- EventSheet delete dialog says "All occurrences will be removed" when isRecurring
+- Event key in all renders: id+start_time composite (not just id) to handle multiple instances of the same template in one view
+- RecurringFields sub-component in EventSheet: Repeat toggle (Lock icon for free users), 5 frequency pills, 3 end-type pills, until-date input or after-N-occurrences input
+- Recurring indicator: small Repeat icon shown next to event title in month grid pills, mobile day list, agenda view, and DaySheet
+- Premium gate: toggling Repeat on while free calls onUpgradeRequired("RECURRING_EVENTS_PREMIUM"); Lock icon shows on the toggle row for free users
 
 ## Meal UX Patterns
 - Three tabs: Planner, Meal Bank, Suggestions
@@ -1154,7 +1166,9 @@ Update this file after every major decision or completed phase.
 - Dashboard tile selector: use `.locator('button, a').filter({ hasText: 'Chores' }).first()` to avoid strict mode (both button and inner `<p>` match plain `text=Chores`)
 - `uniqueUser` in test files must be a factory function `() => ({...})`, not a plain object — reusing the same email across tests causes "email already exists" failures when tests run serially
 
-Last updated: 2026-04-09 (Product roadmap documented. Added ## Product Roadmap section to CLAUDE.md with 8 prioritized web features (premium themes, recurring calendar events, household stats page, rich text notes, guest member, grocery smart sort, custom chore categories, superadmin panel) and platform phase (iOS, Android, ambient mode, i18n). FEATURES.md planned section replaced with structured near-term list matching roadmap priority order. Paywall copy added for household stats, guest member, custom categories, and rich text notes gates.)
+Last updated: 2026-04-09 (Recurring calendar events built. Schema: calendar_events gains recurring (bool, default false), frequency (text), repeat_end_type (text), repeat_until (timestamp), repeat_occurrences (integer). db:push applied. Architecture: expand-on-fetch — no child rows, no cron. recurrence.ts utility: expandRecurringEvent() + expandEventsForRange(). GET /api/calendar: two queries (non-recurring in range + all recurring templates), expanded and merged. POST: saves all recurrence fields, validates frequency required when recurring, validates end condition. PATCH: accepts recurring fields, updates template row (all instances update automatically). CalendarEventFull gains: recurring, frequency, repeat_end_type, repeat_until, repeat_occurrences, isRecurring, template_start_time. EventSheet: RecurringFields sub-component (repeat toggle, 5 frequency pills, 3 end-type pills, until-date input, after-N-occurrences input). Edit mode uses template_start_time as anchor date. Delete dialog updated for recurring events. All event renders (month grid, mobile list, agenda, DaySheet) show Repeat icon on recurring instances. Event keys use id+start_time composite to handle duplicate IDs across recurring instances. Premium gate: toggling repeat on while free calls onUpgradeRequired("RECURRING_EVENTS_PREMIUM"). Roadmap item 2 moved from PLANNED to BUILT.)
+
+Previous: 2026-04-09 (Product roadmap documented. Added ## Product Roadmap section to CLAUDE.md with 8 prioritized web features (premium themes, recurring calendar events, household stats page, rich text notes, guest member, grocery smart sort, custom chore categories, superadmin panel) and platform phase (iOS, Android, ambient mode, i18n). FEATURES.md planned section replaced with structured near-term list matching roadmap priority order. Paywall copy added for household stats, guest member, custom categories, and rich text notes gates.)
 
 Previous: 2026-04-09 (Premium limit centralization pass. freeTierLimits.ts expanded: PREMIUM_TIER_LIMITS, PREMIUM_FEATURES, FREE_THEMES, PREMIUM_THEMES, ALL_THEMES, Theme type, getLimit(), isPremiumFeature() helpers. All 6 API routes (chores, tasks, calendar, reminders, meals, household/join) fixed to use FREE_TIER_LIMITS constants instead of raw numbers in error responses. MealSheet client-side hardcode fixed. child limit (children: 1) now enforced in role assignment route via new checkChildLimit() in premiumGating.ts. Theme route rewritten to import ALL_THEMES/PREMIUM_THEMES and enforce premium gate. Chore history error code standardized to CHORE_HISTORY_PREMIUM. UpgradePrompt gains CHILDREN_LIMIT entry (Baby icon). Error codes list updated: CHILDREN_LIMIT, CHORE_HISTORY_PREMIUM added. calendarEventsPerMonth renamed to calendarEvents; activeSingleReminders renamed to reminders in FREE_TIER_LIMITS.)
 

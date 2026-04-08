@@ -1,6 +1,10 @@
 @AGENTS.md
 # Roost — Project Intelligence
 
+## Feature Registry
+See FEATURES.md in the root of the repo for the complete list of built and planned
+features, paywall copy, and App Store description. Update it whenever a new feature ships.
+
 ## What This Is
 Household management app. The household OS for families, roommates,
 and college students. Chores, grocery lists, meal planning, bill

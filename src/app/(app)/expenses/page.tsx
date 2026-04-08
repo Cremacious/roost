@@ -8,14 +8,18 @@ import { motion } from "framer-motion";
 import { toast } from "sonner";
 import {
   AlertTriangle,
+  BarChart2,
   Clock,
   DollarSign,
   Download,
+  MoreHorizontal,
+  MoreVertical,
   PiggyBank,
   Plus,
   Receipt,
   RefreshCw,
   Sparkles,
+  Target,
   TrendingDown,
   TrendingUp,
 } from "lucide-react";
@@ -28,8 +32,22 @@ import ExpenseSheet, { type ExpenseData, type RecurringTemplate } from "@/compon
 import SettleSheet from "@/components/expenses/SettleSheet";
 import ExportSheet from "@/components/expenses/ExportSheet";
 import RecurringDraftSheet from "@/components/expenses/RecurringDraftSheet";
+import EditRecurringSheet, { type RecurringTemplateData } from "@/components/expenses/EditRecurringSheet";
 import UpgradePrompt from "@/components/shared/UpgradePrompt";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { SECTION_COLORS } from "@/lib/constants/colors";
 import { PageContainer } from "@/components/layout/PageContainer";
 
@@ -62,11 +80,16 @@ interface RecurringDraft {
 interface RecurringTemplateResponse {
   id: string;
   title: string;
+  category: string | null;
+  notes: string | null;
+  total_amount: string;
   frequency: string;
   next_due_date: string;
+  last_posted_at: string | null;
   paused: boolean;
-  total_amount: string;
   splits: { userId: string; amount: number }[];
+  created_by: string;
+  created_at: string | null;
 }
 
 interface ExpensesResponse {
@@ -558,6 +581,10 @@ export default function ExpensesPage() {
   const [allowanceHistoryExpanded, setAllowanceHistoryExpanded] = useState(false);
   const [recurringDraftsOpen, setRecurringDraftsOpen] = useState(false);
   const [upgradeCode, setUpgradeCode] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<"expenses" | "recurring">("expenses");
+  const [moreMenuOpen, setMoreMenuOpen] = useState(false);
+  const [editTemplateOpen, setEditTemplateOpen] = useState(false);
+  const [selectedTemplate, setSelectedTemplate] = useState<RecurringTemplateResponse | null>(null);
 
   // ---- Queries ---------------------------------------------------------------
 
@@ -687,7 +714,7 @@ export default function ExpensesPage() {
           <div className="flex-1">
             <h1 className="text-2xl" style={{ color: "var(--roost-text-primary)", fontWeight: 900 }}>
               Expenses
-              {isPremium && allExpenses.length > 0 && (
+              {isPremium && allExpenses.length > 0 && activeTab === "expenses" && (
                 <span
                   className="ml-2 inline-flex h-6 items-center rounded-full px-2.5 text-xs"
                   style={{ backgroundColor: `${COLOR}18`, color: COLOR, fontWeight: 800 }}
@@ -700,24 +727,97 @@ export default function ExpensesPage() {
 
           {isPremium && (
             <div className="flex items-center gap-2">
-              <motion.button
-                type="button"
-                whileTap={{ y: 1 }}
-                onClick={() => setExportSheetOpen(true)}
-                className="flex h-10 items-center gap-1.5 rounded-xl px-3"
-                style={{
-                  backgroundColor: "var(--roost-surface)",
-                  border: "1.5px solid var(--roost-border)",
-                  borderBottom: "3px solid var(--roost-border-bottom)",
-                  color: "var(--roost-text-secondary)",
-                  fontWeight: 700,
-                  fontSize: 13,
-                }}
-                aria-label="Export expenses"
-              >
-                <Download className="size-4" />
-                <span className="hidden sm:inline">Export</span>
-              </motion.button>
+              {/* Desktop: Budget + Insights + Export */}
+              <div className="hidden sm:flex items-center gap-2">
+                <motion.button
+                  type="button"
+                  whileTap={{ y: 1 }}
+                  onClick={() => {}}
+                  className="flex h-10 items-center gap-1.5 rounded-xl px-3"
+                  style={{
+                    backgroundColor: "var(--roost-surface)",
+                    border: "1.5px solid var(--roost-border)",
+                    borderBottom: "3px solid var(--roost-border-bottom)",
+                    color: "var(--roost-text-secondary)",
+                    fontWeight: 700,
+                    fontSize: 13,
+                  }}
+                  title="Coming soon"
+                >
+                  <Target className="size-4" />
+                  Budget
+                </motion.button>
+                <motion.button
+                  type="button"
+                  whileTap={{ y: 1 }}
+                  onClick={() => {}}
+                  className="flex h-10 items-center gap-1.5 rounded-xl px-3"
+                  style={{
+                    backgroundColor: "var(--roost-surface)",
+                    border: "1.5px solid var(--roost-border)",
+                    borderBottom: "3px solid var(--roost-border-bottom)",
+                    color: "var(--roost-text-secondary)",
+                    fontWeight: 700,
+                    fontSize: 13,
+                  }}
+                  title="Coming soon"
+                >
+                  <BarChart2 className="size-4" />
+                  Insights
+                </motion.button>
+                <motion.button
+                  type="button"
+                  whileTap={{ y: 1 }}
+                  onClick={() => setExportSheetOpen(true)}
+                  className="flex h-10 items-center gap-1.5 rounded-xl px-3"
+                  style={{
+                    backgroundColor: "var(--roost-surface)",
+                    border: "1.5px solid var(--roost-border)",
+                    borderBottom: "3px solid var(--roost-border-bottom)",
+                    color: "var(--roost-text-secondary)",
+                    fontWeight: 700,
+                    fontSize: 13,
+                  }}
+                  aria-label="Export expenses"
+                >
+                  <Download className="size-4" />
+                  Export
+                </motion.button>
+              </div>
+
+              {/* Mobile: Export + ••• */}
+              <div className="flex items-center gap-2 sm:hidden">
+                <motion.button
+                  type="button"
+                  whileTap={{ y: 1 }}
+                  onClick={() => setExportSheetOpen(true)}
+                  className="flex h-10 w-10 items-center justify-center rounded-xl"
+                  style={{
+                    backgroundColor: "var(--roost-surface)",
+                    border: "1.5px solid var(--roost-border)",
+                    borderBottom: "3px solid var(--roost-border-bottom)",
+                    color: "var(--roost-text-secondary)",
+                  }}
+                  aria-label="Export expenses"
+                >
+                  <Download className="size-4" />
+                </motion.button>
+                <motion.button
+                  type="button"
+                  whileTap={{ y: 1 }}
+                  onClick={() => setMoreMenuOpen(true)}
+                  className="flex h-10 w-10 items-center justify-center rounded-xl"
+                  style={{
+                    backgroundColor: "var(--roost-surface)",
+                    border: "1.5px solid var(--roost-border)",
+                    borderBottom: "3px solid var(--roost-border-bottom)",
+                    color: "var(--roost-text-secondary)",
+                  }}
+                  aria-label="More options"
+                >
+                  <MoreHorizontal className="size-4" />
+                </motion.button>
+              </div>
 
               <motion.button
                 type="button"
@@ -737,36 +837,50 @@ export default function ExpensesPage() {
           )}
         </div>
 
-        {/* Recurring drafts banner — admin only, premium only */}
-        {!isLoading && !householdLoading && isPremium && isAdmin && recurringDrafts.length > 0 && (
-          <div
-            className="flex items-center gap-3 rounded-2xl px-4 py-3"
-            style={{
-              backgroundColor: "#FFFBEB",
-              border: "1.5px solid #FCD34D",
-              borderBottom: "4px solid #D97706",
-            }}
-          >
-            <AlertTriangle className="size-5 shrink-0" style={{ color: "#D97706" }} />
-            <p className="flex-1 text-sm" style={{ color: "#92400E", fontWeight: 700 }}>
-              {recurringDrafts.length} recurring expense{recurringDrafts.length !== 1 ? "s" : ""} due for posting.
-            </p>
-            <motion.button
-              type="button"
-              whileTap={{ y: 1 }}
-              onClick={() => setRecurringDraftsOpen(true)}
-              className="flex h-9 items-center rounded-xl px-3 text-xs text-white"
-              style={{
-                backgroundColor: "#D97706",
-                border: "1.5px solid #B45309",
-                borderBottom: "3px solid #92400E",
-                fontWeight: 800,
-              }}
-            >
-              Review
-            </motion.button>
+        {/* Tab row — premium only */}
+        {isPremium && (
+          <div className="flex gap-2">
+            {(["expenses", "recurring"] as const).map((tab) => {
+              const active = activeTab === tab;
+              const label = tab === "expenses" ? "Expenses" : "Recurring";
+              const badge = tab === "recurring" && recurringTemplates.length > 0
+                ? recurringTemplates.length
+                : null;
+              return (
+                <button
+                  key={tab}
+                  type="button"
+                  onClick={() => setActiveTab(tab)}
+                  className="flex h-10 items-center gap-1.5 rounded-xl px-4 text-sm"
+                  style={{
+                    backgroundColor: active ? "var(--roost-text-primary)" : "var(--roost-surface)",
+                    border: active ? "1.5px solid transparent" : "1.5px solid var(--roost-border)",
+                    borderBottom: active ? "3px solid rgba(0,0,0,0.25)" : "3px solid var(--roost-border-bottom)",
+                    color: active ? "var(--roost-bg)" : "var(--roost-text-secondary)",
+                    fontWeight: 700,
+                  }}
+                >
+                  {label}
+                  {badge !== null && (
+                    <span
+                      className="inline-flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-xs"
+                      style={{
+                        backgroundColor: active ? "rgba(255,255,255,0.2)" : `${COLOR}20`,
+                        color: active ? "var(--roost-bg)" : COLOR,
+                        fontWeight: 800,
+                      }}
+                    >
+                      {badge}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
           </div>
         )}
+
+        {/* ===== EXPENSES TAB ===== */}
+        {activeTab === "expenses" && <>
 
         {/* Loading */}
         {(isLoading || householdLoading) && <ExpensesSkeleton />}
@@ -1131,6 +1245,22 @@ export default function ExpensesPage() {
           </>
         )}
 
+        </> /* end EXPENSES TAB */}
+
+        {/* ===== RECURRING TAB ===== */}
+        {activeTab === "recurring" && isPremium && (
+          <RecurringTabView
+            templates={recurringTemplates}
+            recurringDrafts={recurringDrafts}
+            isAdmin={isAdmin ?? false}
+            members={members}
+            onAddRecurring={() => { openCreate(); }}
+            onEditTemplate={(t) => { setSelectedTemplate(t); setEditTemplateOpen(true); }}
+            onPauseResume={(t) => { setSelectedTemplate(t); setEditTemplateOpen(true); }}
+            onReviewDrafts={() => setRecurringDraftsOpen(true)}
+          />
+        )}
+
         {/* Sheets */}
         <ExpenseSheet
           open={sheetOpen}
@@ -1154,6 +1284,74 @@ export default function ExpensesPage() {
           onOpenChange={setRecurringDraftsOpen}
           drafts={recurringDrafts}
         />
+
+        {selectedTemplate && (
+          <EditRecurringSheet
+            open={editTemplateOpen}
+            onClose={() => { setEditTemplateOpen(false); setSelectedTemplate(null); }}
+            template={selectedTemplate as RecurringTemplateData}
+            members={members}
+          />
+        )}
+
+        {/* Mobile more menu */}
+        <Sheet open={moreMenuOpen} onOpenChange={setMoreMenuOpen}>
+          <SheetContent side="bottom" className="rounded-t-2xl pb-8">
+            <div className="pt-2 pb-2">
+              <p className="mb-4 text-base px-1" style={{ color: "var(--roost-text-primary)", fontWeight: 800 }}>
+                More options
+              </p>
+              <div className="space-y-2">
+                {[
+                  { icon: BarChart2, label: "Spending insights", note: "Coming soon" },
+                  { icon: Target, label: "Budgets", note: "Coming soon" },
+                ].map(({ icon: Icon, label, note }) => (
+                  <button
+                    key={label}
+                    type="button"
+                    className="flex w-full items-center gap-3 rounded-xl px-4 py-3"
+                    style={{
+                      backgroundColor: "var(--roost-surface)",
+                      border: "1.5px solid var(--roost-border)",
+                      borderBottom: "3px solid var(--roost-border-bottom)",
+                    }}
+                  >
+                    <Icon className="size-5" style={{ color: "var(--roost-text-muted)" }} />
+                    <span className="flex-1 text-left text-sm" style={{ color: "var(--roost-text-primary)", fontWeight: 700 }}>
+                      {label}
+                    </span>
+                    <span className="text-xs" style={{ color: "var(--roost-text-muted)", fontWeight: 600 }}>
+                      {note}
+                    </span>
+                  </button>
+                ))}
+                <button
+                  type="button"
+                  onClick={() => { setActiveTab("recurring"); setMoreMenuOpen(false); }}
+                  className="flex w-full items-center gap-3 rounded-xl px-4 py-3"
+                  style={{
+                    backgroundColor: "var(--roost-surface)",
+                    border: "1.5px solid var(--roost-border)",
+                    borderBottom: "3px solid var(--roost-border-bottom)",
+                  }}
+                >
+                  <RefreshCw className="size-5" style={{ color: COLOR }} />
+                  <span className="flex-1 text-left text-sm" style={{ color: "var(--roost-text-primary)", fontWeight: 700 }}>
+                    Recurring expenses
+                  </span>
+                  {recurringTemplates.length > 0 && (
+                    <span
+                      className="inline-flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-xs"
+                      style={{ backgroundColor: `${COLOR}20`, color: COLOR, fontWeight: 800 }}
+                    >
+                      {recurringTemplates.length}
+                    </span>
+                  )}
+                </button>
+              </div>
+            </div>
+          </SheetContent>
+        </Sheet>
 
         <SettleSheet
           open={settleSheetOpen}
@@ -1180,6 +1378,349 @@ export default function ExpensesPage() {
         </Sheet>
       </PageContainer>
     </motion.div>
+  );
+}
+
+// ---- Recurring tab view -------------------------------------------------------
+
+const FREQ_COLORS: Record<string, { bg: string; text: string; border: string }> = {
+  weekly:   { bg: "#EFF6FF", text: "#1D4ED8", border: "#BFDBFE" },
+  biweekly: { bg: "#FAF5FF", text: "#7C3AED", border: "#DDD6FE" },
+  monthly:  { bg: "#F0FDF4", text: "#15803D", border: "#BBF7D0" },
+  yearly:   { bg: "#FFFBEB", text: "#D97706", border: "#FDE68A" },
+};
+
+const FREQ_LABELS: Record<string, string> = {
+  weekly: "Weekly", biweekly: "Biweekly", monthly: "Monthly", yearly: "Yearly",
+};
+
+function monthlyEquivalent(amount: number, frequency: string): number {
+  switch (frequency) {
+    case "weekly":   return amount * (52 / 12);
+    case "biweekly": return amount * (26 / 12);
+    case "monthly":  return amount;
+    case "yearly":   return amount / 12;
+    default: return amount;
+  }
+}
+
+function RecurringTabView({
+  templates,
+  recurringDrafts,
+  isAdmin,
+  members,
+  onAddRecurring,
+  onEditTemplate,
+  onReviewDrafts,
+}: {
+  templates: RecurringTemplateResponse[];
+  recurringDrafts: RecurringDraft[];
+  isAdmin: boolean;
+  members: { userId: string; name: string; avatarColor: string | null; role: string }[];
+  onAddRecurring: () => void;
+  onEditTemplate: (t: RecurringTemplateResponse) => void;
+  onPauseResume: (t: RecurringTemplateResponse) => void;
+  onReviewDrafts: () => void;
+}) {
+  const queryClient = useQueryClient();
+
+  const pauseResumeMutation = useMutation({
+    mutationFn: async ({ id, paused }: { id: string; paused: boolean }) => {
+      const r = await fetch(`/api/expenses/recurring/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ paused }),
+      });
+      if (!r.ok) throw new Error("Failed to update");
+      return r.json();
+    },
+    onSuccess: (_, { paused }) => {
+      queryClient.invalidateQueries({ queryKey: ["recurringTemplates"] });
+      toast.success(paused ? "Recurring paused" : "Recurring resumed");
+    },
+    onError: () => toast.error("Failed to update", { description: "Please try again." }),
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const r = await fetch(`/api/expenses/recurring/${id}`, { method: "DELETE" });
+      if (!r.ok) throw new Error("Failed to delete");
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["recurringTemplates"] });
+      queryClient.invalidateQueries({ queryKey: ["expenses"] });
+      toast.success("Recurring expense removed");
+    },
+    onError: () => toast.error("Failed to delete", { description: "Please try again." }),
+  });
+
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+  const templateToDelete = templates.find((t) => t.id === confirmDeleteId);
+
+  const totalMonthly = templates
+    .filter((t) => !t.paused)
+    .reduce((acc, t) => acc + monthlyEquivalent(parseFloat(t.total_amount ?? "0"), t.frequency), 0);
+
+  const soonestDue = templates.reduce<string | null>((acc, t) => {
+    if (!acc) return t.next_due_date;
+    return t.next_due_date < acc ? t.next_due_date : acc;
+  }, null);
+
+  // Empty state
+  if (templates.length === 0) {
+    return (
+      <div className="space-y-4">
+        {/* Draft banner even with no templates */}
+        {isAdmin && recurringDrafts.length > 0 && (
+          <DraftBanner count={recurringDrafts.length} onReview={onReviewDrafts} />
+        )}
+        <div
+          className="flex flex-col items-center justify-center rounded-2xl p-8 text-center"
+          style={{
+            backgroundColor: "var(--roost-surface)",
+            border: "2px dashed var(--roost-border)",
+            borderBottom: "4px dashed var(--roost-border-bottom)",
+            minHeight: 200,
+          }}
+        >
+          <div
+            className="mb-3 flex h-12 w-12 items-center justify-center rounded-xl"
+            style={{
+              backgroundColor: "var(--roost-surface)",
+              border: "1.5px solid var(--roost-border)",
+              borderBottom: `4px solid ${SECTION_COLORS.expenses}`,
+            }}
+          >
+            <RefreshCw className="size-6" style={{ color: SECTION_COLORS.expenses }} />
+          </div>
+          <p className="text-base" style={{ color: "var(--roost-text-primary)", fontWeight: 800 }}>
+            No recurring expenses yet
+          </p>
+          <p className="mt-1 max-w-xs text-sm" style={{ color: "var(--roost-text-secondary)", fontWeight: 600 }}>
+            Set up recurring expenses for rent, utilities, subscriptions, anything you split regularly.
+          </p>
+          <motion.button
+            type="button"
+            whileTap={{ y: 2 }}
+            onClick={onAddRecurring}
+            className="mt-4 flex h-11 items-center gap-2 rounded-xl px-4 text-sm text-white"
+            style={{
+              backgroundColor: SECTION_COLORS.expenses,
+              border: `1.5px solid ${SECTION_COLORS.expenses}`,
+              borderBottom: "3px solid #16A34A",
+              fontWeight: 800,
+            }}
+          >
+            <Plus className="size-4" />
+            Add recurring expense
+          </motion.button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      {/* Draft banner */}
+      {isAdmin && recurringDrafts.length > 0 && (
+        <DraftBanner count={recurringDrafts.length} onReview={onReviewDrafts} />
+      )}
+
+      {/* Summary stats */}
+      <div className="grid grid-cols-3 gap-3">
+        {[
+          { label: "Active", value: templates.filter((t) => !t.paused).length.toString() },
+          { label: "Per month", value: `$${totalMonthly.toFixed(0)}` },
+          { label: "Next due", value: soonestDue ? format(new Date(`${soonestDue}T00:00:00`), "MMM d") : "None" },
+        ].map(({ label, value }) => (
+          <div
+            key={label}
+            className="rounded-2xl p-3 text-center"
+            style={{
+              backgroundColor: "var(--roost-surface)",
+              border: "1.5px solid var(--roost-border)",
+              borderBottom: "4px solid var(--roost-border-bottom)",
+            }}
+          >
+            <p className="text-xs" style={{ color: "var(--roost-text-muted)", fontWeight: 700 }}>
+              {label}
+            </p>
+            <p className="text-lg" style={{ color: "var(--roost-text-primary)", fontWeight: 900 }}>
+              {value}
+            </p>
+          </div>
+        ))}
+      </div>
+
+      {/* Template list */}
+      <div className="space-y-2">
+        {templates.map((t, i) => {
+          const freqColors = FREQ_COLORS[t.frequency] ?? FREQ_COLORS.monthly;
+          const amount = parseFloat(t.total_amount ?? "0");
+          const splitCount = (t.splits as { userId: string }[])?.length ?? 0;
+
+          return (
+            <motion.div
+              key={t.id}
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: Math.min(i * 0.04, 0.2), duration: 0.15 }}
+              role="button"
+              tabIndex={0}
+              className="flex items-center gap-3 rounded-2xl px-4 py-3"
+              style={{
+                backgroundColor: "var(--roost-surface)",
+                border: "1.5px solid var(--roost-border)",
+                borderBottom: t.paused ? "4px solid #E5E7EB" : `4px solid ${SECTION_COLORS.expenses}60`,
+                cursor: "pointer",
+                opacity: t.paused ? 0.7 : 1,
+                minHeight: 72,
+              }}
+              onClick={() => onEditTemplate(t)}
+              onKeyDown={(e) => e.key === "Enter" && onEditTemplate(t)}
+            >
+              {/* Icon */}
+              <div
+                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl"
+                style={{ backgroundColor: `${SECTION_COLORS.expenses}18` }}
+              >
+                <RefreshCw className="size-5" style={{ color: SECTION_COLORS.expenses }} />
+              </div>
+
+              {/* Middle */}
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <p className="text-sm truncate" style={{ color: "var(--roost-text-primary)", fontWeight: 800 }}>
+                    {t.title}
+                  </p>
+                  <span
+                    className="inline-flex h-5 items-center rounded-full px-2 text-xs shrink-0"
+                    style={{
+                      backgroundColor: freqColors.bg,
+                      color: freqColors.text,
+                      border: `1px solid ${freqColors.border}`,
+                      fontWeight: 700,
+                    }}
+                  >
+                    {FREQ_LABELS[t.frequency] ?? t.frequency}
+                  </span>
+                  {t.paused && (
+                    <span
+                      className="inline-flex h-5 items-center rounded-full px-2 text-xs shrink-0"
+                      style={{ backgroundColor: "#FEF3C7", color: "#D97706", border: "1px solid #FDE68A", fontWeight: 700 }}
+                    >
+                      Paused
+                    </span>
+                  )}
+                </div>
+                <p className="text-xs mt-0.5" style={{ color: "var(--roost-text-muted)", fontWeight: 600 }}>
+                  Next: {format(new Date(`${t.next_due_date}T00:00:00`), "MMM d")}
+                  {splitCount > 0 && ` · Split between ${splitCount} member${splitCount !== 1 ? "s" : ""}`}
+                </p>
+              </div>
+
+              {/* Right */}
+              <div className="flex items-center gap-2 shrink-0">
+                <p className="text-sm" style={{ color: "var(--roost-text-primary)", fontWeight: 800 }}>
+                  ${amount.toFixed(2)}
+                </p>
+
+                {isAdmin && (
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <button
+                        type="button"
+                        onClick={(e) => e.stopPropagation()}
+                        className="flex h-8 w-8 items-center justify-center rounded-lg"
+                        style={{
+                          border: "1.5px solid var(--roost-border)",
+                          color: "var(--roost-text-muted)",
+                        }}
+                        aria-label="Template options"
+                      >
+                        <MoreVertical className="size-4" />
+                      </button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
+                      <DropdownMenuItem onClick={() => onEditTemplate(t)}>
+                        Edit
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => pauseResumeMutation.mutate({ id: t.id, paused: !t.paused })}>
+                        {t.paused ? "Resume" : "Pause"}
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        className="text-red-500 focus:text-red-500"
+                        onClick={() => setConfirmDeleteId(t.id)}
+                      >
+                        Delete
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                )}
+              </div>
+            </motion.div>
+          );
+        })}
+      </div>
+
+      {/* Delete confirm dialog */}
+      <Dialog open={!!confirmDeleteId} onOpenChange={(v) => !v && setConfirmDeleteId(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle style={{ color: "var(--roost-text-primary)", fontWeight: 800 }}>
+              Stop this recurring expense?
+            </DialogTitle>
+          </DialogHeader>
+          <p className="text-sm" style={{ color: "var(--roost-text-secondary)", fontWeight: 600 }}>
+            Past expenses won&apos;t be deleted. No new drafts will be created for{" "}
+            <strong>{templateToDelete?.title}</strong>.
+          </p>
+          <DialogFooter className="mt-2 gap-2">
+            <button
+              type="button"
+              onClick={() => setConfirmDeleteId(null)}
+              className="flex h-11 flex-1 items-center justify-center rounded-xl text-sm"
+              style={{ border: "1.5px solid #E5E7EB", borderBottom: "3px solid #E5E7EB", color: "var(--roost-text-primary)", fontWeight: 700 }}
+            >
+              Cancel
+            </button>
+            <motion.button
+              type="button"
+              whileTap={{ y: 1 }}
+              onClick={() => { if (confirmDeleteId) { deleteMutation.mutate(confirmDeleteId); setConfirmDeleteId(null); } }}
+              disabled={deleteMutation.isPending}
+              className="flex h-11 flex-1 items-center justify-center rounded-xl text-sm text-white"
+              style={{ backgroundColor: "#EF4444", border: "1.5px solid #C93B3B", borderBottom: "3px solid #A63030", fontWeight: 800 }}
+            >
+              Stop recurring
+            </motion.button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
+
+function DraftBanner({ count, onReview }: { count: number; onReview: () => void }) {
+  return (
+    <div
+      className="flex items-center gap-3 rounded-2xl px-4 py-3"
+      style={{ backgroundColor: "#FFFBEB", border: "1.5px solid #FCD34D", borderBottom: "4px solid #D97706" }}
+    >
+      <AlertTriangle className="size-5 shrink-0" style={{ color: "#D97706" }} />
+      <p className="flex-1 text-sm" style={{ color: "#92400E", fontWeight: 700 }}>
+        {count} recurring expense{count !== 1 ? "s" : ""} due for posting.
+      </p>
+      <motion.button
+        type="button"
+        whileTap={{ y: 1 }}
+        onClick={onReview}
+        className="flex h-9 items-center rounded-xl px-3 text-xs text-white"
+        style={{ backgroundColor: "#D97706", border: "1.5px solid #B45309", borderBottom: "3px solid #92400E", fontWeight: 800 }}
+      >
+        Review
+      </motion.button>
+    </div>
   );
 }
 

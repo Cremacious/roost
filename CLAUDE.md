@@ -556,6 +556,7 @@ src/app/api/expenses/recurring/[id]/post/route.ts  POST: admin confirms draft (c
 src/app/api/expenses/recurring/[id]/skip/route.ts  POST: skip cycle without posting; deletes draft; advances next_due_date
 src/app/api/cron/recurring-expenses/route.ts  Daily 8am UTC: create draft expenses for due templates; notify admins; remind for >3-day-old unconfirmed drafts
 src/components/expenses/RecurringDraftSheet.tsx  Bottom sheet listing pending draft expenses; Post/Skip per card; auto-closes when all handled
+src/components/expenses/EditRecurringSheet.tsx   Edit sheet for a recurring template: title, amount, category, frequency, next_due_date, notes, splits editor, pause/resume, delete with AlertDialog
 src/app/page.tsx                              Public marketing homepage (server component, no app shell). Sections: Nav, mobile teaser bar, hero, problem, 6 alternating feature rows (Chores/Grocery/Calendar/Expenses/Reminders/Meals each with realistic UI mockup), comparison table vs Splitwise/Cozi, personas (3 cards), bottom CTA, footer. No pricing section. Red nav and footer, warm-tinted feature sections, no dark sections. Mobile responsive via CSS class + <style> media queries at 640px: nav hides Features link, feature rows stack vertically with mockup centered, comparison table 16px padding, personas 1 col, all sections reduce padding to ~48px 20px, footer stacks vertically.
 src/app/(auth)/login/page.tsx                 Split layout: red left panel (desktop), form right panel; slab inputs on #FFF5F5
 src/app/(auth)/signup/page.tsx                Split layout matching login; all validation logic preserved
@@ -1078,6 +1079,14 @@ Last updated: 2026-04-08 (Recurring expenses feature complete. Schema: recurring
 - Expenses GET: filters out is_recurring_draft=true from main list; returns recurringDrafts[] separately
 - Expense rows with recurring_template_id show small RefreshCw icon next to title
 - RECURRING_EXPENSES_PREMIUM error code maps to UpgradePrompt in UpgradePrompt.tsx
+- Expenses page has two tabs: "Expenses" (default) and "Recurring" (premium only)
+- Tab row sits below the page header; slab pill buttons with dark active state
+- Recurring tab shows: draft banner (admin, if drafts pending), summary stats row (active count, monthly total, next due), template list with 3-dot menu (Edit, Pause/Resume, Delete)
+- Tapping a template card opens EditRecurringSheet; 3-dot menu has same actions inline
+- Mobile header has ••• (MoreHorizontal) button that opens a sheet with: Spending insights (coming soon), Budgets (coming soon), Recurring expenses (switches to Recurring tab)
+- Desktop header has Budget + Insights + Export buttons (Budget/Insights show "coming soon" tooltip, not yet built)
+- PATCH /api/expenses/recurring/[id] now also accepts nextDueDate field for manual due-date override
+- Draft banner moved to Recurring tab; RecurringTabView component defined in expenses/page.tsx
 
 ## Stripe Billing Rules
 - Stripe Checkout used for payment (redirect to Stripe, return to /settings/billing?success=true)

@@ -48,6 +48,7 @@ export async function PATCH(
     notes?: string;
     frequency?: string;
     totalAmount?: number;
+    nextDueDate?: string;
     splits?: { userId: string; amount: number }[];
   };
   try {
@@ -67,6 +68,9 @@ export async function PATCH(
   }
   if (body.totalAmount !== undefined && body.totalAmount > 0) {
     updates.total_amount = body.totalAmount.toFixed(2);
+  }
+  if (body.nextDueDate !== undefined && body.nextDueDate.match(/^\d{4}-\d{2}-\d{2}$/)) {
+    updates.next_due_date = body.nextDueDate;
   }
   if (body.splits !== undefined && body.splits.length > 0) {
     updates.splits = body.splits;

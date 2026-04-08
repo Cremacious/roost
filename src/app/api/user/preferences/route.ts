@@ -29,10 +29,24 @@ export async function GET(request: NextRequest): Promise<Response> {
     .limit(1);
 
   if (!user) {
-    return Response.json({ error: "User not found" }, { status: 404 });
+    // No app users row yet (mirror hook may not have fired). Return safe defaults.
+    return Response.json({
+      temperature_unit: "fahrenheit",
+      latitude: null,
+      longitude: null,
+      timezone: "America/New_York",
+      language: "en",
+      theme: "default",
+      chore_reminders_enabled: false,
+    });
   }
 
-  return Response.json(user);
+  // latitude/longitude are Drizzle numeric columns — convert Decimal to number or null.
+  return Response.json({
+    ...user,
+    latitude: user.latitude != null ? Number(user.latitude) : null,
+    longitude: user.longitude != null ? Number(user.longitude) : null,
+  });
 }
 
 // ---- PATCH ------------------------------------------------------------------
@@ -88,5 +102,11 @@ export async function PATCH(request: NextRequest): Promise<Response> {
       chore_reminders_enabled: users.chore_reminders_enabled,
     });
 
-  return Response.json(updated);
+  // latitude/longitude are Drizzle numeric columns — they return as Decimal
+  // objects which Response.json() cannot serialize. Convert to number or null.
+  return Response.json({
+    ...updated,
+    latitude: updated?.latitude != null ? Number(updated.latitude) : null,
+    longitude: updated?.longitude != null ? Number(updated.longitude) : null,
+  });
 }

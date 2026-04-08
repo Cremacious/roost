@@ -5,11 +5,7 @@ import { expenses, expense_splits, user, users, households } from "@/db/schema";
 import { and, desc, eq, gte, inArray, isNull, lte } from "drizzle-orm";
 import { getUserHousehold } from "@/app/api/chores/route";
 import { format } from "date-fns";
-import PDFDocument from "pdfkit";
-
-const COLOR_GREEN = "#16A34A";
-const COLOR_RED = "#DC2626";
-const COLOR_GRAY = "#6B7280";
+import { PDFDocument, StandardFonts, rgb, PageSizes } from "pdf-lib";
 
 // ---- GET: export expenses as CSV or PDF -------------------------------------
 
@@ -99,14 +95,9 @@ export async function GET(request: NextRequest): Promise<Response> {
   }
 
   const currentUserId = session.user.id;
-  const [currentUser] = await db
-    .select({ name: users.name })
-    .from(users)
-    .where(eq(users.id, currentUserId))
-    .limit(1);
-
   const dateStr = format(new Date(), "yyyy-MM-dd");
 
+  // ---- CSV -------------------------------------------------------------------
   if (fmt === "csv") {
     const lines: string[] = [];
     lines.push("Date,Title,Category,Paid By,Total Amount,Your Share,Settled");
@@ -127,8 +118,7 @@ export async function GET(request: NextRequest): Promise<Response> {
       ].join(",");
       lines.push(row);
     }
-    const csv = lines.join("\n");
-    return new Response(csv, {
+    return new Response(lines.join("\n"), {
       headers: {
         "Content-Type": "text/csv",
         "Content-Disposition": `attachment; filename="roost-expenses-${dateStr}.csv"`,
@@ -136,142 +126,185 @@ export async function GET(request: NextRequest): Promise<Response> {
     });
   }
 
-  // PDF generation
-  const pdfBuffer = await new Promise<Buffer>((resolve, reject) => {
-    const buffers: Buffer[] = [];
-    const doc = new PDFDocument({ margin: 50, size: "A4" });
-    doc.on("data", (chunk: Buffer) => buffers.push(chunk));
-    doc.on("end", () => resolve(Buffer.concat(buffers)));
-    doc.on("error", reject);
+  // ---- PDF (via pdf-lib) -----------------------------------------------------
+  const pdfDoc = await PDFDocument.create();
 
-    const pageWidth = doc.page.width - 100; // subtract margins
-    const fromLabel = fromStr ?? "All time";
-    const toLabel = toStr ?? format(new Date(), "yyyy-MM-dd");
-    const dateRange = `${fromLabel} to ${toLabel}`;
+  // Embed standard fonts (no filesystem access needed)
+  const fontBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+  const fontReg = await pdfDoc.embedFont(StandardFonts.Helvetica);
 
-    // ---- HEADER ----
-    doc.fontSize(24).font("Helvetica-Bold").fillColor("#111827").text("ROOST", 50, 50);
-    doc.fontSize(12).font("Helvetica").fillColor(COLOR_GRAY).text("Household Expense Report", 50, 80);
+  const PAGE_W = PageSizes.A4[0]; // 595
+  const PAGE_H = PageSizes.A4[1]; // 842
+  const MARGIN = 50;
+  const COL_W = PAGE_W - MARGIN * 2;
 
-    const headerRight = 50 + pageWidth;
-    doc.fontSize(14).font("Helvetica-Bold").fillColor("#111827").text(household.name ?? "Household", 0, 50, { align: "right", width: headerRight });
-    doc.fontSize(11).font("Helvetica").fillColor(COLOR_GRAY).text(dateRange, 0, 72, { align: "right", width: headerRight });
-    doc.fontSize(11).fillColor(COLOR_GRAY).text(`Exported: ${format(new Date(), "MMM d, yyyy")}`, 0, 88, { align: "right", width: headerRight });
+  const cGray = rgb(0.42, 0.45, 0.5);
+  const cDark = rgb(0.07, 0.1, 0.15);
+  const cGreen = rgb(0.09, 0.64, 0.27);
+  const cRed = rgb(0.86, 0.15, 0.15);
+  const cLightGray = rgb(0.98, 0.98, 0.98);
+  const cBorder = rgb(0.9, 0.91, 0.92);
 
-    doc.moveTo(50, 108).lineTo(50 + pageWidth, 108).strokeColor("#E5E7EB").lineWidth(1).stroke();
+  function addPage() {
+    const page = pdfDoc.addPage([PAGE_W, PAGE_H]);
+    return { page, y: PAGE_H - MARGIN };
+  }
 
-    // ---- SUMMARY BOX ----
-    const totalAmount = expenseRows.reduce((acc, e) => acc + parseFloat(e.total_amount ?? "0"), 0);
-    const unsettledAmount = allSplits
-      .filter((s) => !s.settled && s.user_id !== expenseRows.find((e) => e.id === s.expense_id)?.paid_by)
-      .reduce((acc, s) => acc + parseFloat(s.amount ?? "0"), 0);
+  let { page, y } = addPage();
 
-    const boxY = 118;
-    doc.rect(50, boxY, pageWidth, 56).fillColor("#F9FAFB").fill();
-    doc.fillColor("#111827");
+  function text(
+    str: string,
+    x: number,
+    yPos: number,
+    opts: { size?: number; font?: typeof fontBold; color?: ReturnType<typeof rgb>; align?: "left" | "right" | "center"; maxWidth?: number } = {}
+  ) {
+    const { size = 10, font = fontReg, color = cDark, align = "left", maxWidth } = opts;
+    let drawX = x;
+    if (align !== "left" && maxWidth) {
+      const w = font.widthOfTextAtSize(str, size);
+      if (align === "right") drawX = x + maxWidth - w;
+      else if (align === "center") drawX = x + (maxWidth - w) / 2;
+    }
+    page.drawText(str, { x: drawX, y: yPos, size, font, color });
+  }
 
-    const colW = pageWidth / 3;
-    const statY = boxY + 10;
+  function hRule(yPos: number, color = cBorder) {
+    page.drawLine({ start: { x: MARGIN, y: yPos }, end: { x: MARGIN + COL_W, y: yPos }, thickness: 0.5, color });
+  }
 
-    doc.fontSize(10).font("Helvetica").fillColor(COLOR_GRAY).text("Total expenses", 60, statY);
-    doc.fontSize(16).font("Helvetica-Bold").fillColor("#111827").text(String(expenseRows.length), 60, statY + 14);
+  function ensureSpace(needed: number) {
+    if (y - needed < MARGIN + 40) {
+      const np = addPage();
+      page = np.page;
+      y = np.y;
+    }
+  }
 
-    doc.fontSize(10).font("Helvetica").fillColor(COLOR_GRAY).text("Total amount", 60 + colW, statY);
-    doc.fontSize(16).font("Helvetica-Bold").fillColor("#111827").text(`$${totalAmount.toFixed(2)}`, 60 + colW, statY + 14);
+  // ---- Header ----------------------------------------------------------------
+  text("ROOST", MARGIN, y, { size: 22, font: fontBold });
+  text("Household Expense Report", MARGIN, y - 26, { size: 11, color: cGray });
 
-    doc.fontSize(10).font("Helvetica").fillColor(COLOR_GRAY).text("Outstanding", 60 + colW * 2, statY);
-    doc.fontSize(16).font("Helvetica-Bold").fillColor(unsettledAmount > 0 ? COLOR_RED : COLOR_GREEN)
-      .text(`$${unsettledAmount.toFixed(2)}`, 60 + colW * 2, statY + 14);
+  const householdName = household.name ?? "Household";
+  const fromLabel = fromStr ?? "All time";
+  const toLabel = toStr ?? format(new Date(), "yyyy-MM-dd");
+  text(householdName, MARGIN, y, { size: 13, font: fontBold, align: "right", maxWidth: COL_W });
+  text(`${fromLabel} to ${toLabel}`, MARGIN, y - 18, { size: 10, color: cGray, align: "right", maxWidth: COL_W });
+  text(`Exported: ${format(new Date(), "MMM d, yyyy")}`, MARGIN, y - 32, { size: 10, color: cGray, align: "right", maxWidth: COL_W });
 
-    // ---- EXPENSE TABLE ----
-    let y = boxY + 72;
+  y -= 50;
+  hRule(y);
+  y -= 16;
 
-    doc.fontSize(13).font("Helvetica-Bold").fillColor("#111827").text("Expenses", 50, y);
-    y += 20;
+  // ---- Summary box -----------------------------------------------------------
+  const totalAmount = expenseRows.reduce((acc, e) => acc + parseFloat(e.total_amount ?? "0"), 0);
+  const unsettledAmount = allSplits
+    .filter((s) => !s.settled && s.user_id !== expenseRows.find((e) => e.id === s.expense_id)?.paid_by)
+    .reduce((acc, s) => acc + parseFloat(s.amount ?? "0"), 0);
 
-    // Table headers
-    const cols = { date: 50, desc: 120, paidBy: 300, amount: 390, status: 470 };
-    doc.fontSize(9).font("Helvetica-Bold").fillColor(COLOR_GRAY);
-    doc.text("DATE", cols.date, y);
-    doc.text("DESCRIPTION", cols.desc, y);
-    doc.text("PAID BY", cols.paidBy, y);
-    doc.text("AMOUNT", cols.amount, y);
-    doc.text("STATUS", cols.status, y);
-    y += 14;
-    doc.moveTo(50, y).lineTo(50 + pageWidth, y).strokeColor("#E5E7EB").lineWidth(0.5).stroke();
-    y += 6;
+  const boxH = 52;
+  page.drawRectangle({ x: MARGIN, y: y - boxH, width: COL_W, height: boxH, color: cLightGray });
 
-    // Group by month if range > 1 month
-    let currentMonth = "";
-    let monthTotal = 0;
-    let rowIndex = 0;
+  const colW3 = COL_W / 3;
+  const statY = y - 18;
+  text("Total expenses", MARGIN + 10, statY, { size: 9, color: cGray });
+  text(String(expenseRows.length), MARGIN + 10, statY - 16, { size: 16, font: fontBold });
+  text("Total amount", MARGIN + colW3 + 10, statY, { size: 9, color: cGray });
+  text(`$${totalAmount.toFixed(2)}`, MARGIN + colW3 + 10, statY - 16, { size: 16, font: fontBold });
+  text("Outstanding", MARGIN + colW3 * 2 + 10, statY, { size: 9, color: cGray });
+  text(`$${unsettledAmount.toFixed(2)}`, MARGIN + colW3 * 2 + 10, statY - 16, { size: 16, font: fontBold, color: unsettledAmount > 0 ? cRed : cGreen });
 
-    for (let i = 0; i < expenseRows.length; i++) {
-      const e = expenseRows[i];
+  y -= boxH + 20;
 
-      // Page break
-      if (y > doc.page.height - 80) {
-        doc.addPage();
-        y = 50;
+  // ---- Expense table ---------------------------------------------------------
+  text("Expenses", MARGIN, y, { size: 13, font: fontBold });
+  y -= 20;
+
+  const colDate = MARGIN;
+  const colDesc = MARGIN + 65;
+  const colPaidBy = MARGIN + 245;
+  const colAmount = MARGIN + 330;
+  const colStatus = MARGIN + 410;
+
+  // Headers
+  for (const [lbl, x] of [["DATE", colDate], ["DESCRIPTION", colDesc], ["PAID BY", colPaidBy], ["AMOUNT", colAmount], ["STATUS", colStatus]] as [string, number][]) {
+    text(lbl, x, y, { size: 8, font: fontBold, color: cGray });
+  }
+  y -= 12;
+  hRule(y);
+  y -= 8;
+
+  let currentMonth = "";
+  let monthTotal = 0;
+  let rowIndex = 0;
+
+  for (let i = 0; i < expenseRows.length; i++) {
+    ensureSpace(22);
+
+    const e = expenseRows[i];
+    const month = e.created_at ? format(e.created_at, "MMMM yyyy") : "";
+
+    if (month !== currentMonth) {
+      // Print previous month subtotal
+      if (currentMonth && monthTotal > 0) {
+        ensureSpace(28);
+        text(`${currentMonth} total: $${monthTotal.toFixed(2)}`, MARGIN, y, { size: 9, font: fontBold, align: "right", maxWidth: COL_W });
+        y -= 14;
+        hRule(y, cBorder);
+        y -= 10;
       }
+      currentMonth = month;
+      monthTotal = 0;
 
-      const month = e.created_at ? format(e.created_at, "MMMM yyyy") : "";
-      if (month !== currentMonth) {
-        if (currentMonth && monthTotal > 0) {
-          doc.fontSize(9).font("Helvetica-Bold").fillColor("#111827")
-            .text(`${currentMonth} total: $${monthTotal.toFixed(2)}`, 50, y, { align: "right", width: pageWidth });
-          y += 16;
-          doc.moveTo(50, y).lineTo(50 + pageWidth, y).strokeColor("#E5E7EB").lineWidth(0.5).stroke();
-          y += 8;
-        }
-        currentMonth = month;
-        monthTotal = 0;
-
-        if (month) {
-          doc.fontSize(10).font("Helvetica-Bold").fillColor("#374151").text(month, 50, y);
-          y += 16;
-        }
+      if (month) {
+        ensureSpace(22);
+        text(month, MARGIN, y, { size: 10, font: fontBold, color: rgb(0.22, 0.27, 0.32) });
+        y -= 16;
       }
-      monthTotal += parseFloat(e.total_amount ?? "0");
+    }
+    monthTotal += parseFloat(e.total_amount ?? "0");
 
-      const rowBg = rowIndex % 2 === 0 ? "#FFFFFF" : "#F9FAFB";
-      doc.rect(50, y - 2, pageWidth, 18).fillColor(rowBg).fill();
-
-      const splits = splitsByExpense[e.id] ?? [];
-      const mySplit = splits.find((s) => s.user_id === currentUserId);
-      const isSettled = mySplit?.settled ?? false;
-      const dateLabel = e.created_at ? format(e.created_at, "MM/dd/yy") : "-";
-
-      doc.fontSize(9).font("Helvetica").fillColor("#374151");
-      doc.text(dateLabel, cols.date, y, { width: 65 });
-      doc.text((e.title ?? "").slice(0, 28), cols.desc, y, { width: 175 });
-      doc.text((e.payer_name ?? "").split(" ")[0], cols.paidBy, y, { width: 85 });
-      doc.text(`$${parseFloat(e.total_amount ?? "0").toFixed(2)}`, cols.amount, y, { width: 75 });
-      doc.fillColor(isSettled ? COLOR_GREEN : COLOR_RED)
-        .text(isSettled ? "Settled" : "Unsettled", cols.status, y, { width: 80 });
-
-      y += 18;
-      rowIndex++;
+    // Alternating row bg
+    if (rowIndex % 2 !== 0) {
+      page.drawRectangle({ x: MARGIN, y: y - 4, width: COL_W, height: 18, color: cLightGray });
     }
 
-    // Last month total
-    if (currentMonth && monthTotal > 0) {
-      if (y > doc.page.height - 60) { doc.addPage(); y = 50; }
-      doc.fontSize(9).font("Helvetica-Bold").fillColor("#111827")
-        .text(`${currentMonth} total: $${monthTotal.toFixed(2)}`, 50, y, { align: "right", width: pageWidth });
-      y += 16;
-    }
+    const splits = splitsByExpense[e.id] ?? [];
+    const mySplit = splits.find((s) => s.user_id === currentUserId);
+    const isSettled = mySplit?.settled ?? false;
+    const dateLabel = e.created_at ? format(e.created_at, "MM/dd/yy") : "-";
+    const titleTrunc = (e.title ?? "").slice(0, 26);
+    const payerTrunc = (e.payer_name ?? "").split(" ")[0].slice(0, 12);
 
-    // ---- FOOTER ----
-    const footerY = doc.page.height - 40;
-    doc.fontSize(9).font("Helvetica").fillColor(COLOR_GRAY)
-      .text("Generated by Roost", 50, footerY);
-    doc.text(`Page 1`, 0, footerY, { align: "right", width: 50 + pageWidth });
+    text(dateLabel, colDate, y, { size: 9 });
+    text(titleTrunc, colDesc, y, { size: 9 });
+    text(payerTrunc, colPaidBy, y, { size: 9 });
+    text(`$${parseFloat(e.total_amount ?? "0").toFixed(2)}`, colAmount, y, { size: 9 });
+    text(isSettled ? "Settled" : "Unsettled", colStatus, y, { size: 9, color: isSettled ? cGreen : cRed });
 
-    doc.end();
-  });
+    y -= 18;
+    rowIndex++;
+  }
 
-  return new Response(new Uint8Array(pdfBuffer), {
+  // Last month subtotal
+  if (currentMonth && monthTotal > 0) {
+    ensureSpace(22);
+    text(`${currentMonth} total: $${monthTotal.toFixed(2)}`, MARGIN, y, { size: 9, font: fontBold, align: "right", maxWidth: COL_W });
+    y -= 14;
+  }
+
+  // ---- Footer (each page) ----------------------------------------------------
+  const pageCount = pdfDoc.getPageCount();
+  for (let pi = 0; pi < pageCount; pi++) {
+    const pg = pdfDoc.getPage(pi);
+    pg.drawText("Generated by Roost", { x: MARGIN, y: 28, size: 9, font: fontReg, color: cGray });
+    pg.drawText(`Page ${pi + 1} of ${pageCount}`, { x: PAGE_W - MARGIN - 60, y: 28, size: 9, font: fontReg, color: cGray });
+  }
+
+  const pdfBytes = await pdfDoc.save();
+  // Extract a plain ArrayBuffer to satisfy BodyInit type constraints
+  const pdfBuf = pdfBytes.buffer.slice(pdfBytes.byteOffset, pdfBytes.byteOffset + pdfBytes.byteLength) as ArrayBuffer;
+
+  return new Response(pdfBuf, {
     headers: {
       "Content-Type": "application/pdf",
       "Content-Disposition": `attachment; filename="roost-expenses-${dateStr}.pdf"`,

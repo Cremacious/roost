@@ -1,11 +1,11 @@
 import { NextRequest } from "next/server";
 import { requireSession } from "@/lib/auth/helpers";
 import { db } from "@/lib/db";
-import { expenses, expense_splits, user, users, households, recurring_expense_templates } from "@/db/schema";
+import { expenses, expense_splits, expense_categories, expense_budgets, user, users, households, recurring_expense_templates } from "@/db/schema";
 import { and, desc, eq, gte, inArray, isNull, lte, sql } from "drizzle-orm";
 import { getUserHousehold } from "@/app/api/chores/route";
 import { logActivity } from "@/lib/utils/activity";
-import { startOfMonth, endOfMonth } from "date-fns";
+import { startOfMonth, endOfMonth, format } from "date-fns";
 
 // ---- Debt simplification ----------------------------------------------------
 
@@ -83,8 +83,7 @@ export async function GET(request: NextRequest): Promise<Response> {
 
   const isPremium = household?.subscription_status === "premium";
 
-  // Fetch non-draft expenses with payer info
-  // Use aliases to join both auth `user` (guaranteed name) and app `users` (avatar_color).
+  // Fetch non-draft expenses with payer info + category join
   const expenseRows = await db
     .select({
       id: expenses.id,
@@ -92,6 +91,7 @@ export async function GET(request: NextRequest): Promise<Response> {
       total_amount: expenses.total_amount,
       paid_by: expenses.paid_by,
       category: expenses.category,
+      category_id: expenses.category_id,
       receipt_data: expenses.receipt_data,
       recurring_template_id: expenses.recurring_template_id,
       is_recurring_draft: expenses.is_recurring_draft,
@@ -99,10 +99,14 @@ export async function GET(request: NextRequest): Promise<Response> {
       updated_at: expenses.updated_at,
       payer_name: user.name,
       payer_avatar: users.avatar_color,
+      cat_name: expense_categories.name,
+      cat_icon: expense_categories.icon,
+      cat_color: expense_categories.color,
     })
     .from(expenses)
     .leftJoin(user, eq(expenses.paid_by, user.id))
     .leftJoin(users, eq(expenses.paid_by, users.id))
+    .leftJoin(expense_categories, eq(expenses.category_id, expense_categories.id))
     .where(
       and(
         eq(expenses.household_id, householdId),
@@ -313,6 +317,7 @@ export async function POST(request: NextRequest): Promise<Response> {
     total_amount?: number;
     paid_by?: string;
     category?: string;
+    category_id?: string;
     splits?: { user_id: string; amount: number }[];
     receipt_data?: string;
   };
@@ -351,6 +356,7 @@ export async function POST(request: NextRequest): Promise<Response> {
       total_amount: body.total_amount.toFixed(2),
       paid_by: body.paid_by,
       category: body.category?.trim() || null,
+      category_id: body.category_id ?? null,
       receipt_data: body.receipt_data ?? null,
     })
     .returning();
@@ -364,6 +370,63 @@ export async function POST(request: NextRequest): Promise<Response> {
       }))
     );
   }
+
+  // ---- Budget notification trigger ----
+  if (body.category_id) {
+    try {
+      const [budget] = await db
+        .select()
+        .from(expense_budgets)
+        .where(
+          and(
+            eq(expense_budgets.household_id, householdId),
+            eq(expense_budgets.category_id, body.category_id)
+          )
+        )
+        .limit(1);
+
+      if (budget) {
+        const periodStart = new Date(`${budget.period_start}T00:00:00`);
+        const [spentRow] = await db
+          .select({ total: sql<string>`COALESCE(SUM(${expenses.total_amount}), 0)` })
+          .from(expenses)
+          .where(
+            and(
+              eq(expenses.household_id, householdId),
+              eq(expenses.category_id, body.category_id),
+              gte(expenses.created_at, periodStart),
+              isNull(expenses.deleted_at),
+              eq(expenses.is_recurring_draft, false)
+            )
+          );
+
+        const spent = parseFloat(spentRow?.total ?? "0");
+        const limit = parseFloat(budget.amount);
+        const percentage = limit > 0 ? Math.round((spent / limit) * 100) : 0;
+        const threshold = budget.warning_threshold ?? 80;
+
+        // Fetch category name for notification
+        const [cat] = await db
+          .select({ name: expense_categories.name })
+          .from(expense_categories)
+          .where(eq(expense_categories.id, body.category_id))
+          .limit(1);
+        const catName = cat?.name ?? "Budget";
+
+        // TODO: send push when Expo is wired
+        // For now just log (future: notify all household members)
+        if (percentage >= 100) {
+          console.info(`[budget] ${catName} budget exceeded: ${percentage}% of $${limit}`);
+        } else if (percentage >= threshold) {
+          console.info(`[budget] ${catName} budget warning: ${percentage}% of $${limit}`);
+        }
+      }
+    } catch (err) {
+      // Non-fatal: budget notification should never block expense creation
+      console.error("[POST /api/expenses] Budget check failed:", err);
+    }
+  }
+  // ---- End budget trigger ----
 
   await logActivity({
     householdId,

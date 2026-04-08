@@ -9,7 +9,8 @@ export const expenses = pgTable("expenses", {
   title: text("title").notNull(),
   total_amount: numeric("total_amount").notNull(),
   paid_by: text("paid_by").notNull(),
-  category: text("category"),
+  category: text("category"), // legacy text category (kept for compat)
+  category_id: uuid("category_id"), // FK to expense_categories (nullable)
   receipt_url: text("receipt_url"),
   receipt_data: text("receipt_data"),
   // Recurring support

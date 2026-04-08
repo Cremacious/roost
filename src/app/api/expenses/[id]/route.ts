@@ -42,7 +42,7 @@ export async function PATCH(
     return Response.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  let body: { title?: string; category?: string | null };
+  let body: { title?: string; category?: string | null; category_id?: string | null };
   try {
     body = await request.json();
   } catch (err) {
@@ -59,6 +59,7 @@ export async function PATCH(
     .set({
       title: body.title?.trim() ?? existing.title,
       category: body.category !== undefined ? (body.category?.trim() || null) : existing.category,
+      category_id: body.category_id !== undefined ? body.category_id : existing.category_id,
       updated_at: new Date(),
     })
     .where(eq(expenses.id, id))

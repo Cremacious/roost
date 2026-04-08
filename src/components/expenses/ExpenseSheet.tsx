@@ -35,6 +35,7 @@ import ReceiptScanner from '@/components/expenses/ReceiptScanner';
 import LineItemEditor, {
   type LineItemAssignment,
 } from '@/components/expenses/LineItemEditor';
+import CategoryPicker from '@/components/expenses/CategoryPicker';
 import type { ParsedReceipt } from '@/lib/utils/azureReceipts';
 
 const COLOR = '#22C55E';
@@ -58,6 +59,10 @@ export interface ExpenseData {
   total_amount: string;
   paid_by: string;
   category: string | null;
+  category_id: string | null;
+  cat_name: string | null;
+  cat_icon: string | null;
+  cat_color: string | null;
   receipt_data: string | null;
   recurring_template_id: string | null;
   is_recurring_draft: boolean;
@@ -186,7 +191,8 @@ export default function ExpenseSheet({
   const [title, setTitle] = useState('');
   const [amount, setAmount] = useState('');
   const [paidBy, setPaidBy] = useState(currentUserId);
-  const [category, setCategory] = useState('');
+  const [category, setCategory] = useState(''); // legacy
+  const [categoryId, setCategoryId] = useState('');
   const [splitMethod, setSplitMethod] = useState<SplitMethod>('equal');
   const [customSplits, setCustomSplits] = useState<Record<string, string>>({});
   const [receiptData, setReceiptData] = useState<string | null>(null);
@@ -223,6 +229,7 @@ export default function ExpenseSheet({
       setAmount('');
       setPaidBy(currentUserId);
       setCategory('');
+      setCategoryId('');
       setSplitMethod('equal');
       setCustomSplits({});
       setReceiptData(null);
@@ -235,6 +242,7 @@ export default function ExpenseSheet({
       setAmount(parseFloat(expense.total_amount).toFixed(2));
       setPaidBy(expense.paid_by);
       setCategory(expense.category ?? '');
+      setCategoryId(expense.category_id ?? '');
       setSplitMethod('custom');
       const splits: Record<string, string> = {};
       for (const s of expense.splits) {
@@ -337,6 +345,7 @@ export default function ExpenseSheet({
             body: JSON.stringify({
               title: title.trim(),
               category: category.trim() || undefined,
+              category_id: categoryId || undefined,
               totalAmount: total,
               frequency: repeatFreq,
               startDate: repeatStartDate || format(new Date(), 'yyyy-MM-dd'),
@@ -359,6 +368,7 @@ export default function ExpenseSheet({
             total_amount: total,
             paid_by: paidBy,
             category: category.trim() || undefined,
+            category_id: categoryId || undefined,
             splits,
             receipt_data: receiptData ?? undefined,
           }),
@@ -377,6 +387,7 @@ export default function ExpenseSheet({
           body: JSON.stringify({
             title: title.trim(),
             category: category.trim() || null,
+            category_id: categoryId || null,
           }),
         });
         if (!r.ok) {
@@ -508,15 +519,15 @@ export default function ExpenseSheet({
                 >
                   {expense.title}
                 </h2>
-                {expense.category && (
+                {(expense.cat_name || expense.category) && (
                   <p
                     className="mt-0.5 text-xs"
                     style={{
-                      color: 'var(--roost-text-muted)',
-                      fontWeight: 600,
+                      color: expense.cat_color ?? 'var(--roost-text-muted)',
+                      fontWeight: 700,
                     }}
                   >
-                    {expense.category}
+                    {expense.cat_name ?? expense.category}
                   </p>
                 )}
               </div>
@@ -914,16 +925,6 @@ export default function ExpenseSheet({
 
   // ---- Create / Edit mode ----------------------------------------------------
 
-  const CATEGORIES = [
-    'Food',
-    'Groceries',
-    'Utilities',
-    'Rent',
-    'Transport',
-    'Entertainment',
-    'Other',
-  ];
-
   const splits = computeSplits();
   const splitsSum = splits.reduce((a, s) => a + s.amount, 0);
   const splitsDiff = Math.abs(splitsSum - total);
@@ -1151,39 +1152,16 @@ export default function ExpenseSheet({
               {/* Category */}
               <div>
                 <label
-                  className="mb-1.5 block text-xs"
+                  className="mb-2 block text-xs"
                   style={{ color: '#374151', fontWeight: 700 }}
                 >
                   Category (optional)
                 </label>
-                <div className="flex flex-wrap gap-2">
-                  {CATEGORIES.map((cat) => {
-                    const active = category === cat;
-                    return (
-                      <button
-                        key={cat}
-                        type="button"
-                        onClick={() => setCategory(active ? '' : cat)}
-                        className="h-9 rounded-xl px-3 text-xs"
-                        style={{
-                          border: active
-                            ? `1.5px solid ${COLOR}`
-                            : '1.5px solid #E5E7EB',
-                          borderBottom: active
-                            ? `3px solid ${COLOR_DARK}`
-                            : '3px solid #E5E7EB',
-                          backgroundColor: active
-                            ? `${COLOR}18`
-                            : 'transparent',
-                          color: active ? COLOR : 'var(--roost-text-secondary)',
-                          fontWeight: 700,
-                        }}
-                      >
-                        {cat}
-                      </button>
-                    );
-                  })}
-                </div>
+                <CategoryPicker
+                  value={categoryId}
+                  onChange={setCategoryId}
+                  isAdmin={isAdmin}
+                />
               </div>
 
               {/* Split method — create only */}

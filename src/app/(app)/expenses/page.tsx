@@ -729,10 +729,8 @@ export default function ExpensesPage() {
             <div className="flex items-center gap-2">
               {/* Desktop: Budget + Insights + Export */}
               <div className="hidden sm:flex items-center gap-2">
-                <motion.button
-                  type="button"
-                  whileTap={{ y: 1 }}
-                  onClick={() => {}}
+                <Link
+                  href="/expenses/budget"
                   className="flex h-10 items-center gap-1.5 rounded-xl px-3"
                   style={{
                     backgroundColor: "var(--roost-surface)",
@@ -741,16 +739,14 @@ export default function ExpensesPage() {
                     color: "var(--roost-text-secondary)",
                     fontWeight: 700,
                     fontSize: 13,
+                    textDecoration: "none",
                   }}
-                  title="Coming soon"
                 >
                   <Target className="size-4" />
                   Budget
-                </motion.button>
-                <motion.button
-                  type="button"
-                  whileTap={{ y: 1 }}
-                  onClick={() => {}}
+                </Link>
+                <Link
+                  href="/expenses/insights"
                   className="flex h-10 items-center gap-1.5 rounded-xl px-3"
                   style={{
                     backgroundColor: "var(--roost-surface)",
@@ -759,12 +755,12 @@ export default function ExpensesPage() {
                     color: "var(--roost-text-secondary)",
                     fontWeight: 700,
                     fontSize: 13,
+                    textDecoration: "none",
                   }}
-                  title="Coming soon"
                 >
                   <BarChart2 className="size-4" />
                   Insights
-                </motion.button>
+                </Link>
                 <motion.button
                   type="button"
                   whileTap={{ y: 1 }}
@@ -1302,29 +1298,40 @@ export default function ExpensesPage() {
                 More options
               </p>
               <div className="space-y-2">
-                {[
-                  { icon: BarChart2, label: "Spending insights", note: "Coming soon" },
-                  { icon: Target, label: "Budgets", note: "Coming soon" },
-                ].map(({ icon: Icon, label, note }) => (
-                  <button
-                    key={label}
-                    type="button"
-                    className="flex w-full items-center gap-3 rounded-xl px-4 py-3"
-                    style={{
-                      backgroundColor: "var(--roost-surface)",
-                      border: "1.5px solid var(--roost-border)",
-                      borderBottom: "3px solid var(--roost-border-bottom)",
-                    }}
-                  >
-                    <Icon className="size-5" style={{ color: "var(--roost-text-muted)" }} />
-                    <span className="flex-1 text-left text-sm" style={{ color: "var(--roost-text-primary)", fontWeight: 700 }}>
-                      {label}
-                    </span>
-                    <span className="text-xs" style={{ color: "var(--roost-text-muted)", fontWeight: 600 }}>
-                      {note}
-                    </span>
-                  </button>
-                ))}
+                <Link
+                  href="/expenses/insights"
+                  onClick={() => setMoreMenuOpen(false)}
+                  className="flex w-full items-center gap-3 rounded-xl px-4 py-3"
+                  style={{
+                    backgroundColor: "var(--roost-surface)",
+                    border: "1.5px solid var(--roost-border)",
+                    borderBottom: "3px solid var(--roost-border-bottom)",
+                    textDecoration: "none",
+                    display: "flex",
+                  }}
+                >
+                  <BarChart2 className="size-5" style={{ color: COLOR }} />
+                  <span className="flex-1 text-left text-sm" style={{ color: "var(--roost-text-primary)", fontWeight: 700 }}>
+                    Spending insights
+                  </span>
+                </Link>
+                <Link
+                  href="/expenses/budget"
+                  onClick={() => setMoreMenuOpen(false)}
+                  className="flex w-full items-center gap-3 rounded-xl px-4 py-3"
+                  style={{
+                    backgroundColor: "var(--roost-surface)",
+                    border: "1.5px solid var(--roost-border)",
+                    borderBottom: "3px solid var(--roost-border-bottom)",
+                    textDecoration: "none",
+                    display: "flex",
+                  }}
+                >
+                  <Target className="size-5" style={{ color: COLOR }} />
+                  <span className="flex-1 text-left text-sm" style={{ color: "var(--roost-text-primary)", fontWeight: 700 }}>
+                    Budgets
+                  </span>
+                </Link>
                 <button
                   type="button"
                   onClick={() => { setActiveTab("recurring"); setMoreMenuOpen(false); }}

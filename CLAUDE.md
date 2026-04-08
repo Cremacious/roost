@@ -34,7 +34,7 @@ App slogan options (decision pending):
 - framer-motion (page enter animations, list stagger, whileTap)
 - shadcn/ui + Lucide icons (NO emojis anywhere)
 - Stripe (web payments) + RevenueCat (iOS/Android billing)
-- Google Vision API (receipt OCR)
+- Azure Document Intelligence (receipt OCR, prebuilt-receipt model)
 - Expo Push Notifications (free, iOS + Android)
 - Vercel hosting + Vercel Cron (scheduled jobs)
 - Resend (transactional email, invites only)
@@ -50,7 +50,7 @@ App slogan options (decision pending):
 ## Operating Costs (at launch = ~$0/month)
 - Vercel: free hobby tier
 - Neon: free tier (0.5GB)
-- Google Vision: free up to 1,000 units/month
+- Azure Document Intelligence: 500 scans/month free on F0 tier
 - Expo push: free forever
 - Resend: 3,000 emails/month free
 - Open-Meteo: free, no key
@@ -88,7 +88,7 @@ Admin (free):
 Admin (premium):
 - Everything Admin has
 - Bill splitting
-- Receipt scanning (Google Vision)
+- Receipt scanning (Azure Document Intelligence)
 - Expense tracking + history
 - Ambient tablet mode
 - Multiple grocery lists
@@ -143,7 +143,7 @@ Tasks: one-off to-dos
 - Track who owes what, no in-app payments
 - Users settle in cash/Venmo themselves
 - Debt simplification: if A owes B and B owes C, simplify to A owes C
-- Receipt scanning: photo in-app, Google Vision OCR,
+- Receipt scanning: photo in-app, Azure Document Intelligence OCR,
   editable line items, manual fallback if scan fails
 
 ## Features: Gamification
@@ -530,7 +530,7 @@ src/app/api/allowances/route.ts               GET: payout history for household,
 src/app/api/allowances/child/route.ts         GET: allowance settings + payouts + current week progress for current user
 src/app/api/cron/allowances/route.ts          Vercel cron GET (Sunday 11pm UTC): evaluate chore completion, create expense entries
 src/components/shared/AllowanceWidget.tsx     Child-only widget: weekly progress bar, status message, last 4 weeks history
-src/lib/utils/googleVision.ts               parseReceiptImage(base64) calls Vision TEXT_DETECTION, returns ParsedReceipt
+src/lib/utils/azureReceipts.ts              parseReceiptImage(base64) via Azure Document Intelligence prebuilt-receipt, returns ParsedReceipt
 src/lib/utils/imageUpload.ts                fileToBase64(File), validateReceiptImage(File) client-side helpers
 src/app/api/expenses/scan/route.ts          POST: premium + non-child only, accepts { imageBase64 }, returns { receipt: ParsedReceipt }
 src/components/expenses/ReceiptScanner.tsx  Scan flow UI: idle (camera + upload buttons), scanning (animated), error (retry)
@@ -692,11 +692,19 @@ src/app/api/cron/subscription/route.ts        Daily cron: expire premium househo
   pill for premium/multi-list. Right side always has + add item and ... more menu.
 
 ## Receipt Scanning Rules
-- Uses Google Vision TEXT_DETECTION feature via /api/expenses/scan (premium + non-child only)
+- Uses Azure Document Intelligence prebuilt-receipt model via /api/expenses/scan (premium + non-child only)
+- SDK: @azure/ai-form-recognizer — DocumentAnalysisClient, AzureKeyCredential, beginAnalyzeDocument
+- Returns structured JSON directly (no custom regex parser) — handles all receipt formats automatically via ML
+- Free tier: 500 scans/month on F0 pricing tier
+- Env vars required: AZURE_DOCUMENT_INTELLIGENCE_KEY, AZURE_DOCUMENT_INTELLIGENCE_ENDPOINT
+  Both must be added to Vercel dashboard before deploying
 - Images converted to base64 client-side before POST (fileToBase64 in src/lib/utils/imageUpload.ts)
 - Max image size: 10MB. Accepted types: jpg, png, webp, heic
 - Mobile: camera input uses capture="environment". Desktop: file picker, no capture attribute
 - Both paths send JSON { imageBase64 } to the same /api/expenses/scan endpoint
+- ReceiptScanner shows a photo tips overlay once per session (sessionStorage key "roost-receipt-tips-dismissed")
+  Tips: Sun (good lighting), Maximize2 (camera above), Square (plain dark surface), Crop (full receipt in frame)
+  Dismissing tips auto-triggers the camera or file input the user originally tapped
 - Line items are editable (description + amount) in LineItemEditor before confirming
 - Per-item assignment: assignedTo[] empty = split equally, non-empty = split among those members
 - "Or enter items manually" skips scanning and goes straight to LineItemEditor with empty lineItems
@@ -704,36 +712,14 @@ src/app/api/cron/subscription/route.ts        Daily cron: expire premium househo
 - receipt_data stored as JSON string in expenses.receipt_data column (schema already had this column)
 - Expense list rows with receipt_data show a small green Receipt icon badge next to the title
 - View mode shows collapsible "Receipt items" section when receipt_data has lineItems
-- Parser tags (src/lib/utils/googleVision.ts): PRICE, PRICE_AFTER, PRICE_INLINE, BARCODE, WEIGHT, FOOTER, ITEM
-- ALWAYS_SKIP predicate: array of regexes unconditionally skipped anywhere — no headerDone flag needed
-  Patterns: walmart, neighborhood market, phone numbers, street addresses, city/state/zip, ST#/TC#/OP#,
-  cashier, station, datetime lines, mgr., OCR gibberish, non-ASCII, visa tend, change due
-- Footer totals extracted in a second pass over all lines after the main item loop:
-    Walmart format: label on one line, value on next — /^subtotal$/i + nextIsNumber, /^total$/i + nextIsNumber
-    Walmart tax: "TAX1" / "7.0000 %" / value two lines ahead — /^tax\d*$/i + lines[i+2] check
-    Asian market: same-line format "Subtotal: $77.04" — /^(subtotal|total|tax)\D*\$?(\d+\.\d{2})/i
-    Second-pass only sets values that are still undefined (same-line match won't overwrite Walmart two-line match)
 - Expense amount pre-fill uses receipt.total (after tax) ?? receipt.subtotal ?? item sum (ExpenseSheet.tsx handleLineItemsConfirmed)
-- LineItemEditor "Receipt total (after tax)" label uses receipt.total — shows parsed after-tax total from footer
-- Walmart Vision format: two-column receipt split into 2-3 lines per item:
-    Line 1 (ITEM): "CRM COCO VAN 818290017570 F" — name + optional embedded barcode + optional flag
-    Line 2 (BARCODE or WEIGHT, skip): "681131387480 F" or "0.520 lb. @ 1 lb. /1.26"
-    Line 3 (PRICE): "5.26 N" — decimal + tax letter [NXOF0]
-- Queue-based state machine handles both orderings (price-before-name and name-before-price):
-    nameQueue (string[]) + priceQueue (number[])
-    PRICE/PRICE_AFTER: if nameQueue non-empty, shift name and emit; else push to priceQueue
-    ITEM: if priceQueue non-empty, shift price and emit immediately; else push to nameQueue
-    post-loop drain zips remaining nameQueue + priceQueue pairs
-- cleanName(): strips embedded 8+ digit barcodes, trailing single-letter flags, "@ lb." descriptions
-- PRICE_AFTER: "$6.99 F" standalone (Asian market) — same queue shift logic as PRICE
-- PRICE_INLINE: "ITEM NAME $3.99 FT" — emits immediately, no queue involvement (Asian market)
-- hardSkip only blocks definitive non-item metadata (payment type, auth codes, cashier lines)
-- Empty scan results (Vision worked, 0 items) show 'empty' state (amber) with "Add items manually"
+- LineItemEditor "Receipt total (after tax)" label uses receipt.total
+- Empty scan results (Azure worked, 0 items) show 'empty' state (amber) with "Add items manually"
   button, NOT the error state — error state is only for actual API/network failures
 - API always returns 200 with the ParsedReceipt even when lineItems is empty; includes
   warning field when empty: { receipt, warning: "No items detected..." }
 - Never throw errors for empty line items — empty is valid, user adds manually in LineItemEditor
-- Debug: console.log("[Vision] raw text: ...") logs first 500 chars of Vision output to server terminal
+- Google Vision: removed entirely (googleVision.ts deleted, GOOGLE_VISION_API_KEY no longer used)
 
 ## Key Rules
 - Toasts: use sonner only. Import { toast } from "sonner" in client components.
@@ -826,7 +812,7 @@ Phase 2: Daily Use
 Phase 3: Money (premium)
   Expenses: DONE, manual entry, split 3 ways, settle up, debt simplification, premium gate
   Bill splitting: DONE (part of expenses module)
-  Receipt scanning: DONE, Google Vision TEXT_DETECTION, editable line items, per-member assignment
+  Receipt scanning: DONE, Azure Document Intelligence prebuilt-receipt, editable line items, per-member assignment
   Stripe billing: DONE, Checkout, webhooks, cancel/reactivate, Customer Portal, /settings/billing
 
 Phase 4: Polish
@@ -893,7 +879,8 @@ RESEND_API_KEY
 STRIPE_SECRET_KEY
 STRIPE_WEBHOOK_SECRET
 NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
-GOOGLE_VISION_API_KEY
+AZURE_DOCUMENT_INTELLIGENCE_KEY
+AZURE_DOCUMENT_INTELLIGENCE_ENDPOINT
 EXPO_ACCESS_TOKEN
 CRON_SECRET
 

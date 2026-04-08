@@ -31,7 +31,7 @@ import ReceiptScanner from '@/components/expenses/ReceiptScanner';
 import LineItemEditor, {
   type LineItemAssignment,
 } from '@/components/expenses/LineItemEditor';
-import type { ParsedReceipt } from '@/lib/utils/googleVision';
+import type { ParsedReceipt } from '@/lib/utils/azureReceipts';
 
 const COLOR = '#22C55E';
 const COLOR_DARK = '#16A34A';

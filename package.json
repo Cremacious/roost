@@ -19,6 +19,7 @@
     "test:e2e:headed": "playwright test --headed"
   },
   "dependencies": {
+    "@azure/ai-form-recognizer": "^5.1.0",
     "@neondatabase/serverless": "^1.0.2",
     "@tanstack/react-query": "^5.96.2",
     "@tanstack/react-query-devtools": "^5.96.2",

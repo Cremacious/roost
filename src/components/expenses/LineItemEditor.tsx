@@ -4,7 +4,7 @@ import { useState } from "react";
 import { motion } from "framer-motion";
 import { Plus, RotateCcw, X } from "lucide-react";
 import MemberAvatar from "@/components/shared/MemberAvatar";
-import type { ParsedReceipt } from "@/lib/utils/googleVision";
+import type { ParsedReceipt } from "@/lib/utils/azureReceipts";
 
 const COLOR = "#22C55E";
 const COLOR_DARK = "#159040";

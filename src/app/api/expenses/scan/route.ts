@@ -4,14 +4,14 @@ import { db } from "@/lib/db";
 import { households } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { getUserHousehold } from "@/app/api/chores/route";
-import { parseReceiptImage } from "@/lib/utils/googleVision";
+import { parseReceiptImage } from "@/lib/utils/azureReceipts";
 
 // Max base64 length for a 10MB image (10 * 1024 * 1024 / 0.75 ≈ 13,981,013)
 const MAX_BASE64_LENGTH = 14_000_000;
 
 export async function POST(request: NextRequest): Promise<Response> {
   console.log("[scan] route hit:", {
-    hasKey: !!process.env.GOOGLE_VISION_API_KEY,
+    hasEndpoint: !!process.env.AZURE_DOCUMENT_INTELLIGENCE_ENDPOINT,
     nodeEnv: process.env.NODE_ENV,
   });
 

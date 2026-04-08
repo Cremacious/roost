@@ -10,7 +10,7 @@ import {
 } from "@/db/schema";
 import { and, count, desc, eq, gte, isNull, lte, sql } from "drizzle-orm";
 import { getUserHousehold } from "@/app/api/chores/route";
-import { format, startOfWeek } from "date-fns";
+import { endOfDay, format, startOfDay, startOfWeek } from "date-fns";
 
 export async function GET(request: NextRequest): Promise<Response> {
   let session;
@@ -47,14 +47,15 @@ export async function GET(request: NextRequest): Promise<Response> {
   const limit = Math.min(200, Math.max(1, parseInt(url.searchParams.get("limit") ?? "50", 10)));
   const offset = Math.max(0, parseInt(url.searchParams.get("offset") ?? "0", 10));
 
-  // Build where conditions
-  const toDate = toStr ? new Date(toStr) : null;
-  if (toDate) toDate.setHours(23, 59, 59, 999);
+  // Parse date strings as local midnight (not UTC midnight) so startOfDay/endOfDay
+  // work correctly regardless of server timezone.
+  const fromDate = fromStr ? startOfDay(new Date(`${fromStr}T00:00:00`)) : null;
+  const toDate = toStr ? endOfDay(new Date(`${toStr}T00:00:00`)) : null;
 
   const baseConditions = [
     eq(chores.household_id, householdId),
     isNull(chores.deleted_at),
-    fromStr ? gte(chore_completions.completed_at, new Date(fromStr)) : undefined,
+    fromDate ? gte(chore_completions.completed_at, fromDate) : undefined,
     toDate ? lte(chore_completions.completed_at, toDate) : undefined,
   ];
 
@@ -74,7 +75,8 @@ export async function GET(request: NextRequest): Promise<Response> {
     .where(whereClause);
   const total = totalResult?.total ?? 0;
 
-  // Main completions query
+  // Main completions query — leftJoin users so completions are never dropped
+  // if a users row is missing (defensive)
   const rows = await db
     .select({
       id: chore_completions.id,
@@ -86,7 +88,7 @@ export async function GET(request: NextRequest): Promise<Response> {
     })
     .from(chore_completions)
     .innerJoin(chores, eq(chore_completions.chore_id, chores.id))
-    .innerJoin(users, eq(chore_completions.completed_by, users.id))
+    .leftJoin(users, eq(chore_completions.completed_by, users.id))
     .where(whereClause)
     .orderBy(desc(chore_completions.completed_at))
     .limit(limit)
@@ -100,7 +102,7 @@ export async function GET(request: NextRequest): Promise<Response> {
     })
     .from(chore_completions)
     .innerJoin(chores, eq(chore_completions.chore_id, chores.id))
-    .innerJoin(users, eq(chore_completions.completed_by, users.id))
+    .leftJoin(users, eq(chore_completions.completed_by, users.id))
     .where(statsWhereClause)
     .groupBy(chore_completions.completed_by, users.name)
     .orderBy(desc(sql`count(*)`))
@@ -130,8 +132,8 @@ export async function GET(request: NextRequest): Promise<Response> {
     completedAt: r.completedAt?.toISOString() ?? "",
     member: {
       id: r.memberId,
-      name: r.memberName,
-      avatarColor: r.memberAvatarColor,
+      name: r.memberName ?? "Unknown",
+      avatarColor: r.memberAvatarColor ?? null,
     },
     pointsEarned: 10,
   }));

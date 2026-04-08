@@ -950,6 +950,8 @@ Designer brief (send this when hiring):
 - Chores: daily = free, weekly/monthly/custom = premium (Lock icon shown on premium freq buttons)
 - Leaderboard button: Lock icon shown + clicking shows UpgradePrompt when not premium
 - History button: always shown in chores header (no lock), premium gate is on the history page itself via PremiumGate component
+- Chore history date filtering: parse date strings with `new Date("${dateStr}T00:00:00")` (no Z) to get local midnight, then use date-fns startOfDay/endOfDay. Using `new Date("2026-04-08")` parses UTC midnight — setHours() then breaks on non-UTC servers.
+- Chore history users join: leftJoin (not innerJoin) so completions are never silently dropped if a users row is missing
 - Grocery: pill row shows for (isPremium || lists.length > 1); + button shows Lock icon for free users
 - Settings theme picker: non-default themes show Lock icon overlay for free users, click shows UpgradePrompt
 - Expenses: free users see inline upgrade pitch card (no blurred preview), premium users see full module
@@ -1042,6 +1044,16 @@ Last updated: 2026-04-07 (Homepage redesigned: 9 sections with 6 alternating fea
 - /settings/billing: free users see upgrade card; premium users see features + manage/cancel; 
   cancelling users see amber warning + reactivate; success/cancelled URL params show dismissing banners
 - STRIPE_PRICE_ID env var: the monthly $3 price ID (price_...) from Stripe dashboard
+
+## Bugs Found and Fixed (2026-04-08)
+- Chore history showed 0 completions despite chores being completed on the main page.
+  Two root causes in `src/app/api/chores/history/route.ts`:
+  1. `innerJoin(users, ...)` dropped every completion row if the user's row was missing
+     from the app `users` table (the auth databaseHook can fail silently on first signup
+     before the table existed). Fixed by switching to `leftJoin` with `?? "Unknown"` fallback.
+  2. `new Date(dateStr)` parses date-only ISO strings as UTC midnight; `setHours()` then
+     applied LOCAL time offset, making the to-date inconsistent. Fixed by using
+     `startOfDay`/`endOfDay` from date-fns with `T00:00:00` suffix to force local-time parsing.
 
 ## Bugs Found and Fixed (2026-04-05)
 - No default grocery list created on household signup: `GET /api/grocery/lists` now

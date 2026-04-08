@@ -148,20 +148,49 @@
 
 ### 🔜 PLANNED — Not Yet Built
 
-#### Near-term (next sessions)
-- **Grocery price tracking** — when a receipt is scanned, match items to grocery list and record prices. Show price history per item over time.
-- **Calendar event push reminders** — push notification X minutes/hours/days before an event
-- **Rich text notes** — headings, checklists, bold, links (premium)
-- **Guest/temporary member** — invite someone temporarily, auto-expires. Good for trips, Airbnb splitting, visiting family.
-- **Household activity digest email** — weekly email summary of chores, expenses, events sent to all premium members via Resend
-- **Grocery smart sort** — auto-sort list by store section (produce, dairy, frozen, etc.)
-- **Custom chore categories and icons** — admins customize chore organization
+#### Near-term (web, before iOS launch)
 
-#### Platform
-- **iOS app** via Expo — in planning
-- **Android app** via Expo — follows iOS
-- **Ambient tablet mode** — screensaver/dashboard mode for a household tablet
-- **Spanish localization** — i18n pass
+**Premium Themes**
+Unlock 6 additional app themes beyond Default and Midnight: Forest, Slate, Sand, Ocean, Rose, Carbon. CSS-only, zero operating cost.
+Premium feature.
+
+**Recurring Calendar Events**
+Set events to repeat weekly, biweekly, monthly, or yearly. Rent due dates, trash day, family dinners — set once, always there.
+Premium feature.
+
+**Household Stats Page**
+A beautiful dashboard showing your household's activity over time. Chore completion rates, expense trends, most active member, streak leaders. All from data you already have.
+Premium feature.
+
+**Rich Text Notes** (premium)
+Upgrade plain notes with headings, bold, checklists, and links. Powered by Tiptap (open source). Makes notes feel like a real tool.
+Premium feature.
+
+**Guest / Temporary Member**
+Invite someone to your household temporarily with an auto-expiring link. Great for Airbnb splitting, visiting family, or short-term roommates.
+Premium feature.
+
+**Grocery Smart Sort**
+Auto-sort your grocery list by store section: produce, dairy, frozen, bakery, meat. Pure client-side logic.
+Free feature.
+
+**Custom Chore Categories and Icons**
+Admins create custom chore categories. Members can suggest new ones. Admins approve.
+Premium feature.
+
+**Superadmin Panel** (/admin)
+Internal dashboard for the Roost team. Not user-facing. Protected by separate admin credentials.
+- User and household management
+- Subscription override (manually set premium)
+- Signup and conversion charts
+- Activity metrics across all households
+- CSV export
+
+#### Platform (after web launch)
+- iOS app via Expo
+- Android app via Expo
+- Ambient tablet mode
+- Spanish localization
 
 ---
 
@@ -215,6 +244,22 @@
 ### Smart suggestions gate
 **Title:** "Meal ideas, on demand."
 **Body:** "Roost can suggest meals based on your household's favorites. Upgrade to unlock smart suggestions."
+
+### Household stats gate
+**Title:** "See how your household is doing."
+**Body:** "Chore completion rates, spending trends, streak leaders, and activity over time. All the data you've been generating, finally visualized."
+
+### Guest member gate
+**Title:** "Invite a temporary member."
+**Body:** "Add someone to your household for a set period — perfect for splitting Airbnb costs, hosting family, or short-term roommates. Auto-expires so you never have to remember to remove them."
+
+### Custom categories gate
+**Title:** "Organize chores your way."
+**Body:** "Create custom categories and icons that match how your household actually works. Your home, your system."
+
+### Rich text notes gate
+**Title:** "Notes worth keeping."
+**Body:** "Add headings, checklists, bold text, and links to your household notes. Upgrade from a scratchpad to a real knowledge base."
 
 ### General premium gate (fallback)
 **Title:** "Upgrade to Roost Premium"

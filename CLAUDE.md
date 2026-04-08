@@ -5,6 +5,80 @@
 See FEATURES.md in the root of the repo for the complete list of built and planned
 features, paywall copy, and App Store description. Update it whenever a new feature ships.
 
+## Product Roadmap
+
+### Web Features (build before iOS launch)
+Priority order:
+
+1. Premium themes
+   - Forest, Slate, Sand, Ocean, Rose, Carbon
+   - Already defined in FREE_TIER_LIMITS constants
+   - CSS variables only, zero operating cost
+   - Status: PLANNED
+
+2. Recurring calendar events
+   - Server-side code exists, UI not built
+   - Weekly, biweekly, monthly, yearly
+   - Status: PLANNED
+
+3. Household stats page (/stats or /insights)
+   - Uses existing data, no new APIs needed
+   - Chore completion rates, expense totals,
+     most active member, streak leaders,
+     household activity over time
+   - Premium feature
+   - Status: PLANNED
+
+4. Rich text notes (premium)
+   - Replace plain textarea with Tiptap editor
+   - Headings, bold, italic, checklists, links
+   - Tiptap is open source, zero cost
+   - Status: PLANNED
+
+5. Guest/temporary member
+   - Invite someone temporarily via link or code
+   - Auto-expires after a set date
+   - Good for Airbnb splitting, visiting family,
+     roommate turnover
+   - Premium feature
+   - Status: PLANNED
+
+6. Grocery smart sort
+   - Auto-sort list by store section
+   - Produce, dairy, frozen, bakery, meat, etc.
+   - Pure client-side logic, zero API cost
+   - Free feature
+   - Status: PLANNED
+
+7. Custom chore categories and icons
+   - Admins create custom categories
+   - Members can suggest categories
+   - Premium feature
+   - Status: PLANNED
+
+8. Superadmin panel (/admin — separate from app)
+   - Internal tool, not user-facing
+   - Protected by separate admin credentials
+   - Features:
+     - User list with search and filters
+     - Household list with subscription status
+     - Charts: signups over time, premium
+       conversion rate, active households,
+       chore/expense/meal activity metrics
+     - Manually set any household to
+       premium or free (override Stripe)
+     - View any user's household, role,
+       join date, last active
+     - Impersonate user (view-only mode)
+     - Export user data as CSV
+   - Status: PLANNED
+
+### Platform (after web is launched)
+9. iOS app via Expo
+10. Android app via Expo
+11. Ambient tablet mode
+12. Spanish localization (i18n pass)
+
 ## What This Is
 Household management app. The household OS for families, roommates,
 and college students. Chores, grocery lists, meal planning, bill
@@ -1080,7 +1154,9 @@ Update this file after every major decision or completed phase.
 - Dashboard tile selector: use `.locator('button, a').filter({ hasText: 'Chores' }).first()` to avoid strict mode (both button and inner `<p>` match plain `text=Chores`)
 - `uniqueUser` in test files must be a factory function `() => ({...})`, not a plain object — reusing the same email across tests causes "email already exists" failures when tests run serially
 
-Last updated: 2026-04-09 (Premium limit centralization pass. freeTierLimits.ts expanded: PREMIUM_TIER_LIMITS, PREMIUM_FEATURES, FREE_THEMES, PREMIUM_THEMES, ALL_THEMES, Theme type, getLimit(), isPremiumFeature() helpers. All 6 API routes (chores, tasks, calendar, reminders, meals, household/join) fixed to use FREE_TIER_LIMITS constants instead of raw numbers in error responses. MealSheet client-side hardcode fixed. child limit (children: 1) now enforced in role assignment route via new checkChildLimit() in premiumGating.ts. Theme route rewritten to import ALL_THEMES/PREMIUM_THEMES and enforce premium gate. Chore history error code standardized to CHORE_HISTORY_PREMIUM. UpgradePrompt gains CHILDREN_LIMIT entry (Baby icon). Error codes list updated: CHILDREN_LIMIT, CHORE_HISTORY_PREMIUM added. calendarEventsPerMonth renamed to calendarEvents; activeSingleReminders renamed to reminders in FREE_TIER_LIMITS.)
+Last updated: 2026-04-09 (Product roadmap documented. Added ## Product Roadmap section to CLAUDE.md with 8 prioritized web features (premium themes, recurring calendar events, household stats page, rich text notes, guest member, grocery smart sort, custom chore categories, superadmin panel) and platform phase (iOS, Android, ambient mode, i18n). FEATURES.md planned section replaced with structured near-term list matching roadmap priority order. Paywall copy added for household stats, guest member, custom categories, and rich text notes gates.)
+
+Previous: 2026-04-09 (Premium limit centralization pass. freeTierLimits.ts expanded: PREMIUM_TIER_LIMITS, PREMIUM_FEATURES, FREE_THEMES, PREMIUM_THEMES, ALL_THEMES, Theme type, getLimit(), isPremiumFeature() helpers. All 6 API routes (chores, tasks, calendar, reminders, meals, household/join) fixed to use FREE_TIER_LIMITS constants instead of raw numbers in error responses. MealSheet client-side hardcode fixed. child limit (children: 1) now enforced in role assignment route via new checkChildLimit() in premiumGating.ts. Theme route rewritten to import ALL_THEMES/PREMIUM_THEMES and enforce premium gate. Chore history error code standardized to CHORE_HISTORY_PREMIUM. UpgradePrompt gains CHILDREN_LIMIT entry (Baby icon). Error codes list updated: CHILDREN_LIMIT, CHORE_HISTORY_PREMIUM added. calendarEventsPerMonth renamed to calendarEvents; activeSingleReminders renamed to reminders in FREE_TIER_LIMITS.)
 
 Previous: 2026-04-09 (Meals gating corrected. Meals module is FREE (planner, bank, suggestions, voting, grocery add). Only the 5-meal bank limit is premium-gated. Removed PremiumGate from meals/page.tsx. MealSheet gains isPremium + mealCount props; client-side pre-check blocks save at 5 meals and calls onUpgradeRequired("MEAL_BANK_LIMIT") before API call. Server-side check already existed in POST /api/meals via checkMealBankLimit. MEAL_BANK_LIMIT UpgradePrompt entry updated: icon UtensilsCrossed, new title/body. PremiumGate meals feature entry left in PremiumGate.tsx for future use but no longer triggered. FEATURES.md restructured: Meals (Free) added to free tier, Meals (Premium) now covers unlimited bank + smart suggestions only.)
 

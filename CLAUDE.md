@@ -535,6 +535,8 @@ src/lib/utils/imageUpload.ts                fileToBase64(File), validateReceiptI
 src/app/api/expenses/scan/route.ts          POST: premium + non-child only, accepts { imageBase64 }, returns { receipt: ParsedReceipt }
 src/components/expenses/ReceiptScanner.tsx  Scan flow UI: idle (camera + upload buttons), scanning (animated), error (retry)
 src/components/expenses/LineItemEditor.tsx  Edit scanned line items, assign per member or split equally, confirm to pre-fill form
+src/app/api/chores/history/route.ts         GET: premium-only, filtered chore_completions with member/date filters, returns completions + stats
+src/app/(app)/chores/history/page.tsx       Chore completion history: member pills, date range, stats row, date-grouped list, load more
 src/app/page.tsx                              Public marketing homepage (server component, no app shell). Sections: Nav, mobile teaser bar, hero, problem, 6 alternating feature rows (Chores/Grocery/Calendar/Expenses/Reminders/Meals each with realistic UI mockup), comparison table vs Splitwise/Cozi, personas (3 cards), bottom CTA, footer. No pricing section. Red nav and footer, warm-tinted feature sections, no dark sections. Mobile responsive via CSS class + <style> media queries at 640px: nav hides Features link, feature rows stack vertically with mockup centered, comparison table 16px padding, personas 1 col, all sections reduce padding to ~48px 20px, footer stacks vertically.
 src/app/(auth)/login/page.tsx                 Split layout: red left panel (desktop), form right panel; slab inputs on #FFF5F5
 src/app/(auth)/signup/page.tsx                Split layout matching login; all validation logic preserved
@@ -947,6 +949,7 @@ Designer brief (send this when hiring):
 - UpgradePrompt is the shared component for in-sheet upgrade display; maps codes to icon/title/body
 - Chores: daily = free, weekly/monthly/custom = premium (Lock icon shown on premium freq buttons)
 - Leaderboard button: Lock icon shown + clicking shows UpgradePrompt when not premium
+- History button: always shown in chores header (no lock), premium gate is on the history page itself via PremiumGate component
 - Grocery: pill row shows for (isPremium || lists.length > 1); + button shows Lock icon for free users
 - Settings theme picker: non-default themes show Lock icon overlay for free users, click shows UpgradePrompt
 - Expenses: free users see inline upgrade pitch card (no blurred preview), premium users see full module

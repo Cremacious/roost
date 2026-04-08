@@ -9,11 +9,13 @@ import {
   ChevronDown,
   ChevronUp,
   ClipboardList,
+  History,
   Lock,
   Pencil,
   Plus,
   Trophy,
 } from "lucide-react";
+import Link from "next/link";
 import { isPast } from "date-fns";
 import { motion, AnimatePresence } from "framer-motion";
 import ChoreSheet, { type ChoreData } from "@/components/chores/ChoreSheet";
@@ -243,23 +245,39 @@ export default function ChoresPage() {
             </span>
           )}
         </div>
-        <motion.button
-          type="button"
-          onClick={() => isPremium ? setLeaderboardOpen(true) : setUpgradeCode("LEADERBOARD_PREMIUM")}
-          whileTap={{ y: 1 }}
-          className="flex h-10 items-center gap-1.5 rounded-xl px-3 text-sm"
-          style={{
-            backgroundColor: "var(--roost-surface)",
-            border: "1.5px solid var(--roost-border)",
-            borderBottom: "3px solid #E5E7EB",
-            color: "var(--roost-text-primary)",
-            fontWeight: 700,
-          }}
-        >
-          <Trophy className="size-4" style={{ color: "#F59E0B" }} />
-          Leaderboard
-          {!isPremium && <Lock className="size-3 ml-0.5" style={{ color: "var(--roost-text-muted)" }} />}
-        </motion.button>
+        <div className="flex items-center gap-2">
+          <Link
+            href="/chores/history"
+            className="flex h-10 items-center gap-1.5 rounded-xl px-3 text-sm"
+            style={{
+              backgroundColor: "var(--roost-surface)",
+              border: "1.5px solid var(--roost-border)",
+              borderBottom: "3px solid #E5E7EB",
+              color: "var(--roost-text-primary)",
+              fontWeight: 700,
+            }}
+          >
+            <History className="size-4" style={{ color: COLOR }} />
+            History
+          </Link>
+          <motion.button
+            type="button"
+            onClick={() => isPremium ? setLeaderboardOpen(true) : setUpgradeCode("LEADERBOARD_PREMIUM")}
+            whileTap={{ y: 1 }}
+            className="flex h-10 items-center gap-1.5 rounded-xl px-3 text-sm"
+            style={{
+              backgroundColor: "var(--roost-surface)",
+              border: "1.5px solid var(--roost-border)",
+              borderBottom: "3px solid #E5E7EB",
+              color: "var(--roost-text-primary)",
+              fontWeight: 700,
+            }}
+          >
+            <Trophy className="size-4" style={{ color: "#F59E0B" }} />
+            Leaderboard
+            {!isPremium && <Lock className="size-3 ml-0.5" style={{ color: "var(--roost-text-muted)" }} />}
+          </motion.button>
+        </div>
       </div>
 
       {/* Stats bar */}

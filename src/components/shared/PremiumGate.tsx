@@ -1,4 +1,4 @@
-import { Home, ListPlus, Receipt, ScanLine } from "lucide-react";
+import { ClipboardList, Home, ListPlus, Receipt, ScanLine } from "lucide-react";
 import { motion } from "framer-motion";
 import { useRouter } from "next/navigation";
 import MockExpensesPreview from "@/components/expenses/MockExpensesPreview";
@@ -6,7 +6,7 @@ import MockExpensesPreview from "@/components/expenses/MockExpensesPreview";
 const COLOR = "#22C55E";
 const COLOR_DARK = "#159040";
 
-type Feature = "expenses" | "receipt-scanning" | "multiple-lists" | "multiple-households";
+type Feature = "expenses" | "receipt-scanning" | "multiple-lists" | "multiple-households" | "chore-history";
 
 interface FeatureConfig {
   icon: React.ElementType;
@@ -36,6 +36,11 @@ const FEATURES: Record<Feature, FeatureConfig> = {
     icon: Home,
     title: "Multiple households.",
     body: "Belong to your family home and your college house at the same time. Switch between them instantly.",
+  },
+  "chore-history": {
+    icon: ClipboardList,
+    title: "See every chore, ever completed.",
+    body: "Track your household's full completion history. See who's pulling their weight and who needs a nudge.",
   },
 };
 

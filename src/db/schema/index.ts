@@ -13,3 +13,4 @@ export * from "./activity";
 export * from "./meals";
 export * from "./reminders";
 export * from "./allowances";
+export * from "./recurring_expenses";

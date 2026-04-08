@@ -549,6 +549,13 @@ src/app/api/expenses/settle-all/remind/route.ts   POST: send reminder to payee (
 src/app/api/expenses/export/route.ts        GET: export expenses as CSV or PDF (pdfkit, premium only)
 src/app/api/expenses/export/preview/route.ts  GET: preview count + total for date range (premium only)
 src/app/api/cron/settlement-reminders/route.ts  Daily 10am UTC: notify payees of pending claims >7 days old
+src/db/schema/recurring_expenses.ts           recurring_expense_templates table: id, household_id, created_by, title, category, notes, total_amount, frequency, next_due_date, last_posted_at, paused, splits (json), created_at, updated_at, deleted_at
+src/app/api/expenses/recurring/route.ts       GET: list all templates (non-deleted, premium-gated); POST: create template (admin + premium); exports advanceRecurringDate(from, frequency) helper
+src/app/api/expenses/recurring/[id]/route.ts  PATCH: update template (paused, title, notes, frequency, totalAmount, splits); DELETE: soft-delete + unlink expense history
+src/app/api/expenses/recurring/[id]/post/route.ts  POST: admin confirms draft (converts is_recurring_draft=true to false, or creates fresh); advances next_due_date; notifies all members
+src/app/api/expenses/recurring/[id]/skip/route.ts  POST: skip cycle without posting; deletes draft; advances next_due_date
+src/app/api/cron/recurring-expenses/route.ts  Daily 8am UTC: create draft expenses for due templates; notify admins; remind for >3-day-old unconfirmed drafts
+src/components/expenses/RecurringDraftSheet.tsx  Bottom sheet listing pending draft expenses; Post/Skip per card; auto-closes when all handled
 src/app/page.tsx                              Public marketing homepage (server component, no app shell). Sections: Nav, mobile teaser bar, hero, problem, 6 alternating feature rows (Chores/Grocery/Calendar/Expenses/Reminders/Meals each with realistic UI mockup), comparison table vs Splitwise/Cozi, personas (3 cards), bottom CTA, footer. No pricing section. Red nav and footer, warm-tinted feature sections, no dark sections. Mobile responsive via CSS class + <style> media queries at 640px: nav hides Features link, feature rows stack vertically with mockup centered, comparison table 16px padding, personas 1 col, all sections reduce padding to ~48px 20px, footer stacks vertically.
 src/app/(auth)/login/page.tsx                 Split layout: red left panel (desktop), form right panel; slab inputs on #FFF5F5
 src/app/(auth)/signup/page.tsx                Split layout matching login; all validation logic preserved
@@ -1048,7 +1055,29 @@ Update this file after every major decision or completed phase.
 - Dashboard tile selector: use `.locator('button, a').filter({ hasText: 'Chores' }).first()` to avoid strict mode (both button and inner `<p>` match plain `text=Chores`)
 - `uniqueUser` in test files must be a factory function `() => ({...})`, not a plain object — reusing the same email across tests causes "email already exists" failures when tests run serially
 
-Last updated: 2026-04-08 (Expenses redesign: two-col desktop, chip strip mobile. Two-sided settlement: claim/confirm/dispute/cancel/remind routes. Export: CSV + PDF via pdfkit. Settlement-reminders cron daily 10am UTC. Schema: settled_by_payer/payee/claimed_at/last_reminded_at/disputed added to expense_splits. DebtCard pending states: payer-pending opacity+amber badge+inline remind/cancel; payee-pending pulse dot+"Confirm received". pendingClaim embedded in DebtItem. SettleSheet initialState prop.)
+Last updated: 2026-04-08 (Recurring expenses feature complete. Schema: recurring_expense_templates + expenses.recurring_template_id + expenses.is_recurring_draft. API: GET/POST /api/expenses/recurring, PATCH/DELETE /[id], POST /[id]/post, POST /[id]/skip. Cron: /api/cron/recurring-expenses daily 8am UTC creates drafts + 3-day stale reminders. UI: RepeatToggle in ExpenseSheet create mode (premium-gated, freq pills + start date); view mode recurring section (pause/resume/remove); RecurringDraftSheet for admin draft review; amber draft banner on expenses page; RefreshCw icon on recurring expense rows.)
+
+## Recurring Expenses UX Patterns
+- Premium + admin-only feature
+- Template stores: title, category, frequency, splits (JSON), next_due_date, paused flag
+- frequency options: weekly, biweekly, monthly, yearly
+- Cron creates is_recurring_draft=true expense from template when next_due_date <= today
+- Admin sees amber banner on expenses page when recurringDrafts.length > 0
+- Banner opens RecurringDraftSheet: Post button (confirms draft, advances due date, notifies members) + Skip button (deletes draft, advances due date, no notification)
+- ExpenseSheet create mode: "Repeat" toggle at bottom above save button
+  - Locked with Lock icon for non-premium users (tap calls onUpgradeRequired)
+  - Toggle on shows frequency pills + "First due" date input
+  - Save creates template (POST /api/expenses/recurring) instead of one-off expense
+  - Save button label changes to "Save Recurring" when repeat is on
+- ExpenseSheet view mode: if expense.recurring_template_id set and template passed as prop, shows "Recurring" section with frequency + next due date
+  - Admin sees Pause/Resume toggle + "Remove" (delete template, keep expense history)
+  - remove triggers AlertDialog confirmation before DELETE
+- advanceRecurringDate(from, frequency) helper exported from /api/expenses/recurring/route.ts
+- recurringTemplates fetched via useQuery(["recurringTemplates"]) on expenses page (premium only)
+- RecurringTemplate passed to ExpenseSheet as optional prop; looked up by recurring_template_id
+- Expenses GET: filters out is_recurring_draft=true from main list; returns recurringDrafts[] separately
+- Expense rows with recurring_template_id show small RefreshCw icon next to title
+- RECURRING_EXPENSES_PREMIUM error code maps to UpgradePrompt in UpgradePrompt.tsx
 
 ## Stripe Billing Rules
 - Stripe Checkout used for payment (redirect to Stripe, return to /settings/billing?success=true)

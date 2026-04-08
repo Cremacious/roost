@@ -20,8 +20,12 @@ import {
 import {
   ChevronDown,
   Loader2,
+  Lock,
+  Pause,
   Pencil,
+  Play,
   Receipt,
+  RefreshCw,
   ScanLine,
   Trash2,
 } from 'lucide-react';
@@ -55,11 +59,23 @@ export interface ExpenseData {
   paid_by: string;
   category: string | null;
   receipt_data: string | null;
+  recurring_template_id: string | null;
+  is_recurring_draft: boolean;
   created_at: string | null;
   updated_at: string | null;
   payer_name: string | null;
   payer_avatar: string | null;
   splits: SplitData[];
+}
+
+export interface RecurringTemplate {
+  id: string;
+  title: string;
+  frequency: string;
+  next_due_date: string;
+  paused: boolean;
+  total_amount: string;
+  splits: { userId: string; amount: number }[];
 }
 
 interface Member {
@@ -76,6 +92,9 @@ interface ExpenseSheetProps {
   currentUserId: string;
   isAdmin: boolean;
   members: Member[];
+  isPremium?: boolean;
+  recurringTemplate?: RecurringTemplate | null;
+  onUpgradeRequired?: (code: string) => void;
 }
 
 // ---- Input style ------------------------------------------------------------
@@ -139,6 +158,13 @@ function buildSplitsFromAssignments(
 
 // ---- Component --------------------------------------------------------------
 
+const FREQ_OPTIONS = [
+  { value: 'weekly', label: 'Weekly' },
+  { value: 'biweekly', label: 'Biweekly' },
+  { value: 'monthly', label: 'Monthly' },
+  { value: 'yearly', label: 'Yearly' },
+] as const;
+
 export default function ExpenseSheet({
   open,
   onClose,
@@ -147,6 +173,9 @@ export default function ExpenseSheet({
   currentUserId,
   isAdmin,
   members,
+  isPremium,
+  recurringTemplate,
+  onUpgradeRequired,
 }: ExpenseSheetProps) {
   const queryClient = useQueryClient();
   const amountRef = useRef<HTMLInputElement>(null);
@@ -162,6 +191,11 @@ export default function ExpenseSheet({
   const [customSplits, setCustomSplits] = useState<Record<string, string>>({});
   const [receiptData, setReceiptData] = useState<string | null>(null);
 
+  // Repeat (recurring)
+  const [repeatOn, setRepeatOn] = useState(false);
+  const [repeatFreq, setRepeatFreq] = useState<'weekly' | 'biweekly' | 'monthly' | 'yearly'>('monthly');
+  const [repeatStartDate, setRepeatStartDate] = useState('');
+
   // Scanner / line item flow
   const [scanView, setScanView] = useState<'form' | 'scanner' | 'lineItems'>(
     'form',
@@ -173,6 +207,7 @@ export default function ExpenseSheet({
   // Misc
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [receiptExpanded, setReceiptExpanded] = useState(false);
+  const [removeRecurrenceDialogOpen, setRemoveRecurrenceDialogOpen] = useState(false);
 
   const canEdit = expense && (expense.paid_by === currentUserId || isAdmin);
 
@@ -191,6 +226,9 @@ export default function ExpenseSheet({
       setSplitMethod('equal');
       setCustomSplits({});
       setReceiptData(null);
+      setRepeatOn(false);
+      setRepeatFreq('monthly');
+      setRepeatStartDate(format(new Date(), 'yyyy-MM-dd'));
       setTimeout(() => amountRef.current?.focus(), 100);
     } else if (expense) {
       setTitle(expense.title);
@@ -291,6 +329,28 @@ export default function ExpenseSheet({
       }
 
       if (mode === 'create') {
+        if (repeatOn) {
+          // Create recurring template instead of a one-off expense
+          const r = await fetch('/api/expenses/recurring', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              title: title.trim(),
+              category: category.trim() || undefined,
+              totalAmount: total,
+              frequency: repeatFreq,
+              startDate: repeatStartDate || format(new Date(), 'yyyy-MM-dd'),
+              splits: splits.map((s) => ({ userId: s.user_id, amount: s.amount })),
+            }),
+          });
+          if (!r.ok) {
+            const d = await r.json().catch(() => ({}));
+            const err = new Error(d.error ?? 'Failed to save recurring expense') as Error & { code?: string };
+            if (d.code) err.code = d.code;
+            throw err;
+          }
+          return r.json();
+        }
         const r = await fetch('/api/expenses', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -305,7 +365,9 @@ export default function ExpenseSheet({
         });
         if (!r.ok) {
           const d = await r.json().catch(() => ({}));
-          throw new Error(d.error ?? 'Failed to save expense');
+          const err = new Error(d.error ?? 'Failed to save expense') as Error & { code?: string };
+          if (d.code) err.code = d.code;
+          throw err;
         }
         return r.json();
       } else {
@@ -326,10 +388,18 @@ export default function ExpenseSheet({
     },
     onSuccess: () => {
       invalidate();
-      toast.success(mode === 'create' ? 'Expense added' : 'Expense updated');
+      queryClient.invalidateQueries({ queryKey: ['recurringTemplates'] });
+      if (mode === 'create' && repeatOn) {
+        toast.success('Recurring expense created', { description: 'A draft will be created when it is due.' });
+      } else {
+        toast.success(mode === 'create' ? 'Expense added' : 'Expense updated');
+      }
       onClose();
     },
-    onError: (err: Error) => toast.error(err.message),
+    onError: (err: Error & { code?: string }) => {
+      if (err.code && onUpgradeRequired) { onUpgradeRequired(err.code); return; }
+      toast.error('Failed to save', { description: err.message });
+    },
   });
 
   const deleteMutation = useMutation({
@@ -348,7 +418,49 @@ export default function ExpenseSheet({
       setDeleteDialogOpen(false);
       onClose();
     },
-    onError: (err: Error) => toast.error(err.message),
+    onError: (err: Error) => toast.error('Failed to delete', { description: err.message }),
+  });
+
+  const pauseResumeMutation = useMutation({
+    mutationFn: async (paused: boolean) => {
+      if (!recurringTemplate) return;
+      const r = await fetch(`/api/expenses/recurring/${recurringTemplate.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ paused }),
+      });
+      if (!r.ok) {
+        const d = await r.json().catch(() => ({}));
+        throw new Error(d.error ?? 'Failed to update');
+      }
+      return r.json();
+    },
+    onSuccess: (_, paused) => {
+      queryClient.invalidateQueries({ queryKey: ['recurringTemplates'] });
+      queryClient.invalidateQueries({ queryKey: ['expenses'] });
+      toast.success(paused ? 'Recurring paused' : 'Recurring resumed');
+    },
+    onError: (err: Error) => toast.error('Failed to update', { description: err.message }),
+  });
+
+  const removeRecurrenceMutation = useMutation({
+    mutationFn: async () => {
+      if (!recurringTemplate) return;
+      const r = await fetch(`/api/expenses/recurring/${recurringTemplate.id}`, {
+        method: 'DELETE',
+      });
+      if (!r.ok) {
+        const d = await r.json().catch(() => ({}));
+        throw new Error(d.error ?? 'Failed to remove recurrence');
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['recurringTemplates'] });
+      queryClient.invalidateQueries({ queryKey: ['expenses'] });
+      toast.success('Recurrence removed', { description: 'This expense will no longer repeat.' });
+      setRemoveRecurrenceDialogOpen(false);
+    },
+    onError: (err: Error) => toast.error('Failed to remove', { description: err.message }),
   });
 
   const total = parseFloat(amount) || 0;
@@ -531,6 +643,84 @@ export default function ExpenseSheet({
               </div>
             )}
 
+            {/* Recurring section */}
+            {expense.recurring_template_id && recurringTemplate && (
+              <div
+                className="mb-4 rounded-2xl p-4"
+                style={{
+                  backgroundColor: `${COLOR}0D`,
+                  border: `1.5px solid ${COLOR}30`,
+                  borderBottom: `4px solid ${COLOR_DARK}`,
+                }}
+              >
+                <div className="flex items-center gap-2 mb-3">
+                  <RefreshCw size={14} style={{ color: COLOR }} />
+                  <span className="text-xs" style={{ color: '#374151', fontWeight: 700 }}>
+                    Recurring
+                  </span>
+                  {recurringTemplate.paused && (
+                    <span
+                      className="rounded-full px-2 py-0.5 text-xs ml-auto"
+                      style={{ backgroundColor: '#FEF3C7', color: '#92400E', fontWeight: 700 }}
+                    >
+                      Paused
+                    </span>
+                  )}
+                </div>
+                <div className="flex items-center gap-4 mb-3">
+                  <div>
+                    <p className="text-xs" style={{ color: 'var(--roost-text-muted)', fontWeight: 600 }}>
+                      Frequency
+                    </p>
+                    <p className="text-sm capitalize" style={{ color: 'var(--roost-text-primary)', fontWeight: 700 }}>
+                      {recurringTemplate.frequency}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-xs" style={{ color: 'var(--roost-text-muted)', fontWeight: 600 }}>
+                      Next due
+                    </p>
+                    <p className="text-sm" style={{ color: 'var(--roost-text-primary)', fontWeight: 700 }}>
+                      {recurringTemplate.next_due_date}
+                    </p>
+                  </div>
+                </div>
+                {isAdmin && (
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => pauseResumeMutation.mutate(!recurringTemplate.paused)}
+                      disabled={pauseResumeMutation.isPending}
+                      className="flex h-9 flex-1 items-center justify-center gap-1.5 rounded-xl text-xs"
+                      style={{
+                        border: `1.5px solid ${COLOR}40`,
+                        borderBottom: `3px solid ${COLOR_DARK}40`,
+                        color: COLOR,
+                        fontWeight: 700,
+                      }}
+                    >
+                      {recurringTemplate.paused ? <Play size={13} /> : <Pause size={13} />}
+                      {recurringTemplate.paused ? 'Resume' : 'Pause'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setRemoveRecurrenceDialogOpen(true)}
+                      className="flex h-9 items-center justify-center gap-1.5 rounded-xl px-3 text-xs"
+                      style={{
+                        border: '1.5px solid #FECACA',
+                        borderBottom: '3px solid #FCA5A5',
+                        color: '#EF4444',
+                        fontWeight: 700,
+                      }}
+                    >
+                      <Trash2 size={13} />
+                      Remove
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* Receipt items (collapsible) */}
             {parsedReceiptData && parsedReceiptData.lineItems.length > 0 && (
               <div className="mb-4">
@@ -632,6 +822,39 @@ export default function ExpenseSheet({
             )}
           </SheetContent>
         </Sheet>
+
+        <Dialog open={removeRecurrenceDialogOpen} onOpenChange={setRemoveRecurrenceDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle style={{ color: 'var(--roost-text-primary)', fontWeight: 800 }}>
+                Remove recurrence?
+              </DialogTitle>
+            </DialogHeader>
+            <p className="text-sm" style={{ color: 'var(--roost-text-secondary)', fontWeight: 600 }}>
+              This expense will no longer repeat. Past expenses are kept.
+            </p>
+            <DialogFooter className="mt-2 gap-2">
+              <button
+                type="button"
+                onClick={() => setRemoveRecurrenceDialogOpen(false)}
+                className="flex h-11 flex-1 items-center justify-center rounded-xl text-sm"
+                style={{ border: '1.5px solid #E5E7EB', borderBottom: '3px solid #E5E7EB', color: 'var(--roost-text-primary)', fontWeight: 700 }}
+              >
+                Cancel
+              </button>
+              <motion.button
+                type="button"
+                whileTap={{ y: 1 }}
+                onClick={() => removeRecurrenceMutation.mutate()}
+                disabled={removeRecurrenceMutation.isPending}
+                className="flex h-11 flex-1 items-center justify-center rounded-xl text-sm text-white"
+                style={{ backgroundColor: '#EF4444', border: '1.5px solid #C93B3B', borderBottom: '3px solid #A63030', fontWeight: 800, opacity: removeRecurrenceMutation.isPending ? 0.7 : 1 }}
+              >
+                {removeRecurrenceMutation.isPending ? <Loader2 className="size-4 animate-spin" /> : 'Remove'}
+              </motion.button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
 
         <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
           <DialogContent>
@@ -1086,6 +1309,88 @@ export default function ExpenseSheet({
                 </div>
               )}
 
+              {/* Repeat (recurring) — create mode only */}
+              {mode === 'create' && (
+                <div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (!isPremium) {
+                        onUpgradeRequired?.('RECURRING_EXPENSES_PREMIUM');
+                        return;
+                      }
+                      setRepeatOn((v) => !v);
+                    }}
+                    className="flex w-full items-center justify-between h-12 rounded-xl px-4"
+                    style={{
+                      backgroundColor: repeatOn ? `${COLOR}12` : 'transparent',
+                      border: repeatOn ? `1.5px solid ${COLOR}40` : '1.5px solid var(--roost-border)',
+                      borderBottom: repeatOn ? `3px solid ${COLOR_DARK}40` : '3px solid var(--roost-border-bottom)',
+                    }}
+                  >
+                    <div className="flex items-center gap-2">
+                      <RefreshCw size={15} style={{ color: repeatOn ? COLOR : 'var(--roost-text-muted)' }} />
+                      <span className="text-sm" style={{ color: repeatOn ? COLOR : 'var(--roost-text-secondary)', fontWeight: 700 }}>
+                        Repeat
+                      </span>
+                    </div>
+                    {!isPremium ? (
+                      <Lock size={14} style={{ color: 'var(--roost-text-muted)' }} />
+                    ) : (
+                      <div
+                        className="h-5 w-9 rounded-full flex items-center transition-all"
+                        style={{
+                          backgroundColor: repeatOn ? COLOR : '#E5E7EB',
+                          padding: '2px',
+                          justifyContent: repeatOn ? 'flex-end' : 'flex-start',
+                        }}
+                      >
+                        <div className="h-4 w-4 rounded-full bg-white" style={{ boxShadow: '0 1px 2px rgba(0,0,0,0.2)' }} />
+                      </div>
+                    )}
+                  </button>
+
+                  {repeatOn && (
+                    <div className="mt-3 space-y-3">
+                      <div className="flex gap-2">
+                        {FREQ_OPTIONS.map(({ value, label }) => {
+                          const active = repeatFreq === value;
+                          return (
+                            <button
+                              key={value}
+                              type="button"
+                              onClick={() => setRepeatFreq(value)}
+                              className="h-9 flex-1 rounded-xl text-xs"
+                              style={{
+                                border: active ? `1.5px solid ${COLOR}` : '1.5px solid #E5E7EB',
+                                borderBottom: active ? `3px solid ${COLOR_DARK}` : '3px solid #E5E7EB',
+                                backgroundColor: active ? `${COLOR}18` : 'transparent',
+                                color: active ? COLOR : 'var(--roost-text-secondary)',
+                                fontWeight: 700,
+                              }}
+                            >
+                              {label}
+                            </button>
+                          );
+                        })}
+                      </div>
+                      <div>
+                        <label className="mb-1.5 block text-xs" style={{ color: '#374151', fontWeight: 700 }}>
+                          First due
+                        </label>
+                        <input
+                          type="date"
+                          value={repeatStartDate}
+                          onChange={(e) => setRepeatStartDate(e.target.value)}
+                          className="h-12 w-full rounded-xl px-4 text-sm focus:outline-none"
+                          style={inputStyle}
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
               {/* Save */}
               <motion.button
                 type="button"
@@ -1093,7 +1398,7 @@ export default function ExpenseSheet({
                 disabled={
                   saveMutation.isPending ||
                   !title.trim() ||
-                  (mode === 'create' && (!splitsValid || !paidBy))
+                  (mode === 'create' && (!splitsValid || (!repeatOn && !paidBy)))
                 }
                 whileTap={{ y: 2 }}
                 className="flex h-12 w-full items-center justify-center gap-2 rounded-xl text-sm text-white"
@@ -1105,13 +1410,15 @@ export default function ExpenseSheet({
                   opacity:
                     saveMutation.isPending ||
                     !title.trim() ||
-                    (mode === 'create' && (!splitsValid || !paidBy))
+                    (mode === 'create' && (!splitsValid || (!repeatOn && !paidBy)))
                       ? 0.6
                       : 1,
                 }}
               >
                 {saveMutation.isPending ? (
                   <Loader2 className="size-4 animate-spin" />
+                ) : mode === 'create' && repeatOn ? (
+                  'Save Recurring'
                 ) : mode === 'create' ? (
                   'Add Expense'
                 ) : (

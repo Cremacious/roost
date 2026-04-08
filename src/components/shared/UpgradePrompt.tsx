@@ -110,6 +110,11 @@ const PROMPT_MAP: Record<string, PromptConfig> = {
     title: "One list not enough?",
     body: "Create named lists for different stores or trips. Costco run, Target haul, weekly shop. Keep them all organized and separate. Upgrade to unlock multiple grocery lists.",
   },
+  RECURRING_EXPENSES_PREMIUM: {
+    icon: RefreshCw,
+    title: "Recurring expenses are premium.",
+    body: "Set up rent, utilities, or subscriptions once and Roost will prompt you to post them every cycle. Upgrade to automate your regular shared expenses.",
+  },
 };
 
 const FALLBACK: PromptConfig = {

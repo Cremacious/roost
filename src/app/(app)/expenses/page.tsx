@@ -7,12 +7,14 @@ import { useHousehold } from "@/lib/hooks/useHousehold";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
 import {
+  AlertTriangle,
   Clock,
   DollarSign,
   Download,
   PiggyBank,
   Plus,
   Receipt,
+  RefreshCw,
   Sparkles,
   TrendingDown,
   TrendingUp,
@@ -22,9 +24,12 @@ import { format, parseISO, startOfMonth, endOfMonth, startOfWeek, endOfWeek } fr
 import { relativeTime } from "@/lib/utils/time";
 import { Skeleton } from "@/components/ui/skeleton";
 import MemberAvatar from "@/components/shared/MemberAvatar";
-import ExpenseSheet, { type ExpenseData } from "@/components/expenses/ExpenseSheet";
+import ExpenseSheet, { type ExpenseData, type RecurringTemplate } from "@/components/expenses/ExpenseSheet";
 import SettleSheet from "@/components/expenses/SettleSheet";
 import ExportSheet from "@/components/expenses/ExportSheet";
+import RecurringDraftSheet from "@/components/expenses/RecurringDraftSheet";
+import UpgradePrompt from "@/components/shared/UpgradePrompt";
+import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { SECTION_COLORS } from "@/lib/constants/colors";
 import { PageContainer } from "@/components/layout/PageContainer";
 
@@ -42,6 +47,28 @@ interface DebtItem {
   pendingClaim: { fromUserId: string; toUserId: string; amount: number; claimedAt: string } | null;
 }
 
+interface RecurringDraft {
+  id: string;
+  title: string;
+  total_amount: string;
+  paid_by: string;
+  category: string | null;
+  recurring_template_id: string | null;
+  created_at: string | null;
+  template_frequency: string | null;
+  template_splits: { userId: string; amount: number }[] | null;
+}
+
+interface RecurringTemplateResponse {
+  id: string;
+  title: string;
+  frequency: string;
+  next_due_date: string;
+  paused: boolean;
+  total_amount: string;
+  splits: { userId: string; amount: number }[];
+}
+
 interface ExpensesResponse {
   expenses: ExpenseData[];
   balances: { userId: string; name: string; avatarColor: string | null; net: number }[];
@@ -49,6 +76,7 @@ interface ExpensesResponse {
   myBalance: number;
   totalSpentThisMonth: number;
   isPremium: boolean;
+  recurringDrafts: RecurringDraft[];
 }
 
 interface MembersResponse {
@@ -142,6 +170,9 @@ function ExpenseRow({
           </p>
           {expense.receipt_data && (
             <Receipt className="size-3 shrink-0" style={{ color: COLOR }} />
+          )}
+          {expense.recurring_template_id && (
+            <RefreshCw className="size-3 shrink-0" style={{ color: "var(--roost-text-muted)" }} />
           )}
         </div>
         <div className="flex items-center gap-1.5">
@@ -525,6 +556,8 @@ export default function ExpensesPage() {
   const [settleInitialState, setSettleInitialState] = useState<"pending" | "initial">("initial");
   const [exportSheetOpen, setExportSheetOpen] = useState(false);
   const [allowanceHistoryExpanded, setAllowanceHistoryExpanded] = useState(false);
+  const [recurringDraftsOpen, setRecurringDraftsOpen] = useState(false);
+  const [upgradeCode, setUpgradeCode] = useState<string | null>(null);
 
   // ---- Queries ---------------------------------------------------------------
 
@@ -571,12 +604,26 @@ export default function ExpensesPage() {
     enabled: isPremium,
   });
 
+  const { data: recurringTemplatesData } = useQuery<{ templates: RecurringTemplateResponse[] }>({
+    queryKey: ["recurringTemplates"],
+    queryFn: async () => {
+      const r = await fetch("/api/expenses/recurring");
+      if (!r.ok) return { templates: [] };
+      return r.json();
+    },
+    staleTime: 30_000,
+    retry: 1,
+    enabled: isPremium,
+  });
+
   // ---- Derived ---------------------------------------------------------------
 
   const allExpenses = expensesData?.expenses ?? [];
   const debts = expensesData?.debts ?? [];
   const myBalance = expensesData?.myBalance ?? 0;
   const totalSpentThisMonth = expensesData?.totalSpentThisMonth ?? 0;
+  const recurringDrafts = expensesData?.recurringDrafts ?? [];
+  const recurringTemplates = recurringTemplatesData?.templates ?? [];
   const members = membersData?.members ?? [];
   const currentMember = members.find((m) => m.userId === currentUserId);
   const isAdmin = currentMember?.role === "admin";
@@ -689,6 +736,37 @@ export default function ExpensesPage() {
             </div>
           )}
         </div>
+
+        {/* Recurring drafts banner — admin only, premium only */}
+        {!isLoading && !householdLoading && isPremium && isAdmin && recurringDrafts.length > 0 && (
+          <div
+            className="flex items-center gap-3 rounded-2xl px-4 py-3"
+            style={{
+              backgroundColor: "#FFFBEB",
+              border: "1.5px solid #FCD34D",
+              borderBottom: "4px solid #D97706",
+            }}
+          >
+            <AlertTriangle className="size-5 shrink-0" style={{ color: "#D97706" }} />
+            <p className="flex-1 text-sm" style={{ color: "#92400E", fontWeight: 700 }}>
+              {recurringDrafts.length} recurring expense{recurringDrafts.length !== 1 ? "s" : ""} due for posting.
+            </p>
+            <motion.button
+              type="button"
+              whileTap={{ y: 1 }}
+              onClick={() => setRecurringDraftsOpen(true)}
+              className="flex h-9 items-center rounded-xl px-3 text-xs text-white"
+              style={{
+                backgroundColor: "#D97706",
+                border: "1.5px solid #B45309",
+                borderBottom: "3px solid #92400E",
+                fontWeight: 800,
+              }}
+            >
+              Review
+            </motion.button>
+          </div>
+        )}
 
         {/* Loading */}
         {(isLoading || householdLoading) && <ExpensesSkeleton />}
@@ -1062,6 +1140,19 @@ export default function ExpensesPage() {
           currentUserId={currentUserId}
           isAdmin={isAdmin ?? false}
           members={members}
+          isPremium={isPremium}
+          recurringTemplate={
+            selectedExpense?.recurring_template_id
+              ? (recurringTemplates.find((t) => t.id === selectedExpense.recurring_template_id) as RecurringTemplate | undefined) ?? null
+              : null
+          }
+          onUpgradeRequired={(code) => setUpgradeCode(code)}
+        />
+
+        <RecurringDraftSheet
+          open={recurringDraftsOpen}
+          onOpenChange={setRecurringDraftsOpen}
+          drafts={recurringDrafts}
         />
 
         <SettleSheet
@@ -1078,6 +1169,15 @@ export default function ExpensesPage() {
           open={exportSheetOpen}
           onClose={() => setExportSheetOpen(false)}
         />
+
+        {/* Upgrade prompt sheet */}
+        <Sheet open={!!upgradeCode} onOpenChange={(v) => !v && setUpgradeCode(null)}>
+          <SheetContent side="bottom" className="rounded-t-2xl pb-8">
+            {upgradeCode && (
+              <UpgradePrompt code={upgradeCode} onDismiss={() => setUpgradeCode(null)} />
+            )}
+          </SheetContent>
+        </Sheet>
       </PageContainer>
     </motion.div>
   );

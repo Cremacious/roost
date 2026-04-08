@@ -12,6 +12,9 @@ export const expenses = pgTable("expenses", {
   category: text("category"),
   receipt_url: text("receipt_url"),
   receipt_data: text("receipt_data"),
+  // Recurring support
+  recurring_template_id: text("recurring_template_id"),
+  is_recurring_draft: boolean("is_recurring_draft").notNull().default(false),
   created_at: timestamp("created_at").defaultNow(),
   updated_at: timestamp("updated_at").defaultNow(),
   deleted_at: timestamp("deleted_at"),

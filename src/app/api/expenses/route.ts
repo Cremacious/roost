@@ -1,8 +1,8 @@
 import { NextRequest } from "next/server";
 import { requireSession } from "@/lib/auth/helpers";
 import { db } from "@/lib/db";
-import { expenses, expense_splits, user, users, households } from "@/db/schema";
-import { and, desc, eq, gte, inArray, isNull, lte } from "drizzle-orm";
+import { expenses, expense_splits, user, users, households, recurring_expense_templates } from "@/db/schema";
+import { and, desc, eq, gte, inArray, isNull, lte, sql } from "drizzle-orm";
 import { getUserHousehold } from "@/app/api/chores/route";
 import { logActivity } from "@/lib/utils/activity";
 import { startOfMonth, endOfMonth } from "date-fns";
@@ -83,7 +83,7 @@ export async function GET(request: NextRequest): Promise<Response> {
 
   const isPremium = household?.subscription_status === "premium";
 
-  // Fetch expenses with payer info
+  // Fetch non-draft expenses with payer info
   // Use aliases to join both auth `user` (guaranteed name) and app `users` (avatar_color).
   const expenseRows = await db
     .select({
@@ -93,6 +93,8 @@ export async function GET(request: NextRequest): Promise<Response> {
       paid_by: expenses.paid_by,
       category: expenses.category,
       receipt_data: expenses.receipt_data,
+      recurring_template_id: expenses.recurring_template_id,
+      is_recurring_draft: expenses.is_recurring_draft,
       created_at: expenses.created_at,
       updated_at: expenses.updated_at,
       payer_name: user.name,
@@ -101,8 +103,43 @@ export async function GET(request: NextRequest): Promise<Response> {
     .from(expenses)
     .leftJoin(user, eq(expenses.paid_by, user.id))
     .leftJoin(users, eq(expenses.paid_by, users.id))
-    .where(and(eq(expenses.household_id, householdId), isNull(expenses.deleted_at)))
+    .where(
+      and(
+        eq(expenses.household_id, householdId),
+        isNull(expenses.deleted_at),
+        eq(expenses.is_recurring_draft, false)
+      )
+    )
     .orderBy(desc(expenses.created_at));
+
+  // Fetch recurring drafts (pending admin confirmation) with template info
+  const draftRows = isPremium
+    ? await db
+        .select({
+          id: expenses.id,
+          title: expenses.title,
+          total_amount: expenses.total_amount,
+          paid_by: expenses.paid_by,
+          category: expenses.category,
+          recurring_template_id: expenses.recurring_template_id,
+          created_at: expenses.created_at,
+          template_frequency: recurring_expense_templates.frequency,
+          template_splits: recurring_expense_templates.splits,
+        })
+        .from(expenses)
+        .leftJoin(
+          recurring_expense_templates,
+          sql`${expenses.recurring_template_id}::uuid = ${recurring_expense_templates.id}`
+        )
+        .where(
+          and(
+            eq(expenses.household_id, householdId),
+            isNull(expenses.deleted_at),
+            eq(expenses.is_recurring_draft, true)
+          )
+        )
+        .orderBy(expenses.created_at)
+    : [];
 
   // Fetch splits for all expenses
   const expenseIds = expenseRows.map((e) => e.id);
@@ -237,6 +274,7 @@ export async function GET(request: NextRequest): Promise<Response> {
     myBalance: Math.round(myBalance * 100) / 100,
     totalSpentThisMonth: Math.round(totalSpentThisMonth * 100) / 100,
     isPremium,
+    recurringDrafts: draftRows,
   });
 }
 

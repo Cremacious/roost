@@ -1,5 +1,5 @@
 # Roost — Feature Registry
-> Last updated: 2026-04-08
+> Last updated: 2026-04-09
 > Use this file for homepage copy, paywall screens, upgrade prompts, and App Store descriptions.
 
 ---
@@ -49,6 +49,13 @@
 - Create or join household via invite code
 - Household invite code sharing
 - Member roles: Child, Member, Admin
+
+#### Meals (Free)
+- Weekly meal planner (Mon-Sun, 4 slots per day)
+- Meal bank — save up to 5 household meals
+- Add meal ingredients to grocery list in one tap
+- Meal suggestions — any member (including kids) can suggest a meal
+- Household voting on suggestions
 
 #### Settings
 - Profile management (name, email, avatar color)
@@ -121,11 +128,9 @@
 - Unlock all 8 app themes beyond Default
 
 #### Meals (Premium)
-- Entire meals module is premium-gated (planner, bank, suggestions, voting)
-- Weekly meal planner (breakfast, lunch, dinner, snack slots per day)
-- Meal bank — save and search reusable meals
-- Meal suggestions — anyone can suggest, household votes
-- Grocery integration — push all ingredients to shopping list in one tap
+**Sell it as:** "Your household's recipe box, unlimited."
+- Unlimited meal bank (free tier: 5 meal limit)
+- Smart meal suggestions based on your meal bank
 
 #### Allowances (Premium)
 - Set weekly allowances for child accounts (UI gated in MemberSheet)
@@ -197,6 +202,14 @@
 ### Themes gate
 **Title:** "Make Roost yours."
 **Body:** "Unlock all 8 themes and give your household its own look and feel."
+
+### Meal bank limit gate
+**Title:** "You've saved 5 meals."
+**Body:** "Upgrade to save unlimited meals to your household's recipe box. The more you save, the easier planning gets."
+
+### Smart suggestions gate
+**Title:** "Meal ideas, on demand."
+**Body:** "Roost can suggest meals based on your household's favorites. Upgrade to unlock smart suggestions."
 
 ### General premium gate (fallback)
 **Title:** "Upgrade to Roost Premium"

@@ -32,6 +32,8 @@ interface MealSheetProps {
   open: boolean;
   onClose: () => void;
   meal?: MealData | null;
+  isPremium?: boolean;
+  mealCount?: number;
   onUpgradeRequired?: (code: string) => void;
 }
 
@@ -52,7 +54,7 @@ const inputStyle: React.CSSProperties = {
 
 // ---- Component --------------------------------------------------------------
 
-export default function MealSheet({ open, onClose, meal, onUpgradeRequired }: MealSheetProps) {
+export default function MealSheet({ open, onClose, meal, isPremium, mealCount, onUpgradeRequired }: MealSheetProps) {
   const queryClient = useQueryClient();
   const isEdit = !!meal;
 
@@ -300,7 +302,13 @@ export default function MealSheet({ open, onClose, meal, onUpgradeRequired }: Me
           <motion.button
             type="button"
             disabled={!canSubmit}
-            onClick={() => saveMutation.mutate()}
+            onClick={() => {
+              if (!isEdit && !isPremium && (mealCount ?? 0) >= 5) {
+                onUpgradeRequired?.("MEAL_BANK_LIMIT");
+                return;
+              }
+              saveMutation.mutate();
+            }}
             whileTap={{ y: 2 }}
             className="flex h-12 w-full items-center justify-center rounded-xl text-sm text-white disabled:opacity-50"
             style={{

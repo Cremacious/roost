@@ -50,7 +50,6 @@ import MealSlotSheet, {
 import SuggestionSheet from '@/components/meals/SuggestionSheet';
 import { Sheet, SheetContent } from '@/components/ui/sheet';
 import UpgradePrompt from '@/components/shared/UpgradePrompt';
-import PremiumGate from '@/components/shared/PremiumGate';
 import { PageContainer } from '@/components/layout/PageContainer';
 
 const COLOR = SECTION_COLORS.meals;
@@ -1273,16 +1272,6 @@ export default function MealsPage() {
 
   // ---- Render ----------------------------------------------------------------
 
-  if (isPremium === false) {
-    return (
-      <PageContainer>
-        <div className="py-6 pb-24">
-          <PremiumGate feature="meals" />
-        </div>
-      </PageContainer>
-    );
-  }
-
   return (
     <motion.div
       initial={{ opacity: 0, y: 12 }}
@@ -1407,6 +1396,8 @@ export default function MealsPage() {
           open={mealSheet.open}
           onClose={() => setMealSheet({ open: false })}
           meal={mealSheet.meal}
+          isPremium={isPremium}
+          mealCount={allMeals.length}
           onUpgradeRequired={(code) => {
             setMealSheet({ open: false });
             setUpgradeCode(code);

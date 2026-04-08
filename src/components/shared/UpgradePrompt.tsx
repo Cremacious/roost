@@ -7,6 +7,7 @@ import {
   CalendarX,
   CheckSquare,
   ChefHat,
+  UtensilsCrossed,
   Download,
   Lightbulb,
   ListPlus,
@@ -79,9 +80,9 @@ const PROMPT_MAP: Record<string, PromptConfig> = {
     body: "On free you can only remind yourself. Upgrade to send reminders to specific household members or blast the whole house.",
   },
   MEAL_BANK_LIMIT: {
-    icon: ChefHat,
-    title: "5 meals in the bank.",
-    body: "Upgrade to save unlimited meals, let the family vote on dinner, and add all ingredients to the grocery list in one tap.",
+    icon: UtensilsCrossed,
+    title: "You've saved 5 meals.",
+    body: "Upgrade to save unlimited meals to your household's recipe box. The more you save, the easier meal planning gets.",
   },
   MEAL_SUGGESTIONS_PREMIUM: {
     icon: Lightbulb,

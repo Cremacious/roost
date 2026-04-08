@@ -219,18 +219,23 @@ export async function GET(request: NextRequest): Promise<Response> {
     }
     pendingClaimsMap[key].amount += parseFloat(split.amount);
   }
-  const pendingClaims = Object.values(pendingClaimsMap).map((c) => ({
-    ...c,
-    amount: Math.round(c.amount * 100) / 100,
-  }));
+  // Embed pendingClaim directly on each debt for reliable lookup
+  const enhancedDebts = debts.map((debt) => {
+    const pc = pendingClaimsMap[`${debt.fromUserId}_${debt.toUserId}`];
+    return {
+      ...debt,
+      pendingClaim: pc
+        ? { fromUserId: pc.fromUserId, toUserId: pc.toUserId, amount: Math.round(pc.amount * 100) / 100, claimedAt: pc.claimedAt }
+        : null,
+    };
+  });
 
   return Response.json({
     expenses: expensesWithSplits,
     balances: balanceList,
-    debts,
+    debts: enhancedDebts,
     myBalance: Math.round(myBalance * 100) / 100,
     totalSpentThisMonth: Math.round(totalSpentThisMonth * 100) / 100,
-    pendingClaims,
     isPremium,
   });
 }

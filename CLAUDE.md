@@ -604,7 +604,10 @@ src/app/api/cron/subscription/route.ts        Daily cron: expire premium househo
   - settlement_disputed=true: dispute resets payer claim, notifies debtor
   - Payer can cancel pending claim via /cancel; can send reminder via /remind (rate limited: 1/24h via settlement_last_reminded_at)
   - SettleSheet modes: fresh (show "I paid X" button), i_claimed (waiting + cancel + remind), they_claimed (confirm + dispute)
-- DebtCard: shows "Pending confirmation" amber badge when i_claimed; shows "Confirm payment" green button when they_claimed
+- DebtCard payer-pending state (i_claimed): card opacity 0.65, amber border-bottom, gray amount, amber "Awaiting confirmation" badge (Clock icon), inline "Remind · Cancel" action links (stop propagation). Clicking card opens SettleSheet in pending mode.
+- DebtCard payee-pending state (they_claimed): solid green border-bottom, pulsing green dot next to name, "Confirm received" small green slab button.
+- DebtCard passes initialState ("pending" | "initial") to openSettle, SettleSheet accepts initialState prop to force the waiting view.
+- pendingClaim is embedded directly on each DebtItem from the API (not a separate flat array). API route embeds it via enhancedDebts map.
 - Expense row shows "your share" below total: green (you paid, owed back), red (you owe), gray (settled)
 - Export: ExportSheet with date range (From/To + quick-range pills), CSV/PDF format toggle, preview count/total
   - GET /api/expenses/export?from=&to=&format=csv|pdf triggers file download
@@ -1045,7 +1048,7 @@ Update this file after every major decision or completed phase.
 - Dashboard tile selector: use `.locator('button, a').filter({ hasText: 'Chores' }).first()` to avoid strict mode (both button and inner `<p>` match plain `text=Chores`)
 - `uniqueUser` in test files must be a factory function `() => ({...})`, not a plain object — reusing the same email across tests causes "email already exists" failures when tests run serially
 
-Last updated: 2026-04-08 (Expenses redesign: two-col desktop, chip strip mobile. Two-sided settlement: claim/confirm/dispute/cancel/remind routes. Export: CSV + PDF via pdfkit. Settlement-reminders cron daily 10am UTC. Schema: settled_by_payer/payee/claimed_at/last_reminded_at/disputed added to expense_splits.)
+Last updated: 2026-04-08 (Expenses redesign: two-col desktop, chip strip mobile. Two-sided settlement: claim/confirm/dispute/cancel/remind routes. Export: CSV + PDF via pdfkit. Settlement-reminders cron daily 10am UTC. Schema: settled_by_payer/payee/claimed_at/last_reminded_at/disputed added to expense_splits. DebtCard pending states: payer-pending opacity+amber badge+inline remind/cancel; payee-pending pulse dot+"Confirm received". pendingClaim embedded in DebtItem. SettleSheet initialState prop.)
 
 ## Stripe Billing Rules
 - Stripe Checkout used for payment (redirect to Stripe, return to /settings/billing?success=true)

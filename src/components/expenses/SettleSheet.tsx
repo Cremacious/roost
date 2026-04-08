@@ -35,6 +35,7 @@ interface SettleSheetProps {
   currentUserId: string;
   memberAvatars: Record<string, string | null>;
   pendingClaim?: PendingClaim | null;
+  initialState?: "pending" | "initial";
 }
 
 // ---- Component --------------------------------------------------------------
@@ -46,6 +47,7 @@ export default function SettleSheet({
   currentUserId,
   memberAvatars,
   pendingClaim,
+  initialState = "initial",
 }: SettleSheetProps) {
   const queryClient = useQueryClient();
   const [reminderSent, setReminderSent] = useState(false);
@@ -181,7 +183,7 @@ export default function SettleSheet({
   const otherAvatar = memberAvatars[otherUserId] ?? null;
 
   // Determine mode
-  const iClaimedPending = pendingClaim?.fromUserId === currentUserId;
+  const iClaimedPending = initialState === "pending" || pendingClaim?.fromUserId === currentUserId;
   const theyClaimedPending = pendingClaim?.toUserId === currentUserId;
 
   function renderContent() {
@@ -217,6 +219,10 @@ export default function SettleSheet({
           </div>
 
           <div className="space-y-3">
+            <button type="button" onClick={handleClose} className="flex h-11 w-full items-center justify-center rounded-xl text-sm" style={{ color: "var(--roost-text-muted)", fontWeight: 700 }}>
+              Close
+            </button>
+
             <motion.button
               type="button"
               whileTap={{ y: 1 }}
@@ -255,10 +261,6 @@ export default function SettleSheet({
               {cancelMutation.isPending ? <Loader2 className="size-4 animate-spin" /> : "Cancel claim"}
             </motion.button>
           </div>
-
-          <button type="button" onClick={handleClose} className="mt-3 flex h-11 w-full items-center justify-center rounded-xl text-sm" style={{ color: "var(--roost-text-muted)", fontWeight: 700 }}>
-            Close
-          </button>
         </>
       );
     }
@@ -366,6 +368,7 @@ export default function SettleSheet({
     <Sheet open={open} onOpenChange={(v) => { if (!v) handleClose(); }}>
       <SheetContent
         side="bottom"
+        showCloseButton={false}
         className="rounded-t-2xl px-4 pb-8 pt-2"
         style={{ backgroundColor: "var(--roost-surface)", maxHeight: "80dvh", overflowY: "auto" }}
       >

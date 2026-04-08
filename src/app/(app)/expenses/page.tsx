@@ -1,11 +1,13 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useSession } from "@/lib/auth/client";
 import { useHousehold } from "@/lib/hooks/useHousehold";
 import { motion } from "framer-motion";
+import { toast } from "sonner";
 import {
+  Clock,
   DollarSign,
   Download,
   PiggyBank,
@@ -21,7 +23,7 @@ import { relativeTime } from "@/lib/utils/time";
 import { Skeleton } from "@/components/ui/skeleton";
 import MemberAvatar from "@/components/shared/MemberAvatar";
 import ExpenseSheet, { type ExpenseData } from "@/components/expenses/ExpenseSheet";
-import SettleSheet, { type PendingClaim } from "@/components/expenses/SettleSheet";
+import SettleSheet from "@/components/expenses/SettleSheet";
 import ExportSheet from "@/components/expenses/ExportSheet";
 import { SECTION_COLORS } from "@/lib/constants/colors";
 import { PageContainer } from "@/components/layout/PageContainer";
@@ -37,6 +39,7 @@ interface DebtItem {
   toUserId: string;
   toName: string;
   amount: number;
+  pendingClaim: { fromUserId: string; toUserId: string; amount: number; claimedAt: string } | null;
 }
 
 interface ExpensesResponse {
@@ -45,7 +48,6 @@ interface ExpensesResponse {
   debts: DebtItem[];
   myBalance: number;
   totalSpentThisMonth: number;
-  pendingClaims: PendingClaim[];
   isPremium: boolean;
 }
 
@@ -172,32 +174,88 @@ function DebtCard({
   debt,
   currentUserId,
   memberAvatars,
-  pendingClaim,
   onSettle,
 }: {
   debt: DebtItem;
   currentUserId: string;
   memberAvatars: Record<string, string | null>;
-  pendingClaim?: PendingClaim | null;
-  onSettle: () => void;
+  onSettle: (initialState?: "pending" | "initial") => void;
 }) {
+  const queryClient = useQueryClient();
+  const [reminderSent, setReminderSent] = useState(false);
+
   const isOwer = debt.fromUserId === currentUserId;
   const otherName = isOwer ? debt.toName : debt.fromName;
   const otherUserId = isOwer ? debt.toUserId : debt.fromUserId;
 
-  const iClaimedPending = pendingClaim?.fromUserId === currentUserId;
-  const theyClaimedPending = pendingClaim?.toUserId === currentUserId;
+  const iClaimedPending = debt.pendingClaim?.fromUserId === currentUserId;
+  const theyClaimedPending = debt.pendingClaim?.toUserId === currentUserId;
+
+  function invalidate() {
+    queryClient.invalidateQueries({ queryKey: ["expenses"] });
+  }
+
+  const remindMutation = useMutation({
+    mutationFn: async () => {
+      const r = await fetch("/api/expenses/settle-all/remind", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ toUserId: debt.toUserId }),
+      });
+      if (!r.ok) {
+        const d = await r.json().catch(() => ({}));
+        if (r.status === 429) throw new Error("You can only send one reminder per 24 hours.");
+        throw new Error(d.error ?? "Could not send reminder");
+      }
+      return r.json();
+    },
+    onSuccess: () => { setReminderSent(true); invalidate(); toast.success("Reminder sent."); },
+    onError: (err: Error) => toast.error("Could not send reminder", { description: err.message }),
+  });
+
+  const cancelMutation = useMutation({
+    mutationFn: async () => {
+      const r = await fetch("/api/expenses/settle-all/cancel", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ toUserId: debt.toUserId }),
+      });
+      if (!r.ok) {
+        const d = await r.json().catch(() => ({}));
+        throw new Error(d.error ?? "Could not cancel claim");
+      }
+      return r.json();
+    },
+    onSuccess: () => { invalidate(); toast.success("Claim cancelled."); },
+    onError: (err: Error) => toast.error("Could not cancel claim", { description: err.message }),
+  });
+
+  // Border bottom varies by state
+  const borderBottom = iClaimedPending
+    ? "4px solid #FCD34D60"
+    : theyClaimedPending
+    ? `4px solid ${COLOR_DARK}`
+    : isOwer
+    ? "4px solid #EF444460"
+    : `4px solid ${COLOR}60`;
 
   return (
     <div
+      role="button"
+      tabIndex={0}
       className="flex items-center gap-3 rounded-2xl px-4 py-3"
       style={{
         backgroundColor: "var(--roost-surface)",
         border: "1.5px solid var(--roost-border)",
-        borderBottom: isOwer ? "4px solid #EF444460" : `4px solid ${COLOR}60`,
+        borderBottom,
         minHeight: 64,
+        opacity: iClaimedPending ? 0.65 : 1,
+        cursor: "pointer",
       }}
+      onClick={() => onSettle(iClaimedPending ? "pending" : "initial")}
+      onKeyDown={(e) => e.key === "Enter" && onSettle(iClaimedPending ? "pending" : "initial")}
     >
+      {/* Icon */}
       <div
         className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl"
         style={{ backgroundColor: isOwer ? "#EF444418" : `${COLOR}18` }}
@@ -209,6 +267,7 @@ function DebtCard({
         )}
       </div>
 
+      {/* Left: label + name + pulse dot */}
       <div className="min-w-0 flex-1">
         <p className="text-sm" style={{ color: "var(--roost-text-primary)", fontWeight: 700 }}>
           {isOwer ? `You owe ${otherName.split(" ")[0]}` : `${otherName.split(" ")[0]} owes you`}
@@ -218,46 +277,84 @@ function DebtCard({
           <span className="text-xs" style={{ color: "var(--roost-text-muted)", fontWeight: 600 }}>
             {otherName}
           </span>
+          {theyClaimedPending && (
+            <span className="relative flex h-2 w-2 shrink-0">
+              <span
+                className="animate-ping absolute inline-flex h-full w-full rounded-full opacity-75"
+                style={{ backgroundColor: COLOR }}
+              />
+              <span className="relative inline-flex h-2 w-2 rounded-full" style={{ backgroundColor: COLOR }} />
+            </span>
+          )}
         </div>
-        {iClaimedPending && (
-          <span
-            className="mt-1 inline-flex rounded-full px-2 py-0.5 text-[11px]"
-            style={{ backgroundColor: "#FEF3C718", color: "#D97706", border: "1px solid #FCD34D60", fontWeight: 700 }}
-          >
-            Pending confirmation
-          </span>
-        )}
       </div>
 
+      {/* Right: amount + action */}
       <div className="flex flex-col items-end gap-1.5">
-        <p className="text-sm" style={{ color: isOwer ? "#EF4444" : COLOR, fontWeight: 800 }}>
+        <p
+          className="text-sm"
+          style={{
+            color: iClaimedPending
+              ? "var(--roost-text-secondary)"
+              : isOwer
+              ? "#EF4444"
+              : COLOR,
+            fontWeight: iClaimedPending ? 600 : 800,
+          }}
+        >
           ${debt.amount.toFixed(2)}
         </p>
 
-        {theyClaimedPending ? (
+        {iClaimedPending ? (
+          <div className="flex flex-col items-end gap-1" onClick={(e) => e.stopPropagation()}>
+            <span
+              className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px]"
+              style={{ backgroundColor: "#FEF3C7", color: "#D97706", fontWeight: 700 }}
+            >
+              <Clock className="size-3" />
+              Awaiting confirmation
+            </span>
+            <div className="flex items-center gap-2 text-[11px]">
+              <button
+                type="button"
+                onClick={(e) => { e.stopPropagation(); remindMutation.mutate(); }}
+                disabled={remindMutation.isPending || reminderSent}
+                style={{ color: reminderSent ? "var(--roost-text-muted)" : "#D97706", fontWeight: 700 }}
+              >
+                {reminderSent ? "Sent" : "Remind"}
+              </button>
+              <span style={{ color: "var(--roost-text-muted)" }}>·</span>
+              <button
+                type="button"
+                onClick={(e) => { e.stopPropagation(); cancelMutation.mutate(); }}
+                disabled={cancelMutation.isPending}
+                style={{ color: "var(--roost-text-muted)", fontWeight: 700 }}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        ) : theyClaimedPending ? (
           <motion.button
             type="button"
             whileTap={{ y: 1 }}
-            onClick={onSettle}
-            className="flex h-9 items-center rounded-xl px-3 text-xs text-white"
-            style={{ backgroundColor: COLOR, border: `1.5px solid ${COLOR}`, borderBottom: `3px solid ${COLOR_DARK}`, fontWeight: 800 }}
+            onClick={(e) => { e.stopPropagation(); onSettle("initial"); }}
+            className="inline-flex items-center rounded-xl px-2.5 text-[11px] text-white"
+            style={{
+              height: 28,
+              backgroundColor: COLOR,
+              border: `1.5px solid ${COLOR}`,
+              borderBottom: `3px solid ${COLOR_DARK}`,
+              fontWeight: 800,
+            }}
           >
-            Confirm payment
+            Confirm received
           </motion.button>
-        ) : iClaimedPending ? (
-          <button
-            type="button"
-            onClick={onSettle}
-            className="text-[11px]"
-            style={{ color: "#D97706", fontWeight: 700 }}
-          >
-            Cancel
-          </button>
         ) : (
           <motion.button
             type="button"
             whileTap={{ y: 1 }}
-            onClick={onSettle}
+            onClick={(e) => { e.stopPropagation(); onSettle("initial"); }}
             className="flex h-9 items-center rounded-xl px-3 text-xs text-white"
             style={{ backgroundColor: COLOR, border: `1.5px solid ${COLOR}`, borderBottom: `3px solid ${COLOR_DARK}`, fontWeight: 800 }}
           >
@@ -425,6 +522,7 @@ export default function ExpensesPage() {
   const [selectedExpense, setSelectedExpense] = useState<ExpenseData | null>(null);
   const [settleSheetOpen, setSettleSheetOpen] = useState(false);
   const [selectedDebt, setSelectedDebt] = useState<DebtItem | null>(null);
+  const [settleInitialState, setSettleInitialState] = useState<"pending" | "initial">("initial");
   const [exportSheetOpen, setExportSheetOpen] = useState(false);
   const [allowanceHistoryExpanded, setAllowanceHistoryExpanded] = useState(false);
 
@@ -479,7 +577,6 @@ export default function ExpensesPage() {
   const debts = expensesData?.debts ?? [];
   const myBalance = expensesData?.myBalance ?? 0;
   const totalSpentThisMonth = expensesData?.totalSpentThisMonth ?? 0;
-  const pendingClaims = expensesData?.pendingClaims ?? [];
   const members = membersData?.members ?? [];
   const currentMember = members.find((m) => m.userId === currentUserId);
   const isAdmin = currentMember?.role === "admin";
@@ -489,14 +586,8 @@ export default function ExpensesPage() {
 
   const myDebts = debts.filter((d) => d.fromUserId === currentUserId || d.toUserId === currentUserId);
 
-  // Pending confirmations: claims where current user is the payee
-  const pendingForMe = pendingClaims.filter((c) => c.toUserId === currentUserId);
-
-  function getPendingClaim(debt: DebtItem): PendingClaim | undefined {
-    return pendingClaims.find(
-      (c) => c.fromUserId === debt.fromUserId && c.toUserId === debt.toUserId
-    );
-  }
+  // Pending confirmations: debts where current user is the creditor/payee and a claim is pending
+  const pendingForMe = myDebts.filter((d) => d.pendingClaim && d.toUserId === currentUserId);
 
   // Allowances
   const allPayouts = allowancesData?.payouts ?? [];
@@ -526,8 +617,9 @@ export default function ExpensesPage() {
     setSheetMode("view");
     setSheetOpen(true);
   }
-  function openSettle(debt: DebtItem) {
+  function openSettle(debt: DebtItem, initialState: "pending" | "initial" = "initial") {
     setSelectedDebt(debt);
+    setSettleInitialState(initialState);
     setSettleSheetOpen(true);
   }
 
@@ -674,42 +766,37 @@ export default function ExpensesPage() {
                 <p className="text-xs" style={{ color: "#D97706", fontWeight: 700 }}>
                   Needs your confirmation
                 </p>
-                {pendingForMe.map((claim) => {
-                  const debt = myDebts.find((d) => d.fromUserId === claim.fromUserId && d.toUserId === claim.toUserId);
-                  if (!debt) return null;
-                  const payerName = debt.fromName;
-                  return (
-                    <div
-                      key={`${claim.fromUserId}_${claim.toUserId}`}
-                      className="flex items-center gap-3 rounded-2xl px-4 py-3"
-                      style={{
-                        backgroundColor: "#FFF7ED",
-                        border: "1.5px solid #FED7AA",
-                        borderBottom: "4px solid #F97316",
-                        minHeight: 64,
-                      }}
-                    >
-                      <MemberAvatar name={payerName} avatarColor={memberAvatars[claim.fromUserId] ?? null} size="md" />
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm" style={{ color: "#92400E", fontWeight: 700 }}>
-                          {payerName.split(" ")[0]} says they paid you ${claim.amount.toFixed(2)}
-                        </p>
-                        <p className="text-xs" style={{ color: "#B45309", fontWeight: 600 }}>
-                          Tap to confirm or dispute
-                        </p>
-                      </div>
-                      <motion.button
-                        type="button"
-                        whileTap={{ y: 1 }}
-                        onClick={() => openSettle(debt)}
-                        className="flex h-9 items-center rounded-xl px-3 text-xs text-white"
-                        style={{ backgroundColor: COLOR, border: `1.5px solid ${COLOR}`, borderBottom: `3px solid ${COLOR_DARK}`, fontWeight: 800 }}
-                      >
-                        Confirm
-                      </motion.button>
+                {pendingForMe.map((debt) => (
+                  <div
+                    key={`${debt.fromUserId}_${debt.toUserId}`}
+                    className="flex items-center gap-3 rounded-2xl px-4 py-3"
+                    style={{
+                      backgroundColor: "#FFF7ED",
+                      border: "1.5px solid #FED7AA",
+                      borderBottom: "4px solid #F97316",
+                      minHeight: 64,
+                    }}
+                  >
+                    <MemberAvatar name={debt.fromName} avatarColor={memberAvatars[debt.fromUserId] ?? null} size="md" />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm" style={{ color: "#92400E", fontWeight: 700 }}>
+                        {debt.fromName.split(" ")[0]} says they paid you ${(debt.pendingClaim?.amount ?? debt.amount).toFixed(2)}
+                      </p>
+                      <p className="text-xs" style={{ color: "#B45309", fontWeight: 600 }}>
+                        Tap to confirm or dispute
+                      </p>
                     </div>
-                  );
-                })}
+                    <motion.button
+                      type="button"
+                      whileTap={{ y: 1 }}
+                      onClick={() => openSettle(debt)}
+                      className="flex h-9 items-center rounded-xl px-3 text-xs text-white"
+                      style={{ backgroundColor: COLOR, border: `1.5px solid ${COLOR}`, borderBottom: `3px solid ${COLOR_DARK}`, fontWeight: 800 }}
+                    >
+                      Confirm
+                    </motion.button>
+                  </div>
+                ))}
               </div>
             )}
 
@@ -725,13 +812,9 @@ export default function ExpensesPage() {
                     <p className="text-xs" style={{ color: "#D97706", fontWeight: 700 }}>
                       Needs your confirmation
                     </p>
-                    {pendingForMe.map((claim) => {
-                      const debt = myDebts.find((d) => d.fromUserId === claim.fromUserId && d.toUserId === claim.toUserId);
-                      if (!debt) return null;
-                      const payerName = debt.fromName;
-                      return (
+                    {pendingForMe.map((debt) => (
                         <div
-                          key={`${claim.fromUserId}_${claim.toUserId}`}
+                          key={`${debt.fromUserId}_${debt.toUserId}`}
                           className="flex items-center gap-3 rounded-2xl px-4 py-3"
                           style={{
                             backgroundColor: "#FFF7ED",
@@ -740,10 +823,10 @@ export default function ExpensesPage() {
                             minHeight: 64,
                           }}
                         >
-                          <MemberAvatar name={payerName} avatarColor={memberAvatars[claim.fromUserId] ?? null} size="md" />
+                          <MemberAvatar name={debt.fromName} avatarColor={memberAvatars[debt.fromUserId] ?? null} size="md" />
                           <div className="flex-1 min-w-0">
                             <p className="text-sm" style={{ color: "#92400E", fontWeight: 700 }}>
-                              {payerName.split(" ")[0]} says they paid you ${claim.amount.toFixed(2)}
+                              {debt.fromName.split(" ")[0]} says they paid you ${(debt.pendingClaim?.amount ?? debt.amount).toFixed(2)}
                             </p>
                             <p className="text-xs" style={{ color: "#B45309", fontWeight: 600 }}>
                               Tap Confirm to review
@@ -759,8 +842,7 @@ export default function ExpensesPage() {
                             Confirm
                           </motion.button>
                         </div>
-                      );
-                    })}
+                    ))}
                   </div>
                 )}
 
@@ -775,8 +857,7 @@ export default function ExpensesPage() {
                         debt={debt}
                         currentUserId={currentUserId}
                         memberAvatars={memberAvatars}
-                        pendingClaim={getPendingClaim(debt)}
-                        onSettle={() => openSettle(debt)}
+                        onSettle={(s) => openSettle(debt, s)}
                       />
                     ))}
                   </div>
@@ -883,7 +964,6 @@ export default function ExpensesPage() {
                       debt={debt}
                       currentUserId={currentUserId}
                       memberAvatars={memberAvatars}
-                      pendingClaim={getPendingClaim(debt)}
                       onSettle={() => openSettle(debt)}
                     />
                   ))}
@@ -986,11 +1066,12 @@ export default function ExpensesPage() {
 
         <SettleSheet
           open={settleSheetOpen}
-          onClose={() => { setSettleSheetOpen(false); setSelectedDebt(null); }}
+          onClose={() => { setSettleSheetOpen(false); setSelectedDebt(null); setSettleInitialState("initial"); }}
           debt={selectedDebt}
           currentUserId={currentUserId}
           memberAvatars={memberAvatars}
-          pendingClaim={selectedDebt ? getPendingClaim(selectedDebt) : null}
+          pendingClaim={selectedDebt?.pendingClaim ?? null}
+          initialState={settleInitialState}
         />
 
         <ExportSheet

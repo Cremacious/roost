@@ -1,31 +1,40 @@
-"use client";
+'use client';
 
-import { useEffect, useRef, useState } from "react";
-import { toast } from "sonner";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { motion, AnimatePresence } from "framer-motion";
+import { useEffect, useRef, useState } from 'react';
+import { toast } from 'sonner';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
   Sheet,
   SheetContent,
   SheetHeader,
   SheetTitle,
-} from "@/components/ui/sheet";
+} from '@/components/ui/sheet';
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogFooter,
-} from "@/components/ui/dialog";
-import { ChevronDown, Loader2, Pencil, Receipt, ScanLine, Trash2 } from "lucide-react";
-import { format } from "date-fns";
-import MemberAvatar from "@/components/shared/MemberAvatar";
-import ReceiptScanner from "@/components/expenses/ReceiptScanner";
-import LineItemEditor, { type LineItemAssignment } from "@/components/expenses/LineItemEditor";
-import type { ParsedReceipt } from "@/lib/utils/googleVision";
+} from '@/components/ui/dialog';
+import {
+  ChevronDown,
+  Loader2,
+  Pencil,
+  Receipt,
+  ScanLine,
+  Trash2,
+} from 'lucide-react';
+import { format } from 'date-fns';
+import MemberAvatar from '@/components/shared/MemberAvatar';
+import ReceiptScanner from '@/components/expenses/ReceiptScanner';
+import LineItemEditor, {
+  type LineItemAssignment,
+} from '@/components/expenses/LineItemEditor';
+import type { ParsedReceipt } from '@/lib/utils/googleVision';
 
-const COLOR = "#22C55E";
-const COLOR_DARK = "#16A34A";
+const COLOR = '#22C55E';
+const COLOR_DARK = '#16A34A';
 
 // ---- Types ------------------------------------------------------------------
 
@@ -62,7 +71,7 @@ interface Member {
 interface ExpenseSheetProps {
   open: boolean;
   onClose: () => void;
-  mode: "create" | "edit" | "view";
+  mode: 'create' | 'edit' | 'view';
   expense?: ExpenseData | null;
   currentUserId: string;
   isAdmin: boolean;
@@ -72,23 +81,23 @@ interface ExpenseSheetProps {
 // ---- Input style ------------------------------------------------------------
 
 const inputStyle: React.CSSProperties = {
-  backgroundColor: "var(--roost-surface)",
-  border: "1.5px solid #E5E7EB",
-  borderBottom: "3px solid #E5E7EB",
-  color: "var(--roost-text-primary)",
+  backgroundColor: 'var(--roost-surface)',
+  border: '1.5px solid #E5E7EB',
+  borderBottom: '3px solid #E5E7EB',
+  color: 'var(--roost-text-primary)',
   fontWeight: 600,
 };
 
 // ---- Split methods ----------------------------------------------------------
 
-type SplitMethod = "equal" | "custom" | "payer-only";
+type SplitMethod = 'equal' | 'custom' | 'payer-only';
 
 // ---- Helpers ----------------------------------------------------------------
 
 function buildSplitsFromAssignments(
   assignments: LineItemAssignment[],
   members: Member[],
-  paidBy: string
+  paidBy: string,
 ): Record<string, number> {
   const perUser: Record<string, number> = {};
   for (const m of members) perUser[m.userId] = 0;
@@ -145,17 +154,21 @@ export default function ExpenseSheet({
   const [mode, setMode] = useState(initialMode);
 
   // Form fields
-  const [title, setTitle] = useState("");
-  const [amount, setAmount] = useState("");
+  const [title, setTitle] = useState('');
+  const [amount, setAmount] = useState('');
   const [paidBy, setPaidBy] = useState(currentUserId);
-  const [category, setCategory] = useState("");
-  const [splitMethod, setSplitMethod] = useState<SplitMethod>("equal");
+  const [category, setCategory] = useState('');
+  const [splitMethod, setSplitMethod] = useState<SplitMethod>('equal');
   const [customSplits, setCustomSplits] = useState<Record<string, string>>({});
   const [receiptData, setReceiptData] = useState<string | null>(null);
 
   // Scanner / line item flow
-  const [scanView, setScanView] = useState<"form" | "scanner" | "lineItems">("form");
-  const [scannedReceipt, setScannedReceipt] = useState<ParsedReceipt | null>(null);
+  const [scanView, setScanView] = useState<'form' | 'scanner' | 'lineItems'>(
+    'form',
+  );
+  const [scannedReceipt, setScannedReceipt] = useState<ParsedReceipt | null>(
+    null,
+  );
 
   // Misc
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -166,16 +179,16 @@ export default function ExpenseSheet({
   useEffect(() => {
     if (!open) return;
     setMode(initialMode);
-    setScanView("form");
+    setScanView('form');
     setScannedReceipt(null);
     setReceiptExpanded(false);
 
-    if (initialMode === "create") {
-      setTitle("");
-      setAmount("");
+    if (initialMode === 'create') {
+      setTitle('');
+      setAmount('');
       setPaidBy(currentUserId);
-      setCategory("");
-      setSplitMethod("equal");
+      setCategory('');
+      setSplitMethod('equal');
       setCustomSplits({});
       setReceiptData(null);
       setTimeout(() => amountRef.current?.focus(), 100);
@@ -183,8 +196,8 @@ export default function ExpenseSheet({
       setTitle(expense.title);
       setAmount(parseFloat(expense.total_amount).toFixed(2));
       setPaidBy(expense.paid_by);
-      setCategory(expense.category ?? "");
-      setSplitMethod("custom");
+      setCategory(expense.category ?? '');
+      setSplitMethod('custom');
       const splits: Record<string, string> = {};
       for (const s of expense.splits) {
         splits[s.user_id] = parseFloat(s.amount).toFixed(2);
@@ -195,7 +208,7 @@ export default function ExpenseSheet({
   }, [open, initialMode, expense, currentUserId]);
 
   function invalidate() {
-    queryClient.invalidateQueries({ queryKey: ["expenses"] });
+    queryClient.invalidateQueries({ queryKey: ['expenses'] });
   }
 
   function computeEqualSplits(): { user_id: string; amount: number }[] {
@@ -204,26 +217,27 @@ export default function ExpenseSheet({
     const share = Math.round((total / members.length) * 100) / 100;
     const splits = members.map((m) => ({ user_id: m.userId, amount: share }));
     const sumSoFar = splits.slice(0, -1).reduce((a, s) => a + s.amount, 0);
-    splits[splits.length - 1].amount = Math.round((total - sumSoFar) * 100) / 100;
+    splits[splits.length - 1].amount =
+      Math.round((total - sumSoFar) * 100) / 100;
     return splits;
   }
 
   function computeSplits(): { user_id: string; amount: number }[] {
-    if (splitMethod === "equal") return computeEqualSplits();
-    if (splitMethod === "payer-only") {
+    if (splitMethod === 'equal') return computeEqualSplits();
+    if (splitMethod === 'payer-only') {
       const total = parseFloat(amount) || 0;
       return [{ user_id: paidBy, amount: total }];
     }
     return members.map((m) => ({
       user_id: m.userId,
-      amount: parseFloat(customSplits[m.userId] || "0") || 0,
+      amount: parseFloat(customSplits[m.userId] || '0') || 0,
     }));
   }
 
   // Handle receipt scan result
   function handleReceiptParsed(receipt: ParsedReceipt) {
     setScannedReceipt(receipt);
-    setScanView("lineItems");
+    setScanView('lineItems');
   }
 
   // Handle line item confirmation — auto-fill form
@@ -237,11 +251,12 @@ export default function ExpenseSheet({
     } else if (scannedReceipt?.date) {
       setTitle(`Receipt ${scannedReceipt.date}`);
     } else {
-      setTitle("Receipt");
+      setTitle('Receipt');
     }
 
     // Auto-fill amount — prefer parsed receipt total (after tax), fall back to item sum
-    const receiptTotal = scannedReceipt?.total ?? scannedReceipt?.subtotal ?? roundedTotal;
+    const receiptTotal =
+      scannedReceipt?.total ?? scannedReceipt?.subtotal ?? roundedTotal;
     setAmount(receiptTotal.toFixed(2));
 
     // Calculate splits from assignments
@@ -251,33 +266,34 @@ export default function ExpenseSheet({
       customSplitValues[uid] = amt.toFixed(2);
     }
     setCustomSplits(customSplitValues);
-    setSplitMethod("custom");
+    setSplitMethod('custom');
 
     // Store receipt data
     if (scannedReceipt) {
       setReceiptData(JSON.stringify(scannedReceipt));
     }
 
-    setScanView("form");
+    setScanView('form');
     setScannedReceipt(null);
   }
 
   const saveMutation = useMutation({
     mutationFn: async () => {
       const total = parseFloat(amount);
-      if (!title.trim()) throw new Error("Title is required");
-      if (!total || total <= 0) throw new Error("Amount must be greater than 0");
+      if (!title.trim()) throw new Error('Title is required');
+      if (!total || total <= 0)
+        throw new Error('Amount must be greater than 0');
 
       const splits = computeSplits();
       const splitsSum = splits.reduce((a, s) => a + s.amount, 0);
       if (Math.abs(splitsSum - total) > 0.02) {
-        throw new Error("Splits must add up to the total");
+        throw new Error('Splits must add up to the total');
       }
 
-      if (mode === "create") {
-        const r = await fetch("/api/expenses", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
+      if (mode === 'create') {
+        const r = await fetch('/api/expenses', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             title: title.trim(),
             total_amount: total,
@@ -289,25 +305,28 @@ export default function ExpenseSheet({
         });
         if (!r.ok) {
           const d = await r.json().catch(() => ({}));
-          throw new Error(d.error ?? "Failed to save expense");
+          throw new Error(d.error ?? 'Failed to save expense');
         }
         return r.json();
       } else {
         const r = await fetch(`/api/expenses/${expense!.id}`, {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ title: title.trim(), category: category.trim() || null }),
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            title: title.trim(),
+            category: category.trim() || null,
+          }),
         });
         if (!r.ok) {
           const d = await r.json().catch(() => ({}));
-          throw new Error(d.error ?? "Failed to update expense");
+          throw new Error(d.error ?? 'Failed to update expense');
         }
         return r.json();
       }
     },
     onSuccess: () => {
       invalidate();
-      toast.success(mode === "create" ? "Expense added" : "Expense updated");
+      toast.success(mode === 'create' ? 'Expense added' : 'Expense updated');
       onClose();
     },
     onError: (err: Error) => toast.error(err.message),
@@ -315,15 +334,17 @@ export default function ExpenseSheet({
 
   const deleteMutation = useMutation({
     mutationFn: async () => {
-      const r = await fetch(`/api/expenses/${expense!.id}`, { method: "DELETE" });
+      const r = await fetch(`/api/expenses/${expense!.id}`, {
+        method: 'DELETE',
+      });
       if (!r.ok) {
         const d = await r.json().catch(() => ({}));
-        throw new Error(d.error ?? "Failed to delete expense");
+        throw new Error(d.error ?? 'Failed to delete expense');
       }
     },
     onSuccess: () => {
       invalidate();
-      toast.success("Expense deleted");
+      toast.success('Expense deleted');
       setDeleteDialogOpen(false);
       onClose();
     },
@@ -334,7 +355,7 @@ export default function ExpenseSheet({
 
   // ---- View mode -------------------------------------------------------------
 
-  if (mode === "view" && expense) {
+  if (mode === 'view' && expense) {
     const timestamp = expense.created_at
       ? format(new Date(expense.created_at), "EEEE MMMM d 'at' h:mm a")
       : null;
@@ -353,17 +374,36 @@ export default function ExpenseSheet({
           <SheetContent
             side="bottom"
             className="rounded-t-2xl px-4 pb-8 pt-2"
-            style={{ backgroundColor: "var(--roost-surface)", maxHeight: "88dvh", overflowY: "auto" }}
+            style={{
+              backgroundColor: 'var(--roost-surface)',
+              maxHeight: '88dvh',
+              overflowY: 'auto',
+            }}
           >
-            <div className="mx-auto mb-4 h-1 w-10 rounded-full" style={{ backgroundColor: "#22C55E" }} />
+            <div
+              className="mx-auto mb-4 h-1 w-10 rounded-full"
+              style={{ backgroundColor: '#22C55E' }}
+            />
 
             <div className="mb-4 flex items-start justify-between gap-3">
               <div>
-                <h2 className="text-xl leading-tight" style={{ color: "var(--roost-text-primary)", fontWeight: 800 }}>
+                <h2
+                  className="text-xl leading-tight"
+                  style={{
+                    color: 'var(--roost-text-primary)',
+                    fontWeight: 800,
+                  }}
+                >
                   {expense.title}
                 </h2>
                 {expense.category && (
-                  <p className="mt-0.5 text-xs" style={{ color: "var(--roost-text-muted)", fontWeight: 600 }}>
+                  <p
+                    className="mt-0.5 text-xs"
+                    style={{
+                      color: 'var(--roost-text-muted)',
+                      fontWeight: 600,
+                    }}
+                  >
                     {expense.category}
                   </p>
                 )}
@@ -371,12 +411,12 @@ export default function ExpenseSheet({
               {canEdit && (
                 <button
                   type="button"
-                  onClick={() => setMode("edit")}
+                  onClick={() => setMode('edit')}
                   className="flex h-9 shrink-0 items-center gap-1.5 rounded-xl px-3 text-sm"
                   style={{
-                    border: "1.5px solid #E5E7EB",
-                    borderBottom: "3px solid #E5E7EB",
-                    color: "var(--roost-text-secondary)",
+                    border: '1.5px solid #E5E7EB',
+                    borderBottom: '3px solid #E5E7EB',
+                    color: 'var(--roost-text-secondary)',
                     fontWeight: 700,
                   }}
                 >
@@ -389,17 +429,27 @@ export default function ExpenseSheet({
             {/* Amount */}
             <div
               className="mb-4 rounded-2xl p-4 text-center"
-              style={{ backgroundColor: `${COLOR}18`, border: `1.5px solid ${COLOR}30` }}
+              style={{
+                backgroundColor: `${COLOR}18`,
+                border: `1.5px solid ${COLOR}30`,
+              }}
             >
               <p className="text-3xl" style={{ color: COLOR, fontWeight: 900 }}>
                 ${totalAmt.toFixed(2)}
               </p>
               <div className="mt-1 flex items-center justify-center gap-1.5">
                 {expense.payer_name && (
-                  <MemberAvatar name={expense.payer_name} avatarColor={expense.payer_avatar} size="sm" />
+                  <MemberAvatar
+                    name={expense.payer_name}
+                    avatarColor={expense.payer_avatar}
+                    size="sm"
+                  />
                 )}
-                <span className="text-xs" style={{ color: "var(--roost-text-muted)", fontWeight: 600 }}>
-                  Paid by {expense.payer_name?.split(" ")[0] ?? "Someone"}
+                <span
+                  className="text-xs"
+                  style={{ color: 'var(--roost-text-muted)', fontWeight: 600 }}
+                >
+                  Paid by {expense.payer_name?.split(' ')[0] ?? 'Someone'}
                 </span>
               </div>
             </div>
@@ -407,34 +457,70 @@ export default function ExpenseSheet({
             {/* Splits */}
             {expense.splits.length > 0 && (
               <div className="mb-4 space-y-2">
-                <p className="text-xs" style={{ color: "#374151", fontWeight: 700 }}>
+                <p
+                  className="text-xs"
+                  style={{ color: '#374151', fontWeight: 700 }}
+                >
                   Splits
                 </p>
                 {expense.splits.map((split) => (
                   <div
                     key={split.id}
                     className="flex items-center justify-between rounded-xl px-3 py-2.5"
-                    style={{ border: "1.5px solid var(--roost-border)", borderBottom: "3px solid #E5E7EB" }}
+                    style={{
+                      border: '1.5px solid var(--roost-border)',
+                      borderBottom: '3px solid #E5E7EB',
+                    }}
                   >
                     <div className="flex items-center gap-2">
                       {split.user_name && (
-                        <MemberAvatar name={split.user_name} avatarColor={split.user_avatar} size="sm" />
+                        <MemberAvatar
+                          name={split.user_name}
+                          avatarColor={split.user_avatar}
+                          size="sm"
+                        />
                       )}
-                      <span className="text-sm" style={{ color: "var(--roost-text-primary)", fontWeight: 700 }}>
-                        {split.user_name?.split(" ")[0] ?? "Member"}
+                      <span
+                        className="text-sm"
+                        style={{
+                          color: 'var(--roost-text-primary)',
+                          fontWeight: 700,
+                        }}
+                      >
+                        {split.user_name?.split(' ')[0] ?? 'Member'}
                       </span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <span className="text-sm" style={{ color: "var(--roost-text-primary)", fontWeight: 700 }}>
+                      <span
+                        className="text-sm"
+                        style={{
+                          color: 'var(--roost-text-primary)',
+                          fontWeight: 700,
+                        }}
+                      >
                         ${parseFloat(split.amount).toFixed(2)}
                       </span>
                       {split.settled ? (
-                        <span className="rounded-full px-2 py-0.5 text-xs" style={{ backgroundColor: `${COLOR}18`, color: COLOR, fontWeight: 700 }}>
+                        <span
+                          className="rounded-full px-2 py-0.5 text-xs"
+                          style={{
+                            backgroundColor: `${COLOR}18`,
+                            color: COLOR,
+                            fontWeight: 700,
+                          }}
+                        >
                           Settled
                         </span>
                       ) : (
                         split.user_id !== expense.paid_by && (
-                          <span className="rounded-full px-2 py-0.5 text-xs" style={{ backgroundColor: "var(--roost-border)", color: "#374151", fontWeight: 700 }}>
+                          <span
+                            className="rounded-full px-2 py-0.5 text-xs"
+                            style={{
+                              backgroundColor: 'var(--roost-border)',
+                              color: '#374151',
+                              fontWeight: 700,
+                            }}
+                          >
                             Pending
                           </span>
                         )
@@ -454,14 +540,19 @@ export default function ExpenseSheet({
                   className="flex w-full items-center gap-2"
                 >
                   <Receipt className="size-3.5" style={{ color: COLOR }} />
-                  <span className="flex-1 text-left text-xs" style={{ color: "#374151", fontWeight: 700 }}>
+                  <span
+                    className="flex-1 text-left text-xs"
+                    style={{ color: '#374151', fontWeight: 700 }}
+                  >
                     Receipt items
                   </span>
                   <ChevronDown
                     className="size-3.5 transition-transform"
                     style={{
-                      color: "var(--roost-text-muted)",
-                      transform: receiptExpanded ? "rotate(0deg)" : "rotate(-90deg)",
+                      color: 'var(--roost-text-muted)',
+                      transform: receiptExpanded
+                        ? 'rotate(0deg)'
+                        : 'rotate(-90deg)',
                     }}
                   />
                 </button>
@@ -470,25 +561,42 @@ export default function ExpenseSheet({
                   {receiptExpanded && (
                     <motion.div
                       initial={{ opacity: 0, height: 0 }}
-                      animate={{ opacity: 1, height: "auto" }}
+                      animate={{ opacity: 1, height: 'auto' }}
                       exit={{ opacity: 0, height: 0 }}
                       transition={{ duration: 0.15 }}
                       className="overflow-hidden"
                     >
                       <div
                         className="mt-2 overflow-hidden rounded-xl"
-                        style={{ border: "1.5px solid var(--roost-border)" }}
+                        style={{ border: '1.5px solid var(--roost-border)' }}
                       >
                         {parsedReceiptData.lineItems.map((item, i) => (
                           <div
                             key={i}
                             className="flex items-center justify-between px-3 py-2"
-                            style={{ borderTop: i > 0 ? "1px solid var(--roost-border)" : undefined }}
+                            style={{
+                              borderTop:
+                                i > 0
+                                  ? '1px solid var(--roost-border)'
+                                  : undefined,
+                            }}
                           >
-                            <span className="text-xs" style={{ color: "var(--roost-text-secondary)", fontWeight: 600 }}>
+                            <span
+                              className="text-xs"
+                              style={{
+                                color: 'var(--roost-text-secondary)',
+                                fontWeight: 600,
+                              }}
+                            >
                               {item.description}
                             </span>
-                            <span className="text-xs" style={{ color: "var(--roost-text-primary)", fontWeight: 700 }}>
+                            <span
+                              className="text-xs"
+                              style={{
+                                color: 'var(--roost-text-primary)',
+                                fontWeight: 700,
+                              }}
+                            >
                               ${item.amount.toFixed(2)}
                             </span>
                           </div>
@@ -502,7 +610,10 @@ export default function ExpenseSheet({
 
             {/* Footer */}
             <div className="flex items-center gap-2">
-              <span className="text-xs" style={{ color: "var(--roost-text-muted)", fontWeight: 600 }}>
+              <span
+                className="text-xs"
+                style={{ color: 'var(--roost-text-muted)', fontWeight: 600 }}
+              >
                 {timestamp}
               </span>
             </div>
@@ -513,7 +624,7 @@ export default function ExpenseSheet({
                 type="button"
                 onClick={() => setDeleteDialogOpen(true)}
                 className="mt-5 flex h-11 w-full items-center justify-center gap-2 rounded-xl text-sm"
-                style={{ color: "#EF4444", fontWeight: 700 }}
+                style={{ color: '#EF4444', fontWeight: 700 }}
               >
                 <Trash2 className="size-4" />
                 Delete expense
@@ -525,11 +636,16 @@ export default function ExpenseSheet({
         <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle style={{ color: "var(--roost-text-primary)", fontWeight: 800 }}>
+              <DialogTitle
+                style={{ color: 'var(--roost-text-primary)', fontWeight: 800 }}
+              >
                 Delete expense?
               </DialogTitle>
             </DialogHeader>
-            <p className="text-sm" style={{ color: "var(--roost-text-secondary)", fontWeight: 600 }}>
+            <p
+              className="text-sm"
+              style={{ color: 'var(--roost-text-secondary)', fontWeight: 600 }}
+            >
               {expense.title} — ${parseFloat(expense.total_amount).toFixed(2)}
             </p>
             <DialogFooter className="mt-2 gap-2">
@@ -537,7 +653,12 @@ export default function ExpenseSheet({
                 type="button"
                 onClick={() => setDeleteDialogOpen(false)}
                 className="flex h-11 flex-1 items-center justify-center rounded-xl text-sm"
-                style={{ border: "1.5px solid #E5E7EB", borderBottom: "3px solid #E5E7EB", color: "var(--roost-text-primary)", fontWeight: 700 }}
+                style={{
+                  border: '1.5px solid #E5E7EB',
+                  borderBottom: '3px solid #E5E7EB',
+                  color: 'var(--roost-text-primary)',
+                  fontWeight: 700,
+                }}
               >
                 Cancel
               </button>
@@ -547,9 +668,19 @@ export default function ExpenseSheet({
                 onClick={() => deleteMutation.mutate()}
                 disabled={deleteMutation.isPending}
                 className="flex h-11 flex-1 items-center justify-center rounded-xl text-sm text-white"
-                style={{ backgroundColor: "#EF4444", border: "1.5px solid #C93B3B", borderBottom: "3px solid #A63030", fontWeight: 800, opacity: deleteMutation.isPending ? 0.7 : 1 }}
+                style={{
+                  backgroundColor: '#EF4444',
+                  border: '1.5px solid #C93B3B',
+                  borderBottom: '3px solid #A63030',
+                  fontWeight: 800,
+                  opacity: deleteMutation.isPending ? 0.7 : 1,
+                }}
               >
-                {deleteMutation.isPending ? <Loader2 className="size-4 animate-spin" /> : "Delete"}
+                {deleteMutation.isPending ? (
+                  <Loader2 className="size-4 animate-spin" />
+                ) : (
+                  'Delete'
+                )}
               </motion.button>
             </DialogFooter>
           </DialogContent>
@@ -560,7 +691,15 @@ export default function ExpenseSheet({
 
   // ---- Create / Edit mode ----------------------------------------------------
 
-  const CATEGORIES = ["Food", "Groceries", "Utilities", "Rent", "Transport", "Entertainment", "Other"];
+  const CATEGORIES = [
+    'Food',
+    'Groceries',
+    'Utilities',
+    'Rent',
+    'Transport',
+    'Entertainment',
+    'Other',
+  ];
 
   const splits = computeSplits();
   const splitsSum = splits.reduce((a, s) => a + s.amount, 0);
@@ -572,39 +711,46 @@ export default function ExpenseSheet({
       <SheetContent
         side="bottom"
         className="rounded-t-2xl px-4 pb-8 pt-2"
-        style={{ backgroundColor: "var(--roost-surface)", maxHeight: "88dvh", overflowY: "auto" }}
+        style={{
+          backgroundColor: 'var(--roost-surface)',
+          maxHeight: '88dvh',
+          overflowY: 'auto',
+        }}
       >
-        <div className="mx-auto mb-4 h-1 w-10 rounded-full" style={{ backgroundColor: "#22C55E" }} />
+        <div
+          className="mx-auto mb-4 h-1 w-10 rounded-full"
+          style={{ backgroundColor: '#22C55E' }}
+        />
 
         {/* ---- Scanner view ---- */}
-        {scanView === "scanner" && (
+        {scanView === 'scanner' && (
           <>
             <div className="mb-4 flex items-center gap-2">
               <button
                 type="button"
-                onClick={() => setScanView("form")}
+                onClick={() => setScanView('form')}
                 className="text-sm"
-                style={{ color: "#374151", fontWeight: 700 }}
+                style={{ color: '#374151', fontWeight: 700 }}
               >
                 Back to form
               </button>
             </div>
             <ReceiptScanner
               onReceiptParsed={handleReceiptParsed}
-              onClose={() => setScanView("form")}
+              onClose={() => setScanView('form')}
             />
           </>
         )}
 
         {/* ---- Line items view ---- */}
-        {scanView === "lineItems" && scannedReceipt && (
+        {scanView === 'lineItems' && scannedReceipt && (
           <>
             <div className="mb-4 flex items-center gap-2">
               <button
                 type="button"
-                onClick={() => setScanView("form")}
+                onClick={() => setScanView('form')}
                 className="text-sm"
-                style={{ color: "#374151", fontWeight: 700 }}
+                style={{ color: '#374151', fontWeight: 700 }}
               >
                 Back to form
               </button>
@@ -615,38 +761,40 @@ export default function ExpenseSheet({
               onConfirm={handleLineItemsConfirmed}
               onRescan={() => {
                 setScannedReceipt(null);
-                setScanView("scanner");
+                setScanView('scanner');
               }}
             />
           </>
         )}
 
         {/* ---- Form view ---- */}
-        {scanView === "form" && (
+        {scanView === 'form' && (
           <>
             <SheetHeader className="mb-5 text-left">
-              <SheetTitle style={{ color: "var(--roost-text-primary)", fontWeight: 800 }}>
-                {mode === "create" ? "New Expense" : "Edit Expense"}
+              <SheetTitle
+                style={{ color: 'var(--roost-text-primary)', fontWeight: 800 }}
+              >
+                {mode === 'create' ? 'New Expense' : 'Edit Expense'}
               </SheetTitle>
             </SheetHeader>
 
             <div className="space-y-4">
               {/* Scan receipt button — create mode only */}
-              {mode === "create" && (
+              {mode === 'create' && (
                 <button
                   type="button"
-                  onClick={() => setScanView("scanner")}
+                  onClick={() => setScanView('scanner')}
                   style={{
-                    width: "100%",
-                    background: "rgba(34,197,94,0.08)",
-                    border: "1.5px solid rgba(34,197,94,0.3)",
-                    borderBottom: "3px solid #159040",
+                    width: '100%',
+                    background: 'rgba(34,197,94,0.08)',
+                    border: '1.5px solid rgba(34,197,94,0.3)',
+                    borderBottom: '3px solid #159040',
                     borderRadius: 14,
-                    padding: "12px 16px",
-                    display: "flex",
-                    alignItems: "center",
+                    padding: '12px 16px',
+                    display: 'flex',
+                    alignItems: 'center',
                     gap: 10,
-                    cursor: "pointer",
+                    cursor: 'pointer',
                   }}
                 >
                   <ScanLine size={18} color={COLOR} />
@@ -656,13 +804,13 @@ export default function ExpenseSheet({
                   {receiptData ? (
                     <span
                       style={{
-                        marginLeft: "auto",
+                        marginLeft: 'auto',
                         fontSize: 11,
                         fontWeight: 700,
                         backgroundColor: `${COLOR}18`,
                         color: COLOR,
                         borderRadius: 99,
-                        padding: "2px 8px",
+                        padding: '2px 8px',
                       }}
                     >
                       Scanned
@@ -670,10 +818,10 @@ export default function ExpenseSheet({
                   ) : (
                     <span
                       style={{
-                        marginLeft: "auto",
+                        marginLeft: 'auto',
                         fontSize: 11,
                         fontWeight: 700,
-                        color: "var(--roost-text-muted)",
+                        color: 'var(--roost-text-muted)',
                       }}
                     >
                       Optional
@@ -684,7 +832,10 @@ export default function ExpenseSheet({
 
               {/* Title */}
               <div>
-                <label className="mb-1.5 block text-xs" style={{ color: "#374151", fontWeight: 700 }}>
+                <label
+                  className="mb-1.5 block text-xs"
+                  style={{ color: '#374151', fontWeight: 700 }}
+                >
                   What was it for?
                 </label>
                 <input
@@ -699,13 +850,16 @@ export default function ExpenseSheet({
 
               {/* Amount */}
               <div>
-                <label className="mb-1.5 block text-xs" style={{ color: "#374151", fontWeight: 700 }}>
+                <label
+                  className="mb-1.5 block text-xs"
+                  style={{ color: '#374151', fontWeight: 700 }}
+                >
                   Amount
                 </label>
                 <div className="relative">
                   <span
                     className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-sm"
-                    style={{ color: "#374151", fontWeight: 700 }}
+                    style={{ color: '#374151', fontWeight: 700 }}
                   >
                     $
                   </span>
@@ -719,15 +873,18 @@ export default function ExpenseSheet({
                     placeholder="0.00"
                     className="h-12 w-full rounded-xl pl-8 pr-4 text-sm focus:outline-none"
                     style={inputStyle}
-                    disabled={mode === "edit"}
+                    disabled={mode === 'edit'}
                   />
                 </div>
               </div>
 
               {/* Paid by */}
-              {mode === "create" && (
+              {mode === 'create' && (
                 <div>
-                  <label className="mb-1.5 block text-xs" style={{ color: "#374151", fontWeight: 700 }}>
+                  <label
+                    className="mb-1.5 block text-xs"
+                    style={{ color: '#374151', fontWeight: 700 }}
+                  >
                     Paid by
                   </label>
                   <div className="flex flex-wrap gap-2">
@@ -740,15 +897,27 @@ export default function ExpenseSheet({
                           onClick={() => setPaidBy(m.userId)}
                           className="flex h-10 items-center gap-2 rounded-xl px-3 text-sm"
                           style={{
-                            border: active ? `1.5px solid ${COLOR}` : "1.5px solid var(--roost-border)",
-                            borderBottom: active ? `3px solid ${COLOR_DARK}` : "3px solid #E5E7EB",
-                            backgroundColor: active ? `${COLOR}18` : "transparent",
-                            color: active ? COLOR : "var(--roost-text-secondary)",
+                            border: active
+                              ? `1.5px solid ${COLOR}`
+                              : '1.5px solid var(--roost-border)',
+                            borderBottom: active
+                              ? `3px solid ${COLOR_DARK}`
+                              : '3px solid #E5E7EB',
+                            backgroundColor: active
+                              ? `${COLOR}18`
+                              : 'transparent',
+                            color: active
+                              ? COLOR
+                              : 'var(--roost-text-secondary)',
                             fontWeight: 700,
                           }}
                         >
-                          <MemberAvatar name={m.name} avatarColor={m.avatarColor} size="sm" />
-                          {m.name.split(" ")[0]}
+                          <MemberAvatar
+                            name={m.name}
+                            avatarColor={m.avatarColor}
+                            size="sm"
+                          />
+                          {m.name.split(' ')[0]}
                         </button>
                       );
                     })}
@@ -758,7 +927,10 @@ export default function ExpenseSheet({
 
               {/* Category */}
               <div>
-                <label className="mb-1.5 block text-xs" style={{ color: "#374151", fontWeight: 700 }}>
+                <label
+                  className="mb-1.5 block text-xs"
+                  style={{ color: '#374151', fontWeight: 700 }}
+                >
                   Category (optional)
                 </label>
                 <div className="flex flex-wrap gap-2">
@@ -768,13 +940,19 @@ export default function ExpenseSheet({
                       <button
                         key={cat}
                         type="button"
-                        onClick={() => setCategory(active ? "" : cat)}
+                        onClick={() => setCategory(active ? '' : cat)}
                         className="h-9 rounded-xl px-3 text-xs"
                         style={{
-                          border: active ? `1.5px solid ${COLOR}` : "1.5px solid #E5E7EB",
-                          borderBottom: active ? `3px solid ${COLOR_DARK}` : "3px solid #E5E7EB",
-                          backgroundColor: active ? `${COLOR}18` : "transparent",
-                          color: active ? COLOR : "var(--roost-text-secondary)",
+                          border: active
+                            ? `1.5px solid ${COLOR}`
+                            : '1.5px solid #E5E7EB',
+                          borderBottom: active
+                            ? `3px solid ${COLOR_DARK}`
+                            : '3px solid #E5E7EB',
+                          backgroundColor: active
+                            ? `${COLOR}18`
+                            : 'transparent',
+                          color: active ? COLOR : 'var(--roost-text-secondary)',
                           fontWeight: 700,
                         }}
                       >
@@ -786,17 +964,23 @@ export default function ExpenseSheet({
               </div>
 
               {/* Split method — create only */}
-              {mode === "create" && (
+              {mode === 'create' && (
                 <div>
-                  <label className="mb-1.5 block text-xs" style={{ color: "#374151", fontWeight: 700 }}>
+                  <label
+                    className="mb-1.5 block text-xs"
+                    style={{ color: '#374151', fontWeight: 700 }}
+                  >
                     Split
                   </label>
                   <div className="flex gap-2">
                     {(
                       [
-                        { value: "equal" as SplitMethod, label: "Equal" },
-                        { value: "custom" as SplitMethod, label: "Custom" },
-                        { value: "payer-only" as SplitMethod, label: "Just me" },
+                        { value: 'equal' as SplitMethod, label: 'Equal' },
+                        { value: 'custom' as SplitMethod, label: 'Custom' },
+                        {
+                          value: 'payer-only' as SplitMethod,
+                          label: 'Just me',
+                        },
                       ] as const
                     ).map(({ value, label }) => {
                       const active = splitMethod === value;
@@ -807,10 +991,18 @@ export default function ExpenseSheet({
                           onClick={() => setSplitMethod(value)}
                           className="h-10 flex-1 rounded-xl text-sm"
                           style={{
-                            border: active ? `1.5px solid ${COLOR}` : "1.5px solid #E5E7EB",
-                            borderBottom: active ? `3px solid ${COLOR_DARK}` : "3px solid #E5E7EB",
-                            backgroundColor: active ? `${COLOR}18` : "transparent",
-                            color: active ? COLOR : "var(--roost-text-secondary)",
+                            border: active
+                              ? `1.5px solid ${COLOR}`
+                              : '1.5px solid #E5E7EB',
+                            borderBottom: active
+                              ? `3px solid ${COLOR_DARK}`
+                              : '3px solid #E5E7EB',
+                            backgroundColor: active
+                              ? `${COLOR}18`
+                              : 'transparent',
+                            color: active
+                              ? COLOR
+                              : 'var(--roost-text-secondary)',
                             fontWeight: 700,
                           }}
                         >
@@ -820,20 +1012,30 @@ export default function ExpenseSheet({
                     })}
                   </div>
 
-                  {splitMethod === "custom" && total > 0 && (
+                  {splitMethod === 'custom' && total > 0 && (
                     <div className="mt-3 space-y-2">
                       {members.map((m) => (
                         <div key={m.userId} className="flex items-center gap-3">
                           <div className="flex flex-1 items-center gap-2">
-                            <MemberAvatar name={m.name} avatarColor={m.avatarColor} size="sm" />
-                            <span className="text-sm" style={{ color: "var(--roost-text-primary)", fontWeight: 700 }}>
-                              {m.name.split(" ")[0]}
+                            <MemberAvatar
+                              name={m.name}
+                              avatarColor={m.avatarColor}
+                              size="sm"
+                            />
+                            <span
+                              className="text-sm"
+                              style={{
+                                color: 'var(--roost-text-primary)',
+                                fontWeight: 700,
+                              }}
+                            >
+                              {m.name.split(' ')[0]}
                             </span>
                           </div>
                           <div className="relative w-28">
                             <span
                               className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm"
-                              style={{ color: "#374151", fontWeight: 700 }}
+                              style={{ color: '#374151', fontWeight: 700 }}
                             >
                               $
                             </span>
@@ -841,9 +1043,12 @@ export default function ExpenseSheet({
                               type="number"
                               step="0.01"
                               min="0"
-                              value={customSplits[m.userId] ?? ""}
+                              value={customSplits[m.userId] ?? ''}
                               onChange={(e) =>
-                                setCustomSplits((prev) => ({ ...prev, [m.userId]: e.target.value }))
+                                setCustomSplits((prev) => ({
+                                  ...prev,
+                                  [m.userId]: e.target.value,
+                                }))
                               }
                               placeholder="0.00"
                               className="h-10 w-full rounded-xl pl-7 pr-3 text-sm focus:outline-none"
@@ -853,18 +1058,31 @@ export default function ExpenseSheet({
                         </div>
                       ))}
                       {total > 0 && !splitsValid && (
-                        <p className="text-xs" style={{ color: "#EF4444", fontWeight: 600 }}>
-                          Splits total ${splitsSum.toFixed(2)}, need ${total.toFixed(2)}
+                        <p
+                          className="text-xs"
+                          style={{ color: '#EF4444', fontWeight: 600 }}
+                        >
+                          Splits total ${splitsSum.toFixed(2)}, need $
+                          {total.toFixed(2)}
                         </p>
                       )}
                     </div>
                   )}
 
-                  {splitMethod === "equal" && total > 0 && members.length > 0 && (
-                    <p className="mt-2 text-xs" style={{ color: "var(--roost-text-muted)", fontWeight: 600 }}>
-                      ${(total / members.length).toFixed(2)} each across {members.length} members
-                    </p>
-                  )}
+                  {splitMethod === 'equal' &&
+                    total > 0 &&
+                    members.length > 0 && (
+                      <p
+                        className="mt-2 text-xs"
+                        style={{
+                          color: 'var(--roost-text-muted)',
+                          fontWeight: 600,
+                        }}
+                      >
+                        ${(total / members.length).toFixed(2)} each across{' '}
+                        {members.length} members
+                      </p>
+                    )}
                 </div>
               )}
 
@@ -875,7 +1093,7 @@ export default function ExpenseSheet({
                 disabled={
                   saveMutation.isPending ||
                   !title.trim() ||
-                  (mode === "create" && (!splitsValid || !paidBy))
+                  (mode === 'create' && (!splitsValid || !paidBy))
                 }
                 whileTap={{ y: 2 }}
                 className="flex h-12 w-full items-center justify-center gap-2 rounded-xl text-sm text-white"
@@ -887,17 +1105,17 @@ export default function ExpenseSheet({
                   opacity:
                     saveMutation.isPending ||
                     !title.trim() ||
-                    (mode === "create" && (!splitsValid || !paidBy))
+                    (mode === 'create' && (!splitsValid || !paidBy))
                       ? 0.6
                       : 1,
                 }}
               >
                 {saveMutation.isPending ? (
                   <Loader2 className="size-4 animate-spin" />
-                ) : mode === "create" ? (
-                  "Add Expense"
+                ) : mode === 'create' ? (
+                  'Add Expense'
                 ) : (
-                  "Save Changes"
+                  'Save Changes'
                 )}
               </motion.button>
 
@@ -906,7 +1124,7 @@ export default function ExpenseSheet({
                 type="button"
                 onClick={onClose}
                 className="flex h-11 w-full items-center justify-center rounded-xl text-sm"
-                style={{ color: "#374151", fontWeight: 700 }}
+                style={{ color: '#374151', fontWeight: 700 }}
               >
                 Cancel
               </button>

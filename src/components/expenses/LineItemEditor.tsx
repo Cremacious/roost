@@ -280,7 +280,7 @@ export default function LineItemEditor({
         {detectedTotal !== null && (
           <div className="mt-1 flex items-center justify-between">
             <span className="text-sm" style={{ color: "var(--roost-text-muted)", fontWeight: 700 }}>
-              Receipt total
+              Receipt total (after tax)
             </span>
             <span
               className="text-sm"

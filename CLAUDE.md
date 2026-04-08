@@ -707,7 +707,14 @@ src/app/api/cron/subscription/route.ts        Daily cron: expire premium househo
 - Parser tags (src/lib/utils/googleVision.ts): PRICE, PRICE_AFTER, PRICE_INLINE, BARCODE, WEIGHT, FOOTER, ITEM
 - ALWAYS_SKIP predicate: array of regexes unconditionally skipped anywhere — no headerDone flag needed
   Patterns: walmart, neighborhood market, phone numbers, street addresses, city/state/zip, ST#/TC#/OP#,
-  cashier, station, datetime lines, mgr., OCR gibberish, non-ASCII lines
+  cashier, station, datetime lines, mgr., OCR gibberish, non-ASCII, visa tend, change due
+- Footer totals extracted in a second pass over all lines after the main item loop:
+    Walmart format: label on one line, value on next — /^subtotal$/i + nextIsNumber, /^total$/i + nextIsNumber
+    Walmart tax: "TAX1" / "7.0000 %" / value two lines ahead — /^tax\d*$/i + lines[i+2] check
+    Asian market: same-line format "Subtotal: $77.04" — /^(subtotal|total|tax)\D*\$?(\d+\.\d{2})/i
+    Second-pass only sets values that are still undefined (same-line match won't overwrite Walmart two-line match)
+- Expense amount pre-fill uses receipt.total (after tax) ?? receipt.subtotal ?? item sum (ExpenseSheet.tsx handleLineItemsConfirmed)
+- LineItemEditor "Receipt total (after tax)" label uses receipt.total — shows parsed after-tax total from footer
 - Walmart Vision format: two-column receipt split into 2-3 lines per item:
     Line 1 (ITEM): "CRM COCO VAN 818290017570 F" — name + optional embedded barcode + optional flag
     Line 2 (BARCODE or WEIGHT, skip): "681131387480 F" or "0.520 lb. @ 1 lb. /1.26"

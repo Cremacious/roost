@@ -33,6 +33,9 @@ const ALWAYS_SKIP: RegExp[] = [
   /^mgr\./i,
   /^[a-z]{1,3}\s+[a-z]{1,3}\s+and\s/i,                    // OCR gibberish
   /^[^\x00-\x7F]+$/,                                       // purely non-ASCII
+  /^visa\s+tend/i,                                         // Walmart payment line
+  /^visa\s+credit/i,                                       // Walmart credit card line
+  /^change\s+due/i,                                        // Walmart change line
 ];
 
 function isAlwaysSkip(line: string): boolean {
@@ -127,22 +130,8 @@ export function parseReceiptText(text: string): ParsedReceipt {
     // Unconditionally skip always-skip lines
     if (isAlwaysSkip(line)) continue;
 
-    // Stop at footer and harvest totals
-    if (tag === "FOOTER") {
-      for (let j = i; j < tagged.length; j++) {
-        const fl = tagged[j].line;
-
-        const subM = fl.match(/subtotal\s+(\d+\.\d{2})/i);
-        if (subM) { result.subtotal = parseFloat(subM[1]); continue; }
-
-        const taxM = fl.match(/tax\d*\s+[\d.]+\s*%?\s+(\d+\.\d{2})/i);
-        if (taxM) { result.tax = parseFloat(taxM[1]); continue; }
-
-        const totM = fl.match(/^total\s+(\d+\.\d{2})/i);
-        if (totM) { result.total = parseFloat(totM[1]); }
-      }
-      break;
-    }
+    // Stop at footer — totals extracted in second pass below
+    if (tag === "FOOTER") break;
 
     // Weight and barcode lines: skip, their item is already in the queue
     if (tag === "WEIGHT" || tag === "BARCODE") continue;
@@ -187,6 +176,47 @@ export function parseReceiptText(text: string): ParsedReceipt {
   const pairCount = Math.min(nameQueue.length, priceQueue.length);
   for (let k = 0; k < pairCount; k++) {
     emitPair(nameQueue[k], priceQueue[k]);
+  }
+
+  // Second pass: extract footer totals.
+  // Handles two formats:
+  //   Walmart (label on one line, value on next):
+  //     "SUBTOTAL" / "78.89" / "TAX1" / "7.0000 %" / "2.13" / "TOTAL" / "81.02"
+  //   Asian market (same line):
+  //     "Subtotal: $77.04" / "Total: $79.29"
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i].trim();
+    const next = (lines[i + 1] ?? "").trim();
+    const nextIsNumber = /^\d+\.\d{2}$/.test(next);
+    const nextVal = parseFloat(next);
+
+    // Walmart label-then-value: SUBTOTAL / value
+    if (/^subtotal$/i.test(line) && nextIsNumber) {
+      result.subtotal = nextVal;
+    }
+
+    // Walmart TAX label: "TAX1" / "7.0000 %" / "2.13" (value is two lines ahead)
+    if (/^tax\d*$/i.test(line)) {
+      const twoAhead = (lines[i + 2] ?? "").trim();
+      if (/^\d+\.\d{2}$/.test(twoAhead)) {
+        result.tax = parseFloat(twoAhead);
+      }
+    }
+
+    // Walmart label-then-value: TOTAL / value
+    if (/^total$/i.test(line) && nextIsNumber) {
+      result.total = nextVal;
+    }
+
+    // Asian market same-line: "Subtotal: $77.04" / "Total: $79.29"
+    const sameLine = line.match(/^(subtotal|total|tax)\D*\$?(\d+\.\d{2})/i);
+    if (sameLine) {
+      const label = sameLine[1].toLowerCase();
+      const val = parseFloat(sameLine[2]);
+      if (label === "subtotal" && !result.subtotal) result.subtotal = val;
+      if (label === "total" && !result.total) result.total = val;
+      if (label === "tax" && !result.tax) result.tax = val;
+    }
   }
 
   // Fallback total: sum items

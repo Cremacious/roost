@@ -240,8 +240,9 @@ export default function ExpenseSheet({
       setTitle("Receipt");
     }
 
-    // Auto-fill amount
-    setAmount(roundedTotal.toFixed(2));
+    // Auto-fill amount — prefer parsed receipt total (after tax), fall back to item sum
+    const receiptTotal = scannedReceipt?.total ?? scannedReceipt?.subtotal ?? roundedTotal;
+    setAmount(receiptTotal.toFixed(2));
 
     // Calculate splits from assignments
     const perUser = buildSplitsFromAssignments(assignments, members, paidBy);

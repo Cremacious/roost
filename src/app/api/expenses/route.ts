@@ -2,9 +2,10 @@ import { NextRequest } from "next/server";
 import { requireSession } from "@/lib/auth/helpers";
 import { db } from "@/lib/db";
 import { expenses, expense_splits, user, users, households } from "@/db/schema";
-import { and, desc, eq, inArray, isNull } from "drizzle-orm";
+import { and, desc, eq, gte, inArray, isNull, lte } from "drizzle-orm";
 import { getUserHousehold } from "@/app/api/chores/route";
 import { logActivity } from "@/lib/utils/activity";
+import { startOfMonth, endOfMonth } from "date-fns";
 
 // ---- Debt simplification ----------------------------------------------------
 
@@ -112,6 +113,10 @@ export async function GET(request: NextRequest): Promise<Response> {
     amount: string;
     settled: boolean;
     settled_at: Date | null;
+    settled_by_payer: boolean;
+    settled_by_payee: boolean;
+    settlement_claimed_at: Date | null;
+    settlement_disputed: boolean;
     user_name: string | null;
     user_avatar: string | null;
   }[] = [];
@@ -125,6 +130,10 @@ export async function GET(request: NextRequest): Promise<Response> {
         amount: expense_splits.amount,
         settled: expense_splits.settled,
         settled_at: expense_splits.settled_at,
+        settled_by_payer: expense_splits.settled_by_payer,
+        settled_by_payee: expense_splits.settled_by_payee,
+        settlement_claimed_at: expense_splits.settlement_claimed_at,
+        settlement_disputed: expense_splits.settlement_disputed,
         user_name: user.name,
         user_avatar: users.avatar_color,
       })
@@ -183,11 +192,45 @@ export async function GET(request: NextRequest): Promise<Response> {
   // Current user's summary
   const myBalance = balanceMap[session.user.id]?.net ?? 0;
 
+  // Compute total spent this month (all household expenses)
+  const monthStart = startOfMonth(new Date());
+  const monthEnd = endOfMonth(new Date());
+  const totalSpentThisMonth = expenseRows
+    .filter((e) => e.created_at && e.created_at >= monthStart && e.created_at <= monthEnd)
+    .reduce((acc, e) => acc + parseFloat(e.total_amount ?? "0"), 0);
+
+  // Compute pending claims: splits claimed by payer but not yet confirmed by payee
+  const expensePaidByMap: Record<string, string> = {};
+  for (const e of expenseRows) expensePaidByMap[e.id] = e.paid_by;
+
+  const pendingClaimsMap: Record<string, { fromUserId: string; toUserId: string; amount: number; claimedAt: string }> = {};
+  for (const split of allSplits) {
+    if (!split.settled_by_payer || split.settled_by_payee || split.settlement_disputed) continue;
+    const payeeId = expensePaidByMap[split.expense_id];
+    if (!payeeId) continue;
+    const key = `${split.user_id}_${payeeId}`;
+    if (!pendingClaimsMap[key]) {
+      pendingClaimsMap[key] = {
+        fromUserId: split.user_id,
+        toUserId: payeeId,
+        amount: 0,
+        claimedAt: split.settlement_claimed_at?.toISOString() ?? new Date().toISOString(),
+      };
+    }
+    pendingClaimsMap[key].amount += parseFloat(split.amount);
+  }
+  const pendingClaims = Object.values(pendingClaimsMap).map((c) => ({
+    ...c,
+    amount: Math.round(c.amount * 100) / 100,
+  }));
+
   return Response.json({
     expenses: expensesWithSplits,
     balances: balanceList,
     debts,
     myBalance: Math.round(myBalance * 100) / 100,
+    totalSpentThisMonth: Math.round(totalSpentThisMonth * 100) / 100,
+    pendingClaims,
     isPremium,
   });
 }

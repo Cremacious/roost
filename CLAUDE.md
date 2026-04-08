@@ -537,6 +537,18 @@ src/components/expenses/ReceiptScanner.tsx  Scan flow UI: idle (camera + upload 
 src/components/expenses/LineItemEditor.tsx  Edit scanned line items, assign per member or split equally, confirm to pre-fill form
 src/app/api/chores/history/route.ts         GET: premium-only, filtered chore_completions with member/date filters, returns completions + stats
 src/app/(app)/chores/history/page.tsx       Chore completion history: member pills, date range, stats row, date-grouped list, load more
+src/app/(app)/expenses/page.tsx             Expenses: two-col desktop (balance hero + settle + expenses), chip strip mobile, pending confirmations
+src/components/expenses/SettleSheet.tsx     Two-sided settle flow: claim / waiting / confirm-or-dispute modes
+src/components/expenses/ExportSheet.tsx     Export: date range, quick-range pills, CSV/PDF format, preview, file download
+src/app/api/expenses/settle-all/route.ts    POST: initiate claim (settled_by_payer=true), replaced immediate-settle
+src/app/api/expenses/settle-all/claim/route.ts    POST: debtor claims they paid creditor
+src/app/api/expenses/settle-all/confirm/route.ts  POST: creditor confirms receipt, sets settled=true
+src/app/api/expenses/settle-all/dispute/route.ts  POST: creditor disputes claim, resets settled_by_payer
+src/app/api/expenses/settle-all/cancel/route.ts   POST: debtor cancels their pending claim
+src/app/api/expenses/settle-all/remind/route.ts   POST: send reminder to payee (rate limited 1/24h)
+src/app/api/expenses/export/route.ts        GET: export expenses as CSV or PDF (pdfkit, premium only)
+src/app/api/expenses/export/preview/route.ts  GET: preview count + total for date range (premium only)
+src/app/api/cron/settlement-reminders/route.ts  Daily 10am UTC: notify payees of pending claims >7 days old
 src/app/page.tsx                              Public marketing homepage (server component, no app shell). Sections: Nav, mobile teaser bar, hero, problem, 6 alternating feature rows (Chores/Grocery/Calendar/Expenses/Reminders/Meals each with realistic UI mockup), comparison table vs Splitwise/Cozi, personas (3 cards), bottom CTA, footer. No pricing section. Red nav and footer, warm-tinted feature sections, no dark sections. Mobile responsive via CSS class + <style> media queries at 640px: nav hides Features link, feature rows stack vertically with mockup centered, comparison table 16px padding, personas 1 col, all sections reduce padding to ~48px 20px, footer stacks vertically.
 src/app/(auth)/login/page.tsx                 Split layout: red left panel (desktop), form right panel; slab inputs on #FFF5F5
 src/app/(auth)/signup/page.tsx                Split layout matching login; all validation logic preserved
@@ -581,16 +593,32 @@ src/app/api/cron/subscription/route.ts        Daily cron: expire premium househo
 - GET /api/reminders select must include snoozed_until or isSnoozed() breaks on refetch.
 
 ## Expense UX Patterns
-- Premium-gated: free tier sees blurred mock expense list with upgrade CTA overlay
-- Balance summary card shown when myBalance != 0 (green = owed, red = you owe)
+- Premium-gated: free tier sees inline upgrade pitch (no blurred preview)
+- Desktop: two-column grid (340px left: balance hero + settle cards; 1fr right: expense list)
+- Mobile: scrollable 3-chip strip (You're owed / You owe / Spent this month) with scroll dots + right-fade overlay
+- Balance hero (desktop): 3-column stat box inside SlabCard — green border-bottom if owed, red if you owe
+- Chip strip dots: active chip = pill (18px wide, section color), inactive = 6px circle (border-bottom color)
+- Pending confirmations section: amber SlabCard, shown when current user is payee of a pending claim
+- Two-sided settlement flow: debtor claims via /claim, creditor confirms via /confirm or disputes via /dispute
+  - Split states: settled_by_payer=true (claimed), settled_by_payee=true (confirmed), settled=true (fully done)
+  - settlement_disputed=true: dispute resets payer claim, notifies debtor
+  - Payer can cancel pending claim via /cancel; can send reminder via /remind (rate limited: 1/24h via settlement_last_reminded_at)
+  - SettleSheet modes: fresh (show "I paid X" button), i_claimed (waiting + cancel + remind), they_claimed (confirm + dispute)
+- DebtCard: shows "Pending confirmation" amber badge when i_claimed; shows "Confirm payment" green button when they_claimed
+- Expense row shows "your share" below total: green (you paid, owed back), red (you owe), gray (settled)
+- Export: ExportSheet with date range (From/To + quick-range pills), CSV/PDF format toggle, preview count/total
+  - GET /api/expenses/export?from=&to=&format=csv|pdf triggers file download
+  - GET /api/expenses/export/preview?from=&to= returns {count, total}
+  - PDF via pdfkit (built-in fonts only, no filesystem): header, summary box, expense table grouped by month
+  - pdfkit Buffer must be wrapped in new Uint8Array() before passing to Response constructor
+- API returns pendingClaims[] and totalSpentThisMonth alongside debts/balances/expenses
 - Debt simplification algorithm: net balance per person, greedy creditor/debtor matching
-- Settle cards shown for current user's debts only (filtered from all household debts)
-- SettleSheet uses two-step confirm before calling settle-all API
 - ExpenseSheet: 3 split methods: Equal (auto-divide), Custom (per-member inputs), Just me (payer pays all)
 - Amount field is disabled in edit mode (can only edit title and category)
 - numeric columns from Drizzle return as strings, always parseFloat() before arithmetic
 - paid_by is the creator for permission checks (no separate created_by column on expenses)
 - Dashboard expenses tile: statusText is dynamic ("You owe $X" / "Owed $X" / "All settled" / "Premium feature")
+- Settlement cron: /api/cron/settlement-reminders runs daily at 10am UTC, notifies payees of claims >7 days old
 
 ## Calendar UX Patterns
 - Two views: Month grid (default) and Agenda list (next 60 days from today)
@@ -1017,7 +1045,7 @@ Update this file after every major decision or completed phase.
 - Dashboard tile selector: use `.locator('button, a').filter({ hasText: 'Chores' }).first()` to avoid strict mode (both button and inner `<p>` match plain `text=Chores`)
 - `uniqueUser` in test files must be a factory function `() => ({...})`, not a plain object — reusing the same email across tests causes "email already exists" failures when tests run serially
 
-Last updated: 2026-04-07 (Homepage redesigned: 9 sections with 6 alternating feature rows, comparison table, personas. Theme system redesign: 2 themes only. Feature card border sweep. Theme signout reset + onboarding button contrast fixes. Meals planner: desktop CSS grid + mobile vertical day list. Calendar mobile: week strip + day event list replaces month grid on mobile.)
+Last updated: 2026-04-08 (Expenses redesign: two-col desktop, chip strip mobile. Two-sided settlement: claim/confirm/dispute/cancel/remind routes. Export: CSV + PDF via pdfkit. Settlement-reminders cron daily 10am UTC. Schema: settled_by_payer/payee/claimed_at/last_reminded_at/disputed added to expense_splits.)
 
 ## Stripe Billing Rules
 - Stripe Checkout used for payment (redirect to Stripe, return to /settings/billing?success=true)

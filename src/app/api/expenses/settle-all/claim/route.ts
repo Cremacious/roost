@@ -5,8 +5,7 @@ import { expenses, expense_splits, users, notification_queue } from "@/db/schema
 import { and, eq, inArray, isNull } from "drizzle-orm";
 import { getUserHousehold } from "@/app/api/chores/route";
 
-// ---- POST: initiate settlement claim (payer says they paid) ------------------
-// Replaces the old immediate-settle route with the two-step claim flow.
+// ---- POST: debtor claims they have paid the creditor ------------------------
 
 export async function POST(request: NextRequest): Promise<Response> {
   let session;
@@ -25,30 +24,28 @@ export async function POST(request: NextRequest): Promise<Response> {
   }
   const { householdId } = membership;
 
-  let body: { with_user_id?: string };
+  let body: { toUserId?: string };
   try {
     body = await request.json();
-  } catch (err) {
-    console.error("[POST /api/expenses/settle-all] Failed to parse body:", err);
+  } catch {
     return Response.json({ error: "Invalid request body" }, { status: 400 });
   }
 
-  if (!body.with_user_id) {
-    return Response.json({ error: "with_user_id is required" }, { status: 400 });
+  if (!body.toUserId) {
+    return Response.json({ error: "toUserId is required" }, { status: 400 });
   }
 
   const userId = session.user.id;
-  const toUserId = body.with_user_id;
+  const toUserId = body.toUserId;
 
-  // Get expenses paid by toUserId
   const householdExpenses = await db
     .select({ id: expenses.id, paid_by: expenses.paid_by })
     .from(expenses)
     .where(and(eq(expenses.household_id, householdId), isNull(expenses.deleted_at)));
 
-  const paidByOtherIds = householdExpenses.filter((e) => e.paid_by === toUserId).map((e) => e.id);
+  const paidByCreditorIds = householdExpenses.filter((e) => e.paid_by === toUserId).map((e) => e.id);
 
-  if (paidByOtherIds.length === 0) {
+  if (paidByCreditorIds.length === 0) {
     return Response.json({ claimed: 0, total: 0 });
   }
 
@@ -58,7 +55,7 @@ export async function POST(request: NextRequest): Promise<Response> {
     .set({ settled_by_payer: true, settlement_claimed_at: now })
     .where(
       and(
-        inArray(expense_splits.expense_id, paidByOtherIds),
+        inArray(expense_splits.expense_id, paidByCreditorIds),
         eq(expense_splits.user_id, userId),
         eq(expense_splits.settled, false),
         eq(expense_splits.settled_by_payer, false)
@@ -68,20 +65,15 @@ export async function POST(request: NextRequest): Promise<Response> {
 
   const total = result.reduce((acc, s) => acc + parseFloat(s.amount ?? "0"), 0);
 
-  // Get current user name for notification
-  const [currentUser] = await db.select({ name: users.name }).from(users).where(eq(users.id, userId)).limit(1);
-  const payerName = currentUser?.name ?? "Someone";
-
-  // Get payee push token
-  const [payeeUser] = await db.select({ push_token: users.push_token }).from(users).where(eq(users.id, toUserId)).limit(1);
-
-  // Queue notification for payee
+  // Notify payee
   if (result.length > 0) {
+    const [me] = await db.select({ name: users.name }).from(users).where(eq(users.id, userId)).limit(1);
+    const myName = me?.name ?? "Someone";
     await db.insert(notification_queue).values({
       user_id: toUserId,
       type: "settlement_claimed",
-      title: `${payerName} says they paid you`,
-      body: `${payerName} marked $${total.toFixed(2)} as paid. Confirm you received it in the app.`,
+      title: `${myName} says they paid you`,
+      body: `${myName} marked $${total.toFixed(2)} as paid. Confirm you received it in the app.`,
     }).catch(() => {});
   }
 

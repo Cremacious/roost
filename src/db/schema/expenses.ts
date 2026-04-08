@@ -26,6 +26,12 @@ export const expense_splits = pgTable("expense_splits", {
   amount: numeric("amount").notNull(),
   settled: boolean("settled").notNull().default(false),
   settled_at: timestamp("settled_at"),
+  // Two-sided settlement columns
+  settled_by_payer: boolean("settled_by_payer").notNull().default(false),
+  settled_by_payee: boolean("settled_by_payee").notNull().default(false),
+  settlement_claimed_at: timestamp("settlement_claimed_at"),
+  settlement_last_reminded_at: timestamp("settlement_last_reminded_at"),
+  settlement_disputed: boolean("settlement_disputed").notNull().default(false),
 });
 
 export type Expense = typeof expenses.$inferSelect;

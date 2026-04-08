@@ -6,6 +6,7 @@ import { and, asc, desc, eq, isNull } from "drizzle-orm";
 import { getUserHousehold } from "@/app/api/chores/route";
 import { logActivity } from "@/lib/utils/activity";
 import { checkTaskLimit } from "@/lib/utils/premiumGating";
+import { FREE_TIER_LIMITS } from "@/lib/constants/freeTierLimits";
 
 // ---- GET --------------------------------------------------------------------
 
@@ -111,7 +112,7 @@ export async function POST(request: NextRequest): Promise<Response> {
     const { allowed, count } = await checkTaskLimit(householdId);
     if (!allowed) {
       return Response.json(
-        { error: "Free tier limit reached", code: "TASKS_LIMIT", limit: 10, current: count },
+        { error: "Free tier limit reached", code: "TASKS_LIMIT", limit: FREE_TIER_LIMITS.tasks, current: count },
         { status: 403 }
       );
     }

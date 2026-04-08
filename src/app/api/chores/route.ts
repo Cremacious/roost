@@ -5,6 +5,7 @@ import { chores, chore_completions, household_members, households, users } from 
 import { and, desc, eq, gte, isNull } from "drizzle-orm";
 import { addDays, addMonths, startOfDay } from "date-fns";
 import { checkChoreLimit } from "@/lib/utils/premiumGating";
+import { FREE_TIER_LIMITS } from "@/lib/constants/freeTierLimits";
 
 // ---- Shared helpers ---------------------------------------------------------
 
@@ -195,7 +196,7 @@ export async function POST(request: NextRequest): Promise<Response> {
     const { allowed, count } = await checkChoreLimit(membership.householdId);
     if (!allowed) {
       return Response.json(
-        { error: "Free tier limit reached", code: "CHORES_LIMIT", limit: 5, current: count },
+        { error: "Free tier limit reached", code: "CHORES_LIMIT", limit: FREE_TIER_LIMITS.chores, current: count },
         { status: 403 }
       );
     }

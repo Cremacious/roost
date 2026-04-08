@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/sheet";
 import { Loader2, Plus, Trash2, X } from "lucide-react";
 import { SECTION_COLORS } from "@/lib/constants/colors";
+import { FREE_TIER_LIMITS } from "@/lib/constants/freeTierLimits";
 
 const COLOR = SECTION_COLORS.meals;
 const COLOR_DARK = "#C4581A";
@@ -303,7 +304,7 @@ export default function MealSheet({ open, onClose, meal, isPremium, mealCount, o
             type="button"
             disabled={!canSubmit}
             onClick={() => {
-              if (!isEdit && !isPremium && (mealCount ?? 0) >= 5) {
+              if (!isEdit && !isPremium && (mealCount ?? 0) >= FREE_TIER_LIMITS.mealBank) {
                 onUpgradeRequired?.("MEAL_BANK_LIMIT");
                 return;
               }

@@ -5,6 +5,7 @@ import { meals, households } from "@/db/schema";
 import { and, asc, eq, isNull } from "drizzle-orm";
 import { getUserHousehold } from "@/app/api/chores/route";
 import { checkMealBankLimit } from "@/lib/utils/premiumGating";
+import { FREE_TIER_LIMITS } from "@/lib/constants/freeTierLimits";
 
 // ---- GET --------------------------------------------------------------------
 
@@ -60,7 +61,7 @@ export async function POST(request: NextRequest): Promise<Response> {
     const { allowed, count } = await checkMealBankLimit(householdId);
     if (!allowed) {
       return Response.json(
-        { error: "Free tier limit reached", code: "MEAL_BANK_LIMIT", limit: 5, current: count },
+        { error: "Free tier limit reached", code: "MEAL_BANK_LIMIT", limit: FREE_TIER_LIMITS.mealBank, current: count },
         { status: 403 }
       );
     }

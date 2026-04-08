@@ -7,6 +7,7 @@ import { getUserHousehold } from "@/app/api/chores/route";
 import { logActivity } from "@/lib/utils/activity";
 import { addDays, addMonths } from "date-fns";
 import { checkReminderLimit } from "@/lib/utils/premiumGating";
+import { FREE_TIER_LIMITS } from "@/lib/constants/freeTierLimits";
 
 // ---- Helper: calculate next_remind_at ---------------------------------------
 
@@ -190,7 +191,7 @@ export async function POST(request: NextRequest): Promise<Response> {
     const { allowed, count } = await checkReminderLimit(householdId, session.user.id);
     if (!allowed) {
       return Response.json(
-        { error: "Free tier limit reached", code: "REMINDERS_LIMIT", limit: 5, current: count },
+        { error: "Free tier limit reached", code: "REMINDERS_LIMIT", limit: FREE_TIER_LIMITS.reminders, current: count },
         { status: 403 }
       );
     }

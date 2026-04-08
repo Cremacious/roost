@@ -35,7 +35,7 @@ export async function GET(request: NextRequest): Promise<Response> {
 
   if (household?.subscription_status !== "premium") {
     return Response.json(
-      { error: "Premium required", code: "HISTORY_PREMIUM" },
+      { error: "Chore history requires Premium.", code: "CHORE_HISTORY_PREMIUM" },
       { status: 403 }
     );
   }

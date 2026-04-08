@@ -1,9 +1,11 @@
 import { NextRequest } from "next/server";
 import { requireSession } from "@/lib/auth/helpers";
 import { db } from "@/lib/db";
-import { household_members, member_permissions } from "@/db/schema";
+import { household_members, households, member_permissions } from "@/db/schema";
 import { and, eq } from "drizzle-orm";
 import { getUserHousehold } from "@/app/api/chores/route";
+import { checkChildLimit } from "@/lib/utils/premiumGating";
+import { FREE_TIER_LIMITS } from "@/lib/constants/freeTierLimits";
 
 const CHILD_LOCKED_PERMISSIONS = ["expenses.view", "expenses.add", "grocery.create_list"];
 
@@ -56,6 +58,29 @@ export async function PATCH(
 
   if (target.user_id === session.user.id) {
     return Response.json({ error: "Cannot change your own role" }, { status: 400 });
+  }
+
+  // Enforce child limit when promoting a non-child member to child
+  if (body.role === "child" && target.role !== "child") {
+    const [household] = await db
+      .select({ subscription_status: households.subscription_status })
+      .from(households)
+      .where(eq(households.id, membership.householdId))
+      .limit(1);
+    if (household?.subscription_status !== "premium") {
+      const { allowed, count } = await checkChildLimit(membership.householdId);
+      if (!allowed) {
+        return Response.json(
+          {
+            error: `Free households can only have one child account.`,
+            code: "CHILDREN_LIMIT",
+            limit: FREE_TIER_LIMITS.children,
+            current: count,
+          },
+          { status: 403 }
+        );
+      }
+    }
   }
 
   const [updated] = await db

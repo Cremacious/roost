@@ -6,6 +6,7 @@ import { and, eq, gte, inArray, isNull, lt } from "drizzle-orm";
 import { getUserHousehold } from "@/app/api/chores/route";
 import { logActivity } from "@/lib/utils/activity";
 import { checkCalendarEventLimit } from "@/lib/utils/premiumGating";
+import { FREE_TIER_LIMITS } from "@/lib/constants/freeTierLimits";
 
 // ---- Permission helper -------------------------------------------------------
 
@@ -183,7 +184,7 @@ export async function POST(request: NextRequest): Promise<Response> {
     );
     if (!allowed) {
       return Response.json(
-        { error: "Free tier limit reached", code: "CALENDAR_LIMIT", limit: 20, current: count },
+        { error: "Free tier limit reached", code: "CALENDAR_LIMIT", limit: FREE_TIER_LIMITS.calendarEvents, current: count },
         { status: 403 }
       );
     }

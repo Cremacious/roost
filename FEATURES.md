@@ -49,6 +49,7 @@
 - Create or join household via invite code
 - Household invite code sharing
 - Member roles: Child, Member, Admin
+- Up to 1 child account on free (enforced server-side via CHILDREN_LIMIT)
 
 #### Meals (Free)
 - Weekly meal planner (Mon-Sun, 4 slots per day)
@@ -124,8 +125,12 @@
 - More than 5 active reminders
 - Notify whole household or specific members
 
+#### Household (Premium)
+- Unlimited child accounts (free: 1 child account, enforced server-side)
+- Unlimited household members (free: 5 members)
+
 #### Themes (Premium)
-- Unlock all 8 app themes beyond Default
+- Unlock all 8 app themes beyond Default and Midnight
 
 #### Meals (Premium)
 **Sell it as:** "Your household's recipe box, unlimited."

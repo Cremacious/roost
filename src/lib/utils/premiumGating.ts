@@ -63,7 +63,7 @@ export async function checkCalendarEventLimit(
       )
     );
   const n = Number(row?.count ?? 0);
-  return { count: n, allowed: n < FREE_TIER_LIMITS.calendarEventsPerMonth };
+  return { count: n, allowed: n < FREE_TIER_LIMITS.calendarEvents };
 }
 
 // ---- Reminders --------------------------------------------------------------
@@ -91,7 +91,7 @@ export async function checkReminderLimit(
     );
   // Only count "once" (single) reminders — recurring are already blocked separately
   const n = rows.filter((r) => r.frequency === "once").length;
-  return { count: n, allowed: n < FREE_TIER_LIMITS.activeSingleReminders };
+  return { count: n, allowed: n < FREE_TIER_LIMITS.reminders };
 }
 
 // ---- Meal bank --------------------------------------------------------------
@@ -118,4 +118,22 @@ export async function checkMemberLimit(
     .where(eq(household_members.household_id, householdId));
   const n = Number(row?.count ?? 0);
   return { count: n, allowed: n < FREE_TIER_LIMITS.members };
+}
+
+// ---- Children ---------------------------------------------------------------
+
+export async function checkChildLimit(
+  householdId: string
+): Promise<{ allowed: boolean; count: number }> {
+  const [row] = await db
+    .select({ count: count(household_members.id) })
+    .from(household_members)
+    .where(
+      and(
+        eq(household_members.household_id, householdId),
+        eq(household_members.role, "child")
+      )
+    );
+  const n = Number(row?.count ?? 0);
+  return { count: n, allowed: n < FREE_TIER_LIMITS.children };
 }

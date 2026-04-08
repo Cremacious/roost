@@ -2,6 +2,7 @@
 
 import { motion } from "framer-motion";
 import {
+  Baby,
   Bell,
   BellRing,
   CalendarX,
@@ -133,6 +134,11 @@ const PROMPT_MAP: Record<string, PromptConfig> = {
     icon: PiggyBank,
     title: "Allowances are a premium feature.",
     body: "Set weekly allowances for child accounts tied to chore completion. Upgrade to set up allowances for your kids.",
+  },
+  CHILDREN_LIMIT: {
+    icon: Baby,
+    title: "One child account on free.",
+    body: "Upgrade to add unlimited child accounts, each with their own PIN login, chore assignments, and allowance tracking.",
   },
 };
 

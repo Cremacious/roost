@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 import { households, household_members } from "@/db/schema";
 import { and, eq, ilike, isNull } from "drizzle-orm";
 import { checkMemberLimit } from "@/lib/utils/premiumGating";
+import { FREE_TIER_LIMITS } from "@/lib/constants/freeTierLimits";
 
 export async function POST(request: NextRequest): Promise<Response> {
   let session;
@@ -71,7 +72,7 @@ export async function POST(request: NextRequest): Promise<Response> {
     const { allowed } = await checkMemberLimit(household.id);
     if (!allowed) {
       return Response.json(
-        { error: "This household has reached the 5 member limit", code: "MEMBERS_LIMIT", limit: 5 },
+        { error: `This household has reached the ${FREE_TIER_LIMITS.members} member limit`, code: "MEMBERS_LIMIT", limit: FREE_TIER_LIMITS.members },
         { status: 403 }
       );
     }

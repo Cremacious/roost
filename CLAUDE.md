@@ -704,8 +704,22 @@ src/app/api/cron/subscription/route.ts        Daily cron: expire premium househo
 - receipt_data stored as JSON string in expenses.receipt_data column (schema already had this column)
 - Expense list rows with receipt_data show a small green Receipt icon badge next to the title
 - View mode shows collapsible "Receipt items" section when receipt_data has lineItems
-- Parser handles two patterns: item+price on same line ("Milk 2.99") and price-only line where
-  previous line is the description (common on many POS receipts)
+- Parser tags (src/lib/utils/googleVision.ts): PRICE, PRICE_AFTER, PRICE_INLINE, BARCODE, WEIGHT, FOOTER, ITEM
+- ALWAYS_SKIP predicate: array of regexes unconditionally skipped anywhere — no headerDone flag needed
+  Patterns: walmart, neighborhood market, phone numbers, street addresses, city/state/zip, ST#/TC#/OP#,
+  cashier, station, datetime lines, mgr., OCR gibberish, non-ASCII lines
+- Walmart Vision format: two-column receipt split into 2-3 lines per item:
+    Line 1 (ITEM): "CRM COCO VAN 818290017570 F" — name + optional embedded barcode + optional flag
+    Line 2 (BARCODE or WEIGHT, skip): "681131387480 F" or "0.520 lb. @ 1 lb. /1.26"
+    Line 3 (PRICE): "5.26 N" — decimal + tax letter [NXOF0]
+- Queue-based state machine handles both orderings (price-before-name and name-before-price):
+    nameQueue (string[]) + priceQueue (number[])
+    PRICE/PRICE_AFTER: if nameQueue non-empty, shift name and emit; else push to priceQueue
+    ITEM: if priceQueue non-empty, shift price and emit immediately; else push to nameQueue
+    post-loop drain zips remaining nameQueue + priceQueue pairs
+- cleanName(): strips embedded 8+ digit barcodes, trailing single-letter flags, "@ lb." descriptions
+- PRICE_AFTER: "$6.99 F" standalone (Asian market) — same queue shift logic as PRICE
+- PRICE_INLINE: "ITEM NAME $3.99 FT" — emits immediately, no queue involvement (Asian market)
 - hardSkip only blocks definitive non-item metadata (payment type, auth codes, cashier lines)
 - Empty scan results (Vision worked, 0 items) show 'empty' state (amber) with "Add items manually"
   button, NOT the error state — error state is only for actual API/network failures

@@ -336,6 +336,24 @@ Tasks: one-off to-dos
   Never make sheets wider than 680px on desktop
   EventSheet exception: uses sm:grid-cols-[1fr_240px] two-column grid within the 680px;
     form fields on left (1fr), calendar on right (240px fixed)
+  Mobile keyboard scroll fix: SheetContent has hardcoded Radix classes (flex flex-col h-auto).
+    overflow-y-auto directly on SheetContent fights with this flex layout when the keyboard
+    shrinks the viewport — scroll breaks entirely. The fix is an inner wrapper div:
+    Correct pattern:
+      <SheetContent className="rounded-t-2xl" style={{ backgroundColor: "..." }}
+                    onOpenAutoFocus={(e) => e.preventDefault()}>
+        <div className="mx-auto mb-2 mt-2 h-1 w-10 shrink-0 rounded-full" /> {/* drag handle */}
+        <div className="overflow-y-auto px-4 pb-8"
+             style={{ maxHeight: 'calc(88dvh - 24px)', WebkitOverflowScrolling: 'touch',
+                      overscrollBehavior: 'contain' }}>
+          {/* all form content */}
+        </div>
+      </SheetContent>
+    Rules: NEVER put overflow-y-auto or maxHeight on SheetContent itself.
+    Always use an inner wrapper div for scrolling. Drag handle stays outside the scroll div
+    as a flex sibling (shrink-0). Use dvh (not vh). onOpenAutoFocus prevents Radix focus
+    management from triggering re-layout. Applied to: ExpenseSheet (both instances),
+    TaskSheet, SettleSheet, AddBudgetSheet.
 - UI scales: phone / tablet / desktop
 - Font: Nunito (400-900) via next/font/google; weights 600/700/800/900 only in UI. Never below 600.
 - framer-motion animations:

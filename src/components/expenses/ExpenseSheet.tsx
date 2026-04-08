@@ -496,17 +496,22 @@ export default function ExpenseSheet({
         <Sheet open={open} onOpenChange={(v) => !v && onClose()}>
           <SheetContent
             side="bottom"
-            className="rounded-t-2xl px-4 pb-8 pt-2"
-            style={{
-              backgroundColor: 'var(--roost-surface)',
-              maxHeight: '88dvh',
-              overflowY: 'auto',
-            }}
+            className="rounded-t-2xl"
+            style={{ backgroundColor: 'var(--roost-surface)' }}
+            onOpenAutoFocus={(e) => e.preventDefault()}
           >
             <div
-              className="mx-auto mb-4 h-1 w-10 rounded-full"
+              className="mx-auto mb-2 mt-2 h-1 w-10 shrink-0 rounded-full"
               style={{ backgroundColor: '#22C55E' }}
             />
+            <div
+              className="overflow-y-auto px-4 pb-8"
+              style={{
+                maxHeight: 'calc(88dvh - 24px)',
+                WebkitOverflowScrolling: 'touch',
+                overscrollBehavior: 'contain',
+              }}
+            >
 
             <div className="mb-4 flex items-start justify-between gap-3">
               <div>
@@ -831,6 +836,7 @@ export default function ExpenseSheet({
                 Delete expense
               </button>
             )}
+            </div>{/* end inner scroll wrapper */}
           </SheetContent>
         </Sheet>
 
@@ -934,17 +940,22 @@ export default function ExpenseSheet({
     <Sheet open={open} onOpenChange={(v) => !v && onClose()}>
       <SheetContent
         side="bottom"
-        className="rounded-t-2xl px-4 pb-8 pt-2"
-        style={{
-          backgroundColor: 'var(--roost-surface)',
-          maxHeight: '88dvh',
-          overflowY: 'auto',
-        }}
+        className="rounded-t-2xl"
+        style={{ backgroundColor: 'var(--roost-surface)' }}
+        onOpenAutoFocus={(e) => e.preventDefault()}
       >
         <div
-          className="mx-auto mb-4 h-1 w-10 rounded-full"
+          className="mx-auto mb-2 mt-2 h-1 w-10 shrink-0 rounded-full"
           style={{ backgroundColor: '#22C55E' }}
         />
+        <div
+          className="overflow-y-auto px-4 pb-8"
+          style={{
+            maxHeight: 'calc(88dvh - 24px)',
+            WebkitOverflowScrolling: 'touch',
+            overscrollBehavior: 'contain',
+          }}
+        >
 
         {/* ---- Scanner view ---- */}
         {scanView === 'scanner' && (
@@ -1416,6 +1427,7 @@ export default function ExpenseSheet({
             </div>
           </>
         )}
+        </div>{/* end inner scroll wrapper */}
       </SheetContent>
     </Sheet>
   );

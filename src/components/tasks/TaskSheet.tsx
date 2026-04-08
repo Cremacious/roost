@@ -200,11 +200,20 @@ export default function TaskSheet({
       <Sheet open={open} onOpenChange={(v) => !v && onClose()}>
         <SheetContent
           side="bottom"
-          className="rounded-t-2xl px-4 pb-8 pt-2"
-          style={{ backgroundColor: "var(--roost-surface)", maxHeight: "92dvh", overflowY: "auto" }}
+          className="rounded-t-2xl"
+          style={{ backgroundColor: "var(--roost-surface)" }}
+          onOpenAutoFocus={(e) => e.preventDefault()}
         >
           {/* Drag handle */}
-          <div className="mx-auto mb-4 h-1 w-10 rounded-full" style={{ backgroundColor: "#EC4899" }} />
+          <div className="mx-auto mb-2 mt-2 h-1 w-10 shrink-0 rounded-full" style={{ backgroundColor: "#EC4899" }} />
+          <div
+            className="overflow-y-auto px-4 pb-8"
+            style={{
+              maxHeight: 'calc(92dvh - 24px)',
+              WebkitOverflowScrolling: 'touch',
+              overscrollBehavior: 'contain',
+            }}
+          >
           <SheetHeader className="mb-5 text-left">
             <SheetTitle style={{ color: "var(--roost-text-primary)", fontWeight: 800 }}>
               {mode === "create" ? "New Task" : "Edit Task"}
@@ -369,6 +378,7 @@ export default function TaskSheet({
               </button>
             )}
           </div>
+          </div>{/* end inner scroll wrapper */}
         </SheetContent>
       </Sheet>
 

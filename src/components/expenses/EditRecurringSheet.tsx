@@ -190,11 +190,9 @@ export default function EditRecurringSheet({ open, onClose, template, members }:
       <Sheet open={open} onOpenChange={(v) => !v && onClose()}>
         <SheetContent
           side="bottom"
-          className="rounded-t-2xl px-4 pb-8 pt-2"
+          className="max-h-[88dvh] overflow-y-auto rounded-t-2xl px-4 pb-8 pt-2"
           style={{
             backgroundColor: "var(--roost-surface)",
-            maxHeight: "88dvh",
-            overflowY: "auto",
           }}
         >
           <div

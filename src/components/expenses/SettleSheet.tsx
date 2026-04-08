@@ -369,11 +369,21 @@ export default function SettleSheet({
       <SheetContent
         side="bottom"
         showCloseButton={false}
-        className="rounded-t-2xl px-4 pb-8 pt-2"
-        style={{ backgroundColor: "var(--roost-surface)", maxHeight: "80dvh", overflowY: "auto" }}
+        className="rounded-t-2xl"
+        style={{ backgroundColor: "var(--roost-surface)" }}
+        onOpenAutoFocus={(e) => e.preventDefault()}
       >
-        <div className="mx-auto mb-4 h-1 w-10 rounded-full" style={{ backgroundColor: "var(--roost-border)" }} />
-        {renderContent()}
+        <div className="mx-auto mb-2 mt-2 h-1 w-10 shrink-0 rounded-full" style={{ backgroundColor: "var(--roost-border)" }} />
+        <div
+          className="overflow-y-auto px-4 pb-8"
+          style={{
+            maxHeight: 'calc(80dvh - 24px)',
+            WebkitOverflowScrolling: 'touch',
+            overscrollBehavior: 'contain',
+          }}
+        >
+          {renderContent()}
+        </div>
       </SheetContent>
     </Sheet>
   );

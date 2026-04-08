@@ -1,4 +1,4 @@
-import { BarChart2, ClipboardList, Home, ListPlus, Receipt, ScanLine, Target } from "lucide-react";
+import { BarChart2, ChefHat, ClipboardList, Home, ListPlus, Receipt, ScanLine, Target } from "lucide-react";
 import { motion } from "framer-motion";
 import { useRouter } from "next/navigation";
 import MockExpensesPreview from "@/components/expenses/MockExpensesPreview";
@@ -6,7 +6,7 @@ import MockExpensesPreview from "@/components/expenses/MockExpensesPreview";
 const COLOR = "#22C55E";
 const COLOR_DARK = "#159040";
 
-type Feature = "expenses" | "receipt-scanning" | "multiple-lists" | "multiple-households" | "chore-history" | "budgets" | "insights";
+type Feature = "expenses" | "receipt-scanning" | "multiple-lists" | "multiple-households" | "chore-history" | "budgets" | "insights" | "meals";
 
 interface FeatureConfig {
   icon: React.ElementType;
@@ -51,6 +51,11 @@ const FEATURES: Record<Feature, FeatureConfig> = {
     icon: BarChart2,
     title: "Understand your spending.",
     body: "See where your money goes with charts and breakdowns by category, member, and month. Upgrade to Premium for $3/month.",
+  },
+  meals: {
+    icon: ChefHat,
+    title: "Plan your household's meals.",
+    body: "Build a shared meal bank, plan the week together, and push ingredients straight to the grocery list. Upgrade to Premium for $3/month.",
   },
 };
 

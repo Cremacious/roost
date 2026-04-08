@@ -1,5 +1,5 @@
 # Roost — Feature Registry
-> Last updated: April 2026
+> Last updated: 2026-04-08
 > Use this file for homepage copy, paywall screens, upgrade prompts, and App Store descriptions.
 
 ---
@@ -41,7 +41,7 @@
 
 #### Reminders
 - Set one-time reminders
-- Notify just yourself or whole household
+- Notify just yourself
 
 #### Auth & Household
 - Adult signup and login
@@ -115,18 +115,24 @@
 #### Reminders (Premium)
 - Recurring reminders (daily, weekly, monthly)
 - More than 5 active reminders
+- Notify whole household or specific members
 
 #### Themes (Premium)
 - Unlock all 8 app themes beyond Default
 
 #### Meals (Premium)
-- Meal planning and suggestions
-- Household voting on meal suggestions
+- Entire meals module is premium-gated (planner, bank, suggestions, voting)
+- Weekly meal planner (breakfast, lunch, dinner, snack slots per day)
+- Meal bank — save and search reusable meals
+- Meal suggestions — anyone can suggest, household votes
+- Grocery integration — push all ingredients to shopping list in one tap
 
 #### Allowances (Premium)
-- Set weekly allowances for child accounts
-- Tied to chore completion
-- Adjustable threshold percentage
+- Set weekly allowances for child accounts (UI gated in MemberSheet)
+- Tied to chore completion percentage
+- Adjustable threshold (50-100%)
+- Child dashboard widget hidden for free households
+- Earned allowances appear in expenses settle-up flow
 
 ---
 

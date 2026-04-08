@@ -7,12 +7,15 @@ import {
   CalendarX,
   CheckSquare,
   ChefHat,
+  Download,
   Lightbulb,
   ListPlus,
   ListTodo,
   Palette,
+  PiggyBank,
   RefreshCw,
   Repeat,
+  ScanLine,
   ShoppingCart,
   StickyNote,
   Trophy,
@@ -114,6 +117,21 @@ const PROMPT_MAP: Record<string, PromptConfig> = {
     icon: RefreshCw,
     title: "Recurring expenses are premium.",
     body: "Set up rent, utilities, or subscriptions once and Roost will prompt you to post them every cycle. Upgrade to automate your regular shared expenses.",
+  },
+  RECEIPT_SCANNING_PREMIUM: {
+    icon: ScanLine,
+    title: "Scan receipts instantly.",
+    body: "Point your camera at any receipt and split the items between household members. No manual entry needed. Premium only.",
+  },
+  EXPORT_PREMIUM: {
+    icon: Download,
+    title: "Export your expenses.",
+    body: "Download your household expenses as CSV or PDF. Perfect for move-out summaries or tax time. Upgrade to unlock.",
+  },
+  ALLOWANCES_PREMIUM: {
+    icon: PiggyBank,
+    title: "Allowances are a premium feature.",
+    body: "Set weekly allowances for child accounts tied to chore completion. Upgrade to set up allowances for your kids.",
   },
 };
 

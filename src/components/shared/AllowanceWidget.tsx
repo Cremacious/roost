@@ -3,6 +3,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { Skeleton } from "@/components/ui/skeleton";
 import { PiggyBank } from "lucide-react";
+import { useHousehold } from "@/lib/hooks/useHousehold";
 import { format, parseISO, addDays } from "date-fns";
 
 const COLOR = "#22C55E";
@@ -48,6 +49,7 @@ function weekLabel(weekStart: string): string {
 // ---- Widget -----------------------------------------------------------------
 
 export default function AllowanceWidget() {
+  const { isPremium } = useHousehold();
   const { data, isLoading } = useQuery<AllowanceChildResponse>({
     queryKey: ["allowance-child"],
     queryFn: async () => {
@@ -58,6 +60,8 @@ export default function AllowanceWidget() {
     staleTime: 60_000,
     retry: 1,
   });
+
+  if (isPremium === false) return null;
 
   if (isLoading) {
     return <Skeleton className="h-40 w-full rounded-2xl" />;

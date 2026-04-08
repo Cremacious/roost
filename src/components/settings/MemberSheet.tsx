@@ -22,6 +22,8 @@ import {
   AlertDialogDescription,
 } from "@/components/ui/alert-dialog";
 import { Switch } from "@/components/ui/switch";
+import { useHousehold } from "@/lib/hooks/useHousehold";
+import UpgradePrompt from "@/components/shared/UpgradePrompt";
 
 // ---- Types ------------------------------------------------------------------
 
@@ -84,6 +86,7 @@ export default function MemberSheet({
   onRefetch: () => void;
 }) {
   const queryClient = useQueryClient();
+  const { isPremium } = useHousehold();
   const open = member !== null;
 
   const [roleConfirmOpen, setRoleConfirmOpen] = useState(false);
@@ -432,6 +435,18 @@ export default function MemberSheet({
                 <p className="text-sm" style={{ color: "var(--roost-text-primary)", fontWeight: 700 }}>
                   Weekly Allowance
                 </p>
+                {isPremium === false ? (
+                  <div
+                    className="rounded-2xl p-4"
+                    style={{
+                      backgroundColor: "var(--roost-surface)",
+                      border: "1.5px solid var(--roost-border)",
+                      borderBottom: "4px solid var(--roost-border-bottom)",
+                    }}
+                  >
+                    <UpgradePrompt code="ALLOWANCES_PREMIUM" />
+                  </div>
+                ) : (
                 <div
                   className="space-y-4 rounded-2xl p-4"
                   style={{
@@ -537,6 +552,7 @@ export default function MemberSheet({
                     </motion.button>
                   )}
                 </div>
+                )}
               </div>
             )}
 

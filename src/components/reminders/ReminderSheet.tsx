@@ -53,6 +53,8 @@ interface ReminderSheetProps {
 
 // ---- Constants --------------------------------------------------------------
 
+const PREMIUM_NOTIFY_TYPES = ["household", "specific"] as const;
+
 const FREQUENCIES = [
   { value: "once", label: "Once" },
   { value: "daily", label: "Daily" },
@@ -400,11 +402,15 @@ export default function ReminderSheet({
                 ] as const
               ).map(({ value, icon: Icon, label, desc }) => {
                 const active = notifyType === value;
+                const isLocked = (PREMIUM_NOTIFY_TYPES as readonly string[]).includes(value) && !isPremium;
                 return (
                   <button
                     key={value}
                     type="button"
-                    onClick={() => set("notifyType", value)}
+                    onClick={() => {
+                      if (isLocked) { onUpgradeRequired?.("REMINDER_NOTIFY_PREMIUM"); return; }
+                      set("notifyType", value);
+                    }}
                     className="flex w-full items-center gap-3 rounded-xl px-4 py-3 text-left"
                     style={{
                       border: active ? `1.5px solid ${COLOR}` : "1.5px solid #E5E7EB",
@@ -414,16 +420,19 @@ export default function ReminderSheet({
                   >
                     <div
                       className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl"
-                      style={{ backgroundColor: active ? `${COLOR}30` : "#F3F4F6", }}
+                      style={{ backgroundColor: isLocked ? "#F3F4F6" : active ? `${COLOR}30` : "#F3F4F6" }}
                     >
-                      <Icon className="size-4" style={{ color: active ? COLOR : "var(--roost-text-muted)" }} />
+                      {isLocked
+                        ? <Lock className="size-4" style={{ color: "var(--roost-text-muted)" }} />
+                        : <Icon className="size-4" style={{ color: active ? COLOR : "var(--roost-text-muted)" }} />
+                      }
                     </div>
                     <div>
-                      <p className="text-sm" style={{ color: "var(--roost-text-primary)", fontWeight: 700 }}>
+                      <p className="text-sm" style={{ color: isLocked ? "var(--roost-text-muted)" : "var(--roost-text-primary)", fontWeight: 700 }}>
                         {label}
                       </p>
                       <p className="text-xs" style={{ color: "var(--roost-text-muted)", fontWeight: 600 }}>
-                        {desc}
+                        {isLocked ? "Premium only" : desc}
                       </p>
                     </div>
                   </button>

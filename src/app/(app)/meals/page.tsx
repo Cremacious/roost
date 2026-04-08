@@ -50,6 +50,7 @@ import MealSlotSheet, {
 import SuggestionSheet from '@/components/meals/SuggestionSheet';
 import { Sheet, SheetContent } from '@/components/ui/sheet';
 import UpgradePrompt from '@/components/shared/UpgradePrompt';
+import PremiumGate from '@/components/shared/PremiumGate';
 import { PageContainer } from '@/components/layout/PageContainer';
 
 const COLOR = SECTION_COLORS.meals;
@@ -1271,6 +1272,16 @@ export default function MealsPage() {
   }
 
   // ---- Render ----------------------------------------------------------------
+
+  if (isPremium === false) {
+    return (
+      <PageContainer>
+        <div className="py-6 pb-24">
+          <PremiumGate feature="meals" />
+        </div>
+      </PageContainer>
+    );
+  }
 
   return (
     <motion.div

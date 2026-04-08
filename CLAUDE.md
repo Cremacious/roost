@@ -417,7 +417,7 @@ src/app/(auth)/child-login/page.tsx            Household code + PIN, 64px inputs
 src/app/(app)/layout.tsx                       App shell: TopBar + Sidebar + BottomNav + QueryProvider
 src/app/(app)/onboarding/page.tsx              3-step create/join household flow
 src/app/(app)/dashboard/page.tsx               Tile grid + activity feed, all CSS variable colors
-src/app/(app)/settings/page.tsx                Full settings page: Profile, Appearance, Preferences, Household, Members (admin), Notifications, Billing, Danger Zone (admin)
+src/app/(app)/settings/page.tsx                Full settings page: Profile, Appearance, Preferences, Household, Members (all roles), Notifications, Billing, Danger Zone (admin)
 src/app/(app)/chores/page.tsx                  Chores list, summary bar, view toggle, optimistic completion + uncheck
 src/app/layout.tsx                             Root layout: Nunito font, ThemeProvider with server-side theme
 src/app/globals.css                            Tailwind + shadcn vars + --roost-* CSS variable defaults
@@ -811,7 +811,7 @@ src/app/api/cron/subscription/route.ts        Daily cron: expire premium househo
 - Danger zone actions require the user to type "DELETE" into a confirmation input before the destructive button enables. Never allow destructive household actions (delete all data, delete household) with a single click or simple OK dialog.
 - Child financial permissions (expenses.view, expenses.add) are always locked off regardless of admin checklist. The API enforces this: enabling child-locked permissions for a child role returns 400.
 - PIN is always hashed before storage (hashPassword from better-auth/crypto). Never store child PINs in plain text.
-- Settings page sections: Profile (avatar color, name, email, timezone, password change), Appearance (theme grid), Preferences (temperature unit, location, language), Household (rename, invite code, transfer admin), Members (admin only, opens MemberSheet), Notifications (chore reminders toggle), Billing (plan status, upgrade), Danger Zone (admin only, delete data, delete household).
+- Settings page sections: Profile (avatar color, name, email, timezone, password change), Appearance (theme grid), Preferences (temperature unit, location, language), Household (rename, invite code, transfer admin), Members (all roles — admin sees interactive list with MemberSheet; non-admins see read-only list with name + role badge), Notifications (chore reminders toggle), Billing (plan status, upgrade), Danger Zone (admin only, delete data, delete household).
 - MemberSheet (admin only): role changes, 12 permission toggles, child PIN change (nested sheet), allowance config (child only), remove member. Child-locked permissions rendered as disabled switches.
 - The 12 member permissions: expenses.view, expenses.add, chores.add, chores.edit, grocery.add, grocery.create_list, calendar.add, calendar.edit, tasks.add, notes.add, meals.plan, meals.suggest
 - Add flow pattern per feature page:

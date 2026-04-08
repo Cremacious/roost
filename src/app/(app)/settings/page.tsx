@@ -21,6 +21,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Switch } from "@/components/ui/switch";
 import MemberSheet, { type SheetMember } from "@/components/settings/MemberSheet";
+import MemberAvatar from "@/components/shared/MemberAvatar";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import UpgradePrompt from "@/components/shared/UpgradePrompt";
 import { PageContainer } from "@/components/layout/PageContainer";
@@ -69,7 +70,7 @@ const NAV_SECTIONS = [
   { id: "section-appearance", label: "Appearance" },
   { id: "section-preferences", label: "Preferences" },
   { id: "section-household", label: "Household" },
-  { id: "section-members", label: "Members", adminOnly: true },
+  { id: "section-members", label: "Members" },
   { id: "section-notifications", label: "Notifications" },
   { id: "section-billing", label: "Billing" },
   { id: "section-danger", label: "Danger Zone", adminOnly: true },
@@ -1025,33 +1026,62 @@ export default function SettingsPage() {
           </SlabCard>
         </SettingsSection>
 
-        {/* ---- SECTION 5: MEMBERS (admin only) ----------------------------- */}
-        {isAdmin && (
-          <SettingsSection
-            id="section-members"
-            title="Members"
-            subtitle="Manage who is in your household."
-          >
-            {members.some((m) => m.role === "child") && (
-              <p className="mb-3 text-[13px]" style={{ color: "var(--roost-text-secondary)", fontWeight: 600 }}>
-                Set up allowances for children in their member settings. Allowances are evaluated every Sunday night.
-              </p>
-            )}
-            <SlabCard>
-              {members.map((m, i) => (
-                <button
+        {/* ---- SECTION 5: MEMBERS ------------------------------------------ */}
+        <SettingsSection
+          id="section-members"
+          title="Members"
+          subtitle={isAdmin ? "Manage who is in your household." : "Everyone in your household."}
+        >
+          {isAdmin && members.some((m) => m.role === "child") && (
+            <p className="mb-3 text-[13px]" style={{ color: "var(--roost-text-secondary)", fontWeight: 600 }}>
+              Set up allowances for children in their member settings. Allowances are evaluated every Sunday night.
+            </p>
+          )}
+          <SlabCard>
+            {members.map((m, i) => {
+              const roleBadge = (
+                <span
+                  className="shrink-0 rounded-lg px-2 py-0.5 text-xs capitalize"
+                  style={{
+                    backgroundColor: m.role === "admin" ? "var(--roost-text-primary)" : "var(--roost-border)",
+                    color: m.role === "admin" ? "var(--roost-surface)" : "var(--roost-text-secondary)",
+                    fontWeight: 700,
+                  }}
+                >
+                  {m.role}
+                </span>
+              );
+
+              if (isAdmin) {
+                return (
+                  <button
+                    key={m.id}
+                    type="button"
+                    onClick={() => setSelectedMember(m)}
+                    className="flex w-full min-h-14 items-center gap-3 px-4 text-left"
+                    style={{ borderTop: i > 0 ? "1px solid var(--roost-border)" : undefined }}
+                  >
+                    <MemberAvatar name={m.name} avatarColor={m.avatarColor} size="md" />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm" style={{ color: "var(--roost-text-primary)", fontWeight: 700 }}>
+                        {m.name}
+                      </p>
+                      <p className="text-xs capitalize" style={{ color: "var(--roost-text-muted)", fontWeight: 600 }}>
+                        {m.role}
+                      </p>
+                    </div>
+                    {roleBadge}
+                  </button>
+                );
+              }
+
+              return (
+                <div
                   key={m.id}
-                  type="button"
-                  onClick={() => setSelectedMember(m)}
-                  className="flex w-full min-h-14 items-center gap-3 px-4 text-left"
+                  className="flex min-h-14 items-center gap-3 px-4"
                   style={{ borderTop: i > 0 ? "1px solid var(--roost-border)" : undefined }}
                 >
-                  <div
-                    className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-xs text-white"
-                    style={{ backgroundColor: m.avatarColor ?? "#6366f1", fontWeight: 700 }}
-                  >
-                    {initials(m.name)}
-                  </div>
+                  <MemberAvatar name={m.name} avatarColor={m.avatarColor} size="md" />
                   <div className="flex-1 min-w-0">
                     <p className="text-sm" style={{ color: "var(--roost-text-primary)", fontWeight: 700 }}>
                       {m.name}
@@ -1060,21 +1090,12 @@ export default function SettingsPage() {
                       {m.role}
                     </p>
                   </div>
-                  <span
-                    className="shrink-0 rounded-lg px-2 py-0.5 text-xs capitalize"
-                    style={{
-                      backgroundColor: m.role === "admin" ? "var(--roost-text-primary)" : "var(--roost-border)",
-                      color: m.role === "admin" ? "var(--roost-surface)" : "var(--roost-text-secondary)",
-                      fontWeight: 700,
-                    }}
-                  >
-                    {m.role}
-                  </span>
-                </button>
-              ))}
-            </SlabCard>
-          </SettingsSection>
-        )}
+                  {roleBadge}
+                </div>
+              );
+            })}
+          </SlabCard>
+        </SettingsSection>
 
         {/* ---- SECTION 6: NOTIFICATIONS ----------------------------------- */}
         <SettingsSection id="section-notifications" title="Notifications">

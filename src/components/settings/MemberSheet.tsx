@@ -23,7 +23,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Switch } from "@/components/ui/switch";
 import { useHousehold } from "@/lib/hooks/useHousehold";
-import UpgradePrompt from "@/components/shared/UpgradePrompt";
+import PremiumGate from "@/components/shared/PremiumGate";
 
 // ---- Types ------------------------------------------------------------------
 
@@ -437,16 +437,7 @@ export default function MemberSheet({
                   Weekly Allowance
                 </p>
                 {isPremium === false ? (
-                  <div
-                    className="rounded-2xl p-4"
-                    style={{
-                      backgroundColor: "var(--roost-surface)",
-                      border: "1.5px solid var(--roost-border)",
-                      borderBottom: "4px solid var(--roost-border-bottom)",
-                    }}
-                  >
-                    <UpgradePrompt code="ALLOWANCES_PREMIUM" />
-                  </div>
+                  <PremiumGate feature="allowances" trigger="inline" />
                 ) : (
                 <div
                   className="space-y-4 rounded-2xl p-4"

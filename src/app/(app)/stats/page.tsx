@@ -238,7 +238,7 @@ export default function StatsPage() {
               Powered by your household data.
             </p>
           </div>
-          <PremiumGate feature="stats" />
+          <PremiumGate feature="stats" trigger="page" />
         </div>
       </PageContainer>
     );

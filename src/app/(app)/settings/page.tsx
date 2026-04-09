@@ -27,8 +27,7 @@ import { Switch } from "@/components/ui/switch";
 import MemberSheet, { type SheetMember } from "@/components/settings/MemberSheet";
 import InviteGuestSheet from "@/components/settings/InviteGuestSheet";
 import MemberAvatar from "@/components/shared/MemberAvatar";
-import { Sheet, SheetContent } from "@/components/ui/sheet";
-import UpgradePrompt from "@/components/shared/UpgradePrompt";
+import PremiumGate from "@/components/shared/PremiumGate";
 import { PageContainer } from "@/components/layout/PageContainer";
 
 // ---- Constants --------------------------------------------------------------
@@ -1759,7 +1758,7 @@ export default function SettingsPage() {
                   <div>
                     <p className="text-sm" style={{ color: "var(--roost-text-primary)", fontWeight: 700 }}>Free plan</p>
                     <p className="text-xs mt-0.5" style={{ color: "var(--roost-text-muted)", fontWeight: 600 }}>
-                      Upgrade to Premium for $3/month to unlock bill splitting, receipt scanning, and more.
+                      Upgrade to Premium for $4/month — unlock the full Roost experience for your whole household.
                     </p>
                   </div>
                   <motion.button type="button" whileTap={{ y: 1 }}
@@ -2096,12 +2095,9 @@ export default function SettingsPage() {
       />
 
       {/* Upgrade prompt */}
-      <Sheet open={!!upgradeCode} onOpenChange={(v) => !v && setUpgradeCode(null)}>
-        <SheetContent side="bottom" className="rounded-t-2xl px-4 pb-8 pt-2" style={{ backgroundColor: "var(--roost-surface)" }}>
-          <div className="mx-auto mb-4 h-1 w-10 rounded-full" style={{ backgroundColor: "#EF4444" }} />
-          {upgradeCode && <UpgradePrompt code={upgradeCode} onDismiss={() => setUpgradeCode(null)} />}
-        </SheetContent>
-      </Sheet>
+      {!!upgradeCode && (
+        <PremiumGate feature="guests" trigger="sheet" onClose={() => setUpgradeCode(null)} />
+      )}
       </PageContainer>
     </motion.div>
   );

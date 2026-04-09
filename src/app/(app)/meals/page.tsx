@@ -48,8 +48,7 @@ import MealSlotSheet, {
   type SlotRow,
 } from '@/components/meals/MealSlotSheet';
 import SuggestionSheet from '@/components/meals/SuggestionSheet';
-import { Sheet, SheetContent } from '@/components/ui/sheet';
-import UpgradePrompt from '@/components/shared/UpgradePrompt';
+import PremiumGate from '@/components/shared/PremiumGate';
 import { PageContainer } from '@/components/layout/PageContainer';
 
 const COLOR = SECTION_COLORS.meals;
@@ -1414,27 +1413,9 @@ export default function MealsPage() {
         />
 
         {/* Upgrade prompt */}
-        <Sheet
-          open={!!upgradeCode}
-          onOpenChange={(v) => !v && setUpgradeCode(null)}
-        >
-          <SheetContent
-            side="bottom"
-            className="rounded-t-2xl px-4 pb-8 pt-2"
-            style={{ backgroundColor: 'var(--roost-surface)' }}
-          >
-            <div
-              className="mx-auto mb-4 h-1 w-10 rounded-full"
-              style={{ backgroundColor: COLOR }}
-            />
-            {upgradeCode && (
-              <UpgradePrompt
-                code={upgradeCode}
-                onDismiss={() => setUpgradeCode(null)}
-              />
-            )}
-          </SheetContent>
-        </Sheet>
+        {!!upgradeCode && (
+          <PremiumGate feature="meals" trigger="sheet" onClose={() => setUpgradeCode(null)} />
+        )}
 
         {/* Grocery confirm dialog (Fix 1) */}
         {groceryConfirm &&

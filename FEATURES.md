@@ -1,12 +1,12 @@
 # Roost — Feature Registry
-> Last updated: 2026-04-09 (Chores page: moved + button from fixed FAB to header top-right; History/Leaderboard collapse to icon-only on mobile; Grocery page: animated scroll progress indicator on list pill row replaces native scrollbar; Tasks page: per-section client-side pagination via usePaginatedList hook + ShowMoreButton component; Expenses page: tab active state uses green COLOR; balance stat cards fixed to consistent height; dot pagination fixed to use progress-based index calculation)
+> Last updated: 2026-04-09 (Chores page: moved + button from fixed FAB to header top-right; History/Leaderboard collapse to icon-only on mobile; Grocery page: animated scroll progress indicator on list pill row replaces native scrollbar; Tasks page: per-section client-side pagination via usePaginatedList hook + ShowMoreButton component; Expenses page: tab active state uses green COLOR; balance stat cards fixed to consistent height; dot pagination fixed to use progress-based index calculation; Premium gate system unified: UpgradePrompt deleted, PremiumGate handles all 3 trigger variants (sheet/inline/page), driven by PREMIUM_GATE_CONFIG; price updated $3 → $4/month)
 > Use this file for homepage copy, paywall screens, upgrade prompts, and App Store descriptions.
 
 ---
 
 ## Pricing
 - **Free:** Core household features, 1 household, up to 5 members
-- **Premium:** $3.99/month per household — everyone benefits, only admin pays
+- **Premium:** $4/month per household — everyone benefits, only admin pays
 
 ---
 
@@ -72,7 +72,7 @@
 
 ---
 
-### 💎 BUILT — Premium Features ($3.99/month)
+### 💎 BUILT — Premium Features ($4/month)
 
 #### Expenses & Bill Splitting
 **Sell it as:** "No more awkward money talks."
@@ -314,7 +314,7 @@ Protected by ADMIN_EMAIL + ADMIN_PASSWORD env vars. Own JWT session cookie (8 ho
 
 ### General premium gate (fallback)
 **Title:** "Upgrade to Roost Premium"
-**Body:** "Everything your household needs in one app — bill splitting, receipt scanning, budgets, recurring expenses, chore tracking, and more. $3.99/month per household. Everyone benefits."
+**Body:** "Everything your household needs in one app — bill splitting, receipt scanning, budgets, recurring expenses, chore tracking, and more. $4/month per household. Everyone benefits."
 
 ---
 
@@ -343,4 +343,4 @@ Set monthly budgets per category, get notified when you're approaching the limit
 **Designed for real households.**
 Whether you're splitting rent with roommates, managing a family of five, or coordinating with college housemates — Roost works for everyone.
 
-Free to start. Premium at $3.99/month per household.
+Free to start. Premium at $4/month per household.

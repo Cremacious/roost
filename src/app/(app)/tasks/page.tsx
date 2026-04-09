@@ -32,8 +32,7 @@ import {
 import TaskSheet, { type TaskData, type Member } from "@/components/tasks/TaskSheet";
 import { SECTION_COLORS } from "@/lib/constants/colors";
 import { PageContainer } from "@/components/layout/PageContainer";
-import { Sheet, SheetContent } from "@/components/ui/sheet";
-import UpgradePrompt from "@/components/shared/UpgradePrompt";
+import PremiumGate from "@/components/shared/PremiumGate";
 import { usePaginatedList } from "@/lib/hooks/use-paginated-list";
 import { ShowMoreButton } from "@/components/ui/show-more-button";
 
@@ -1021,12 +1020,9 @@ export default function TasksPage() {
       />
 
       {/* Upgrade prompt sheet */}
-      <Sheet open={!!upgradeCode} onOpenChange={(v) => !v && setUpgradeCode(null)}>
-        <SheetContent side="bottom" className="rounded-t-2xl px-4 pb-10 pt-6" style={{ backgroundColor: "var(--roost-bg)" }}>
-          <div className="mx-auto mb-6 h-1 w-10 rounded-full" style={{ backgroundColor: "#EC4899" }} />
-          <UpgradePrompt code={upgradeCode ?? ""} onDismiss={() => setUpgradeCode(null)} />
-        </SheetContent>
-      </Sheet>
+      {!!upgradeCode && (
+        <PremiumGate feature="tasks" trigger="sheet" onClose={() => setUpgradeCode(null)} />
+      )}
       </PageContainer>
     </motion.div>
   );

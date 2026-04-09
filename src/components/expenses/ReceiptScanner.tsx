@@ -7,7 +7,7 @@ import { Camera, Crop, Maximize2, ScanLine, Square, Sun, Upload } from "lucide-r
 import { fileToBase64, validateReceiptImage } from "@/lib/utils/imageUpload";
 import type { ParsedReceipt } from "@/lib/utils/azureReceipts";
 import { useHousehold } from "@/lib/hooks/useHousehold";
-import UpgradePrompt from "@/components/shared/UpgradePrompt";
+import PremiumGate from "@/components/shared/PremiumGate";
 
 const COLOR = "#22C55E";
 const COLOR_DARK = "#159040";
@@ -89,7 +89,7 @@ export default function ReceiptScanner({ onReceiptParsed, onClose }: ReceiptScan
   if (isPremium === false) {
     return (
       <div className="px-1 py-4">
-        <UpgradePrompt code="RECEIPT_SCANNING_PREMIUM" onDismiss={onClose} />
+        <PremiumGate feature="expenses" trigger="inline" onClose={onClose} />
       </div>
     );
   }

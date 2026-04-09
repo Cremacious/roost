@@ -323,7 +323,7 @@ function BillingPageInner() {
                       className="text-4xl"
                       style={{ color: "var(--roost-text-primary)", fontWeight: 900 }}
                     >
-                      $3
+                      $4
                     </span>
                     <span
                       className="text-base"
@@ -358,11 +358,12 @@ function BillingPageInner() {
                     whileTap={{ y: 2 }}
                     onClick={handleCheckout}
                     disabled={isCheckingOut}
-                    className="mt-2 flex h-12 w-full items-center justify-center gap-2 rounded-xl text-sm text-white"
+                    className="mt-2 flex h-13 w-full items-center justify-center gap-2 rounded-xl text-sm text-white"
                     style={{
                       backgroundColor: "#EF4444",
-                      border: "1.5px solid #EF4444",
-                      borderBottom: "3px solid #C93B3B",
+                      border: "none",
+                      borderRadius: 14,
+                      boxShadow: "0 4px 0 #C93B3B",
                       fontWeight: 800,
                     }}
                   >
@@ -380,7 +381,7 @@ function BillingPageInner() {
               <SlabCard>
                 <div className="p-5">
                   <p className="text-sm" style={{ color: "var(--roost-text-secondary)", fontWeight: 600 }}>
-                    Ask your household admin to upgrade to Premium for $3/month.
+                    Ask your household admin to upgrade to Premium for $4/month.
                   </p>
                 </div>
               </SlabCard>

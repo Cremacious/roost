@@ -28,14 +28,10 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
-import {
-  Sheet,
-  SheetContent,
-} from "@/components/ui/sheet";
 import StatCard from "@/components/shared/StatCard";
 import SectionColorBadge from "@/components/shared/SectionColorBadge";
 import ErrorState from "@/components/shared/ErrorState";
-import UpgradePrompt from "@/components/shared/UpgradePrompt";
+import PremiumGate from "@/components/shared/PremiumGate";
 import { Skeleton } from "@/components/ui/skeleton";
 import { PageContainer } from "@/components/layout/PageContainer";
 
@@ -632,12 +628,9 @@ export default function ChoresPage() {
       <LeaderboardSheet open={leaderboardOpen} onClose={() => setLeaderboardOpen(false)} />
 
       {/* Upgrade prompt sheet */}
-      <Sheet open={!!upgradeCode} onOpenChange={(v) => !v && setUpgradeCode(null)}>
-        <SheetContent side="bottom" className="rounded-t-2xl px-4 pb-10 pt-6" style={{ backgroundColor: "var(--roost-bg)" }}>
-          <div className="mx-auto mb-6 h-1 w-10 rounded-full" style={{ backgroundColor: "#EF4444" }} />
-          <UpgradePrompt code={upgradeCode ?? ""} onDismiss={() => setUpgradeCode(null)} />
-        </SheetContent>
-      </Sheet>
+      {!!upgradeCode && (
+        <PremiumGate feature="chores" trigger="sheet" onClose={() => setUpgradeCode(null)} />
+      )}
       </PageContainer>
     </motion.div>
   );

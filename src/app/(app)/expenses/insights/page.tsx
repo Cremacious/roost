@@ -132,7 +132,7 @@ export default function InsightsPage() {
               Spending Insights
             </h1>
           </div>
-          <PremiumGate feature="insights" />
+          <PremiumGate feature="expenses" trigger="page" />
         </div>
       </PageContainer>
     );

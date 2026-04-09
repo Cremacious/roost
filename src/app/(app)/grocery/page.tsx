@@ -46,7 +46,6 @@ import GroceryItemSheet from '@/components/grocery/GroceryItemSheet';
 import GroceryListSheet, {
   type GroceryListData,
 } from '@/components/grocery/GroceryListSheet';
-import { Sheet, SheetContent } from '@/components/ui/sheet';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -57,7 +56,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import UpgradePrompt from '@/components/shared/UpgradePrompt';
+import PremiumGate from '@/components/shared/PremiumGate';
 
 const COLOR = SECTION_COLORS.grocery; // #F59E0B
 const COLOR_DARK = '#fbd494';
@@ -1320,27 +1319,9 @@ export default function GroceryPage() {
         </AlertDialog>
 
         {/* Upgrade prompt */}
-        <Sheet
-          open={!!upgradeCode}
-          onOpenChange={(v) => !v && setUpgradeCode(null)}
-        >
-          <SheetContent
-            side="bottom"
-            className="rounded-t-2xl px-4 pb-8 pt-2"
-            style={{ backgroundColor: 'var(--roost-surface)' }}
-          >
-            <div
-              className="mx-auto mb-4 h-1 w-10 rounded-full"
-              style={{ backgroundColor: COLOR }}
-            />
-            {upgradeCode && (
-              <UpgradePrompt
-                code={upgradeCode}
-                onDismiss={() => setUpgradeCode(null)}
-              />
-            )}
-          </SheetContent>
-        </Sheet>
+        {!!upgradeCode && (
+          <PremiumGate feature="grocery" trigger="sheet" onClose={() => setUpgradeCode(null)} />
+        )}
       </PageContainer>
     </motion.div>
   );

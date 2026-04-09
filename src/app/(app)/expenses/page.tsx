@@ -32,9 +32,7 @@ import SettleSheet from "@/components/expenses/SettleSheet";
 import ExportSheet from "@/components/expenses/ExportSheet";
 import RecurringDraftSheet from "@/components/expenses/RecurringDraftSheet";
 import EditRecurringSheet, { type RecurringTemplateData } from "@/components/expenses/EditRecurringSheet";
-import UpgradePrompt from "@/components/shared/UpgradePrompt";
 import PremiumGate from "@/components/shared/PremiumGate";
-import { Sheet, SheetContent } from "@/components/ui/sheet";
 import {
   Dialog,
   DialogContent,
@@ -705,7 +703,7 @@ export default function ExpensesPage() {
     return (
       <PageContainer>
         <div className="py-6 pb-24">
-          <PremiumGate feature="expenses" />
+          <PremiumGate feature="expenses" trigger="inline" />
         </div>
       </PageContainer>
     );
@@ -1342,13 +1340,9 @@ export default function ExpensesPage() {
         />
 
         {/* Upgrade prompt sheet */}
-        <Sheet open={!!upgradeCode} onOpenChange={(v) => !v && setUpgradeCode(null)}>
-          <SheetContent side="bottom" className="rounded-t-2xl pb-8">
-            {upgradeCode && (
-              <UpgradePrompt code={upgradeCode} onDismiss={() => setUpgradeCode(null)} />
-            )}
-          </SheetContent>
-        </Sheet>
+        {!!upgradeCode && (
+          <PremiumGate feature="expenses" trigger="sheet" onClose={() => setUpgradeCode(null)} />
+        )}
       </PageContainer>
     </motion.div>
   );

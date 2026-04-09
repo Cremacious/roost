@@ -230,7 +230,7 @@ export default function ChoreHistoryPage() {
             </div>
           </div>
 
-          <PremiumGate feature="chore-history" />
+          <PremiumGate feature="chores" trigger="page" />
         </PageContainer>
       </motion.div>
     );

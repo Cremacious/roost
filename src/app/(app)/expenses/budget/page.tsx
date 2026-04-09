@@ -159,7 +159,7 @@ export default function BudgetPage() {
               Budgets
             </h1>
           </div>
-          <PremiumGate feature="budgets" />
+          <PremiumGate feature="expenses" trigger="page" />
         </div>
       </PageContainer>
     );

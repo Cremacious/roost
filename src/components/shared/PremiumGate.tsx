@@ -1,165 +1,250 @@
-import { BarChart2, ChefHat, ClipboardList, Home, ListPlus, Receipt, ScanLine, Target } from "lucide-react";
-import { motion } from "framer-motion";
-import { useRouter } from "next/navigation";
-import MockExpensesPreview from "@/components/expenses/MockExpensesPreview";
+'use client';
 
-const COLOR = "#22C55E";
-const COLOR_DARK = "#159040";
+import { motion } from 'framer-motion';
+import { useRouter } from 'next/navigation';
+import { ArrowLeft, CheckCircle2 } from 'lucide-react';
+import { Sheet, SheetContent } from '@/components/ui/sheet';
+import { PREMIUM_GATE_CONFIG } from '@/lib/constants/premiumGateConfig';
 
-type Feature = "expenses" | "receipt-scanning" | "multiple-lists" | "multiple-households" | "chore-history" | "budgets" | "insights" | "meals" | "stats";
+export type PremiumGateFeature = keyof typeof PREMIUM_GATE_CONFIG;
 
-interface FeatureConfig {
-  icon: React.ElementType;
-  title: string;
-  body: string;
-  MockPreview?: React.ComponentType;
+interface PremiumGateProps {
+  feature: PremiumGateFeature;
+  trigger: 'sheet' | 'inline' | 'page';
+  onClose?: () => void;
 }
 
-const FEATURES: Record<Feature, FeatureConfig> = {
-  expenses: {
-    icon: Receipt,
-    title: "Split expenses fairly.",
-    body: "Track who paid what, split bills instantly, and settle up without the awkward conversations. One subscription covers your whole household.",
-    MockPreview: MockExpensesPreview,
-  },
-  "receipt-scanning": {
-    icon: ScanLine,
-    title: "Scan receipts instantly.",
-    body: "Point your camera at any receipt and split the items between household members. No manual entry needed.",
-  },
-  "multiple-lists": {
-    icon: ListPlus,
-    title: "Multiple grocery lists.",
-    body: "Create named lists for different stores or occasions. Costco run, Target trip, weekly shop. Keep it all organized.",
-  },
-  "multiple-households": {
-    icon: Home,
-    title: "Multiple households.",
-    body: "Belong to your family home and your college house at the same time. Switch between them instantly.",
-  },
-  "chore-history": {
-    icon: ClipboardList,
-    title: "See every chore, ever completed.",
-    body: "Track your household's full completion history. See who's pulling their weight and who needs a nudge.",
-  },
-  budgets: {
-    icon: Target,
-    title: "Keep spending on track.",
-    body: "Set monthly budgets per category and get notified before you overspend. Upgrade to Premium for $3/month.",
-  },
-  insights: {
-    icon: BarChart2,
-    title: "Understand your spending.",
-    body: "See where your money goes with charts and breakdowns by category, member, and month. Upgrade to Premium for $3/month.",
-  },
-  meals: {
-    icon: ChefHat,
-    title: "Plan your household's meals.",
-    body: "Build a shared meal bank, plan the week together, and push ingredients straight to the grocery list. Upgrade to Premium for $3/month.",
-  },
-  stats: {
-    icon: BarChart2,
-    title: "See how your household is doing.",
-    body: "Chore completion rates, spending trends, task breakdowns, and activity over time. All the data you have been generating, finally visualized.",
-  },
-};
-
-export default function PremiumGate({ feature }: { feature: Feature }) {
+function GateContent({
+  feature,
+  onClose,
+}: {
+  feature: PremiumGateFeature;
+  onClose?: () => void;
+}) {
   const router = useRouter();
-  const { icon: Icon, title, body, MockPreview } = FEATURES[feature];
+  const config = PREMIUM_GATE_CONFIG[feature];
+  const { icon: Icon, title, subtitle, perks, valueProp, featureHex, featureDarkHex } = config;
+
+  function handleMaybeLater() {
+    if (onClose) {
+      onClose();
+    } else {
+      router.back();
+    }
+  }
 
   return (
     <div>
-      {/* Gate card */}
+      {/* Icon box */}
       <div
-        className="rounded-2xl p-6"
         style={{
-          backgroundColor: "var(--roost-surface)",
-          border: "1.5px solid var(--roost-border)",
-          borderBottom: `4px solid ${COLOR_DARK}`,
+          width: 56,
+          height: 56,
+          borderRadius: 16,
+          backgroundColor: featureHex + '1F',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          marginBottom: 20,
         }}
       >
-        {/* Icon */}
-        <div
-          className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl"
-          style={{
-            backgroundColor: `${COLOR}18`,
-            border: `1.5px solid ${COLOR}30`,
-            borderBottom: `3px solid ${COLOR_DARK}30`,
-          }}
-        >
-          <Icon className="size-7" style={{ color: COLOR }} />
-        </div>
-
-        {/* Title */}
-        <p className="mb-2 text-xl leading-tight" style={{ color: "var(--roost-text-primary)", fontWeight: 900 }}>
-          {title}
-        </p>
-
-        {/* Body */}
-        <p className="mb-5 text-sm leading-relaxed" style={{ color: "var(--roost-text-secondary)", fontWeight: 600 }}>
-          {body}
-        </p>
-
-        {/* Price callout */}
-        <div
-          className="mb-5 rounded-xl px-4 py-3"
-          style={{
-            backgroundColor: `${COLOR}10`,
-            border: `1.5px solid ${COLOR}25`,
-            borderBottom: `3px solid ${COLOR_DARK}30`,
-          }}
-        >
-          <p className="text-lg" style={{ color: COLOR, fontWeight: 900 }}>
-            $3 / month
-          </p>
-          <p className="text-xs" style={{ color: "var(--roost-text-muted)", fontWeight: 700 }}>
-            Per household. Everyone benefits.
-          </p>
-        </div>
-
-        {/* Upgrade button */}
-        <motion.button
-          type="button"
-          whileTap={{ y: 2 }}
-          onClick={() => router.push("/settings/billing")}
-          className="flex h-12 w-full items-center justify-center rounded-xl text-sm text-white"
-          style={{
-            backgroundColor: COLOR,
-            border: `1.5px solid ${COLOR}`,
-            borderBottom: `3px solid ${COLOR_DARK}`,
-            fontWeight: 800,
-          }}
-        >
-          Upgrade to Premium
-        </motion.button>
-
-        {/* Learn more */}
-        <button
-          type="button"
-          onClick={() => router.push("/settings/billing")}
-          className="mt-3 w-full text-center text-sm"
-          style={{ color: "var(--roost-text-muted)", fontWeight: 700 }}
-        >
-          Learn more
-        </button>
+        <Icon style={{ width: 28, height: 28, color: featureHex }} />
       </div>
 
-      {/* Blurred preview */}
-      {MockPreview && (
-        <div
-          style={{
-            filter: "blur(3px)",
-            pointerEvents: "none",
-            opacity: 0.6,
-            marginTop: "24px",
-            borderRadius: "16px",
-            overflow: "hidden",
-          }}
+      {/* Title */}
+      <p
+        style={{
+          fontWeight: 900,
+          fontSize: 22,
+          lineHeight: 1.2,
+          color: 'var(--roost-text-primary)',
+          marginBottom: 8,
+        }}
+      >
+        {title}
+      </p>
+
+      {/* Subtitle */}
+      <p
+        style={{
+          fontWeight: 500,
+          fontSize: 14,
+          color: 'var(--roost-text-secondary)',
+          marginBottom: 20,
+          maxWidth: 380,
+        }}
+      >
+        {subtitle}
+      </p>
+
+      {/* Perks list */}
+      <div style={{ marginBottom: 20 }}>
+        {perks.map((perk) => (
+          <div
+            key={perk}
+            style={{
+              display: 'flex',
+              alignItems: 'flex-start',
+              gap: 10,
+              marginBottom: 10,
+            }}
+          >
+            <CheckCircle2
+              style={{
+                width: 16,
+                height: 16,
+                color: featureHex,
+                flexShrink: 0,
+                marginTop: 2,
+              }}
+            />
+            <span
+              style={{
+                fontWeight: 600,
+                fontSize: 14,
+                color: 'var(--roost-text-primary)',
+              }}
+            >
+              {perk}
+            </span>
+          </div>
+        ))}
+      </div>
+
+      {/* Value prop callout */}
+      <div
+        style={{
+          backgroundColor: featureHex + '14',
+          border: `1px solid ${featureHex}40`,
+          borderBottom: `3px solid ${featureHex}`,
+          borderRadius: 14,
+          padding: '14px 16px',
+          marginBottom: 20,
+        }}
+      >
+        <p style={{ fontWeight: 700, fontSize: 13, color: featureHex }}>
+          {valueProp}
+        </p>
+      </div>
+
+      {/* Upgrade button */}
+      <motion.button
+        type="button"
+        whileTap={{ y: 2 }}
+        onClick={() => router.push('/settings/billing')}
+        style={{
+          width: '100%',
+          height: 52,
+          borderRadius: 14,
+          backgroundColor: featureHex,
+          border: 'none',
+          boxShadow: `0 4px 0 ${featureDarkHex}`,
+          fontWeight: 800,
+          fontSize: 15,
+          color: 'white',
+          cursor: 'pointer',
+          marginBottom: 16,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}
+      >
+        Upgrade for $4/month
+      </motion.button>
+
+      {/* Maybe later */}
+      <button
+        type="button"
+        onClick={handleMaybeLater}
+        style={{
+          display: 'block',
+          width: '100%',
+          textAlign: 'center',
+          fontWeight: 600,
+          fontSize: 14,
+          color: 'var(--roost-text-secondary)',
+          cursor: 'pointer',
+          background: 'none',
+          border: 'none',
+          padding: 0,
+        }}
+        onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.opacity = '0.7'; }}
+        onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.opacity = '1'; }}
+      >
+        Maybe later
+      </button>
+    </div>
+  );
+}
+
+export default function PremiumGate({ feature, trigger, onClose }: PremiumGateProps) {
+  const router = useRouter();
+
+  if (trigger === 'sheet') {
+    const config = PREMIUM_GATE_CONFIG[feature];
+    return (
+      <Sheet open onOpenChange={(v) => { if (!v && onClose) onClose(); }}>
+        <SheetContent
+          side="bottom"
+          className="rounded-t-2xl"
+          style={{ backgroundColor: 'var(--roost-bg)', maxWidth: 480 }}
+          onOpenAutoFocus={(e) => e.preventDefault()}
         >
-          <MockPreview />
-        </div>
-      )}
+          {/* Drag handle */}
+          <div
+            style={{
+              width: 32,
+              height: 4,
+              borderRadius: 9999,
+              backgroundColor: 'var(--roost-border)',
+              margin: '12px auto 0',
+            }}
+          />
+          <div style={{ padding: '24px 24px 40px' }}>
+            <GateContent feature={feature} onClose={onClose} />
+          </div>
+        </SheetContent>
+      </Sheet>
+    );
+  }
+
+  if (trigger === 'inline') {
+    const config = PREMIUM_GATE_CONFIG[feature];
+    return (
+      <div
+        style={{
+          backgroundColor: 'var(--roost-surface)',
+          border: '1px solid var(--roost-border)',
+          borderBottom: `4px solid ${config.featureHex}`,
+          borderRadius: 20,
+          padding: '28px 24px',
+        }}
+      >
+        <GateContent feature={feature} onClose={onClose} />
+      </div>
+    );
+  }
+
+  // trigger === 'page'
+  return (
+    <div style={{ maxWidth: 480, margin: '0 auto', padding: '40px 24px' }}>
+      <button
+        type="button"
+        onClick={() => router.back()}
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          background: 'none',
+          border: 'none',
+          cursor: 'pointer',
+          color: 'var(--roost-text-secondary)',
+          marginBottom: 24,
+          padding: 0,
+        }}
+      >
+        <ArrowLeft style={{ width: 20, height: 20 }} />
+      </button>
+      <GateContent feature={feature} onClose={onClose} />
     </div>
   );
 }

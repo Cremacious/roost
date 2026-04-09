@@ -122,7 +122,7 @@ App slogan options (decision pending):
 
 ## Pricing Model
 - Free tier: 1 household, up to 5 members, core features
-- Premium: $3/month per household (not per user)
+- Premium: $4/month per household (not per user)
 - Admin pays, all household members benefit
 - Stripe for web, RevenueCat for iOS/Android in-app purchase
 
@@ -585,8 +585,8 @@ src/components/shared/StatCard.tsx             Stat tile: big number + label, sl
 src/components/shared/PageHeader.tsx           Page title + subtitle + optional badge + action
 src/components/shared/SectionColorBadge.tsx    Inline color badge pill: bg color+18, border color+30
 src/components/shared/MemberAvatar.tsx         Initials avatar, sizes sm/md/lg, color prop
-src/components/shared/PremiumGate.tsx          Premium upgrade prompt: icon, copy, price card, upgrade button, blurred feature preview
-src/components/shared/UpgradePrompt.tsx        In-sheet upgrade prompt: maps 16+ error codes to icon/title/body, "Upgrade for $3/month" link, optional dismiss
+src/components/shared/PremiumGate.tsx          Unified premium gate: 3 trigger variants (sheet/inline/page), driven by PREMIUM_GATE_CONFIG keyed by feature slug
+src/lib/constants/premiumGateConfig.ts         PREMIUM_GATE_CONFIG: 13 feature entries (chores/grocery/expenses/calendar/tasks/notes/reminders/meals/allowances/guests/themes/stats/chore-categories), each with featureColor, featureHex, featureDarkHex, icon, title, subtitle, perks[], valueProp
 src/components/settings/MemberSheet.tsx        Admin member management: role picker, 12 permission toggles, child PIN change, allowance config, remove member
 src/components/dev/DevTools.tsx                Dev-only floating toolbar: premium toggle switch, user info, household info
 src/lib/constants/freeTierLimits.ts            FREE_TIER_LIMITS: members(5), children(1), chores(5), tasks(10), calendarEventsPerMonth(20), notes(10), activeSingleReminders(5), mealBank(5), groceryLists(1)
@@ -1144,16 +1144,20 @@ Designer brief (send this when hiring):
   CHORE_HISTORY_PREMIUM
 - Mutation error propagation: `const err = new Error(msg) as Error & { code?: string }; err.code = data.code; throw err;`
 - Sheet onError: if (err.code && onUpgradeRequired) { onUpgradeRequired(err.code); return; }
-- Page pattern: upgradeCode state + <Sheet open={!!upgradeCode}> wrapping <UpgradePrompt code={...} onDismiss={...}>
+- Page pattern: upgradeCode state + `{!!upgradeCode && <PremiumGate feature="X" trigger="sheet" onClose={() => setUpgradeCode(null)} />}`
 - All 7 sheet components (ChoreSheet, TaskSheet, ReminderSheet, MealSheet, SuggestionSheet, EventSheet, NoteSheet) have onUpgradeRequired?: (code: string) => void prop
-- UpgradePrompt is the shared component for in-sheet upgrade display; maps codes to icon/title/body
+- PremiumGate is the ONLY gate component (UpgradePrompt deleted). Props: feature (PremiumGateFeature), trigger ('sheet'|'inline'|'page'), onClose? 
+  - sheet: renders as Sheet+SheetContent drawer
+  - inline: renders as a div block within parent layout (e.g. inside another sheet)
+  - page: renders as centered full-page gate with back arrow
+- PREMIUM_GATE_CONFIG in src/lib/constants/premiumGateConfig.ts drives all gate content
 - Chores: daily = free, weekly/monthly/custom = premium (Lock icon shown on premium freq buttons)
-- Leaderboard button: Lock icon shown + clicking shows UpgradePrompt when not premium
-- History button: always shown in chores header (no lock), premium gate is on the history page itself via PremiumGate component
+- Leaderboard button: Lock icon shown + clicking shows PremiumGate feature="chores" trigger="sheet" when not premium
+- History button: always shown in chores header (no lock), premium gate is on the history page itself via PremiumGate trigger="page"
 - Chore history date filtering: parse date strings with `new Date("${dateStr}T00:00:00")` (no Z) to get local midnight, then use date-fns startOfDay/endOfDay. Using `new Date("2026-04-08")` parses UTC midnight — setHours() then breaks on non-UTC servers.
 - Chore history users join: leftJoin (not innerJoin) so completions are never silently dropped if a users row is missing
 - Grocery: pill row shows for (isPremium || lists.length > 1); + button shows Lock icon for free users
-- Settings theme picker: non-default themes show Lock icon overlay for free users, click shows UpgradePrompt
+- Settings theme picker: non-default themes show Lock icon overlay for free users, click shows PremiumGate feature="themes" trigger="sheet"
 - Expenses: free users see inline upgrade pitch card (no blurred preview), premium users see full module
 - Sign out: AlertDialog confirmation in both Sidebar (desktop) and BottomNav More sheet (mobile)
   Calls applyTheme(DEFAULT_THEME) BEFORE signOut() to immediately reset CSS vars, then router.push('/login'), no toast on success
@@ -1204,7 +1208,7 @@ Update this file after every major decision or completed phase.
   - `premium-toggle` on DevTools Switch (src/components/dev/DevTools.tsx) — was already present
 - ChoreSheet save button text: "Add chore" (create) or "Save changes" (edit) — not "Save"
 - Grocery quick-add placeholder rotates: "Add milk...", "Add eggs...", "Add anything..." — never "Add an item"
-- Expenses free-tier shows "Upgrade to Premium for $3/month" and "Upgrade for $3/month" link
+- Expenses free-tier shows PremiumGate feature="expenses" trigger="inline" (no blurred preview)
 - Use `.or()` chaining for multi-text locators; comma-separated `text=` is not valid Playwright CSS
 - Playwright runs serially (`fullyParallel: false`, `workers: 1`) to prevent context-crash cascades
 - Desktop (chromium) project timeout: 60s; mobile project timeout: 90s
@@ -1224,7 +1228,9 @@ Update this file after every major decision or completed phase.
 - e2e/.auth/*.json files contain session tokens — always in .gitignore, never commit. e2e/.auth/.gitkeep tracks the empty directory.
 - Empty-state tests (chores/grocery) only reliable on first run against a clean DB. Test data accumulates with shared accounts — this is an accepted tradeoff.
 
-Last updated: 2026-04-09 (Admin panel fixes: 1) /admin overview navbar was missing — root cause: window.location.href=="/admin" needed (not router.push) after login to force full RSC reload; proxy.ts was setting x-pathname on response headers instead of request headers (server components read request headers via headers()). Fixed by rewriting proxy.ts to use NextResponse.next({ request: { headers: requestHeaders } }) pattern via nextWithPathname() helper. 2) total_users = 0 — stats route was querying better-auth "user" table; all dev/test accounts matched test filter patterns so result was 0. Fixed by switching all user count queries in stats/route.ts from "user" (better-auth) to users (app table, has deleted_at). Now consistent with admin/users route. 3) Hide test accounts filter — testFilters.ts created as single source of truth. All 3 API routes + pages have hideTest toggle, localStorage persistence, mounted guard.)
+Last updated: 2026-04-09 (Premium gate unification: UpgradePrompt.tsx deleted. PremiumGate now handles all 3 trigger variants (sheet/inline/page) via single component. PREMIUM_GATE_CONFIG in src/lib/constants/premiumGateConfig.ts drives all gate content — 13 feature slugs. Price updated $3 → $4/month across all UI copy, CLAUDE.md, FEATURES.md, billing page. usePaginatedList hook (src/lib/hooks/use-paginated-list.ts) + ShowMoreButton (src/components/ui/show-more-button.tsx) added for per-section task pagination. Grocery pill row: native scrollbar replaced with animated scroll progress indicator. Expenses: tab active = green COLOR; stat card heights fixed; dot pagination uses progress-based index; billing page CTA uses boxShadow slab style.)
+
+Previous: 2026-04-09 (Admin panel fixes: 1) /admin overview navbar was missing — root cause: window.location.href=="/admin" needed (not router.push) after login to force full RSC reload; proxy.ts was setting x-pathname on response headers instead of request headers (server components read request headers via headers()). Fixed by rewriting proxy.ts to use NextResponse.next({ request: { headers: requestHeaders } }) pattern via nextWithPathname() helper. 2) total_users = 0 — stats route was querying better-auth "user" table; all dev/test accounts matched test filter patterns so result was 0. Fixed by switching all user count queries in stats/route.ts from "user" (better-auth) to users (app table, has deleted_at). Now consistent with admin/users route. 3) Hide test accounts filter — testFilters.ts created as single source of truth. All 3 API routes + pages have hideTest toggle, localStorage persistence, mounted guard.)
 
 Previous: 2026-04-09 (Admin panel built at /admin. Separate from better-auth — uses jose JWT in HttpOnly cookie (8h, HS256). Env vars: ADMIN_EMAIL + ADMIN_PASSWORD. Files: src/lib/admin/auth.ts (createAdminSession, verifyAdminSession, checkAdminCredentials), src/lib/admin/requireAdmin.ts (requireAdminSession returns Response|null), src/app/api/admin/login/route.ts (POST, sets cookie), src/app/api/admin/logout/route.ts (POST, clears cookie, redirects), src/app/api/admin/stats/route.ts (GET: overview stats + signupsOverTime + conversionsOverTime via 5 parallel sql queries; queries "user" table quoted), src/app/api/admin/users/route.ts (GET: paginated, search, filter, returns camelCase), src/app/api/admin/households/route.ts (GET: paginated, search, filter, ARRAY_AGG member emails, returns camelCase), src/app/api/admin/households/[id]/route.ts (PATCH: set premium/free, COALESCE subscription_upgraded_at, logActivity). proxy.ts: /admin added to SKIP_PREFIXES. src/app/(admin)/layout.tsx: server component, reads x-pathname header, skips auth for /admin/login, dark #0F172A theme, sticky nav. src/app/(admin)/admin/login/page.tsx: centered dark card, #6366F1 branding. src/app/(admin)/admin/page.tsx: overview with 6 stat cards + 2 Recharts AreaCharts. src/app/(admin)/admin/users/page.tsx: table with search/filter/pagination/expandable rows + CopyField. src/app/(admin)/admin/households/page.tsx: table with Set Premium/Set Free action + ConfirmDialog + optimistic update + expandable rows. Schema: households.subscription_upgraded_at added. Roadmap item 8 marked DONE.)
 
@@ -1268,7 +1274,7 @@ Previous: 2026-04-08 (Custom categories + budgets + insights complete. Schema: e
 - RecurringTemplate passed to ExpenseSheet as optional prop; looked up by recurring_template_id
 - Expenses GET: filters out is_recurring_draft=true from main list; returns recurringDrafts[] separately
 - Expense rows with recurring_template_id show small RefreshCw icon next to title
-- RECURRING_EXPENSES_PREMIUM error code maps to UpgradePrompt in UpgradePrompt.tsx
+- RECURRING_EXPENSES_PREMIUM error code maps to PremiumGate feature="expenses" in expenses/page.tsx
 - Expenses page has two tabs: "Expenses" (default) and "Recurring" (premium only)
 - Tab row sits below the page header; slab pill buttons with dark active state
 - Recurring tab shows: draft banner (admin, if drafts pending), summary stats row (active count, monthly total, next due), template list with 3-dot menu (Edit, Pause/Resume, Delete)
@@ -1302,7 +1308,7 @@ Previous: 2026-04-08 (Custom categories + budgets + insights complete. Schema: e
 - Retention screen shown before cancel: lists what the household will lose, "Keep Premium" vs "Cancel"
 - /settings/billing: free users see upgrade card; premium users see features + manage/cancel; 
   cancelling users see amber warning + reactivate; success/cancelled URL params show dismissing banners
-- STRIPE_PRICE_ID env var: the monthly $3 price ID (price_...) from Stripe dashboard
+- STRIPE_PRICE_ID env var: the monthly $4 price ID (price_...) from Stripe dashboard
 
 ## Bugs Found and Fixed (2026-04-08)
 - Chore history showed 0 completions despite chores being completed on the main page.

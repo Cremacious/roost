@@ -13,8 +13,7 @@ import ErrorState from "@/components/shared/ErrorState";
 import { Skeleton } from "@/components/ui/skeleton";
 import MemberAvatar from "@/components/shared/MemberAvatar";
 import NoteSheet, { type NoteData } from "@/components/notes/NoteSheet";
-import { Sheet, SheetContent } from "@/components/ui/sheet";
-import UpgradePrompt from "@/components/shared/UpgradePrompt";
+import PremiumGate from "@/components/shared/PremiumGate";
 import { SECTION_COLORS } from "@/lib/constants/colors";
 import { PageContainer } from "@/components/layout/PageContainer";
 
@@ -401,12 +400,9 @@ export default function NotesPage() {
       />
 
       {/* Upgrade prompt */}
-      <Sheet open={!!upgradeCode} onOpenChange={(v) => !v && setUpgradeCode(null)}>
-        <SheetContent side="bottom" className="rounded-t-2xl px-4 pb-8 pt-2" style={{ backgroundColor: "var(--roost-surface)" }}>
-          <div className="mx-auto mb-4 h-1 w-10 rounded-full" style={{ backgroundColor: COLOR }} />
-          {upgradeCode && <UpgradePrompt code={upgradeCode} onDismiss={() => setUpgradeCode(null)} />}
-        </SheetContent>
-      </Sheet>
+      {!!upgradeCode && (
+        <PremiumGate feature="notes" trigger="sheet" onClose={() => setUpgradeCode(null)} />
+      )}
       </PageContainer>
     </motion.div>
   );

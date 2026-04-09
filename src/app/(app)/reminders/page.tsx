@@ -43,8 +43,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import ReminderSheet, { type ReminderData, type Member } from "@/components/reminders/ReminderSheet";
-import { Sheet, SheetContent } from "@/components/ui/sheet";
-import UpgradePrompt from "@/components/shared/UpgradePrompt";
+import PremiumGate from "@/components/shared/PremiumGate";
 import { SECTION_COLORS } from "@/lib/constants/colors";
 import { PageContainer } from "@/components/layout/PageContainer";
 
@@ -849,12 +848,9 @@ export default function RemindersPage() {
       />
 
       {/* Upgrade prompt */}
-      <Sheet open={!!upgradeCode} onOpenChange={(v) => !v && setUpgradeCode(null)}>
-        <SheetContent side="bottom" className="rounded-t-2xl px-4 pb-8 pt-2" style={{ backgroundColor: "var(--roost-surface)" }}>
-          <div className="mx-auto mb-4 h-1 w-10 rounded-full" style={{ backgroundColor: COLOR }} />
-          {upgradeCode && <UpgradePrompt code={upgradeCode} onDismiss={() => setUpgradeCode(null)} />}
-        </SheetContent>
-      </Sheet>
+      {!!upgradeCode && (
+        <PremiumGate feature="reminders" trigger="sheet" onClose={() => setUpgradeCode(null)} />
+      )}
 
       {/* Delete confirm */}
       <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>

@@ -1,5 +1,5 @@
 # Roost — Feature Registry
-> Last updated: 2026-04-09 (rich text notes built)
+> Last updated: 2026-04-09 (guest/temporary member built)
 > Use this file for homepage copy, paywall screens, upgrade prompts, and App Store descriptions.
 
 ---
@@ -165,6 +165,18 @@
 - Child dashboard widget hidden for free households
 - Earned allowances appear in expenses settle-up flow
 
+#### Guest / Temporary Member (Premium)
+**Sell it as:** "Invite a temporary member."
+- Invite someone via magic link (64-char token, expires in 7 days)
+- Guest membership auto-expires on admin-chosen date (1 day to 1 year)
+- Guest gets full account but limited role with read/add permissions only
+- No access to: chore assignment, note creation, list creation, meal planning
+- Admin controls via InviteGuestSheet: optional email, preset or custom expiry
+- Guest badge shown in members list with relative expiry ("expires in 3 days")
+- Cron job runs daily at 2am UTC to hard-delete expired guest memberships
+- Works seamlessly with existing signup/login flow via sessionStorage token relay
+- Premium gate: GUEST_MEMBER_PREMIUM error code
+
 #### Notes (Premium)
 **Sell it as:** "Notes worth keeping."
 - Rich text editor powered by Tiptap (open source, zero cost)
@@ -195,9 +207,7 @@ Premium feature.
 
 ~~**Rich Text Notes**~~ — BUILT (see above)
 
-**Guest / Temporary Member**
-Invite someone to your household temporarily with an auto-expiring link. Great for Airbnb splitting, visiting family, or short-term roommates.
-Premium feature.
+~~**Guest / Temporary Member**~~ — BUILT (see above)
 
 **Grocery Smart Sort**
 Auto-sort your grocery list by store section: produce, dairy, frozen, bakery, meat. Pure client-side logic.

@@ -11,6 +11,7 @@ export const household_members = pgTable(
     user_id: text("user_id").notNull(),
     role: text("role").notNull().default("member"),
     pin: text("pin"),
+    expires_at: timestamp("expires_at"),
     joined_at: timestamp("joined_at").defaultNow(),
   },
   (t) => [unique().on(t.household_id, t.user_id)]

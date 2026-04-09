@@ -146,6 +146,11 @@ const PROMPT_MAP: Record<string, PromptConfig> = {
     title: "Notes worth keeping.",
     body: "Add headings, checklists, bold text, and links to your household notes. Upgrade from a scratchpad to a real knowledge base.",
   },
+  GUEST_MEMBER_PREMIUM: {
+    icon: UserPlus,
+    title: "Invite temporary members.",
+    body: "Add someone to your household temporarily. Perfect for splitting Airbnb costs, hosting family, or short-term roommates. Auto-expires so you never have to remember to remove them.",
+  },
 };
 
 const FALLBACK: PromptConfig = {

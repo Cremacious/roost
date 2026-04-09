@@ -35,6 +35,7 @@ export interface SheetMember {
   role: string;
   avatarColor: string | null;
   joinedAt: string | null;
+  expiresAt?: string | null;
 }
 
 interface Permission {
@@ -50,8 +51,8 @@ interface AllowanceData {
 
 // ---- Constants --------------------------------------------------------------
 
-const ROLE_LABELS: Record<string, string> = { child: "Child", member: "Member", admin: "Admin" };
-const ROLE_KEYS = ["child", "member", "admin"] as const;
+const ROLE_LABELS: Record<string, string> = { child: "Child", member: "Member", admin: "Admin", guest: "Guest" };
+const ROLE_KEYS = ["child", "member", "admin"] as const; // Guest role is not manually assignable
 
 const PERMISSION_LABELS: { key: string; label: string; childLocked: boolean }[] = [
   { key: "expenses.view", label: "Can view expenses", childLocked: true },

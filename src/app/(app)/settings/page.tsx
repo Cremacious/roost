@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
-import { Check, Copy, Eye, EyeOff, Loader2, MapPin, Pencil, Plus, RefreshCw, Thermometer, Trash2 } from "lucide-react";
+import { Check, Clock, Copy, Eye, EyeOff, Loader2, MapPin, Pencil, Plus, RefreshCw, Thermometer, Trash2, UserPlus } from "lucide-react";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
 import { CategoryIcon, ICON_OPTIONS, COLOR_OPTIONS } from "@/components/expenses/CategoryPicker";
@@ -23,6 +23,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Switch } from "@/components/ui/switch";
 import MemberSheet, { type SheetMember } from "@/components/settings/MemberSheet";
+import InviteGuestSheet from "@/components/settings/InviteGuestSheet";
 import MemberAvatar from "@/components/shared/MemberAvatar";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import UpgradePrompt from "@/components/shared/UpgradePrompt";
@@ -83,6 +84,17 @@ const NAV_SECTIONS = [
 
 function initials(name: string): string {
   return name.split(" ").slice(0, 2).map((w) => w[0]).join("").toUpperCase();
+}
+
+function formatGuestExpiry(isoString: string): string {
+  const date = new Date(isoString);
+  const now = new Date();
+  const msLeft = date.getTime() - now.getTime();
+  const daysLeft = Math.ceil(msLeft / (1000 * 60 * 60 * 24));
+  if (daysLeft <= 0) return "expires today";
+  if (daysLeft === 1) return "expires in 1 day";
+  if (daysLeft <= 3) return `expires in ${daysLeft} days`;
+  return `expires ${date.toLocaleDateString("en-US", { month: "short", day: "numeric" })}`;
 }
 
 type Strength = "weak" | "fair" | "good" | "strong";
@@ -513,6 +525,7 @@ export default function SettingsPage() {
 
   // ---- Members state --------------------------------------------------------
   const [selectedMember, setSelectedMember] = useState<SheetMember | null>(null);
+  const [inviteGuestOpen, setInviteGuestOpen] = useState(false);
 
   // ---- Notifications state --------------------------------------------------
   const [choreReminders, setChoreReminders] = useState(false);
@@ -1311,7 +1324,23 @@ export default function SettingsPage() {
           )}
           <SlabCard>
             {members.map((m, i) => {
-              const roleBadge = (
+              const isGuest = m.role === "guest";
+              const guestExpiry = isGuest && m.expiresAt ? formatGuestExpiry(m.expiresAt) : null;
+
+              const roleBadge = isGuest ? (
+                <span
+                  className="inline-flex shrink-0 items-center gap-1 rounded-lg px-2 py-0.5 text-xs"
+                  style={{
+                    backgroundColor: "#FEF3C7",
+                    border: "1px solid #F59E0B",
+                    color: "#92400E",
+                    fontWeight: 700,
+                  }}
+                >
+                  <Clock className="size-3" />
+                  Guest{guestExpiry ? ` · ${guestExpiry}` : ""}
+                </span>
+              ) : (
                 <span
                   className="shrink-0 rounded-lg px-2 py-0.5 text-xs capitalize"
                   style={{
@@ -1339,7 +1368,7 @@ export default function SettingsPage() {
                         {m.name}
                       </p>
                       <p className="text-xs capitalize" style={{ color: "var(--roost-text-muted)", fontWeight: 600 }}>
-                        {m.role}
+                        {isGuest ? "Guest member" : m.role}
                       </p>
                     </div>
                     {roleBadge}
@@ -1359,7 +1388,7 @@ export default function SettingsPage() {
                       {m.name}
                     </p>
                     <p className="text-xs capitalize" style={{ color: "var(--roost-text-muted)", fontWeight: 600 }}>
-                      {m.role}
+                      {isGuest ? "Guest member" : m.role}
                     </p>
                   </div>
                   {roleBadge}
@@ -1367,6 +1396,31 @@ export default function SettingsPage() {
               );
             })}
           </SlabCard>
+
+          {isAdmin && (
+            <motion.button
+              type="button"
+              whileTap={{ y: 1 }}
+              onClick={() => {
+                if (!isPremium) {
+                  setUpgradeCode("GUEST_MEMBER_PREMIUM");
+                } else {
+                  setInviteGuestOpen(true);
+                }
+              }}
+              className="flex h-12 w-full items-center justify-center gap-2 rounded-xl text-sm"
+              style={{
+                backgroundColor: "var(--roost-surface)",
+                border: "1.5px solid var(--roost-border)",
+                borderBottom: "3px solid var(--roost-border-bottom)",
+                color: "var(--roost-text-secondary)",
+                fontWeight: 700,
+              }}
+            >
+              <UserPlus className="size-4" />
+              Invite a Guest
+            </motion.button>
+          )}
         </SettingsSection>
 
         {/* ---- SECTION 6: NOTIFICATIONS ----------------------------------- */}
@@ -1759,6 +1813,12 @@ export default function SettingsPage() {
         householdId={householdId}
         onClose={() => setSelectedMember(null)}
         onRefetch={refetchMembers}
+      />
+
+      {/* Invite guest sheet */}
+      <InviteGuestSheet
+        open={inviteGuestOpen}
+        onClose={() => setInviteGuestOpen(false)}
       />
 
       {/* Upgrade prompt */}

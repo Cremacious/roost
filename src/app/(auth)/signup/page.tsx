@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
@@ -80,6 +80,15 @@ export default function SignupPage() {
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
+  // Check for pending invite token on mount
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const inviteToken = params.get("invite");
+    if (inviteToken) {
+      sessionStorage.setItem("pendingInviteToken", inviteToken);
+    }
+  }, []);
+
   const strength = password.length > 0 ? getStrength(password) : null;
   const confirmTouched = confirm.length > 0;
   const passwordsMatch = password === confirm;
@@ -107,7 +116,13 @@ export default function SignupPage() {
       setLoading(false);
       return;
     }
-    router.push("/onboarding");
+    const pendingToken = sessionStorage.getItem("pendingInviteToken");
+    if (pendingToken) {
+      sessionStorage.removeItem("pendingInviteToken");
+      router.push(`/invite/${pendingToken}`);
+    } else {
+      router.push("/onboarding");
+    }
   }
 
   const submitDisabled =

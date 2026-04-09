@@ -66,6 +66,7 @@ export async function GET(request: NextRequest): Promise<Response> {
       userId: household_members.user_id,
       role: household_members.role,
       joinedAt: household_members.joined_at,
+      expiresAt: household_members.expires_at,
       name: user.name,
       email: user.email,
       avatarColor: users.avatar_color,

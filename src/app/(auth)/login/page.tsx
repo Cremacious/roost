@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
@@ -43,6 +43,15 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
 
+  // Check for pending invite token on mount
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const inviteToken = params.get("invite");
+    if (inviteToken) {
+      sessionStorage.setItem("pendingInviteToken", inviteToken);
+    }
+  }, []);
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
@@ -54,7 +63,13 @@ export default function LoginPage() {
       setLoading(false);
       return;
     }
-    router.push("/dashboard");
+    const pendingToken = sessionStorage.getItem("pendingInviteToken");
+    if (pendingToken) {
+      sessionStorage.removeItem("pendingInviteToken");
+      router.push(`/invite/${pendingToken}`);
+    } else {
+      router.push("/dashboard");
+    }
   }
 
   return (

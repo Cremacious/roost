@@ -53,6 +53,14 @@ export async function requireHouseholdMember(
     throw new Response("Forbidden", { status: 403 });
   }
 
+  // Real-time guest expiry check (safety net — cron handles cleanup)
+  if (member.role === "guest" && member.expires_at && member.expires_at < new Date()) {
+    throw Response.json(
+      { error: "Your guest access has expired", code: "GUEST_EXPIRED" },
+      { status: 403 }
+    );
+  }
+
   return { ...session, member };
 }
 

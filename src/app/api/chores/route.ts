@@ -14,11 +14,20 @@ export async function getUserHousehold(userId: string) {
     .select({
       householdId: household_members.household_id,
       role: household_members.role,
+      expiresAt: household_members.expires_at,
     })
     .from(household_members)
     .where(eq(household_members.user_id, userId))
     .limit(1);
-  return m ?? null;
+
+  if (!m) return null;
+
+  // Expired guests are treated as non-members; cron handles cleanup
+  if (m.role === "guest" && m.expiresAt && m.expiresAt < new Date()) {
+    return null;
+  }
+
+  return m;
 }
 
 export function calcNextDueAt(

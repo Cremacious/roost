@@ -9,7 +9,7 @@ const ALWAYS_PUBLIC = ["/"];
 const AUTH_PAGES = ["/login", "/signup", "/child-login"];
 
 // Prefixes that always pass through without session check
-const SKIP_PREFIXES = ["/api/", "/_next", "/favicon.ico", "/brand/", "/images/"];
+const SKIP_PREFIXES = ["/api/", "/_next", "/favicon.ico", "/brand/", "/images/", "/invite/"];
 
 export async function proxy(request: NextRequest): Promise<NextResponse> {
   const { pathname } = request.nextUrl;

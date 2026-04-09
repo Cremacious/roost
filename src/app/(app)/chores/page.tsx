@@ -308,6 +308,7 @@ export default function ChoresPage() {
               borderBottom: "3px solid #E5E7EB",
             }}
           >
+            {!isPremium && <Lock className="size-3 mr-1" style={{ color: "var(--roost-text-muted)" }} />}
             <History className="size-4" style={{ color: COLOR }} />
           </Link>
           <Link
@@ -323,6 +324,7 @@ export default function ChoresPage() {
           >
             <History className="size-4" style={{ color: COLOR }} />
             History
+            {!isPremium && <Lock className="size-3 ml-0.5" style={{ color: "var(--roost-text-muted)" }} />}
           </Link>
 
           {/* Leaderboard — icon only on mobile, text+icon on desktop */}
@@ -337,6 +339,7 @@ export default function ChoresPage() {
               borderBottom: "3px solid #E5E7EB",
             }}
           >
+            {!isPremium && <Lock className="size-3 mr-1" style={{ color: "var(--roost-text-muted)" }} />}
             <Trophy className="size-4" style={{ color: "#F59E0B" }} />
           </motion.button>
           <motion.button

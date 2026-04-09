@@ -12,21 +12,26 @@ const AUTH_PAGES = ["/login", "/signup", "/child-login"];
 // /admin handles its own auth via admin session cookie
 const SKIP_PREFIXES = ["/api/", "/_next", "/favicon.ico", "/brand/", "/images/", "/invite/", "/admin"];
 
+// Forward x-pathname as a REQUEST header so server components can read it
+// via headers(). Setting it on the response object would NOT make it
+// available to server components (headers() reads request headers).
+function nextWithPathname(request: NextRequest, pathname: string) {
+  const requestHeaders = new Headers(request.headers);
+  requestHeaders.set("x-pathname", pathname);
+  return NextResponse.next({ request: { headers: requestHeaders } });
+}
+
 export async function proxy(request: NextRequest): Promise<NextResponse> {
   const { pathname } = request.nextUrl;
 
   // Always public — homepage is never redirected
   if (ALWAYS_PUBLIC.includes(pathname)) {
-    const res = NextResponse.next();
-    res.headers.set("x-pathname", pathname);
-    return res;
+    return nextWithPathname(request, pathname);
   }
 
   // Skip assets, API routes, and admin routes (each handles own auth)
   if (SKIP_PREFIXES.some((prefix) => pathname.startsWith(prefix))) {
-    const res = NextResponse.next();
-    res.headers.set("x-pathname", pathname);
-    return res;
+    return nextWithPathname(request, pathname);
   }
 
   // Auth pages: redirect to /dashboard if already signed in
@@ -35,9 +40,7 @@ export async function proxy(request: NextRequest): Promise<NextResponse> {
     if (session) {
       return NextResponse.redirect(new URL("/dashboard", request.url));
     }
-    const res = NextResponse.next();
-    res.headers.set("x-pathname", pathname);
-    return res;
+    return nextWithPathname(request, pathname);
   }
 
   // All other routes (app shell, onboarding, etc.) require auth
@@ -48,9 +51,7 @@ export async function proxy(request: NextRequest): Promise<NextResponse> {
     return NextResponse.redirect(loginUrl);
   }
 
-  const res = NextResponse.next();
-  res.headers.set("x-pathname", pathname);
-  return res;
+  return nextWithPathname(request, pathname);
 }
 
 export const config = {

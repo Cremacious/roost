@@ -27,7 +27,7 @@ export async function GET(request: NextRequest): Promise<Response> {
     // 1. Overview counts
     db.execute(sql`
       SELECT
-        (SELECT COUNT(*) FROM "user" u WHERE 1=1 ${testUserClause}) AS total_users,
+        (SELECT COUNT(*) FROM users u WHERE u.deleted_at IS NULL ${testUserClause}) AS total_users,
         (SELECT COUNT(*) FROM households h WHERE h.deleted_at IS NULL ${testHouseholdClause}) AS total_households,
         (SELECT COUNT(*) FROM households h WHERE h.subscription_status = 'premium' AND h.deleted_at IS NULL ${testHouseholdClause}) AS premium_households,
         (SELECT COUNT(*) FROM households h WHERE h.subscription_status = 'free' AND h.deleted_at IS NULL ${testHouseholdClause}) AS free_households
@@ -38,8 +38,9 @@ export async function GET(request: NextRequest): Promise<Response> {
       SELECT
         DATE(u.created_at) AS date,
         COUNT(*) AS count
-      FROM "user" u
-      WHERE u.created_at > NOW() - INTERVAL '90 days'
+      FROM users u
+      WHERE u.deleted_at IS NULL
+        AND u.created_at > NOW() - INTERVAL '90 days'
       ${testUserClause}
       GROUP BY DATE(u.created_at)
       ORDER BY date ASC
@@ -72,8 +73,9 @@ export async function GET(request: NextRequest): Promise<Response> {
     // 5. New users this week
     db.execute(sql`
       SELECT COUNT(*) AS count
-      FROM "user" u
-      WHERE u.created_at > NOW() - INTERVAL '7 days'
+      FROM users u
+      WHERE u.deleted_at IS NULL
+        AND u.created_at > NOW() - INTERVAL '7 days'
       ${testUserClause}
     `),
   ]);

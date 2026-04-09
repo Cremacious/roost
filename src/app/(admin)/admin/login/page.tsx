@@ -1,10 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 
 export default function AdminLoginPage() {
-  const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -23,7 +21,11 @@ export default function AdminLoginPage() {
       });
 
       if (res.ok) {
-        router.push("/admin");
+        // Hard navigation forces a full page reload so the admin layout
+        // re-executes server-side with the new session cookie and renders
+        // the nav correctly (client-side push would reuse the cached
+        // no-nav layout from the login page).
+        window.location.href = "/admin";
       } else {
         setError("Invalid credentials");
       }

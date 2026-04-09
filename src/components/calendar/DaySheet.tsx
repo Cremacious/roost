@@ -3,12 +3,7 @@
 import { motion } from "framer-motion";
 import { Plus, Repeat } from "lucide-react";
 import { format } from "date-fns";
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-} from "@/components/ui/sheet";
+import DraggableSheet from "@/components/shared/DraggableSheet";
 import MemberAvatar from "@/components/shared/MemberAvatar";
 import type { CalendarEventFull } from "./EventSheet";
 
@@ -49,18 +44,11 @@ export default function DaySheet({
   const dateLabel = format(day, "EEEE, MMMM d");
 
   return (
-    <Sheet open={open} onOpenChange={(v) => !v && onClose()}>
-      <SheetContent
-        side="bottom"
-        className="rounded-t-2xl px-4 pb-8 pt-2"
-        style={{ backgroundColor: "var(--roost-surface)", maxHeight: "80dvh", overflowY: "auto" }}
-      >
-        <div className="mx-auto mb-4 h-1 w-10 rounded-full" style={{ backgroundColor: "#3B82F6" }} />
-        <SheetHeader className="mb-4 text-left">
-          <SheetTitle style={{ color: "var(--roost-text-primary)", fontWeight: 800 }}>
-            {dateLabel}
-          </SheetTitle>
-        </SheetHeader>
+    <DraggableSheet open={open} onOpenChange={(v) => !v && onClose()} featureColor="#3B82F6">
+      <div className="overflow-y-auto px-4 pb-8" style={{ maxHeight: "calc(80dvh - 60px)" }}>
+        <p className="mb-4 text-lg" style={{ color: "var(--roost-text-primary)", fontWeight: 800 }}>
+          {dateLabel}
+        </p>
 
         <div className="space-y-2">
           {events.length === 0 ? (
@@ -166,7 +154,7 @@ export default function DaySheet({
           <Plus className="size-4" />
           Add event
         </motion.button>
-      </SheetContent>
-    </Sheet>
+      </div>
+    </DraggableSheet>
   );
 }

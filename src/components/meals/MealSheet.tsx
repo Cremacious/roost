@@ -4,12 +4,7 @@ import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { motion } from "framer-motion";
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-} from "@/components/ui/sheet";
+import DraggableSheet from "@/components/shared/DraggableSheet";
 import { Loader2, Plus, Trash2, X } from "lucide-react";
 import { SECTION_COLORS } from "@/lib/constants/colors";
 import { FREE_TIER_LIMITS } from "@/lib/constants/freeTierLimits";
@@ -147,18 +142,11 @@ export default function MealSheet({ open, onClose, meal, isPremium, mealCount, o
   const canSubmit = name.trim().length > 0 && !saveMutation.isPending;
 
   return (
-    <Sheet open={open} onOpenChange={(v) => !v && onClose()}>
-      <SheetContent
-        side="bottom"
-        className="rounded-t-2xl px-4 pb-8 pt-2"
-        style={{ backgroundColor: "var(--roost-surface)", maxHeight: "92dvh", overflowY: "auto" }}
-      >
-        <div className="mx-auto mb-4 h-1 w-10 rounded-full" style={{ backgroundColor: "#F97316" }} />
-        <SheetHeader className="mb-5 text-left">
-          <SheetTitle style={{ color: "var(--roost-text-primary)", fontWeight: 800 }}>
-            {isEdit ? "Edit meal" : "Add to meal bank"}
-          </SheetTitle>
-        </SheetHeader>
+    <DraggableSheet open={open} onOpenChange={(v) => !v && onClose()} featureColor="#F97316">
+      <div className="overflow-y-auto px-4 pb-8" style={{ maxHeight: "calc(92dvh - 60px)" }}>
+        <p className="mb-5 text-lg" style={{ color: "var(--roost-text-primary)", fontWeight: 800 }}>
+          {isEdit ? "Edit meal" : "Add to meal bank"}
+        </p>
 
         <div className="space-y-5">
           {/* Name */}
@@ -328,7 +316,7 @@ export default function MealSheet({ open, onClose, meal, isPremium, mealCount, o
             )}
           </motion.button>
         </div>
-      </SheetContent>
-    </Sheet>
+      </div>
+    </DraggableSheet>
   );
 }

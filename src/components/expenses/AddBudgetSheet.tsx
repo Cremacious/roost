@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { toast } from 'sonner';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Loader2 } from 'lucide-react';
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
+import DraggableSheet from '@/components/shared/DraggableSheet';
 import CategoryPicker from '@/components/expenses/CategoryPicker';
 import type { Category } from '@/components/expenses/CategoryPicker';
 
@@ -88,27 +88,14 @@ export default function AddBudgetSheet({
   };
 
   return (
-    <Sheet open={open} onOpenChange={(v) => !v && onClose()}>
-      <SheetContent
-        side="bottom"
-        className="rounded-t-2xl"
-        style={{ backgroundColor: 'var(--roost-surface)' }}
-        onOpenAutoFocus={(e) => e.preventDefault()}
-      >
-        <div className="mx-auto mb-2 mt-2 h-1 w-10 shrink-0 rounded-full" style={{ backgroundColor: COLOR }} />
+    <DraggableSheet open={open} onOpenChange={(v) => !v && onClose()} featureColor={COLOR}>
         <div
           className="overflow-y-auto px-4 pb-8"
-          style={{
-            maxHeight: 'calc(88dvh - 24px)',
-            WebkitOverflowScrolling: 'touch',
-            overscrollBehavior: 'contain',
-          }}
+          style={{ maxHeight: 'calc(88dvh - 60px)' }}
         >
-        <SheetHeader className="mb-5 text-left">
-          <SheetTitle style={{ color: 'var(--roost-text-primary)', fontWeight: 800 }}>
-            Set a budget
-          </SheetTitle>
-        </SheetHeader>
+        <p className="mb-5 text-lg" style={{ color: 'var(--roost-text-primary)', fontWeight: 800 }}>
+          Set a budget
+        </p>
 
         <div className="space-y-5">
           {/* Category */}
@@ -216,7 +203,6 @@ export default function AddBudgetSheet({
           </button>
         </div>
         </div>{/* end inner scroll wrapper */}
-      </SheetContent>
-    </Sheet>
+    </DraggableSheet>
   );
 }

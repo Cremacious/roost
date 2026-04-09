@@ -4,12 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { motion } from "framer-motion";
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-} from "@/components/ui/sheet";
+import DraggableSheet from "@/components/shared/DraggableSheet";
 import {
   Dialog,
   DialogContent,
@@ -515,18 +510,12 @@ export default function EventSheet({
   if (mode === "view" && event) {
     return (
       <>
-        <Sheet open={open} onOpenChange={(v) => !v && onClose()}>
-          <SheetContent
-            side="bottom"
-            className="rounded-t-2xl px-4 pb-8 pt-2 "
-            style={{ backgroundColor: "var(--roost-surface)", maxHeight: "88dvh", overflowY: "auto" }}
-          >
-            <div className="mx-auto mb-4 h-1 w-10 rounded-full" style={{ backgroundColor: "#3B82F6" }} />
-            <SheetHeader className="mb-4 text-left">
-              <div className="flex items-start gap-2">
-                <SheetTitle style={{ color: "var(--roost-text-primary)", fontWeight: 800, fontSize: 20, flex: 1 }}>
-                  {event.title}
-                </SheetTitle>
+        <DraggableSheet open={open} onOpenChange={(v) => !v && onClose()} featureColor={COLOR}>
+          <div className="overflow-y-auto px-4 pb-8" style={{ maxHeight: "calc(88dvh - 60px)" }}>
+            <div className="mb-4 flex items-start gap-2">
+              <p style={{ color: "var(--roost-text-primary)", fontWeight: 800, fontSize: 20, flex: 1 }}>
+                {event.title}
+              </p>
                 {event.isRecurring && (
                   <span
                     className="mt-0.5 flex shrink-0 items-center gap-1 rounded-full px-2 py-0.5 text-[11px]"
@@ -536,8 +525,7 @@ export default function EventSheet({
                     Repeating
                   </span>
                 )}
-              </div>
-            </SheetHeader>
+            </div>
 
             <div className="space-y-4">
               {/* Date + time */}
@@ -634,8 +622,8 @@ export default function EventSheet({
                 </div>
               )}
             </div>
-          </SheetContent>
-        </Sheet>
+          </div>
+        </DraggableSheet>
 
         {/* Delete confirmation */}
         <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
@@ -676,18 +664,11 @@ export default function EventSheet({
   // ---- Create / Edit mode render ----------------------------------------------
 
   return (
-    <Sheet open={open} onOpenChange={(v) => !v && onClose()}>
-      <SheetContent
-        side="bottom"
-        className="rounded-t-2xl px-4 pb-8 pt-2 "
-        style={{ backgroundColor: "var(--roost-surface)", maxHeight: "96dvh", overflowY: "auto" }}
-      >
-        <div className="mx-auto mb-4 h-1 w-10 rounded-full" style={{ backgroundColor: "#3B82F6" }} />
-        <SheetHeader className="mb-5 text-left">
-          <SheetTitle style={{ color: "var(--roost-text-primary)", fontWeight: 800 }}>
-            {mode === "create" ? "New Event" : "Edit Event"}
-          </SheetTitle>
-        </SheetHeader>
+    <DraggableSheet open={open} onOpenChange={(v) => !v && onClose()} featureColor={COLOR} desktopMaxWidth={860}>
+      <div className="overflow-y-auto px-4 pb-8" style={{ maxHeight: "calc(92dvh - 60px)" }}>
+        <p className="mb-5 text-lg" style={{ color: "var(--roost-text-primary)", fontWeight: 800 }}>
+          {mode === "create" ? "New Event" : "Edit Event"}
+        </p>
 
         {/* Edit recurring note */}
         {mode === "edit" && event?.isRecurring && (
@@ -893,7 +874,7 @@ export default function EventSheet({
           </div>
 
         </div>
-      </SheetContent>
-    </Sheet>
+      </div>
+    </DraggableSheet>
   );
 }

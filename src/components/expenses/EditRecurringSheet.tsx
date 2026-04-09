@@ -5,12 +5,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
 import { Loader2, Pause, Play, Trash2 } from "lucide-react";
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-} from "@/components/ui/sheet";
+import DraggableSheet from "@/components/shared/DraggableSheet";
 import {
   Dialog,
   DialogContent,
@@ -187,24 +182,11 @@ export default function EditRecurringSheet({ open, onClose, template, members }:
 
   return (
     <>
-      <Sheet open={open} onOpenChange={(v) => !v && onClose()}>
-        <SheetContent
-          side="bottom"
-          className="max-h-[88dvh] overflow-y-auto rounded-t-2xl px-4 pb-8 pt-2"
-          style={{
-            backgroundColor: "var(--roost-surface)",
-          }}
-        >
-          <div
-            className="mx-auto mb-4 h-1 w-10 rounded-full"
-            style={{ backgroundColor: COLOR }}
-          />
-
-          <SheetHeader className="mb-5 text-left">
-            <SheetTitle style={{ color: "var(--roost-text-primary)", fontWeight: 800 }}>
-              Edit Recurring Expense
-            </SheetTitle>
-          </SheetHeader>
+      <DraggableSheet open={open} onOpenChange={(v) => !v && onClose()} featureColor={COLOR}>
+        <div className="overflow-y-auto px-4 pb-8" style={{ maxHeight: "calc(88dvh - 60px)" }}>
+          <p className="mb-5 text-lg" style={{ color: "var(--roost-text-primary)", fontWeight: 800 }}>
+            Edit Recurring Expense
+          </p>
 
           <div className="space-y-4">
             {/* Title */}
@@ -490,8 +472,8 @@ export default function EditRecurringSheet({ open, onClose, template, members }:
               Stop recurring expense
             </button>
           </div>
-        </SheetContent>
-      </Sheet>
+        </div>
+      </DraggableSheet>
 
       <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <DialogContent>

@@ -4,12 +4,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { motion } from "framer-motion";
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-} from "@/components/ui/sheet";
+import DraggableSheet from "@/components/shared/DraggableSheet";
 import { Loader2, Plus, X } from "lucide-react";
 import { SECTION_COLORS } from "@/lib/constants/colors";
 
@@ -109,18 +104,11 @@ export default function SuggestionSheet({ open, onClose, onUpgradeRequired }: Su
   const canSubmit = mealName.trim().length > 0 && !submitMutation.isPending;
 
   return (
-    <Sheet open={open} onOpenChange={(v) => !v && handleClose()}>
-      <SheetContent
-        side="bottom"
-        className="rounded-t-2xl px-4 pb-8 pt-2"
-        style={{ backgroundColor: "var(--roost-surface)", maxHeight: "92dvh", overflowY: "auto" }}
-      >
-        <div className="mx-auto mb-4 h-1 w-10 rounded-full" style={{ backgroundColor: "#F97316" }} />
-        <SheetHeader className="mb-5 text-left">
-          <SheetTitle style={{ color: "var(--roost-text-primary)", fontWeight: 800 }}>
-            Suggest a meal
-          </SheetTitle>
-        </SheetHeader>
+    <DraggableSheet open={open} onOpenChange={(v) => !v && handleClose()} featureColor={COLOR}>
+      <div className="overflow-y-auto px-4 pb-8" style={{ maxHeight: "calc(92dvh - 60px)" }}>
+        <p className="mb-5 text-lg" style={{ color: "var(--roost-text-primary)", fontWeight: 800 }}>
+          Suggest a meal
+        </p>
 
         <div className="space-y-5">
           {/* Meal name */}
@@ -283,7 +271,7 @@ export default function SuggestionSheet({ open, onClose, onUpgradeRequired }: Su
             )}
           </motion.button>
         </div>
-      </SheetContent>
-    </Sheet>
+      </div>
+    </DraggableSheet>
   );
 }

@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Loader2, Trash2 } from 'lucide-react';
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
+import DraggableSheet from '@/components/shared/DraggableSheet';
 import {
   AlertDialog,
   AlertDialogContent,
@@ -132,18 +132,11 @@ export default function EditBudgetSheet({ open, onClose, budget }: EditBudgetShe
 
   return (
     <>
-      <Sheet open={open} onOpenChange={(v) => !v && onClose()}>
-        <SheetContent
-          side="bottom"
-          className="rounded-t-2xl px-4 pb-8 pt-2"
-          style={{ backgroundColor: 'var(--roost-surface)', maxHeight: '88dvh', overflowY: 'auto' }}
-        >
-          <div className="mx-auto mb-4 h-1 w-10 rounded-full" style={{ backgroundColor: COLOR }} />
-          <SheetHeader className="mb-5 text-left">
-            <SheetTitle style={{ color: 'var(--roost-text-primary)', fontWeight: 800 }}>
-              Edit budget
-            </SheetTitle>
-          </SheetHeader>
+      <DraggableSheet open={open} onOpenChange={(v) => !v && onClose()} featureColor={COLOR}>
+        <div className="overflow-y-auto px-4 pb-8" style={{ maxHeight: "calc(88dvh - 60px)" }}>
+          <p className="mb-5 text-lg" style={{ color: 'var(--roost-text-primary)', fontWeight: 800 }}>
+            Edit budget
+          </p>
 
           {/* Category display (not editable) */}
           <div
@@ -286,8 +279,8 @@ export default function EditBudgetSheet({ open, onClose, budget }: EditBudgetShe
               Remove budget
             </button>
           </div>
-        </SheetContent>
-      </Sheet>
+        </div>
+      </DraggableSheet>
 
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>

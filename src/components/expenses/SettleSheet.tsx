@@ -4,7 +4,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { motion } from "framer-motion";
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import DraggableSheet from "@/components/shared/DraggableSheet";
 import { Bell, CheckCircle, Loader2, XCircle } from "lucide-react";
 import MemberAvatar from "@/components/shared/MemberAvatar";
 
@@ -191,11 +191,9 @@ export default function SettleSheet({
       // I claimed, waiting for payee to confirm
       return (
         <>
-          <SheetHeader className="mb-5 text-left">
-            <SheetTitle style={{ color: "var(--roost-text-primary)", fontWeight: 800 }}>
+          <p className="mb-5 text-lg" style={{ color: "var(--roost-text-primary)", fontWeight: 800 }}>
               Waiting for confirmation
-            </SheetTitle>
-          </SheetHeader>
+            </p>
 
           <div className="mb-5 rounded-2xl p-4" style={{ backgroundColor: "#FFF7ED", border: "1.5px solid #FED7AA", borderBottom: "4px solid #F97316" }}>
             <p className="text-sm" style={{ color: "#92400E", fontWeight: 700 }}>
@@ -270,11 +268,9 @@ export default function SettleSheet({
       const payerName = debt!.fromName;
       return (
         <>
-          <SheetHeader className="mb-5 text-left">
-            <SheetTitle style={{ color: "var(--roost-text-primary)", fontWeight: 800 }}>
+          <p className="mb-5 text-lg" style={{ color: "var(--roost-text-primary)", fontWeight: 800 }}>
               {payerName.split(" ")[0]} says they paid you ${pendingClaim?.amount.toFixed(2)}
-            </SheetTitle>
-          </SheetHeader>
+            </p>
 
           <div className="mb-5 rounded-2xl p-4" style={{ backgroundColor: `${COLOR}18`, border: `1.5px solid ${COLOR}30`, borderBottom: `4px solid ${COLOR_DARK}30` }}>
             <p className="text-sm" style={{ color: "var(--roost-text-secondary)", fontWeight: 600 }}>
@@ -321,11 +317,9 @@ export default function SettleSheet({
     // Default: fresh settle up (no pending claim)
     return (
       <>
-        <SheetHeader className="mb-5 text-left">
-          <SheetTitle style={{ color: "var(--roost-text-primary)", fontWeight: 800 }}>
+        <p className="mb-5 text-lg" style={{ color: "var(--roost-text-primary)", fontWeight: 800 }}>
             Settle up with {otherName.split(" ")[0]}
-          </SheetTitle>
-        </SheetHeader>
+          </p>
 
         <div className="mb-4 rounded-2xl p-4" style={{ backgroundColor: `${COLOR}18`, border: `1.5px solid ${COLOR}30`, borderBottom: `4px solid ${COLOR_DARK}30` }}>
           <div className="flex items-center gap-3">
@@ -365,26 +359,13 @@ export default function SettleSheet({
   }
 
   return (
-    <Sheet open={open} onOpenChange={(v) => { if (!v) handleClose(); }}>
-      <SheetContent
-        side="bottom"
-        showCloseButton={false}
-        className="rounded-t-2xl"
-        style={{ backgroundColor: "var(--roost-surface)" }}
-        onOpenAutoFocus={(e) => e.preventDefault()}
+    <DraggableSheet open={open} onOpenChange={(v) => { if (!v) handleClose(); }} featureColor="#22C55E">
+      <div
+        className="overflow-y-auto px-4 pb-8"
+        style={{ maxHeight: "calc(80dvh - 60px)" }}
       >
-        <div className="mx-auto mb-2 mt-2 h-1 w-10 shrink-0 rounded-full" style={{ backgroundColor: "var(--roost-border)" }} />
-        <div
-          className="overflow-y-auto px-4 pb-8"
-          style={{
-            maxHeight: 'calc(80dvh - 24px)',
-            WebkitOverflowScrolling: 'touch',
-            overscrollBehavior: 'contain',
-          }}
-        >
-          {renderContent()}
-        </div>
-      </SheetContent>
-    </Sheet>
+        {renderContent()}
+      </div>
+    </DraggableSheet>
   );
 }

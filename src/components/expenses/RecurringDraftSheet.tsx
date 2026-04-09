@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { RefreshCw, CheckCircle2, SkipForward } from "lucide-react";
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import DraggableSheet from "@/components/shared/DraggableSheet";
 import { SECTION_COLORS } from "@/lib/constants/colors";
 
 const EXPENSE_COLOR = SECTION_COLORS.expenses;
@@ -101,21 +101,16 @@ export default function RecurringDraftSheet({ open, onOpenChange, drafts }: Prop
   }
 
   return (
-    <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="bottom" className="rounded-t-2xl">
-        <SheetHeader className="pb-2">
-          <SheetTitle
-            className="text-lg font-800"
-            style={{ color: "var(--roost-text-primary)" }}
-          >
-            Recurring expenses due
-          </SheetTitle>
-          <p className="text-sm" style={{ color: "var(--roost-text-muted)" }}>
-            Review and post or skip each one.
-          </p>
-        </SheetHeader>
+    <DraggableSheet open={open} onOpenChange={onOpenChange} featureColor={EXPENSE_COLOR}>
+      <div className="overflow-y-auto px-4 pb-8" style={{ maxHeight: "calc(80dvh - 60px)" }}>
+        <p className="mb-1 text-lg" style={{ color: "var(--roost-text-primary)", fontWeight: 800 }}>
+          Recurring expenses due
+        </p>
+        <p className="mb-4 text-sm" style={{ color: "var(--roost-text-muted)" }}>
+          Review and post or skip each one.
+        </p>
 
-        <div className="space-y-3 py-2 pb-6">
+        <div className="space-y-3">
           {drafts.map((draft) => {
             const templateId = draft.recurring_template_id ?? "";
             const busy = processing.has(templateId);
@@ -212,7 +207,7 @@ export default function RecurringDraftSheet({ open, onOpenChange, drafts }: Prop
             );
           })}
         </div>
-      </SheetContent>
-    </Sheet>
+      </div>
+    </DraggableSheet>
   );
 }

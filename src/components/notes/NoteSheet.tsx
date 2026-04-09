@@ -4,12 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { motion } from "framer-motion";
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-} from "@/components/ui/sheet";
+import DraggableSheet from "@/components/shared/DraggableSheet";
 import {
   Dialog,
   DialogContent,
@@ -242,18 +237,11 @@ export default function NoteSheet({
 
     return (
       <>
-        <Sheet open={open} onOpenChange={(v) => !v && onClose()}>
-          <SheetContent
-            side="bottom"
-            className="rounded-t-2xl"
-            style={{ backgroundColor: "var(--roost-surface)" }}
-            onOpenAutoFocus={(e) => e.preventDefault()}
+        <DraggableSheet open={open} onOpenChange={(v) => !v && onClose()} featureColor={COLOR}>
+          <div
+            className="overflow-y-auto px-4 pb-8"
+            style={{ maxHeight: "calc(88dvh - 60px)" }}
           >
-            <div className="mx-auto mb-2 mt-2 h-1 w-10 shrink-0 rounded-full" style={{ backgroundColor: COLOR }} />
-            <div
-              className="overflow-y-auto px-4 pb-8"
-              style={{ maxHeight: "calc(88dvh - 24px)", WebkitOverflowScrolling: "touch", overscrollBehavior: "contain" }}
-            >
               {/* Header with edit button */}
               <div className="mb-4 flex items-start justify-between gap-3">
                 {note.title ? (
@@ -322,8 +310,7 @@ export default function NoteSheet({
                 </button>
               )}
             </div>
-          </SheetContent>
-        </Sheet>
+          </DraggableSheet>
 
         <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
           <DialogContent>
@@ -364,23 +351,14 @@ export default function NoteSheet({
   // ---- Create / Edit mode ----------------------------------------------------
 
   return (
-    <Sheet open={open} onOpenChange={(v) => !v && onClose()}>
-      <SheetContent
-        side="bottom"
-        className="rounded-t-2xl"
-        style={{ backgroundColor: "var(--roost-surface)" }}
-        onOpenAutoFocus={(e) => e.preventDefault()}
+    <DraggableSheet open={open} onOpenChange={(v) => !v && onClose()} featureColor={COLOR}>
+      <div
+        className="overflow-y-auto px-4 pb-8"
+        style={{ maxHeight: "calc(88dvh - 60px)" }}
       >
-        <div className="mx-auto mb-2 mt-2 h-1 w-10 shrink-0 rounded-full" style={{ backgroundColor: COLOR }} />
-        <div
-          className="overflow-y-auto px-4 pb-8"
-          style={{ maxHeight: "calc(88dvh - 24px)", WebkitOverflowScrolling: "touch", overscrollBehavior: "contain" }}
-        >
-          <SheetHeader className="mb-5 text-left">
-            <SheetTitle style={{ color: "var(--roost-text-primary)", fontWeight: 800 }}>
-              {mode === "create" ? "New Note" : "Edit Note"}
-            </SheetTitle>
-          </SheetHeader>
+          <p className="mb-5 text-lg" style={{ color: "var(--roost-text-primary)", fontWeight: 800 }}>
+            {mode === "create" ? "New Note" : "Edit Note"}
+          </p>
 
           <div className="space-y-4">
             {/* Title (optional) */}
@@ -497,7 +475,6 @@ export default function NoteSheet({
             </button>
           </div>
         </div>
-      </SheetContent>
-    </Sheet>
+    </DraggableSheet>
   );
 }

@@ -4,12 +4,7 @@ import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { motion } from "framer-motion";
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-} from "@/components/ui/sheet";
+import DraggableSheet from "@/components/shared/DraggableSheet";
 import {
   Dialog,
   DialogContent,
@@ -207,21 +202,11 @@ export default function ChoreSheet({
 
   return (
     <>
-      <Sheet open={open} onOpenChange={(v) => !v && onClose()}>
-        <SheetContent
-          side="bottom"
-          className="max-h-[90dvh] overflow-y-auto rounded-t-2xl px-4 pb-8 pt-4"
-          style={{ backgroundColor: "var(--roost-surface)" }}
-        >
-          <div className="mx-auto mb-4 h-1 w-10 rounded-full" style={{ backgroundColor: "#EF4444" }} />
-          <SheetHeader className="mb-5">
-            <SheetTitle
-              className="text-lg"
-              style={{ color: "var(--roost-text-primary)", fontWeight: 900 }}
-            >
-              {isEdit ? "Edit chore" : "Add chore"}
-            </SheetTitle>
-          </SheetHeader>
+      <DraggableSheet open={open} onOpenChange={(v) => !v && onClose()} featureColor="#EF4444">
+        <div className="overflow-y-auto px-4 pb-8" style={{ maxHeight: "calc(90dvh - 60px)" }}>
+          <p className="mb-5 text-lg" style={{ color: "var(--roost-text-primary)", fontWeight: 900 }}>
+            {isEdit ? "Edit chore" : "Add chore"}
+          </p>
 
           <div className="space-y-5">
             {/* Title */}
@@ -439,8 +424,8 @@ export default function ChoreSheet({
               </motion.button>
             )}
           </div>
-        </SheetContent>
-      </Sheet>
+        </div>
+      </DraggableSheet>
 
       {/* Delete confirmation dialog */}
       <Dialog open={confirmDelete} onOpenChange={setConfirmDelete}>

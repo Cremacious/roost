@@ -4,12 +4,7 @@ import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { motion } from "framer-motion";
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-} from "@/components/ui/sheet";
+import DraggableSheet from "@/components/shared/DraggableSheet";
 import { Loader2 } from "lucide-react";
 import { SECTION_COLORS } from "@/lib/constants/colors";
 import PremiumGate from "@/components/shared/PremiumGate";
@@ -95,20 +90,11 @@ export default function GroceryListSheet({
   }
 
   return (
-    <Sheet open={open} onOpenChange={(v) => !v && onClose()}>
-      <SheetContent
-        side="bottom"
-        className="rounded-t-2xl px-4 pb-8 pt-4"
-        style={{ backgroundColor: "var(--roost-bg)" }}
-      >
-        <SheetHeader className="mb-5">
-          <SheetTitle
-            className="text-lg"
-            style={{ color: "var(--roost-text-primary)", fontWeight: 900 }}
-          >
-            {isEdit ? "Rename list" : "New list"}
-          </SheetTitle>
-        </SheetHeader>
+    <DraggableSheet open={open} onOpenChange={(v) => !v && onClose()} featureColor="#F59E0B">
+      <div className="px-4 pb-8">
+        <p className="mb-5 text-lg" style={{ color: "var(--roost-text-primary)", fontWeight: 900 }}>
+          {isEdit ? "Rename list" : "New list"}
+        </p>
 
         <div className="space-y-4">
           <div className="space-y-1.5">
@@ -152,7 +138,7 @@ export default function GroceryListSheet({
             )}
           </motion.button>
         </div>
-      </SheetContent>
-    </Sheet>
+      </div>
+    </DraggableSheet>
   );
 }

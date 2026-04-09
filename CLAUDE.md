@@ -405,34 +405,24 @@ Tasks: one-off to-dos
 - Bottom tab bar on mobile (Home, Chores, Grocery, Calendar, More)
   More opens a sheet with Profile and Settings links
 - Sheet Rules (ALL sheets in the app):
-  Mobile: full width, slides from bottom, rounded-t-2xl top corners only
-  Desktop (sm:): 680px max-width, centered — done via globals.css, NOT via individual classNames
-  Centering is applied globally in globals.css:
-    @media (min-width: 640px) { [data-slot="sheet-content"][data-side="bottom"] {
-      left: 50%; right: auto; width: 100%; max-width: 680px;
-      transform: translateX(-50%); border-radius: 16px 16px 0 0; } }
-  Do NOT add sm:left-* or sm:translate-x-* to individual SheetContent classNames — handled globally
-  Never make sheets wider than 680px on desktop
-  EventSheet exception: uses sm:grid-cols-[1fr_240px] two-column grid within the 680px;
-    form fields on left (1fr), calendar on right (240px fixed)
-  Mobile keyboard scroll fix: SheetContent has hardcoded Radix classes (flex flex-col h-auto).
-    overflow-y-auto directly on SheetContent fights with this flex layout when the keyboard
-    shrinks the viewport — scroll breaks entirely. The fix is an inner wrapper div:
-    Correct pattern:
-      <SheetContent className="rounded-t-2xl" style={{ backgroundColor: "..." }}
-                    onOpenAutoFocus={(e) => e.preventDefault()}>
-        <div className="mx-auto mb-2 mt-2 h-1 w-10 shrink-0 rounded-full" /> {/* drag handle */}
-        <div className="overflow-y-auto px-4 pb-8"
-             style={{ maxHeight: 'calc(88dvh - 24px)', WebkitOverflowScrolling: 'touch',
-                      overscrollBehavior: 'contain' }}>
-          {/* all form content */}
-        </div>
-      </SheetContent>
-    Rules: NEVER put overflow-y-auto or maxHeight on SheetContent itself.
-    Always use an inner wrapper div for scrolling. Drag handle stays outside the scroll div
-    as a flex sibling (shrink-0). Use dvh (not vh). onOpenAutoFocus prevents Radix focus
-    management from triggering re-layout. Applied to: ExpenseSheet (both instances),
-    TaskSheet, SettleSheet, AddBudgetSheet.
+  ALL content bottom sheets use DraggableSheet (src/components/shared/DraggableSheet.tsx).
+  This wraps Vaul (vaul ^1.1.2) with native drag-to-dismiss and a colored drag handle pill.
+  shadcn Sheet (side="bottom") is ONLY used for: BottomNav "More" menu, PremiumGate (sheet trigger).
+  DraggableSheet props: open, onOpenChange, children, featureColor? (handle color), desktopMaxWidth? (default 680)
+  Desktop centering: .roost-draggable-sheet media query in globals.css, uses CSS var --draggable-sheet-max-width
+  EventSheet uses desktopMaxWidth={860} for two-column desktop layout.
+  Correct usage pattern:
+    <DraggableSheet open={open} onOpenChange={(v) => !v && onClose()} featureColor={COLOR}>
+      <div className="overflow-y-auto px-4 pb-8" style={{ maxHeight: "calc(92dvh - 60px)" }}>
+        <p className="mb-5 text-lg" style={{ color: "var(--roost-text-primary)", fontWeight: 800 }}>
+          Sheet Title
+        </p>
+        {/* all form content */}
+      </div>
+    </DraggableSheet>
+  Rules: The drag handle is rendered automatically by DraggableSheet — never add a manual handle div.
+  Inner scroll wrapper uses maxHeight: calc(Xdvh - 60px) (60px accounts for handle + padding).
+  Use dvh (not vh). Vaul handles scroll vs drag detection automatically.
 - UI scales: phone / tablet / desktop
 - Font: Nunito (400-900) via next/font/google; weights 600/700/800/900 only in UI. Never below 600.
 - framer-motion animations:
@@ -585,6 +575,7 @@ src/components/shared/StatCard.tsx             Stat tile: big number + label, sl
 src/components/shared/PageHeader.tsx           Page title + subtitle + optional badge + action
 src/components/shared/SectionColorBadge.tsx    Inline color badge pill: bg color+18, border color+30
 src/components/shared/MemberAvatar.tsx         Initials avatar, sizes sm/md/lg, color prop
+src/components/shared/DraggableSheet.tsx        Vaul-based drag-to-dismiss bottom sheet wrapper; props: open, onOpenChange, children, featureColor?, desktopMaxWidth? (default 680); replaces all shadcn Sheet (side="bottom") in content sheets
 src/components/shared/PremiumGate.tsx          Unified premium gate: 3 trigger variants (sheet/inline/page), driven by PREMIUM_GATE_CONFIG keyed by feature slug
 src/lib/constants/premiumGateConfig.ts         PREMIUM_GATE_CONFIG: 13 feature entries (chores/grocery/expenses/calendar/tasks/notes/reminders/meals/allowances/guests/themes/stats/chore-categories), each with featureColor, featureHex, featureDarkHex, icon, title, subtitle, perks[], valueProp
 src/components/settings/MemberSheet.tsx        Admin member management: role picker, 12 permission toggles, child PIN change, allowance config, remove member
@@ -609,7 +600,7 @@ src/app/(app)/notes/page.tsx                  Notes module: quick add bar, mason
 src/app/api/notes/route.ts                    GET (newest first, creator join) + POST (1000 char limit, activity log)
 src/app/api/notes/[id]/route.ts               PATCH + DELETE (creator or admin, soft delete)
 src/components/notes/RichTextEditor.tsx        Tiptap rich text editor: toolbar (bold/italic/strike/H1-H3/lists/task list/blockquote/code/link/undo-redo), editable + hideToolbar props, CSS in globals.css
-src/components/notes/NoteSheet.tsx            Premium: RichTextEditor with auto-save checkboxes in view mode; Free: plain textarea + upgrade nudge; onUpgradeRequired prop; proper inner-scroll SheetContent layout
+src/components/notes/NoteSheet.tsx            Premium: RichTextEditor with auto-save checkboxes in view mode; Free: plain textarea + upgrade nudge; onUpgradeRequired prop; uses DraggableSheet
 src/db/schema/invites.ts                      household_invites table: token (unique 64-char hex), email, is_guest, expires_at (membership), link_expires_at (7 days), accepted_at, accepted_by_user_id, deleted_at
 src/lib/utils/inviteToken.ts                  generateInviteToken() (32 bytes hex), getInviteUrl(token) using NEXT_PUBLIC_APP_URL
 src/app/api/household/invite/route.ts         POST (admin + premium): create guest invite link; validates expires_in_days (1/3/7/14/30) or expires_at_custom (1-365 days); link_expires_at = 7 days

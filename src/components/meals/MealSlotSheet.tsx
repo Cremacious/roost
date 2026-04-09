@@ -4,12 +4,7 @@ import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { motion } from "framer-motion";
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-} from "@/components/ui/sheet";
+import DraggableSheet from "@/components/shared/DraggableSheet";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -220,23 +215,16 @@ export default function MealSlotSheet({
 
   return (
     <>
-      <Sheet open={open} onOpenChange={(v) => !v && handleClose()}>
-        <SheetContent
-          side="bottom"
-          className="rounded-t-2xl px-4 pb-8 pt-2"
-          style={{ backgroundColor: "var(--roost-surface)", maxHeight: "88dvh", overflowY: "auto" }}
-        >
-          <div className="mx-auto mb-4 h-1 w-10 rounded-full" style={{ backgroundColor: "#F97316" }} />
-          <SheetHeader className="mb-5 text-left">
-            <SheetTitle style={{ color: "var(--roost-text-primary)", fontWeight: 800 }}>
-              {sheetTitle}
-            </SheetTitle>
-            {isEditMode && currentMealName && mode === "menu" && (
-              <p className="text-sm" style={{ color: "var(--roost-text-muted)", fontWeight: 600 }}>
-                Currently: {currentMealName}
-              </p>
-            )}
-          </SheetHeader>
+      <DraggableSheet open={open} onOpenChange={(v) => !v && handleClose()} featureColor={COLOR}>
+        <div className="overflow-y-auto px-4 pb-8" style={{ maxHeight: "calc(88dvh - 60px)" }}>
+          <p className="mb-1 text-lg" style={{ color: "var(--roost-text-primary)", fontWeight: 800 }}>
+            {sheetTitle}
+          </p>
+          {isEditMode && currentMealName && mode === "menu" && (
+            <p className="mb-4 text-sm" style={{ color: "var(--roost-text-muted)", fontWeight: 600 }}>
+              Currently: {currentMealName}
+            </p>
+          )}
 
           {/* DATE PICKER MODE — for "Add to planner" from meal bank */}
           {mode === "date" && preSelectedMeal && (
@@ -509,8 +497,8 @@ export default function MealSlotSheet({
               </motion.button>
             </div>
           )}
-        </SheetContent>
-      </Sheet>
+        </div>
+      </DraggableSheet>
 
       {/* Remove confirmation */}
       <AlertDialog open={showRemoveConfirm} onOpenChange={setShowRemoveConfirm}>

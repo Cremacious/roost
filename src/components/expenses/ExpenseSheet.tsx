@@ -4,12 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-} from '@/components/ui/sheet';
+import DraggableSheet from '@/components/shared/DraggableSheet';
 import {
   Dialog,
   DialogContent,
@@ -493,24 +488,10 @@ export default function ExpenseSheet({
 
     return (
       <>
-        <Sheet open={open} onOpenChange={(v) => !v && onClose()}>
-          <SheetContent
-            side="bottom"
-            className="rounded-t-2xl"
-            style={{ backgroundColor: 'var(--roost-surface)' }}
-            onOpenAutoFocus={(e) => e.preventDefault()}
-          >
-            <div
-              className="mx-auto mb-2 mt-2 h-1 w-10 shrink-0 rounded-full"
-              style={{ backgroundColor: '#22C55E' }}
-            />
+        <DraggableSheet open={open} onOpenChange={(v) => !v && onClose()} featureColor={COLOR}>
             <div
               className="overflow-y-auto px-4 pb-8"
-              style={{
-                maxHeight: 'calc(88dvh - 24px)',
-                WebkitOverflowScrolling: 'touch',
-                overscrollBehavior: 'contain',
-              }}
+              style={{ maxHeight: 'calc(88dvh - 60px)' }}
             >
 
             <div className="mb-4 flex items-start justify-between gap-3">
@@ -837,8 +818,7 @@ export default function ExpenseSheet({
               </button>
             )}
             </div>{/* end inner scroll wrapper */}
-          </SheetContent>
-        </Sheet>
+          </DraggableSheet>
 
         <Dialog open={removeRecurrenceDialogOpen} onOpenChange={setRemoveRecurrenceDialogOpen}>
           <DialogContent>
@@ -937,24 +917,10 @@ export default function ExpenseSheet({
   const splitsValid = total > 0 && splitsDiff <= 0.02;
 
   return (
-    <Sheet open={open} onOpenChange={(v) => !v && onClose()}>
-      <SheetContent
-        side="bottom"
-        className="rounded-t-2xl"
-        style={{ backgroundColor: 'var(--roost-surface)' }}
-        onOpenAutoFocus={(e) => e.preventDefault()}
-      >
-        <div
-          className="mx-auto mb-2 mt-2 h-1 w-10 shrink-0 rounded-full"
-          style={{ backgroundColor: '#22C55E' }}
-        />
+    <DraggableSheet open={open} onOpenChange={(v) => !v && onClose()} featureColor={COLOR}>
         <div
           className="overflow-y-auto px-4 pb-8"
-          style={{
-            maxHeight: 'calc(88dvh - 24px)',
-            WebkitOverflowScrolling: 'touch',
-            overscrollBehavior: 'contain',
-          }}
+          style={{ maxHeight: 'calc(88dvh - 60px)' }}
         >
 
         {/* ---- Scanner view ---- */}
@@ -1005,13 +971,9 @@ export default function ExpenseSheet({
         {/* ---- Form view ---- */}
         {scanView === 'form' && (
           <>
-            <SheetHeader className="mb-5 text-left">
-              <SheetTitle
-                style={{ color: 'var(--roost-text-primary)', fontWeight: 800 }}
-              >
-                {mode === 'create' ? 'New Expense' : 'Edit Expense'}
-              </SheetTitle>
-            </SheetHeader>
+            <p className="mb-5 text-lg" style={{ color: 'var(--roost-text-primary)', fontWeight: 800 }}>
+              {mode === 'create' ? 'New Expense' : 'Edit Expense'}
+            </p>
 
             <div className="space-y-4">
               {/* Scan receipt button — create mode only */}
@@ -1428,7 +1390,6 @@ export default function ExpenseSheet({
           </>
         )}
         </div>{/* end inner scroll wrapper */}
-      </SheetContent>
-    </Sheet>
+    </DraggableSheet>
   );
 }

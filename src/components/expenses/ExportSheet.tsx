@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { motion } from "framer-motion";
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import DraggableSheet from "@/components/shared/DraggableSheet";
 import { Download, Loader2 } from "lucide-react";
 import { format, startOfMonth } from "date-fns";
 import { toast } from "sonner";
@@ -127,19 +127,11 @@ export default function ExportSheet({ open, onClose }: ExportSheetProps) {
   } as React.CSSProperties;
 
   return (
-    <Sheet open={open} onOpenChange={(v) => { if (!v) onClose(); }}>
-      <SheetContent
-        side="bottom"
-        className="rounded-t-2xl px-4 pb-8 pt-2"
-        style={{ backgroundColor: "var(--roost-surface)", maxHeight: "85dvh", overflowY: "auto" }}
-      >
-        <div className="mx-auto mb-4 h-1 w-10 rounded-full" style={{ backgroundColor: "var(--roost-border)" }} />
-
-        <SheetHeader className="mb-5 text-left">
-          <SheetTitle style={{ color: "var(--roost-text-primary)", fontWeight: 800 }}>
-            Export expenses
-          </SheetTitle>
-        </SheetHeader>
+    <DraggableSheet open={open} onOpenChange={(v) => { if (!v) onClose(); }} featureColor={COLOR}>
+      <div className="overflow-y-auto px-4 pb-8" style={{ maxHeight: "calc(85dvh - 60px)" }}>
+        <p className="mb-5 text-lg" style={{ color: "var(--roost-text-primary)", fontWeight: 800 }}>
+          Export expenses
+        </p>
 
         {/* Quick range pills */}
         <div className="mb-4 flex flex-wrap gap-2">
@@ -258,7 +250,7 @@ export default function ExportSheet({ open, onClose }: ExportSheetProps) {
         >
           Cancel
         </button>
-      </SheetContent>
-    </Sheet>
+      </div>
+    </DraggableSheet>
   );
 }

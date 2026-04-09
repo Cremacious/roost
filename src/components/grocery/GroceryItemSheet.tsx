@@ -4,12 +4,7 @@ import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { motion } from "framer-motion";
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-} from "@/components/ui/sheet";
+import DraggableSheet from "@/components/shared/DraggableSheet";
 import { Loader2, Trash2 } from "lucide-react";
 import { SECTION_COLORS } from "@/lib/constants/colors";
 
@@ -121,21 +116,11 @@ export default function GroceryItemSheet({
   const canSubmit = name.trim().length > 0 && !saveMutation.isPending;
 
   return (
-    <Sheet open={open} onOpenChange={(v) => !v && onClose()}>
-      <SheetContent
-        side="bottom"
-        className="max-h-[85dvh] overflow-y-auto rounded-t-2xl px-4 pb-8 pt-2"
-        style={{ backgroundColor: "var(--roost-surface)" }}
-      >
-        <div className="mx-auto mb-4 h-1 w-10 rounded-full" style={{ backgroundColor: "#F59E0B" }} />
-        <SheetHeader className="mb-5">
-          <SheetTitle
-            className="text-lg"
-            style={{ color: "var(--roost-text-primary)", fontWeight: 900 }}
-          >
-            {isEdit ? "Edit item" : "Add item"}
-          </SheetTitle>
-        </SheetHeader>
+    <DraggableSheet open={open} onOpenChange={(v) => !v && onClose()} featureColor="#F59E0B">
+      <div className="overflow-y-auto px-4 pb-8" style={{ maxHeight: "calc(85dvh - 60px)" }}>
+        <p className="mb-5 text-lg" style={{ color: "var(--roost-text-primary)", fontWeight: 900 }}>
+          {isEdit ? "Edit item" : "Add item"}
+        </p>
 
         <div className="space-y-4">
           {/* Name */}
@@ -231,7 +216,7 @@ export default function GroceryItemSheet({
             </motion.button>
           )}
         </div>
-      </SheetContent>
-    </Sheet>
+      </div>
+    </DraggableSheet>
   );
 }

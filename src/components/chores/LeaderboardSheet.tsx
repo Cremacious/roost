@@ -2,12 +2,7 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { motion } from "framer-motion";
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-} from "@/components/ui/sheet";
+import DraggableSheet from "@/components/shared/DraggableSheet";
 import { SECTION_COLORS } from "@/lib/constants/colors";
 
 const COLOR = SECTION_COLORS.chores;
@@ -67,20 +62,11 @@ export default function LeaderboardSheet({ open, onClose }: LeaderboardSheetProp
   const currentUserId = data?.currentUserId;
 
   return (
-    <Sheet open={open} onOpenChange={(v) => !v && onClose()}>
-      <SheetContent
-        side="bottom"
-        className="max-h-[80dvh] overflow-y-auto rounded-t-2xl px-4 pb-8 pt-4"
-        style={{ backgroundColor: "var(--roost-bg)" }}
-      >
-        <SheetHeader className="mb-5">
-          <SheetTitle
-            className="text-lg"
-            style={{ color: "var(--roost-text-primary)", fontWeight: 900 }}
-          >
-            Weekly Leaderboard
-          </SheetTitle>
-        </SheetHeader>
+    <DraggableSheet open={open} onOpenChange={(v) => !v && onClose()} featureColor={COLOR}>
+      <div className="overflow-y-auto px-4 pb-8" style={{ maxHeight: "calc(80dvh - 60px)" }}>
+        <p className="mb-5 text-lg" style={{ color: "var(--roost-text-primary)", fontWeight: 900 }}>
+          Weekly Leaderboard
+        </p>
 
         {isLoading && (
           <div
@@ -211,7 +197,7 @@ export default function LeaderboardSheet({ open, onClose }: LeaderboardSheetProp
             );
           })}
         </div>
-      </SheetContent>
-    </Sheet>
+      </div>
+    </DraggableSheet>
   );
 }

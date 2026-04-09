@@ -4,12 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { motion } from "framer-motion";
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-} from "@/components/ui/sheet";
+import DraggableSheet from "@/components/shared/DraggableSheet";
 import {
   Dialog,
   DialogContent,
@@ -197,28 +192,14 @@ export default function TaskSheet({
 
   return (
     <>
-      <Sheet open={open} onOpenChange={(v) => !v && onClose()}>
-        <SheetContent
-          side="bottom"
-          className="rounded-t-2xl"
-          style={{ backgroundColor: "var(--roost-surface)" }}
-          onOpenAutoFocus={(e) => e.preventDefault()}
+      <DraggableSheet open={open} onOpenChange={(v) => !v && onClose()} featureColor="#EC4899">
+        <div
+          className="overflow-y-auto px-4 pb-8"
+          style={{ maxHeight: "calc(92dvh - 60px)" }}
         >
-          {/* Drag handle */}
-          <div className="mx-auto mb-2 mt-2 h-1 w-10 shrink-0 rounded-full" style={{ backgroundColor: "#EC4899" }} />
-          <div
-            className="overflow-y-auto px-4 pb-8"
-            style={{
-              maxHeight: 'calc(92dvh - 24px)',
-              WebkitOverflowScrolling: 'touch',
-              overscrollBehavior: 'contain',
-            }}
-          >
-          <SheetHeader className="mb-5 text-left">
-            <SheetTitle style={{ color: "var(--roost-text-primary)", fontWeight: 800 }}>
-              {mode === "create" ? "New Task" : "Edit Task"}
-            </SheetTitle>
-          </SheetHeader>
+          <p className="mb-5 text-lg" style={{ color: "var(--roost-text-primary)", fontWeight: 800 }}>
+            {mode === "create" ? "New Task" : "Edit Task"}
+          </p>
 
           <div className="space-y-4">
             {/* Title */}
@@ -378,9 +359,8 @@ export default function TaskSheet({
               </button>
             )}
           </div>
-          </div>{/* end inner scroll wrapper */}
-        </SheetContent>
-      </Sheet>
+        </div>
+      </DraggableSheet>
 
       {/* Delete confirmation */}
       <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>

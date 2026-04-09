@@ -4,7 +4,7 @@ import { useState } from "react";
 import { motion } from "framer-motion";
 import { addDays, format } from "date-fns";
 import { Check, Copy, Loader2, Share2 } from "lucide-react";
-import { Sheet, SheetContent } from "@/components/ui/sheet";
+import DraggableSheet from "@/components/shared/DraggableSheet";
 import { toast } from "sonner";
 
 const AMBER = "#F59E0B";
@@ -137,17 +137,10 @@ export default function InviteGuestSheet({ open, onClose }: InviteGuestSheetProp
   const canGenerate = !loading && (!useCustomDate || !!customDate);
 
   return (
-    <Sheet open={open} onOpenChange={(v) => !v && handleClose()}>
-      <SheetContent
-        side="bottom"
-        className="rounded-t-2xl"
-        style={{ backgroundColor: "var(--roost-surface)" }}
-        onOpenAutoFocus={(e) => e.preventDefault()}
-      >
-        <div className="mx-auto mb-2 mt-2 h-1 w-10 shrink-0 rounded-full" style={{ backgroundColor: AMBER }} />
+    <DraggableSheet open={open} onOpenChange={(v) => !v && handleClose()} featureColor={AMBER}>
         <div
           className="overflow-y-auto px-4 pb-8"
-          style={{ maxHeight: "calc(88dvh - 24px)", WebkitOverflowScrolling: "touch", overscrollBehavior: "contain" }}
+          style={{ maxHeight: "calc(88dvh - 60px)" }}
         >
           {result ? (
             // ---- Success state -----------------------------------------------
@@ -355,7 +348,6 @@ export default function InviteGuestSheet({ open, onClose }: InviteGuestSheetProp
             </div>
           )}
         </div>
-      </SheetContent>
-    </Sheet>
+    </DraggableSheet>
   );
 }

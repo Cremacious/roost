@@ -6,12 +6,7 @@ import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
 import { motion } from "framer-motion";
 import { UserMinus } from "lucide-react";
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-} from "@/components/ui/sheet";
+import DraggableSheet from "@/components/shared/DraggableSheet";
 import {
   AlertDialog,
   AlertDialogContent,
@@ -255,15 +250,12 @@ export default function MemberSheet({
 
   return (
     <>
-      <Sheet open={open} onOpenChange={(v) => !v && onClose()}>
-        <SheetContent side="bottom">
-          <SheetHeader>
-            <SheetTitle style={{ color: "var(--roost-text-primary)", fontWeight: 800 }}>
-              Member Settings
-            </SheetTitle>
-          </SheetHeader>
-
-          <div className="mt-4 space-y-6 overflow-y-auto pb-8">
+      <DraggableSheet open={open} onOpenChange={(v) => !v && onClose()}>
+          <div className="overflow-y-auto px-4 pb-8" style={{ maxHeight: "calc(92dvh - 60px)" }}>
+          <p className="mb-5 text-lg" style={{ color: "var(--roost-text-primary)", fontWeight: 800 }}>
+            Member Settings
+          </p>
+          <div className="space-y-6">
             {/* Member info */}
             <div className="flex items-center gap-4">
               <div
@@ -566,8 +558,8 @@ export default function MemberSheet({
               </button>
             )}
           </div>
-        </SheetContent>
-      </Sheet>
+          </div>
+      </DraggableSheet>
 
       {/* Role change to child confirm */}
       <AlertDialog open={roleConfirmOpen} onOpenChange={setRoleConfirmOpen}>
@@ -660,14 +652,12 @@ export default function MemberSheet({
       </AlertDialog>
 
       {/* PIN change sheet */}
-      <Sheet open={pinSheetOpen} onOpenChange={(v) => !v && setPinSheetOpen(false)}>
-        <SheetContent side="bottom">
-          <SheetHeader>
-            <SheetTitle style={{ color: "var(--roost-text-primary)", fontWeight: 800 }}>
-              Change PIN
-            </SheetTitle>
-          </SheetHeader>
-          <div className="mt-4 space-y-4">
+      <DraggableSheet open={pinSheetOpen} onOpenChange={(v) => !v && setPinSheetOpen(false)}>
+        <div className="px-4 pb-8">
+          <p className="mb-5 text-lg" style={{ color: "var(--roost-text-primary)", fontWeight: 800 }}>
+            Change PIN
+          </p>
+          <div className="space-y-4">
             <p className="text-sm" style={{ color: "var(--roost-text-secondary)", fontWeight: 600 }}>
               Set a new 4-digit PIN for {member.name.split(" ")[0]}.
             </p>
@@ -730,8 +720,8 @@ export default function MemberSheet({
               Save PIN
             </motion.button>
           </div>
-        </SheetContent>
-      </Sheet>
+        </div>
+      </DraggableSheet>
     </>
   );
 }

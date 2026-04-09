@@ -405,7 +405,6 @@ export default function MealSlotSheet({
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   placeholder="Search your meal bank..."
-                  autoFocus
                   className="flex h-12 w-full rounded-xl pl-10 pr-4 text-sm placeholder:italic focus:outline-none"
                   style={inputStyle}
                 />
@@ -467,7 +466,6 @@ export default function MealSlotSheet({
                 value={quickName}
                 onChange={(e) => setQuickName(e.target.value)}
                 placeholder="e.g. Takeout pizza, Leftovers, Whatever is in the fridge"
-                autoFocus
                 className="flex h-12 w-full rounded-xl px-4 text-sm placeholder:italic focus:outline-none"
                 style={inputStyle}
                 onKeyDown={(e) => {

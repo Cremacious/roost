@@ -117,7 +117,7 @@ export default function GroceryItemSheet({
 
   return (
     <DraggableSheet open={open} onOpenChange={(v) => !v && onClose()} featureColor="#F59E0B">
-      <div className="px-4 pb-8" style={{ maxHeight: "calc(85dvh - 60px)" }}>
+      <div className="px-4 pb-8">
         <p className="mb-5 text-lg" style={{ color: "var(--roost-text-primary)", fontWeight: 900 }}>
           {isEdit ? "Edit item" : "Add item"}
         </p>
@@ -133,7 +133,6 @@ export default function GroceryItemSheet({
             </label>
             <input
               type="text"
-              autoFocus
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="Add an item"

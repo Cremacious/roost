@@ -121,7 +121,6 @@ export default function SuggestionSheet({ open, onClose, onUpgradeRequired }: Su
               value={mealName}
               onChange={(e) => setMealName(e.target.value)}
               placeholder="What are you craving?"
-              autoFocus
               className="flex h-12 w-full rounded-xl px-4 text-sm placeholder:italic focus:outline-none"
               style={inputStyle}
             />

@@ -18,12 +18,63 @@ export default function DraggableSheet({
   featureColor,
   desktopMaxWidth = 680,
 }: DraggableSheetProps) {
+  const sheetRef = React.useRef<HTMLDivElement>(null);
+  const dragStartY = React.useRef<number | null>(null);
+  const dragCurrentY = React.useRef<number>(0);
+  const isDraggingHandle = React.useRef<boolean>(false);
+
+  function onTouchStart(e: React.TouchEvent) {
+    const target = e.target as HTMLElement;
+    const isHandle = target.closest("[data-drag-handle]");
+    if (!isHandle) return;
+    isDraggingHandle.current = true;
+    dragStartY.current = e.touches[0].clientY;
+    dragCurrentY.current = 0;
+    if (sheetRef.current) {
+      sheetRef.current.style.transition = "none";
+    }
+  }
+
+  function onTouchMove(e: React.TouchEvent) {
+    if (!isDraggingHandle.current || dragStartY.current === null) return;
+    const delta = e.touches[0].clientY - dragStartY.current;
+    if (delta < 0) return; // prevent dragging up
+    dragCurrentY.current = delta;
+    if (sheetRef.current) {
+      sheetRef.current.style.transform = `translateX(-50%) translateY(${delta}px)`;
+    }
+  }
+
+  function onTouchEnd() {
+    if (!isDraggingHandle.current) return;
+    isDraggingHandle.current = false;
+    dragStartY.current = null;
+    if (sheetRef.current) {
+      sheetRef.current.style.transition = "transform 0.3s ease";
+    }
+    if (dragCurrentY.current > 120) {
+      onOpenChange(false);
+      if (sheetRef.current) {
+        sheetRef.current.style.transform = "translateX(-50%) translateY(100%)";
+      }
+    } else {
+      if (sheetRef.current) {
+        sheetRef.current.style.transform = "translateX(-50%) translateY(0)";
+      }
+    }
+    dragCurrentY.current = 0;
+  }
+
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent
+        ref={sheetRef}
         side="bottom"
         showCloseButton={false}
         onOpenAutoFocus={(e) => e.preventDefault()}
+        onTouchStart={onTouchStart}
+        onTouchMove={onTouchMove}
+        onTouchEnd={onTouchEnd}
         style={{
           backgroundColor: "var(--roost-surface)",
           borderRadius: "20px 20px 0 0",
@@ -41,13 +92,17 @@ export default function DraggableSheet({
           paddingBottom: "env(safe-area-inset-bottom)",
         }}
       >
-        {/* Handle pill */}
+        {/* Handle pill — drag target */}
         <div
+          data-drag-handle="true"
           style={{
             display: "flex",
             justifyContent: "center",
+            alignItems: "center",
             paddingTop: 12,
-            paddingBottom: 4,
+            paddingBottom: 12,
+            cursor: "grab",
+            touchAction: "none",
           }}
         >
           <div
@@ -57,6 +112,7 @@ export default function DraggableSheet({
               borderRadius: 9999,
               background: featureColor ?? "var(--roost-border)",
               opacity: 0.7,
+              pointerEvents: "none",
             }}
           />
         </div>

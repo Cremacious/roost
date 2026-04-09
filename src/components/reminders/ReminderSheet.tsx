@@ -311,7 +311,6 @@ export default function ReminderSheet({
                 onChange={(e) => { set("dateStr", e.target.value); setShowCalendar(false); }}
                 className="mt-2 h-12 w-full rounded-xl px-4 text-sm focus:outline-none"
                 style={inputStyle}
-                autoFocus
               />
             )}
           </div>

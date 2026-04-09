@@ -408,6 +408,7 @@ Tasks: one-off to-dos
   ALL content bottom sheets use DraggableSheet (src/components/shared/DraggableSheet.tsx).
   This wraps shadcn Sheet (side="bottom") with a colored drag handle pill and centered desktop layout.
   DraggableSheet wraps shadcn Sheet (Radix Dialog) internally so height sizes to content correctly.
+  Drag-to-dismiss is implemented via native touch events on SheetContent — fires only when touch starts on the handle area (data-drag-handle). Dragging 120px+ down dismisses; less snaps back. No third-party gesture library.
   shadcn Sheet (side="bottom") is ONLY used for: BottomNav "More" menu, PremiumGate (sheet trigger).
   DraggableSheet props: open, onOpenChange, children, featureColor? (handle color), desktopMaxWidth? (default 680)
   Desktop centering: inline style left: "50%", right: "auto", transform: "translateX(-50%)", maxWidth: desktopMaxWidth on SheetContent.
@@ -431,6 +432,9 @@ Tasks: one-off to-dos
   viewport export in layout.tsx sets maximumScale: 1 as a secondary guard against auto-zoom.
   Tiptap RichTextEditor has autofocus: false hardcoded in useEditor — Tiptap calls .focus()
   programmatically and bypasses Radix onOpenAutoFocus. Never pass autofocus prop to RichTextEditor.
+  Never use autoFocus on any input or textarea inside a sheet. On real iOS Safari, native autoFocus
+  fires before Radix onOpenAutoFocus can intercept it, raising the keyboard before the sheet animation
+  completes. Users tap to focus. This rule applies to every sheet component in the app.
 - UI scales: phone / tablet / desktop
 - Font: Nunito (400-900) via next/font/google; weights 600/700/800/900 only in UI. Never below 600.
 - framer-motion animations:

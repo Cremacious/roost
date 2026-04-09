@@ -108,7 +108,6 @@ export default function GroceryListSheet({
             </label>
             <input
               type="text"
-              autoFocus
               value={name}
               onChange={(e) => setName(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && canSubmit && saveMutation.mutate()}

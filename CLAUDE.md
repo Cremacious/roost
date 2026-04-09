@@ -1139,7 +1139,7 @@ Designer brief (send this when hiring):
   CALENDAR_LIMIT, RECURRING_EVENTS_PREMIUM, REMINDERS_LIMIT, RECURRING_REMINDERS_PREMIUM,
   REMINDER_NOTIFY_PREMIUM, MEAL_BANK_LIMIT, MEAL_SUGGESTIONS_PREMIUM,
   MEAL_GROCERY_INTEGRATION_PREMIUM, LEADERBOARD_PREMIUM, MEMBERS_LIMIT,
-  THEMES_PREMIUM, MULTIPLE_LISTS_PREMIUM, RECURRING_EXPENSES_PREMIUM,
+  MULTIPLE_LISTS_PREMIUM, RECURRING_EXPENSES_PREMIUM,
   RECEIPT_SCANNING_PREMIUM, EXPORT_PREMIUM, ALLOWANCES_PREMIUM, CHILDREN_LIMIT,
   CHORE_HISTORY_PREMIUM
 - Mutation error propagation: `const err = new Error(msg) as Error & { code?: string }; err.code = data.code; throw err;`
@@ -1157,7 +1157,7 @@ Designer brief (send this when hiring):
 - Chore history date filtering: parse date strings with `new Date("${dateStr}T00:00:00")` (no Z) to get local midnight, then use date-fns startOfDay/endOfDay. Using `new Date("2026-04-08")` parses UTC midnight — setHours() then breaks on non-UTC servers.
 - Chore history users join: leftJoin (not innerJoin) so completions are never silently dropped if a users row is missing
 - Grocery: pill row shows for (isPremium || lists.length > 1); + button shows Lock icon for free users
-- Settings theme picker: non-default themes show Lock icon overlay for free users, click shows PremiumGate feature="themes" trigger="sheet"
+- Settings theme picker: all themes are free, no lock UI, selecting any theme calls setTheme() directly
 - Expenses: free users see inline upgrade pitch card (no blurred preview), premium users see full module
 - Sign out: AlertDialog confirmation in both Sidebar (desktop) and BottomNav More sheet (mobile)
   Calls applyTheme(DEFAULT_THEME) BEFORE signOut() to immediately reset CSS vars, then router.push('/login'), no toast on success
@@ -1228,7 +1228,11 @@ Update this file after every major decision or completed phase.
 - e2e/.auth/*.json files contain session tokens — always in .gitignore, never commit. e2e/.auth/.gitkeep tracks the empty directory.
 - Empty-state tests (chores/grocery) only reliable on first run against a clean DB. Test data accumulates with shared accounts — this is an accepted tradeoff.
 
-Last updated: 2026-04-09 (Billing page fully redesigned. New layout: current plan card (2-col with status pills), premium hero card ($4 price + value pill + upgrade button + maybe later), "Everything that's included" section label, feature grid (8 feature cards from PREMIUM_GATE_CONFIG + Household extras full-width card), bottom CTA card. Feature cards show icon box (featureHex + '1A' bg) + name + perk rows (14px circle checkmark). HouseholdExtrasCard spans full grid width with Home icon and 2-col perk grid. Premium state hides hero + bottom CTA, shows Active badge + Billed monthly pill + Cancel plan/Reactivate links in plan card. All Stripe logic (handleCheckout, handleReactivate, handleCancel, handlePortal, cancel flow sheet) preserved unchanged. UpgradeButton reusable sub-component shared by hero + bottom CTA. Removed SlabCard dependency.)
+Last updated: 2026-04-09 (Billing page current plan card redesigned. Free tier: icon box (48px, Home icon) + plan name + "Free forever" badge in top section; divider; 4 usage progress bars in bottom section (Chores/Members/Grocery lists/Reminders, each with label + "X / Y used" count + colored fill bar). Premium tier: same top section with "Active" green badge + Cancel/Reactivate links; divider; "Next billing date" or "Premium ends" row. UsageItem interface + UsageRow component + CurrentPlanCard component added. 4 useQuery hooks added for real usage data (chores, household-members, grocery-lists, reminders). Progress bar colors: chores #EF4444, members #3B82F6, grocery #F59E0B, reminders #06B6D4.)
+
+Previous: 2026-04-09 (Themes are free: removed "themes" from PREMIUM_GATE_CONFIG, removed premium gate block from /api/user/theme/route.ts, removed PREMIUM_THEMES and premiumThemes flag from freeTierLimits.ts, removed "All app themes unlocked" from billing page Household extras card, removed Palette import from premiumGateConfig.ts. ALL_THEMES now equals ["default", "midnight"] with no premium split. THEMES_PREMIUM error code no longer exists.)
+
+Previous: 2026-04-09 (Billing page fully redesigned. New layout: current plan card (2-col with status pills), premium hero card ($4 price + value pill + upgrade button + maybe later), "Everything that's included" section label, feature grid (8 feature cards from PREMIUM_GATE_CONFIG + Household extras full-width card), bottom CTA card. Feature cards show icon box (featureHex + '1A' bg) + name + perk rows (14px circle checkmark). HouseholdExtrasCard spans full grid width with Home icon and 2-col perk grid. Premium state hides hero + bottom CTA, shows Active badge + Billed monthly pill + Cancel plan/Reactivate links in plan card. All Stripe logic (handleCheckout, handleReactivate, handleCancel, handlePortal, cancel flow sheet) preserved unchanged. UpgradeButton reusable sub-component shared by hero + bottom CTA. Removed SlabCard dependency.)
 
 Previous: 2026-04-09 (premiumGateConfig.ts perk strings rewritten to natural sentence grammar. All em dashes removed from perks, valueProp, and subtitles in the config. valueProp period replaces em dash: "...entire household. That's less than..." Subtitles: "Set it and forget it. Roost handles the nagging." and "Detailed stats across every feature: chores, expenses, tasks, and more.")
 

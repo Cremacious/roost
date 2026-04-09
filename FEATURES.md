@@ -1,5 +1,5 @@
 # Roost — Feature Registry
-> Last updated: 2026-04-09 (Billing page redesigned: current plan card with 2-col layout, premium hero with price + value pill + upgrade CTA, full feature grid sourced from PREMIUM_GATE_CONFIG perks (8 feature cards + Household extras full-width card), bottom CTA. Premium state shows Active badge, billing status, cancel/reactivate links. No structural or logic changes to Stripe flow. Grocery page: animated scroll progress indicator on list pill row replaces native scrollbar; Tasks page: per-section pagination via usePaginatedList + ShowMoreButton; Expenses page: tab active = green; Premium gate unified: UpgradePrompt deleted, PremiumGate handles sheet/inline/page, driven by PREMIUM_GATE_CONFIG; price updated to $4/month; perk copy rewritten to natural sentences)
+> Last updated: 2026-04-09 (Billing page current plan card updated: shows real usage data for free tier (chores/members/grocery lists/reminders with progress bars), premium tier shows Active badge and billing date. Themes made free: no premium gate on theme API or settings picker. Billing page redesigned with hero card, feature grid from PREMIUM_GATE_CONFIG, and bottom CTA. Price $4/month.)
 > Use this file for homepage copy, paywall screens, upgrade prompts, and App Store descriptions.
 
 ---

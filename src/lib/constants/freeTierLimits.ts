@@ -52,9 +52,6 @@ export const PREMIUM_FEATURES = {
   mealSuggestions: true,
   mealGroceryIntegration: true,
 
-  // Themes
-  premiumThemes: true,
-
   // Allowances
   allowances: true,
 
@@ -62,19 +59,8 @@ export const PREMIUM_FEATURES = {
   richTextNotes: true,
 } as const;
 
-// Theme lists — add new themes here only
-export const FREE_THEMES = ["default", "midnight"] as const;
-
-export const PREMIUM_THEMES = [
-  "forest",
-  "slate",
-  "sand",
-  "ocean",
-  "rose",
-  "carbon",
-] as const;
-
-export const ALL_THEMES = [...FREE_THEMES, ...PREMIUM_THEMES] as const;
+// Theme list — all themes are free
+export const ALL_THEMES = ["default", "midnight"] as const;
 
 export type Theme = (typeof ALL_THEMES)[number];
 

@@ -2,7 +2,7 @@
 
 import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   ArrowLeft,
@@ -50,7 +50,6 @@ const FEATURE_NAMES: Record<string, string> = {
 const HOUSEHOLD_EXTRA_PERKS = [
   "Allowance system tied to chore completion",
   "Guest member access for temporary members",
-  "All app themes unlocked",
   "Household-wide stats and activity history",
 ];
 
@@ -199,6 +198,256 @@ function HouseholdExtrasCard() {
   );
 }
 
+// ---- Current plan card -------------------------------------------------------
+
+interface UsageItem {
+  label: string;
+  used: number;
+  limit: number;
+  color: string;
+}
+
+function UsageRow({ item }: { item: UsageItem }) {
+  const pct = item.limit > 0 ? Math.min(Math.round((item.used / item.limit) * 100), 100) : 0;
+  return (
+    <div style={{ flex: 1, minWidth: 120 }}>
+      <p
+        style={{
+          fontSize: 11,
+          fontWeight: 700,
+          color: "var(--roost-text-secondary)",
+          textTransform: "uppercase",
+          letterSpacing: "0.6px",
+          marginBottom: 6,
+        }}
+      >
+        {item.label}
+      </p>
+      <p style={{ marginBottom: 6 }}>
+        <span style={{ fontSize: 13, fontWeight: 800, color: "var(--roost-text-primary)" }}>
+          {item.used}
+        </span>
+        <span style={{ fontSize: 13, fontWeight: 600, color: "var(--roost-text-secondary)" }}>
+          {" "}/ {item.limit} used
+        </span>
+      </p>
+      <div
+        style={{
+          height: 6,
+          backgroundColor: "var(--roost-bg)",
+          borderRadius: 99,
+          overflow: "hidden",
+        }}
+      >
+        <div
+          style={{
+            height: 6,
+            width: `${pct}%`,
+            backgroundColor: item.color,
+            borderRadius: 99,
+            transition: "width 0.4s ease",
+          }}
+        />
+      </div>
+    </div>
+  );
+}
+
+interface CurrentPlanCardProps {
+  isPremium: boolean;
+  isCancelled: boolean;
+  premiumExpiresAt: string | null | undefined;
+  isAdmin: boolean;
+  usage: UsageItem[];
+  onReactivate: () => void;
+  isReactivating: boolean;
+  onCancel: () => void;
+}
+
+function CurrentPlanCard({
+  isPremium,
+  isCancelled,
+  premiumExpiresAt,
+  isAdmin,
+  usage,
+  onReactivate,
+  isReactivating,
+  onCancel,
+}: CurrentPlanCardProps) {
+  return (
+    <div
+      style={{
+        backgroundColor: "var(--roost-surface)",
+        border: "1px solid var(--roost-border)",
+        borderBottom: "4px solid var(--roost-border)",
+        borderRadius: 20,
+        overflow: "hidden",
+      }}
+    >
+      {/* Top section */}
+      <div
+        style={{
+          padding: "20px 24px 18px",
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "flex-start",
+        }}
+      >
+        {/* Left: icon + text */}
+        <div style={{ display: "flex", gap: 14, alignItems: "center" }}>
+          <div
+            style={{
+              width: 48,
+              height: 48,
+              borderRadius: 14,
+              backgroundColor: "var(--roost-bg)",
+              border: "1px solid var(--roost-border)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              flexShrink: 0,
+            }}
+          >
+            <Home size={22} style={{ color: "var(--roost-text-secondary)" }} />
+          </div>
+          <div>
+            <p
+              style={{
+                fontSize: 11,
+                fontWeight: 700,
+                color: "var(--roost-text-secondary)",
+                textTransform: "uppercase",
+                letterSpacing: "0.8px",
+                marginBottom: 4,
+              }}
+            >
+              Current plan
+            </p>
+            <p
+              style={{
+                fontSize: 20,
+                fontWeight: 900,
+                color: "var(--roost-text-primary)",
+              }}
+            >
+              {isPremium ? "Roost Premium" : "Free"}
+            </p>
+          </div>
+        </div>
+
+        {/* Right: badge + admin actions */}
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "flex-end",
+            gap: 8,
+            marginTop: 4,
+          }}
+        >
+          {isPremium ? (
+            <>
+              <span
+                style={{
+                  fontSize: 11,
+                  fontWeight: 700,
+                  color: "#22C55E",
+                  backgroundColor: "rgba(34,197,94,0.10)",
+                  border: "1px solid rgba(34,197,94,0.30)",
+                  borderRadius: 20,
+                  padding: "4px 10px",
+                  whiteSpace: "nowrap",
+                }}
+              >
+                Active
+              </span>
+              {isAdmin &&
+                (isCancelled ? (
+                  <button
+                    type="button"
+                    onClick={onReactivate}
+                    disabled={isReactivating}
+                    style={{ fontSize: 12, fontWeight: 700, color: "#22C55E" }}
+                  >
+                    {isReactivating ? "Reactivating..." : "Reactivate"}
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={onCancel}
+                    style={{ fontSize: 12, fontWeight: 700, color: "#EF4444" }}
+                  >
+                    Cancel plan
+                  </button>
+                ))}
+            </>
+          ) : (
+            <span
+              style={{
+                fontSize: 11,
+                fontWeight: 700,
+                color: "var(--roost-text-secondary)",
+                backgroundColor: "var(--roost-bg)",
+                border: "1px solid var(--roost-border)",
+                borderRadius: 20,
+                padding: "4px 10px",
+                whiteSpace: "nowrap",
+              }}
+            >
+              Free forever
+            </span>
+          )}
+        </div>
+      </div>
+
+      {/* Divider */}
+      <div style={{ height: 1, backgroundColor: "var(--roost-border)" }} />
+
+      {/* Bottom section */}
+      {isPremium ? (
+        <div style={{ padding: "14px 24px 18px", display: "flex", gap: 20, flexWrap: "wrap" }}>
+          <div style={{ flex: 1, minWidth: 120 }}>
+            <p
+              style={{
+                fontSize: 11,
+                fontWeight: 700,
+                color: "var(--roost-text-secondary)",
+                textTransform: "uppercase",
+                letterSpacing: "0.6px",
+                marginBottom: 6,
+              }}
+            >
+              {isCancelled ? "Premium ends" : "Next billing date"}
+            </p>
+            <p
+              style={{
+                fontSize: 13,
+                fontWeight: 800,
+                color: isCancelled ? "#F59E0B" : "var(--roost-text-primary)",
+              }}
+            >
+              {isCancelled && premiumExpiresAt ? formatDate(premiumExpiresAt) : "Billed monthly"}
+            </p>
+          </div>
+        </div>
+      ) : (
+        <div
+          style={{
+            padding: "14px 24px 18px",
+            display: "flex",
+            gap: 20,
+            flexWrap: "wrap",
+          }}
+        >
+          {usage.map((item) => (
+            <UsageRow key={item.label} item={item} />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ---- Upgrade button (reused in hero + bottom CTA) ----------------------------
 
 function UpgradeButton({
@@ -253,6 +502,80 @@ function BillingPageInner() {
   const [cancelledBanner, setCancelledBanner] = useState(false);
 
   const isAdmin = role === "admin";
+
+  // ---- Usage data queries (for free-tier plan card) --------------------------
+
+  const { data: choresData } = useQuery({
+    queryKey: ["chores"],
+    queryFn: async () => {
+      const r = await fetch("/api/chores");
+      if (!r.ok) return { chores: [] };
+      return r.json();
+    },
+    staleTime: 30_000,
+    enabled: !isLoading,
+  });
+
+  const { data: membersData } = useQuery({
+    queryKey: ["household-members"],
+    queryFn: async () => {
+      const r = await fetch("/api/household/members");
+      if (!r.ok) return { members: [] };
+      return r.json();
+    },
+    staleTime: 30_000,
+    enabled: !isLoading,
+  });
+
+  const { data: groceryListsData } = useQuery({
+    queryKey: ["grocery-lists"],
+    queryFn: async () => {
+      const r = await fetch("/api/grocery/lists");
+      if (!r.ok) return { lists: [] };
+      return r.json();
+    },
+    staleTime: 30_000,
+    enabled: !isLoading,
+  });
+
+  const { data: remindersData } = useQuery({
+    queryKey: ["reminders"],
+    queryFn: async () => {
+      const r = await fetch("/api/reminders");
+      if (!r.ok) return { reminders: [] };
+      return r.json();
+    },
+    staleTime: 30_000,
+    enabled: !isLoading,
+  });
+
+  const usageItems: UsageItem[] = [
+    {
+      label: "Chores",
+      used: choresData?.chores?.length ?? 0,
+      limit: 5,
+      color: "#EF4444",
+    },
+    {
+      label: "Members",
+      used: membersData?.members?.length ?? 0,
+      limit: 5,
+      color: "#3B82F6",
+    },
+    {
+      label: "Grocery lists",
+      used: groceryListsData?.lists?.length ?? 0,
+      limit: 1,
+      color: "#F59E0B",
+    },
+    {
+      label: "Reminders",
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      used: remindersData?.reminders?.filter((r: any) => !r.completed)?.length ?? 0,
+      limit: 5,
+      color: "#06B6D4",
+    },
+  ];
 
   useEffect(() => {
     if (searchParams.get("success") === "true") {
@@ -469,138 +792,16 @@ function BillingPageInner() {
         </div>
 
         {/* ---- 2. Current plan card ------------------------------------------ */}
-        <div
-          style={{
-            backgroundColor: "var(--roost-surface)",
-            border: "1.5px solid var(--roost-border)",
-            borderBottom: "4px solid var(--roost-border-bottom)",
-            borderRadius: 20,
-            padding: "18px 20px",
-          }}
-        >
-          <div className="flex items-start justify-between gap-4">
-            {/* Left */}
-            <div className="flex flex-col gap-1.5">
-              <p
-                style={{
-                  fontSize: 11,
-                  fontWeight: 700,
-                  color: "var(--roost-text-muted)",
-                  textTransform: "uppercase",
-                  letterSpacing: "0.8px",
-                }}
-              >
-                Current plan
-              </p>
-              <div className="flex items-center gap-2">
-                <p
-                  style={{
-                    color: "var(--roost-text-primary)",
-                    fontSize: 18,
-                    fontWeight: 900,
-                  }}
-                >
-                  {isPremium ? "Roost Premium" : "Free plan"}
-                </p>
-                {isPremium && (
-                  <span
-                    style={{
-                      fontSize: 11,
-                      fontWeight: 800,
-                      color: "#22C55E",
-                      backgroundColor: "rgba(34,197,94,0.12)",
-                      border: "1px solid rgba(34,197,94,0.25)",
-                      borderRadius: 100,
-                      padding: "2px 8px",
-                    }}
-                  >
-                    Active
-                  </span>
-                )}
-              </div>
-            </div>
-
-            {/* Right: status pills + actions */}
-            <div className="flex shrink-0 flex-col items-end gap-2">
-              {isPremium ? (
-                <>
-                  {isCancelled && premiumExpiresAt ? (
-                    <span
-                      style={{
-                        fontSize: 11,
-                        fontWeight: 700,
-                        color: "#F59E0B",
-                        backgroundColor: "rgba(245,158,11,0.10)",
-                        border: "1px solid rgba(245,158,11,0.25)",
-                        borderRadius: 100,
-                        padding: "3px 10px",
-                        whiteSpace: "nowrap",
-                      }}
-                    >
-                      Cancels {formatDate(premiumExpiresAt)}
-                    </span>
-                  ) : (
-                    <span
-                      style={{
-                        fontSize: 11,
-                        fontWeight: 700,
-                        color: "var(--roost-text-muted)",
-                        backgroundColor: "var(--roost-bg)",
-                        border: "1px solid var(--roost-border)",
-                        borderRadius: 100,
-                        padding: "3px 10px",
-                        whiteSpace: "nowrap",
-                      }}
-                    >
-                      Billed monthly
-                    </span>
-                  )}
-                  {isAdmin &&
-                    (isCancelled ? (
-                      <button
-                        type="button"
-                        onClick={handleReactivate}
-                        disabled={isReactivating}
-                        style={{ fontSize: 12, fontWeight: 700, color: "#22C55E" }}
-                      >
-                        {isReactivating ? "Reactivating..." : "Reactivate"}
-                      </button>
-                    ) : (
-                      <button
-                        type="button"
-                        onClick={() => setShowCancelFlow(true)}
-                        style={{ fontSize: 12, fontWeight: 700, color: "#EF4444" }}
-                      >
-                        Cancel plan
-                      </button>
-                    ))}
-                </>
-              ) : (
-                <div className="flex flex-col items-end gap-1.5">
-                  {["Up to 5 chores", "Up to 5 members", "Basic features only"].map(
-                    (pill) => (
-                      <span
-                        key={pill}
-                        style={{
-                          fontSize: 11,
-                          fontWeight: 700,
-                          color: "var(--roost-text-muted)",
-                          backgroundColor: "var(--roost-bg)",
-                          border: "1px solid var(--roost-border)",
-                          borderRadius: 100,
-                          padding: "3px 10px",
-                          whiteSpace: "nowrap",
-                        }}
-                      >
-                        {pill}
-                      </span>
-                    )
-                  )}
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
+        <CurrentPlanCard
+          isPremium={isPremium}
+          isCancelled={isCancelled}
+          premiumExpiresAt={premiumExpiresAt}
+          isAdmin={isAdmin}
+          usage={usageItems}
+          onReactivate={handleReactivate}
+          isReactivating={isReactivating}
+          onCancel={() => setShowCancelFlow(true)}
+        />
 
         {/* ---- 3. Premium hero card (free + admin only) ----------------------- */}
         {!isPremium && isAdmin && (
@@ -669,7 +870,7 @@ function BillingPageInner() {
               }}
             >
               <p style={{ fontSize: 13, fontWeight: 700, color: "#EF4444" }}>
-                A family of four pays less than $1/month each.
+                A family of five pays less than $1/month each.
               </p>
             </div>
 

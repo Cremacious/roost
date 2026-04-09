@@ -737,192 +737,101 @@ export default function GroceryPage() {
       style={{ backgroundColor: 'var(--roost-bg)' }}
     >
       <PageContainer className="flex flex-col gap-4">
-        {/* Header */}
+        {/* Header — single row at all screen sizes */}
         {activeList && (
-          <>
-            {/* Mobile: two-row layout (title + ⋯ on row 1, action buttons on row 2) */}
-            <div className="flex md:hidden flex-col gap-2">
-              {/* Row 1: title + more menu */}
-              <div className="flex items-center justify-between">
-                <h1
-                  className="text-2xl"
-                  style={{ color: 'var(--roost-text-primary)', fontWeight: 900 }}
-                >
-                  {activeList.name}
-                </h1>
-                <MoreMenu
-                  list={activeList}
-                  isAdmin={isAdmin}
-                  onRename={openRenameList}
-                  onClear={() => clearCheckedMutation.mutate()}
-                  onDelete={() => setShowDeleteListConfirm(true)}
-                />
-              </div>
+          <div className="flex items-center justify-between gap-2" style={{ flexWrap: 'nowrap' }}>
+            {/* Title */}
+            <h1
+              className="shrink-0 text-2xl sm:text-3xl"
+              style={{ color: 'var(--roost-text-primary)', fontWeight: 900 }}
+            >
+              {activeList.name}
+            </h1>
 
-              {/* Row 2: action buttons — all icon-only squares */}
-              <div className="flex justify-end gap-2">
-                {/* + add item */}
-                <motion.button
-                  type="button"
-                  onClick={openAddItem}
-                  whileTap={{ y: 1 }}
-                  className="flex h-10 w-10 items-center justify-center rounded-xl"
-                  style={{
-                    backgroundColor: COLOR,
-                    border: `1.5px solid ${COLOR}`,
-                    borderBottom: '3px solid #B45309',
-                    color: '#fff',
-                  }}
-                  title="Add item with details"
-                >
-                  <Plus className="size-4" />
-                </motion.button>
-
-                {/* + Shopping List */}
-                <motion.button
-                  type="button"
-                  onClick={
-                    isPremium
-                      ? openAddList
-                      : () => setUpgradeCode('MULTIPLE_LISTS_PREMIUM')
-                  }
-                  whileTap={{ y: 1 }}
-                  className="flex h-10 w-10 items-center justify-center rounded-xl"
-                  style={{
-                    backgroundColor: 'var(--roost-surface)',
-                    border: '1.5px solid var(--roost-border)',
-                    borderBottom: `3px solid ${COLOR_DARK}`,
-                    color: 'var(--roost-text-secondary)',
-                  }}
-                >
-                  {isPremium ? (
-                    <ClipboardList className="size-4" />
-                  ) : (
-                    <Lock className="size-4" />
-                  )}
-                </motion.button>
-
-                {/* Smart Sort */}
-                <motion.button
-                  type="button"
-                  onClick={handleSmartSort}
-                  whileTap={{ y: 1 }}
-                  className="flex h-10 w-10 items-center justify-center rounded-xl"
-                  style={
-                    smartSort
-                      ? {
-                          backgroundColor: COLOR + '18',
-                          border: `1.5px solid ${COLOR}50`,
-                          borderBottom: `3px solid ${COLOR}70`,
-                          color: COLOR,
-                        }
-                      : {
-                          backgroundColor: 'var(--roost-surface)',
-                          border: '1.5px solid var(--roost-border)',
-                          borderBottom: `3px solid ${COLOR_DARK}`,
-                          color: 'var(--roost-text-secondary)',
-                        }
-                  }
-                  title={smartSort ? 'Smart Sort on' : 'Smart Sort off'}
-                >
-                  <ArrowUpDown className="size-3.5" strokeWidth={2.5} />
-                </motion.button>
-              </div>
-            </div>
-
-            {/* Desktop: single-row layout (title left, all buttons right) */}
-            <div className="hidden md:flex items-center justify-between gap-2">
-              <h1
-                className="text-3xl"
-                style={{ color: 'var(--roost-text-primary)', fontWeight: 900 }}
+            {/* Action buttons */}
+            <div className="flex shrink-0 items-center gap-2">
+              {/* + add item */}
+              <motion.button
+                type="button"
+                onClick={openAddItem}
+                whileTap={{ y: 1 }}
+                className="flex h-10 w-10 items-center justify-center rounded-xl"
+                style={{
+                  backgroundColor: COLOR,
+                  border: `1.5px solid ${COLOR}`,
+                  borderBottom: '3px solid #B45309',
+                  color: '#fff',
+                }}
+                title="Add item with details"
               >
-                {activeList.name}
-              </h1>
+                <Plus className="size-4" />
+              </motion.button>
 
-              <div className="flex shrink-0 items-center gap-2">
-                {/* + add item */}
-                <motion.button
-                  type="button"
-                  onClick={openAddItem}
-                  whileTap={{ y: 1 }}
-                  className="flex h-10 w-10 items-center justify-center rounded-xl"
-                  style={{
-                    backgroundColor: COLOR,
-                    border: `1.5px solid ${COLOR}`,
-                    borderBottom: '3px solid #B45309',
-                    color: '#fff',
-                  }}
-                  title="Add item with details"
-                >
-                  <Plus className="size-4" />
-                </motion.button>
+              {/* + Shopping List */}
+              <motion.button
+                type="button"
+                onClick={
+                  isPremium
+                    ? openAddList
+                    : () => setUpgradeCode('MULTIPLE_LISTS_PREMIUM')
+                }
+                whileTap={{ y: 1 }}
+                className="flex h-10 w-10 shrink-0 items-center justify-center gap-1.5 rounded-xl sm:w-auto sm:px-3 text-sm"
+                style={{
+                  backgroundColor: 'var(--roost-surface)',
+                  border: '1.5px solid var(--roost-border)',
+                  borderBottom: `3px solid ${COLOR_DARK}`,
+                  color: 'var(--roost-text-secondary)',
+                  fontWeight: 700,
+                }}
+              >
+                {isPremium ? (
+                  <Plus className="size-3.5" strokeWidth={2.5} />
+                ) : (
+                  <Lock className="size-3.5" />
+                )}
+                <span className="hidden sm:inline">Shopping List</span>
+              </motion.button>
 
-                {/* + Shopping List */}
-                <motion.button
-                  type="button"
-                  onClick={
-                    isPremium
-                      ? openAddList
-                      : () => setUpgradeCode('MULTIPLE_LISTS_PREMIUM')
-                  }
-                  whileTap={{ y: 1 }}
-                  className="flex h-10 shrink-0 items-center gap-1.5 rounded-xl px-3 text-sm"
-                  style={{
-                    backgroundColor: 'var(--roost-surface)',
-                    border: '1.5px solid var(--roost-border)',
-                    borderBottom: `3px solid ${COLOR_DARK}`,
-                    color: 'var(--roost-text-secondary)',
-                    fontWeight: 700,
-                  }}
-                >
-                  {isPremium ? (
-                    <Plus className="size-3.5" strokeWidth={2.5} />
-                  ) : (
-                    <Lock className="size-3.5" />
-                  )}
-                  Shopping List
-                </motion.button>
+              {/* Smart Sort */}
+              <motion.button
+                type="button"
+                onClick={handleSmartSort}
+                whileTap={{ y: 1 }}
+                className="flex h-10 w-10 shrink-0 items-center justify-center gap-1.5 rounded-xl sm:w-auto sm:px-3 text-sm"
+                style={
+                  smartSort
+                    ? {
+                        backgroundColor: COLOR + '18',
+                        border: `1.5px solid ${COLOR}50`,
+                        borderBottom: `3px solid ${COLOR}70`,
+                        color: COLOR,
+                        fontWeight: 800,
+                      }
+                    : {
+                        backgroundColor: 'var(--roost-surface)',
+                        border: '1.5px solid var(--roost-border)',
+                        borderBottom: `3px solid ${COLOR_DARK}`,
+                        color: 'var(--roost-text-secondary)',
+                        fontWeight: 700,
+                      }
+                }
+                title={smartSort ? 'Smart Sort on' : 'Smart Sort off'}
+              >
+                <ArrowUpDown className="size-3.5" strokeWidth={2.5} />
+                <span className="hidden sm:inline">Smart Sort</span>
+              </motion.button>
 
-                {/* Smart Sort toggle */}
-                <motion.button
-                  type="button"
-                  onClick={handleSmartSort}
-                  whileTap={{ y: 1 }}
-                  className="flex h-10 shrink-0 items-center gap-1.5 rounded-xl px-3 text-sm"
-                  style={
-                    smartSort
-                      ? {
-                          backgroundColor: COLOR + '18',
-                          border: `1.5px solid ${COLOR}50`,
-                          borderBottom: `3px solid ${COLOR}70`,
-                          color: COLOR,
-                          fontWeight: 800,
-                        }
-                      : {
-                          backgroundColor: 'var(--roost-surface)',
-                          border: '1.5px solid var(--roost-border)',
-                          borderBottom: `3px solid ${COLOR_DARK}`,
-                          color: 'var(--roost-text-secondary)',
-                          fontWeight: 700,
-                        }
-                  }
-                  title={smartSort ? 'Smart Sort on' : 'Smart Sort off'}
-                >
-                  <ArrowUpDown className="size-3.5" strokeWidth={2.5} />
-                  Smart Sort
-                </motion.button>
-
-                {/* More menu */}
-                <MoreMenu
-                  list={activeList}
-                  isAdmin={isAdmin}
-                  onRename={openRenameList}
-                  onClear={() => clearCheckedMutation.mutate()}
-                  onDelete={() => setShowDeleteListConfirm(true)}
-                />
-              </div>
+              {/* More menu */}
+              <MoreMenu
+                list={activeList}
+                isAdmin={isAdmin}
+                onRename={openRenameList}
+                onClear={() => clearCheckedMutation.mutate()}
+                onDelete={() => setShowDeleteListConfirm(true)}
+              />
             </div>
-          </>
+          </div>
         )}
 
         {/* List pill switcher — only shown when 2+ lists exist */}

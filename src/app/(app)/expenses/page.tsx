@@ -471,16 +471,16 @@ function BalanceChips({
         {chips.map((chip, i) => (
           <div
             key={i}
-            className="flex min-w-38.75 shrink-0 flex-col justify-center rounded-2xl px-4 py-3"
+            className="flex min-w-38.75 shrink-0 flex-col justify-between rounded-2xl px-4 py-3"
             style={{
               backgroundColor: "var(--roost-surface)",
               border: "1.5px solid var(--roost-border)",
               borderBottom: `4px solid ${chip.borderColor}`,
               scrollSnapAlign: "start",
-              minHeight: 68,
+              height: 76,
             }}
           >
-            <p className="text-xs" style={{ color: "var(--roost-text-muted)", fontWeight: 700 }}>
+            <p className="text-xs leading-tight" style={{ color: "var(--roost-text-muted)", fontWeight: 700 }}>
               {chip.label}
             </p>
             <p className="text-xl" style={{ color: chip.valueColor, fontWeight: 900 }}>
@@ -536,24 +536,24 @@ function BalanceHero({
       }}
     >
       <div className="grid grid-cols-3 gap-3">
-        <div className="text-center">
-          <p className="text-xs" style={{ color: "var(--roost-text-muted)", fontWeight: 700 }}>
+        <div className="flex flex-col justify-between text-center" style={{ minHeight: "3.5rem" }}>
+          <p className="text-xs leading-tight" style={{ color: "var(--roost-text-muted)", fontWeight: 700, minHeight: "2rem" }}>
             You're owed
           </p>
           <p className="text-xl" style={{ color: myBalance > 0 ? COLOR : "var(--roost-text-muted)", fontWeight: 900 }}>
             ${Math.max(0, myBalance).toFixed(2)}
           </p>
         </div>
-        <div className="border-x text-center" style={{ borderColor: "var(--roost-border)" }}>
-          <p className="text-xs" style={{ color: "var(--roost-text-muted)", fontWeight: 700 }}>
+        <div className="flex flex-col justify-between border-x text-center" style={{ borderColor: "var(--roost-border)", minHeight: "3.5rem" }}>
+          <p className="text-xs leading-tight" style={{ color: "var(--roost-text-muted)", fontWeight: 700, minHeight: "2rem" }}>
             You owe
           </p>
           <p className="text-xl" style={{ color: myBalance < 0 ? "#EF4444" : "var(--roost-text-muted)", fontWeight: 900 }}>
             ${Math.max(0, -myBalance).toFixed(2)}
           </p>
         </div>
-        <div className="text-center">
-          <p className="text-xs" style={{ color: "var(--roost-text-muted)", fontWeight: 700 }}>
+        <div className="flex flex-col justify-between text-center" style={{ minHeight: "3.5rem" }}>
+          <p className="text-xs leading-tight" style={{ color: "var(--roost-text-muted)", fontWeight: 700, minHeight: "2rem" }}>
             Spent this month
           </p>
           <p className="text-xl" style={{ color: "var(--roost-text-primary)", fontWeight: 900 }}>
@@ -859,10 +859,10 @@ export default function ExpensesPage() {
                   onClick={() => setActiveTab(tab)}
                   className="flex h-10 items-center gap-1.5 rounded-xl px-4 text-sm"
                   style={{
-                    backgroundColor: active ? "var(--roost-text-primary)" : "var(--roost-surface)",
-                    border: active ? "1.5px solid transparent" : "1.5px solid var(--roost-border)",
-                    borderBottom: active ? "3px solid rgba(0,0,0,0.25)" : "3px solid var(--roost-border-bottom)",
-                    color: active ? "var(--roost-bg)" : "var(--roost-text-secondary)",
+                    backgroundColor: active ? COLOR : "var(--roost-surface)",
+                    border: active ? `1.5px solid ${COLOR}` : "1.5px solid var(--roost-border)",
+                    borderBottom: active ? "3px solid #159040" : "3px solid var(--roost-border-bottom)",
+                    color: active ? "white" : "var(--roost-text-secondary)",
                     fontWeight: 700,
                   }}
                 >
@@ -872,7 +872,7 @@ export default function ExpensesPage() {
                       className="inline-flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-xs"
                       style={{
                         backgroundColor: active ? "rgba(255,255,255,0.2)" : `${COLOR}20`,
-                        color: active ? "var(--roost-bg)" : COLOR,
+                        color: active ? "white" : COLOR,
                         fontWeight: 800,
                       }}
                     >

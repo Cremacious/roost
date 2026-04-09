@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { Check, Clock, Copy, Eye, EyeOff, Loader2, MapPin, Pencil, Plus, RefreshCw, Thermometer, Trash2, UserPlus } from "lucide-react";
@@ -23,7 +23,6 @@ import {
   AlertDialogFooter,
   AlertDialogDescription,
 } from "@/components/ui/alert-dialog";
-import { Switch } from "@/components/ui/switch";
 import MemberSheet, { type SheetMember } from "@/components/settings/MemberSheet";
 import InviteGuestSheet from "@/components/settings/InviteGuestSheet";
 import MemberAvatar from "@/components/shared/MemberAvatar";
@@ -789,9 +788,6 @@ export default function SettingsPage() {
   const [selectedMember, setSelectedMember] = useState<SheetMember | null>(null);
   const [inviteGuestOpen, setInviteGuestOpen] = useState(false);
 
-  // ---- Notifications state --------------------------------------------------
-  const [choreReminders, setChoreReminders] = useState(false);
-
   // ---- Danger zone state ----------------------------------------------------
   const [deleteDataOpen, setDeleteDataOpen] = useState(false);
   const [deleteDataConfirm, setDeleteDataConfirm] = useState("");
@@ -804,20 +800,29 @@ export default function SettingsPage() {
 
   // ---- Desktop nav ----------------------------------------------------------
   const [activeSection, setActiveSection] = useState("section-profile");
-  const observerRef = useRef<IntersectionObserver | null>(null);
 
   useEffect(() => {
-    const sections = NAV_SECTIONS.map((s) => document.getElementById(s.id)).filter(Boolean) as HTMLElement[];
-    observerRef.current = new IntersectionObserver(
-      (entries) => {
-        for (const entry of entries) {
-          if (entry.isIntersecting) setActiveSection(entry.target.id);
+    function onScroll() {
+      const visibleIds = NAV_SECTIONS.filter((s) => !s.adminOnly || isAdmin).map((s) => s.id);
+      const midpoint = window.innerHeight / 2;
+      let best: string = visibleIds[0];
+      let bestDist = Infinity;
+      for (const id of visibleIds) {
+        const el = document.getElementById(id);
+        if (!el) continue;
+        const top = el.getBoundingClientRect().top;
+        // Distance from top of section to viewport midpoint — prefer sections whose top is above midpoint
+        const dist = top <= midpoint ? midpoint - top : Infinity;
+        if (dist < bestDist) {
+          bestDist = dist;
+          best = id;
         }
-      },
-      { rootMargin: "-20% 0px -70% 0px", threshold: 0 }
-    );
-    sections.forEach((el) => observerRef.current?.observe(el));
-    return () => observerRef.current?.disconnect();
+      }
+      setActiveSection(best);
+    }
+    window.addEventListener("scroll", onScroll, { passive: true });
+    onScroll();
+    return () => window.removeEventListener("scroll", onScroll);
   }, [isAdmin]);
 
   // ---- Fetch profile --------------------------------------------------------
@@ -839,22 +844,6 @@ export default function SettingsPage() {
     setSelectedColor(profileData.user.avatar_color);
   }, [profileData]);
 
-  // ---- Fetch preferences for chore reminders --------------------------------
-  const { data: prefsData } = useQuery<{ chore_reminders_enabled: boolean }>({
-    queryKey: ["user-preferences"],
-    queryFn: async () => {
-      const r = await fetch("/api/user/preferences");
-      if (!r.ok) throw new Error("Failed");
-      return r.json();
-    },
-    staleTime: 60_000,
-  });
-
-  useEffect(() => {
-    if (prefsData?.chore_reminders_enabled !== undefined) {
-      setChoreReminders(prefsData.chore_reminders_enabled);
-    }
-  }, [prefsData]);
 
   // ---- Sync household state -------------------------------------------------
   useEffect(() => {
@@ -1024,22 +1013,6 @@ export default function SettingsPage() {
       await updatePreferences({ temperature_unit: unit });
       toast.success("Preference saved");
     } catch {
-      toast.error("Could not save preference", { description: "Something went wrong. Try again." });
-    }
-  }
-
-  // ---- Chore reminders toggle -----------------------------------------------
-  async function toggleChoreReminders(val: boolean) {
-    setChoreReminders(val);
-    try {
-      await fetch("/api/user/preferences", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ chore_reminders_enabled: val }),
-      });
-      queryClient.invalidateQueries({ queryKey: ["user-preferences"] });
-    } catch {
-      setChoreReminders(!val);
       toast.error("Could not save preference", { description: "Something went wrong. Try again." });
     }
   }
@@ -1686,33 +1659,7 @@ export default function SettingsPage() {
         </SettingsSection>
 
         {/* ---- SECTION 6: NOTIFICATIONS ----------------------------------- */}
-        <SettingsSection id="section-notifications" title="Notifications">
-          <SlabCard>
-            <SlabRow topBorder={false}>
-              <div className="flex-1">
-                <p className="text-sm" style={{ color: "var(--roost-text-muted)", fontWeight: 700 }}>Push notifications</p>
-                <p className="text-xs" style={{ color: "var(--roost-text-muted)", fontWeight: 600 }}>
-                  Available in the iOS and Android app. Coming soon.
-                </p>
-                <p className="text-xs mt-0.5" style={{ color: "var(--roost-text-muted)", fontWeight: 600 }}>
-                  Download the app to enable push notifications.
-                </p>
-              </div>
-              <Switch checked={false} disabled />
-            </SlabRow>
-            <SlabRow>
-              <div className="flex-1">
-                <p className="text-sm" style={{ color: "var(--roost-text-primary)", fontWeight: 700 }}>Chore reminder emails</p>
-                <p className="text-xs" style={{ color: "var(--roost-text-muted)", fontWeight: 600 }}>
-                  Get an email when chores are overdue.
-                </p>
-              </div>
-              <Switch
-                checked={choreReminders}
-                onCheckedChange={toggleChoreReminders}
-              />
-            </SlabRow>
-          </SlabCard>
+        <SettingsSection id="section-notifications" title="Notifications" subtitle="Push notifications are available in the iOS and Android apps. Coming soon.">
         </SettingsSection>
 
         {/* ---- SECTION 7: CATEGORIES (admin only) ------------------------- */}

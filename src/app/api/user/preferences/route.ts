@@ -22,7 +22,6 @@ export async function GET(request: NextRequest): Promise<Response> {
       timezone: users.timezone,
       language: users.language,
       theme: users.theme,
-      chore_reminders_enabled: users.chore_reminders_enabled,
     })
     .from(users)
     .where(eq(users.id, session.user.id))
@@ -37,7 +36,6 @@ export async function GET(request: NextRequest): Promise<Response> {
       timezone: "America/New_York",
       language: "en",
       theme: "default",
-      chore_reminders_enabled: false,
     });
   }
 
@@ -65,7 +63,6 @@ export async function PATCH(request: NextRequest): Promise<Response> {
     longitude?: number;
     timezone?: string;
     language?: string;
-    chore_reminders_enabled?: boolean;
   };
   try {
     body = await request.json();
@@ -86,7 +83,6 @@ export async function PATCH(request: NextRequest): Promise<Response> {
   if (body.longitude !== undefined) updates.longitude = String(body.longitude);
   if (body.timezone !== undefined) updates.timezone = body.timezone;
   if (body.language !== undefined) updates.language = body.language;
-  if (body.chore_reminders_enabled !== undefined) updates.chore_reminders_enabled = body.chore_reminders_enabled;
 
   const [updated] = await db
     .update(users)
@@ -99,7 +95,6 @@ export async function PATCH(request: NextRequest): Promise<Response> {
       timezone: users.timezone,
       language: users.language,
       theme: users.theme,
-      chore_reminders_enabled: users.chore_reminders_enabled,
     });
 
   // latitude/longitude are Drizzle numeric columns — they return as Decimal

@@ -967,7 +967,9 @@ src/lib/constants/colors.ts                   Added "stats": "#6366F1" (indigo) 
     Grocery: quick add bar at top for fast adds (h-14, amber border, cycling placeholder).
       Top-right + opens GroceryItemSheet for detailed add with name + quantity.
       No FAB on grocery page.
-    Chores: FAB opens ChoreSheet (no inline quick-add bar on chores page, FAB is the primary action).
+    Chores: + button lives in the page header (top-right), NOT a FAB. Same h-10 w-10 icon-only slab pattern as Tasks.
+      History and Leaderboard buttons are icon-only on mobile (md:hidden), text+icon on desktop (hidden md:flex).
+      No FAB on chores page.
     Other feature pages: only add a FAB if there is no inline quick-add input already on the page.
       Never add a FAB just to duplicate an existing add flow.
 

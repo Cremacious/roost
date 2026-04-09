@@ -1,5 +1,5 @@
 # Roost — Feature Registry
-> Last updated: 2026-04-09 (Admin test filter: added %@roost.test email pattern and seeded account names to testFilters.ts)
+> Last updated: 2026-04-09 (Chores page: moved + button from fixed FAB to header top-right; History/Leaderboard collapse to icon-only on mobile)
 > Use this file for homepage copy, paywall screens, upgrade prompts, and App Store descriptions.
 
 ---

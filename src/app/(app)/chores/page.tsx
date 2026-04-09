@@ -282,9 +282,37 @@ export default function ChoresPage() {
           )}
         </div>
         <div className="flex items-center gap-2">
+          {/* + add chore — always visible, matches Tasks page pattern */}
+          <motion.button
+            type="button"
+            onClick={openCreate}
+            whileTap={{ y: 1 }}
+            className="flex h-10 w-10 items-center justify-center rounded-xl"
+            style={{
+              backgroundColor: COLOR,
+              border: `1.5px solid ${COLOR}`,
+              borderBottom: "3px solid rgba(0,0,0,0.2)",
+            }}
+            aria-label="Add chore"
+          >
+            <Plus className="size-4 text-white" />
+          </motion.button>
+
+          {/* History — icon only on mobile, text+icon on desktop */}
           <Link
             href="/chores/history"
-            className="flex h-10 items-center gap-1.5 rounded-xl px-3 text-sm"
+            className="md:hidden flex h-10 w-10 items-center justify-center rounded-xl"
+            style={{
+              backgroundColor: "var(--roost-surface)",
+              border: "1.5px solid var(--roost-border)",
+              borderBottom: "3px solid #E5E7EB",
+            }}
+          >
+            <History className="size-4" style={{ color: COLOR }} />
+          </Link>
+          <Link
+            href="/chores/history"
+            className="hidden md:flex h-10 items-center gap-1.5 rounded-xl px-3 text-sm"
             style={{
               backgroundColor: "var(--roost-surface)",
               border: "1.5px solid var(--roost-border)",
@@ -296,11 +324,26 @@ export default function ChoresPage() {
             <History className="size-4" style={{ color: COLOR }} />
             History
           </Link>
+
+          {/* Leaderboard — icon only on mobile, text+icon on desktop */}
           <motion.button
             type="button"
             onClick={() => isPremium ? setLeaderboardOpen(true) : setUpgradeCode("LEADERBOARD_PREMIUM")}
             whileTap={{ y: 1 }}
-            className="flex h-10 items-center gap-1.5 rounded-xl px-3 text-sm"
+            className="md:hidden flex h-10 w-10 items-center justify-center rounded-xl"
+            style={{
+              backgroundColor: "var(--roost-surface)",
+              border: "1.5px solid var(--roost-border)",
+              borderBottom: "3px solid #E5E7EB",
+            }}
+          >
+            <Trophy className="size-4" style={{ color: "#F59E0B" }} />
+          </motion.button>
+          <motion.button
+            type="button"
+            onClick={() => isPremium ? setLeaderboardOpen(true) : setUpgradeCode("LEADERBOARD_PREMIUM")}
+            whileTap={{ y: 1 }}
+            className="hidden md:flex h-10 items-center gap-1.5 rounded-xl px-3 text-sm"
             style={{
               backgroundColor: "var(--roost-surface)",
               border: "1.5px solid var(--roost-border)",
@@ -524,24 +567,6 @@ export default function ChoresPage() {
             )}
           </AnimatePresence>
         </div>
-      )}
-
-      {/* FAB */}
-      {allChores.length > 0 && (
-        <motion.button
-          type="button"
-          onClick={openCreate}
-          whileTap={{ scale: 0.95, y: 2 }}
-          className="fixed bottom-20 right-4 z-30 flex h-14 w-14 items-center justify-center rounded-2xl shadow-lg md:bottom-6"
-          style={{
-            backgroundColor: COLOR,
-            border: `1.5px solid ${COLOR}`,
-            borderBottom: "4px solid rgba(0,0,0,0.2)",
-          }}
-          aria-label="Add chore"
-        >
-          <Plus className="size-6 text-white" />
-        </motion.button>
       )}
 
       {/* Confirm complete dialog */}

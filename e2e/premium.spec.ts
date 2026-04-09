@@ -1,25 +1,22 @@
 import { test, expect } from "@playwright/test";
-import { signUp, createHousehold } from "./helpers/auth";
-import { disablePremium, enablePremium } from "./helpers/premium";
 
-const uniqueUser = () => ({
-  name: "Premium User",
-  email: `premium-${Date.now()}@example.com`,
-  password: "PremiumPass123!",
-});
+// storageState is set by the 'premium' / 'mobile-premium' projects in
+// playwright.config.ts — the seeded premium-admin session is reused.
+//
+// The seeded premium account has subscription_status = 'premium' in the DB,
+// so no DevTools toggling is needed to test premium features.
+// The seeded free account (admin.free@roost.test) is used inline via
+// test.use() for tests that specifically exercise the free-tier gate.
 
-test.describe("Premium gating", () => {
-  test.beforeEach(async ({ page }) => {
-    await signUp(page, uniqueUser());
-    await createHousehold(page);
-    await disablePremium(page);
-  });
+test.describe("Premium — free tier gates", () => {
+  // Override to free-admin for this block
+  test.use({ storageState: "e2e/.auth/free-admin.json" });
 
   test("expenses page shows upgrade prompt for free users", async ({ page }) => {
     await page.goto("/expenses");
-    // Free users see an inline upgrade pitch, not the full module
     await expect(
-      page.locator("text=Upgrade to Premium")
+      page
+        .locator("text=Upgrade to Premium")
         .or(page.locator("text=Upgrade for $3/month"))
         .first()
     ).toBeVisible();
@@ -28,17 +25,28 @@ test.describe("Premium gating", () => {
   test("dashboard tiles are visible on free tier", async ({ page }) => {
     await page.goto("/dashboard");
     await expect(
-      page.locator('[data-testid="dashboard-tiles"]').locator("button, a").filter({ hasText: "Chores" }).first()
+      page
+        .locator('[data-testid="dashboard-tiles"]')
+        .locator("button, a")
+        .filter({ hasText: "Chores" })
+        .first()
     ).toBeVisible();
     await expect(
-      page.locator('[data-testid="dashboard-tiles"]').locator("button, a").filter({ hasText: "Grocery" }).first()
+      page
+        .locator('[data-testid="dashboard-tiles"]')
+        .locator("button, a")
+        .filter({ hasText: "Grocery" })
+        .first()
     ).toBeVisible();
   });
+});
 
-  test("enabling premium shows full expenses module", async ({ page }) => {
-    await enablePremium(page);
+test.describe("Premium — full module access", () => {
+  // storageState comes from the project config (premium-admin.json)
+
+  test("expenses page shows full module for premium users", async ({ page }) => {
     await page.goto("/expenses");
-    // Premium users see the expense tracking UI
+    // Premium users see the expense tracking UI, not the upgrade prompt
     await expect(page.locator("text=All square.")).toBeVisible();
   });
 });

@@ -1,22 +1,25 @@
 import { test, expect } from "@playwright/test";
 import { signUp } from "./helpers/auth";
 
-const uniqueUser = () => ({
-  name: "Onboarding User",
-  email: `onboarding-${Date.now()}@example.com`,
-  password: "OnboardPass123!",
+// Onboarding tests legitimately need fresh accounts each run because they
+// exercise the signup → onboarding flow itself. A seeded account that already
+// has a household would skip /onboarding entirely.
+const freshUser = () => ({
+  name: "Onboard Test",
+  email: `onboard-${Date.now()}@roost.test`,
+  password: "RoostTest123!",
 });
 
 test.describe("Onboarding", () => {
   test("shows create and join household options", async ({ page }) => {
-    await signUp(page, uniqueUser());
+    await signUp(page, freshUser());
     await expect(page).toHaveURL("/onboarding");
     await expect(page.locator("text=Create a household")).toBeVisible();
     await expect(page.locator("text=Join a household")).toBeVisible();
   });
 
   test("creating a household reaches the dashboard", async ({ page }) => {
-    await signUp(page, uniqueUser());
+    await signUp(page, freshUser());
     await page.click("text=Create a household");
     const householdInput = page.locator('input[placeholder*="Johnson" i]').first();
     await householdInput.fill("My Test House");

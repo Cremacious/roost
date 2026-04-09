@@ -2,6 +2,7 @@ import { defineConfig, devices } from "@playwright/test";
 
 export default defineConfig({
   testDir: "./e2e",
+  globalSetup: "./e2e/global-setup.ts",
   fullyParallel: false,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
@@ -15,21 +16,52 @@ export default defineConfig({
     actionTimeout: 15000,
   },
   projects: [
+    // Desktop — authenticated as free admin
     {
-      name: "chromium",
-      use: { ...devices["Desktop Chrome"] },
+      name: "free",
+      use: {
+        ...devices["Desktop Chrome"],
+        storageState: "e2e/.auth/free-admin.json",
+      },
+      testMatch: [
+        "**/navigation.spec.ts",
+        "**/chores.spec.ts",
+        "**/grocery.spec.ts",
+      ],
       timeout: 60000,
     },
+    // Desktop — authenticated as premium admin
     {
-      // Auth, onboarding, and premium gating tested on mobile too
-      // Navigation, chores, and grocery only run on desktop (signup flow is more reliable)
+      name: "premium",
+      use: {
+        ...devices["Desktop Chrome"],
+        storageState: "e2e/.auth/premium-admin.json",
+      },
+      testMatch: ["**/premium.spec.ts"],
+      timeout: 60000,
+    },
+    // Desktop — unauthenticated (signup, login, onboarding flows)
+    {
+      name: "unauthenticated",
+      use: { ...devices["Desktop Chrome"] },
+      testMatch: ["**/auth.spec.ts", "**/onboarding.spec.ts"],
+      timeout: 60000,
+    },
+    // Mobile — unauthenticated
+    {
       name: "mobile",
       use: { ...devices["iPhone 14"] },
-      testMatch: [
-        "**/auth.spec.ts",
-        "**/onboarding.spec.ts",
-        "**/premium.spec.ts",
-      ],
+      testMatch: ["**/auth.spec.ts", "**/onboarding.spec.ts"],
+      timeout: 90000,
+    },
+    // Mobile — authenticated as premium admin
+    {
+      name: "mobile-premium",
+      use: {
+        ...devices["iPhone 14"],
+        storageState: "e2e/.auth/premium-admin.json",
+      },
+      testMatch: ["**/premium.spec.ts"],
       timeout: 90000,
     },
   ],

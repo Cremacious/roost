@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { useSession } from "@/lib/auth/client";
 import {
+  BarChart2,
   Bell,
   Calendar,
   CheckCircle2,
@@ -122,6 +123,7 @@ const TILES: Tile[] = [
   { key: "notes",     label: "Notes",     href: "/notes",     icon: FileText,        count: 0, statusText: "No notes yet" },
   { key: "meals",     label: "Meals",     href: "/meals",     icon: UtensilsCrossed, count: 0, statusText: "Plan this week" },
   { key: "reminders", label: "Reminders", href: "/reminders", icon: Bell,            count: 0, statusText: "Nothing pending" },
+  { key: "stats",     label: "Stats",     href: "/stats",     icon: BarChart2,       count: 0, statusText: "Household stats" },
 ];
 
 // ---- Skeletons --------------------------------------------------------------

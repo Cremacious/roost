@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
+  BarChart2,
   Bell,
   Calendar,
   CheckCircle2,
@@ -57,6 +58,7 @@ const MORE_ITEMS = [
   { label: "Expenses",  href: "/expenses",  icon: DollarSign,      color: "#22C55E" },
   { label: "Meals",     href: "/meals",     icon: UtensilsCrossed, color: "#F97316" },
   { label: "Reminders", href: "/reminders", icon: Bell,            color: "#06B6D4" },
+  { label: "Stats",     href: "/stats",     icon: BarChart2,       color: "#6366F1" },
   { label: "Profile",   href: "/profile",   icon: User,            color: "#8B5CF6" },
   { label: "Settings",  href: "/settings",  icon: Settings,        color: "#6B7280" },
 ];

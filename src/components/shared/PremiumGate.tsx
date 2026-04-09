@@ -6,7 +6,7 @@ import MockExpensesPreview from "@/components/expenses/MockExpensesPreview";
 const COLOR = "#22C55E";
 const COLOR_DARK = "#159040";
 
-type Feature = "expenses" | "receipt-scanning" | "multiple-lists" | "multiple-households" | "chore-history" | "budgets" | "insights" | "meals";
+type Feature = "expenses" | "receipt-scanning" | "multiple-lists" | "multiple-households" | "chore-history" | "budgets" | "insights" | "meals" | "stats";
 
 interface FeatureConfig {
   icon: React.ElementType;
@@ -56,6 +56,11 @@ const FEATURES: Record<Feature, FeatureConfig> = {
     icon: ChefHat,
     title: "Plan your household's meals.",
     body: "Build a shared meal bank, plan the week together, and push ingredients straight to the grocery list. Upgrade to Premium for $3/month.",
+  },
+  stats: {
+    icon: BarChart2,
+    title: "See how your household is doing.",
+    body: "Chore completion rates, spending trends, task breakdowns, and activity over time. All the data you have been generating, finally visualized.",
   },
 };
 

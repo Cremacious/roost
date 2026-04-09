@@ -19,6 +19,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import {
+  BarChart2,
   Bell,
   Calendar,
   CheckSquare,
@@ -49,6 +50,7 @@ const NAV_ITEMS: NavItem[] = [
   { label: "Notes",     href: "/notes",       icon: FileText      },
   { label: "Meals",     href: "/meals",       icon: UtensilsCrossed },
   { label: "Reminders", href: "/reminders",   icon: Bell          },
+  { label: "Stats",     href: "/stats",       icon: BarChart2     },
 ];
 
 export default function Sidebar() {

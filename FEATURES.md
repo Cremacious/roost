@@ -1,5 +1,5 @@
 # Roost — Feature Registry
-> Last updated: 2026-04-09
+> Last updated: 2026-04-09 (stats page built)
 > Use this file for homepage copy, paywall screens, upgrade prompts, and App Store descriptions.
 
 ---
@@ -108,6 +108,19 @@
   - Push + in-app notifications when approaching or exceeding budget
   - Over-budget banner on expenses page
 
+#### Household Stats (/stats)
+**Sell it as:** "See how your household is doing."
+- Date range presets: 7 days, 30 days, 90 days, full year, or custom
+- 6 stat cards: chores done, total spent, tasks completed, meals planned, grocery items, most active member
+- Chore activity chart (area chart, daily completions over time)
+- Spending over time (area chart, weekly buckets)
+- Spending by category (donut chart with legend)
+- Chores by member (horizontal bar chart, color coded)
+- Activity breakdown by module (horizontal bar chart)
+- Task priority breakdown (donut chart)
+- Member overview table: chore completions + points per member
+- Household info footer: age in days, member count, oldest member
+
 #### Chores (Premium)
 - Recurring chores (daily, weekly, monthly, custom days)
 - Chore streaks — consecutive day tracking
@@ -162,9 +175,7 @@
 Unlock 6 additional app themes beyond Default and Midnight: Forest, Slate, Sand, Ocean, Rose, Carbon. CSS-only, zero operating cost.
 Premium feature.
 
-**Household Stats Page**
-A beautiful dashboard showing your household's activity over time. Chore completion rates, expense trends, most active member, streak leaders. All from data you already have.
-Premium feature.
+~~**Household Stats Page**~~ — BUILT (see above)
 
 **Rich Text Notes** (premium)
 Upgrade plain notes with headings, bold, checklists, and links. Powered by Tiptap (open source). Makes notes feel like a real tool.

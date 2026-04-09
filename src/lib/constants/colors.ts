@@ -7,6 +7,7 @@ export const SECTION_COLORS = {
   notes:     "#A855F7",
   reminders: "#06B6D4",
   tasks:     "#EC4899",
+  stats:     "#6366F1",
 } as const;
 
 export type SectionKey = keyof typeof SECTION_COLORS;

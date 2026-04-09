@@ -49,7 +49,7 @@ Priority order:
    - Produce, dairy, frozen, bakery, meat, etc.
    - Pure client-side logic, zero API cost
    - Free feature
-   - Status: PLANNED
+   - Status: DONE
 
 7. Custom chore categories and icons
    - Admins create custom categories
@@ -545,6 +545,7 @@ src/components/layout/Sidebar.tsx              Desktop 220px sidebar with icon+l
 src/components/providers/ThemeProvider.tsx     Applies theme CSS vars; exports useTheme() hook
 src/components/shared/QueryProvider.tsx        TanStack Query client provider
 src/lib/utils/activity.ts                      logActivity(params) helper -- wraps insert, never throws, safe to call from any route
+src/lib/utils/grocerySort.ts                   STORE_SECTIONS, StoreSection, classifyItem(name), groupItemsBySection(items) -- pure client-side keyword classifier for grocery smart sort
 src/lib/utils/time.ts                          relativeTime(date) -- returns "Just now", "Xm ago", "Xh ago", "Yesterday", "Xd ago"
 src/lib/hooks/useHousehold.ts                  Client hook: returns { household, role, permissions, isPremium, isLoading, error } via /api/household/me
 src/lib/hooks/useUserPreferences.ts            Client hook: returns { temperatureUnit, latitude, longitude, updatePreferences } via /api/user/preferences

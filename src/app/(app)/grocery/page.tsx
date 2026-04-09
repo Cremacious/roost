@@ -5,16 +5,37 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
+  Archive,
+  ArrowUpDown,
+  Baby,
+  Beef,
+  Box,
   Check,
   ChevronDown,
-  Lock,
+  ClipboardList,
+  Coffee,
+  Cookie,
+  Droplets,
+  Heart,
+  Leaf,
   Loader2,
+  Lock,
+  Milk,
   MoreHorizontal,
+  Package,
+  PawPrint,
   Plus,
   ShoppingCart,
+  Snowflake,
+  Sparkles,
+  Sunrise,
   Trash2,
-  ClipboardList,
+  Wheat,
 } from 'lucide-react';
+import {
+  groupItemsBySection,
+  type StoreSection,
+} from '@/lib/utils/grocerySort';
 import { SECTION_COLORS } from '@/lib/constants/colors';
 import { relativeTime } from '@/lib/utils/time';
 import MemberAvatar from '@/components/shared/MemberAvatar';
@@ -40,6 +61,29 @@ import UpgradePrompt from '@/components/shared/UpgradePrompt';
 
 const COLOR = SECTION_COLORS.grocery; // #F59E0B
 const COLOR_DARK = '#C87D00';
+
+// ---- Smart sort section icons -----------------------------------------------
+
+type LucideIconComponent = React.ComponentType<{ className?: string; style?: React.CSSProperties }>;
+
+const SECTION_ICONS: Record<StoreSection, LucideIconComponent> = {
+  'Produce': Leaf,
+  'Meat & Seafood': Beef,
+  'Dairy & Eggs': Milk,
+  'Bakery & Bread': Wheat,
+  'Frozen': Snowflake,
+  'Pantry & Dry Goods': Package,
+  'Canned & Jarred': Archive,
+  'Snacks': Cookie,
+  'Beverages': Coffee,
+  'Breakfast': Sunrise,
+  'Condiments & Sauces': Droplets,
+  'Cleaning & Household': Sparkles,
+  'Personal Care': Heart,
+  'Baby & Kids': Baby,
+  'Pet': PawPrint,
+  'Other': Box,
+};
 
 // ---- Types ------------------------------------------------------------------
 
@@ -355,6 +399,7 @@ export default function GroceryPage() {
   const [selectedListId, setSelectedListId] = useState<string | null>(null);
   const [newItemName, setNewItemName] = useState('');
   const [showChecked, setShowChecked] = useState(true);
+  const [smartSort, setSmartSort] = useState(false);
   const [editingItem, setEditingItem] = useState<GroceryItemFull | null>(null);
   const [showItemSheet, setShowItemSheet] = useState(false);
   const [showListSheet, setShowListSheet] = useState(false);
@@ -392,6 +437,13 @@ export default function GroceryPage() {
   const isAdmin = listsQuery.data?.isAdmin ?? false;
 
   const activeListId = selectedListId ?? lists[0]?.id ?? null;
+
+  // Restore smart sort preference when active list changes
+  useEffect(() => {
+    if (!activeListId) return;
+    const stored = localStorage.getItem(`grocery-smart-sort-${activeListId}`);
+    setSmartSort(stored === 'true');
+  }, [activeListId]);
 
   const itemsQuery = useQuery<ItemsResponse>({
     queryKey: ['grocery-items', activeListId],
@@ -561,6 +613,22 @@ export default function GroceryPage() {
 
   // ---- Handlers --------------------------------------------------------------
 
+  function handleSmartSort() {
+    if (!activeListId) return;
+    const isFirstTime =
+      localStorage.getItem(`grocery-smart-sort-${activeListId}`) === null;
+    const next = !smartSort;
+    setSmartSort(next);
+    localStorage.setItem(`grocery-smart-sort-${activeListId}`, next ? 'true' : 'false');
+    if (next && isFirstTime) {
+      toast.success('Smart Sort on', {
+        description:
+          'Items grouped by store section. Tap again to go back to normal.',
+        duration: 4000,
+      });
+    }
+  }
+
   function handleQuickAdd() {
     if (!newItemName.trim() || !activeListId) return;
     addItemMutation.mutate(newItemName.trim());
@@ -701,6 +769,35 @@ export default function GroceryPage() {
                 title="Add item with details"
               >
                 <Plus className="size-4" />
+              </motion.button>
+
+              {/* Smart Sort toggle */}
+              <motion.button
+                type="button"
+                onClick={handleSmartSort}
+                whileTap={{ y: 1 }}
+                className="flex h-10 shrink-0 items-center gap-1.5 rounded-xl px-3 text-sm"
+                style={
+                  smartSort
+                    ? {
+                        backgroundColor: COLOR + '18',
+                        border: `1.5px solid ${COLOR}50`,
+                        borderBottom: `3px solid ${COLOR}70`,
+                        color: COLOR,
+                        fontWeight: 800,
+                      }
+                    : {
+                        backgroundColor: 'var(--roost-surface)',
+                        border: '1.5px solid var(--roost-border)',
+                        borderBottom: `3px solid ${COLOR_DARK}`,
+                        color: 'var(--roost-text-secondary)',
+                        fontWeight: 700,
+                      }
+                }
+                title={smartSort ? 'Smart Sort on' : 'Smart Sort off'}
+              >
+                <ArrowUpDown className="size-3.5" strokeWidth={2.5} />
+                <span className="hidden sm:inline">Smart Sort</span>
               </motion.button>
 
               {/* More menu */}
@@ -848,25 +945,111 @@ export default function GroceryPage() {
         )}
 
         {/* Unchecked items */}
-        {unchecked.length > 0 && (
-          <div className="space-y-2">
-            {unchecked.map((item, i) => (
-              <motion.div
-                key={item.id}
-                initial={{ opacity: 0, y: 6 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: Math.min(i * 0.04, 0.2), duration: 0.15 }}
-              >
-                <ItemRow
-                  item={item}
-                  onCheck={handleCheck}
-                  onEdit={openEditItem}
-                  onDelete={handleDelete}
-                />
-              </motion.div>
-            ))}
-          </div>
-        )}
+        {unchecked.length > 0 && (() => {
+          // Flat list (smart sort off)
+          if (!smartSort) {
+            return (
+              <div className="space-y-2">
+                {unchecked.map((item, i) => (
+                  <motion.div
+                    key={item.id}
+                    initial={{ opacity: 0, y: 6 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{
+                      delay: Math.min(i * 0.04, 0.2),
+                      duration: 0.15,
+                    }}
+                  >
+                    <ItemRow
+                      item={item}
+                      onCheck={handleCheck}
+                      onEdit={openEditItem}
+                      onDelete={handleDelete}
+                    />
+                  </motion.div>
+                ))}
+              </div>
+            );
+          }
+
+          // Smart sort: grouped by store section
+          const groups = groupItemsBySection(unchecked);
+
+          // If everything falls into Other, render flat (no giant "Other" header)
+          if (groups.length === 1 && groups[0].section === 'Other') {
+            return (
+              <div className="space-y-2">
+                {unchecked.map((item, i) => (
+                  <motion.div
+                    key={item.id}
+                    initial={{ opacity: 0, y: 6 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{
+                      delay: Math.min(i * 0.04, 0.2),
+                      duration: 0.15,
+                    }}
+                  >
+                    <ItemRow
+                      item={item}
+                      onCheck={handleCheck}
+                      onEdit={openEditItem}
+                      onDelete={handleDelete}
+                    />
+                  </motion.div>
+                ))}
+              </div>
+            );
+          }
+
+          let globalIndex = 0;
+          return (
+            <div className="space-y-4">
+              {groups.map(({ section, items: sectionItems }) => {
+                const SectionIcon = SECTION_ICONS[section];
+                return (
+                  <div key={section}>
+                    {/* Section header */}
+                    <div
+                      className="mb-2 flex items-center gap-1.5 px-1"
+                      style={{
+                        color: 'var(--roost-text-secondary)',
+                        fontSize: '11px',
+                        fontWeight: 800,
+                        letterSpacing: '0.08em',
+                        textTransform: 'uppercase',
+                      }}
+                    >
+                      <SectionIcon className="size-3" />
+                      {section}
+                    </div>
+                    {/* Items in this section */}
+                    <div className="space-y-2">
+                      {sectionItems.map((item) => {
+                        const delay = Math.min(globalIndex * 0.04, 0.2);
+                        globalIndex++;
+                        return (
+                          <motion.div
+                            key={item.id}
+                            initial={{ opacity: 0, y: 6 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay, duration: 0.15 }}
+                          >
+                            <ItemRow
+                              item={item}
+                              onCheck={handleCheck}
+                              onEdit={openEditItem}
+                              onDelete={handleDelete}
+                            />
+                          </motion.div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          );
+        })()}
 
         {/* Checked items (collapsible) */}
         {checked.length > 0 && (

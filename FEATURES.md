@@ -1,5 +1,5 @@
 # Roost — Feature Registry
-> Last updated: 2026-04-09 (guest/temporary member built)
+> Last updated: 2026-04-09 (grocery smart sort built)
 > Use this file for homepage copy, paywall screens, upgrade prompts, and App Store descriptions.
 
 ---
@@ -24,6 +24,10 @@
 - Shared grocery list visible to all members
 - Optimistic check/uncheck (instant feedback)
 - Add, edit, remove items
+- Smart Sort: auto-groups unchecked items by store section (produce, dairy, frozen, etc.)
+  - 16 store sections, keyword-based classifier, pure client-side
+  - Toggle persisted per-list in localStorage
+  - Free for all users, no premium gate
 
 #### Calendar
 - Shared household calendar
@@ -209,9 +213,7 @@ Premium feature.
 
 ~~**Guest / Temporary Member**~~ — BUILT (see above)
 
-**Grocery Smart Sort**
-Auto-sort your grocery list by store section: produce, dairy, frozen, bakery, meat. Pure client-side logic.
-Free feature.
+~~**Grocery Smart Sort**~~ — BUILT (see above)
 
 **Custom Chore Categories and Icons**
 Admins create custom chore categories. Members can suggest new ones. Admins approve.

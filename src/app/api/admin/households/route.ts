@@ -39,7 +39,7 @@ export async function GET(request: NextRequest): Promise<Response> {
         h.premium_expires_at,
         COUNT(hm.id) AS member_count,
         COALESCE(
-          ARRAY_AGG(u.email ORDER BY hm.created_at ASC) FILTER (WHERE u.email IS NOT NULL),
+          ARRAY_AGG(u.email ORDER BY hm.joined_at ASC) FILTER (WHERE u.email IS NOT NULL),
           '{}'
         ) AS member_emails
       FROM households h

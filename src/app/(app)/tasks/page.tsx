@@ -34,6 +34,8 @@ import { SECTION_COLORS } from "@/lib/constants/colors";
 import { PageContainer } from "@/components/layout/PageContainer";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import UpgradePrompt from "@/components/shared/UpgradePrompt";
+import { usePaginatedList } from "@/lib/hooks/use-paginated-list";
+import { ShowMoreButton } from "@/components/ui/show-more-button";
 
 const COLOR = SECTION_COLORS.tasks; // #EC4899
 
@@ -562,6 +564,13 @@ export default function TasksPage() {
       }
     : null;
 
+  // Pagination per section
+  const overduePaginated   = usePaginatedList(groupedTasks?.overdue    ?? [], { pageSize: 15 });
+  const todayPaginated     = usePaginatedList(groupedTasks?.today      ?? [], { pageSize: 15 });
+  const upcomingPaginated  = usePaginatedList(groupedTasks?.upcoming   ?? [], { pageSize: 15 });
+  const noDueDatePaginated = usePaginatedList(groupedTasks?.noDueDate  ?? [], { pageSize: 15 });
+  const completedPaginated = usePaginatedList(completedTasks,               { pageSize: 15 });
+
   // Handlers
   function openCreate() {
     setEditingTask(null);
@@ -739,7 +748,14 @@ export default function TasksPage() {
                     className="overflow-hidden"
                   >
                     <div className="pb-2">
-                      {renderTaskList(groupedTasks.overdue)}
+                      {renderTaskList(overduePaginated.visibleItems)}
+                      <ShowMoreButton
+                        visibleCount={overduePaginated.visibleCount}
+                        totalCount={overduePaginated.totalCount}
+                        onLoadMore={overduePaginated.loadMore}
+                        pageSize={15}
+                        color={COLOR}
+                      />
                     </div>
                   </motion.div>
                 )}
@@ -767,7 +783,14 @@ export default function TasksPage() {
                     className="overflow-hidden"
                   >
                     <div className="pb-2">
-                      {renderTaskList(groupedTasks.today)}
+                      {renderTaskList(todayPaginated.visibleItems)}
+                      <ShowMoreButton
+                        visibleCount={todayPaginated.visibleCount}
+                        totalCount={todayPaginated.totalCount}
+                        onLoadMore={todayPaginated.loadMore}
+                        pageSize={15}
+                        color={COLOR}
+                      />
                     </div>
                   </motion.div>
                 )}
@@ -794,7 +817,14 @@ export default function TasksPage() {
                     className="overflow-hidden"
                   >
                     <div className="pb-2">
-                      {renderTaskList(groupedTasks.upcoming)}
+                      {renderTaskList(upcomingPaginated.visibleItems)}
+                      <ShowMoreButton
+                        visibleCount={upcomingPaginated.visibleCount}
+                        totalCount={upcomingPaginated.totalCount}
+                        onLoadMore={upcomingPaginated.loadMore}
+                        pageSize={15}
+                        color={COLOR}
+                      />
                     </div>
                   </motion.div>
                 )}
@@ -821,7 +851,14 @@ export default function TasksPage() {
                     className="overflow-hidden"
                   >
                     <div className="pb-2">
-                      {renderTaskList(groupedTasks.noDueDate)}
+                      {renderTaskList(noDueDatePaginated.visibleItems)}
+                      <ShowMoreButton
+                        visibleCount={noDueDatePaginated.visibleCount}
+                        totalCount={noDueDatePaginated.totalCount}
+                        onLoadMore={noDueDatePaginated.loadMore}
+                        pageSize={15}
+                        color={COLOR}
+                      />
                     </div>
                   </motion.div>
                 )}
@@ -848,7 +885,14 @@ export default function TasksPage() {
                     className="overflow-hidden"
                   >
                     <div className="pb-2">
-                      {renderTaskList(completedTasks)}
+                      {renderTaskList(completedPaginated.visibleItems)}
+                      <ShowMoreButton
+                        visibleCount={completedPaginated.visibleCount}
+                        totalCount={completedPaginated.totalCount}
+                        onLoadMore={completedPaginated.loadMore}
+                        pageSize={15}
+                        color={COLOR}
+                      />
                     </div>
                   </motion.div>
                 )}
@@ -860,7 +904,16 @@ export default function TasksPage() {
 
       {/* Completed filter view */}
       {!tasksLoading && !tasksError && filter === "completed" && visibleTasks.length > 0 && (
-        renderTaskList(visibleTasks)
+        <>
+          {renderTaskList(completedPaginated.visibleItems)}
+          <ShowMoreButton
+            visibleCount={completedPaginated.visibleCount}
+            totalCount={completedPaginated.totalCount}
+            onLoadMore={completedPaginated.loadMore}
+            pageSize={15}
+            color={COLOR}
+          />
+        </>
       )}
 
       {/* Confirm complete dialog */}

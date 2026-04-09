@@ -657,6 +657,8 @@ src/app/api/allowances/route.ts               GET: payout history for household,
 src/app/api/allowances/child/route.ts         GET: allowance settings + payouts + current week progress for current user
 src/app/api/cron/allowances/route.ts          Vercel cron GET (Sunday 11pm UTC): evaluate chore completion, create expense entries
 src/components/shared/AllowanceWidget.tsx     Child-only widget: weekly progress bar, status message, last 4 weeks history
+src/lib/hooks/use-paginated-list.ts           usePaginatedList<T>(items, { pageSize }) — client-side slice pagination; auto-resets when items identity changes; returns visibleItems, hasMore, loadMore, reset, visibleCount, totalCount
+src/components/ui/show-more-button.tsx        ShowMoreButton — renders "Showing X of Y" + "+ Show N more" slab button; returns null when all items visible; accepts color prop for section tinting
 src/lib/utils/azureReceipts.ts              parseReceiptImage(base64) via Azure Document Intelligence prebuilt-receipt, returns ParsedReceipt
 src/lib/utils/imageUpload.ts                fileToBase64(File), validateReceiptImage(File) client-side helpers
 src/app/api/expenses/scan/route.ts          POST: premium + non-child only, accepts { imageBase64 }, returns { receipt: ParsedReceipt }
@@ -846,6 +848,15 @@ src/lib/constants/colors.ts                   Added "stats": "#6366F1" (indigo) 
 - Unchecking a task: immediate optimistic update, no confirmation (undo toast)
 - Filter row: All / Mine / Assigned / Completed — active pill has dark fill (roost-text-primary bg)
 - Children can mark tasks complete but cannot create, edit, or delete tasks
+- Pagination: each section (overdue/today/upcoming/noDueDate/completed) uses usePaginatedList with pageSize 15.
+  ShowMoreButton renders below each section's task list. Auto-resets on filter change because items identity changes.
+
+## Pagination Pattern (shared across pages)
+- Hook: usePaginatedList<T>(items, { pageSize }) in src/lib/hooks/use-paginated-list.ts
+- Component: ShowMoreButton in src/components/ui/show-more-button.tsx
+- pageSize defaults to 15. Pass color={SECTION_COLOR} to tint the button.
+- Hook auto-resets (via useEffect on items identity) when filter changes — no manual reset needed.
+- Applied per-section on tasks page. Roll out to chores/notes/expenses/activity with same pattern.
 
 ## API Rules
 - All routes validate session + household membership before DB

@@ -178,6 +178,8 @@ async function ensureMembership(
   householdId: string,
   userId: string,
   role: string,
+  memberName: string,
+  householdName: string,
   pin?: string
 ): Promise<void> {
   const existing = await db
@@ -191,7 +193,10 @@ async function ensureMembership(
     )
     .limit(1);
 
-  if (existing[0]) return; // already a member
+  if (existing[0]) {
+    console.log(`  ↩ Skipped: ${memberName} → ${householdName}`);
+    return;
+  }
 
   const pinHash = pin ? await hashPassword(pin) : undefined;
 
@@ -211,6 +216,7 @@ async function ensureMembership(
   }));
 
   await db.insert(member_permissions).values(perms).onConflictDoNothing();
+  console.log(`  ✓ ${memberName} → ${householdName} (${role})`);
 }
 
 // ---------------------------------------------------------------------------
@@ -277,14 +283,10 @@ async function seed() {
 
   // --- Memberships ---
   console.log("\nMemberships:");
-  await ensureMembership(freeHouseholdId, freeAdminId, "admin");
-  await ensureMembership(freeHouseholdId, memberId, "member");
-  await ensureMembership(freeHouseholdId, childId, "child", SEED_CHILD.pin);
-  await ensureMembership(premiumHouseholdId, premiumAdminId, "admin");
-  console.log("  ✓ Free Admin    → Roost Free House (admin)");
-  console.log("  ✓ Test Member   → Roost Free House (member)");
-  console.log("  ✓ Test Child    → Roost Free House (child, PIN hashed)");
-  console.log("  ✓ Premium Admin → Roost Premium House (admin)");
+  await ensureMembership(freeHouseholdId, freeAdminId, "admin", SEED_ACCOUNTS.freeAdmin.name, "Roost Free House");
+  await ensureMembership(freeHouseholdId, memberId, "member", SEED_ACCOUNTS.member.name, "Roost Free House");
+  await ensureMembership(freeHouseholdId, childId, "child", SEED_CHILD.name, "Roost Free House", SEED_CHILD.pin);
+  await ensureMembership(premiumHouseholdId, premiumAdminId, "admin", SEED_ACCOUNTS.premiumAdmin.name, "Roost Premium House");
 
   console.log("\nSeed complete.");
 }

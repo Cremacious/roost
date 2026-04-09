@@ -434,9 +434,11 @@ function BalanceChips({
 
   function handleScroll() {
     if (!scrollRef.current) return;
-    const { scrollLeft, scrollWidth } = scrollRef.current;
-    const chipWidth = scrollWidth / 3;
-    setActiveChip(Math.round(scrollLeft / chipWidth));
+    const { scrollLeft, scrollWidth, clientWidth } = scrollRef.current;
+    const maxScroll = scrollWidth - clientWidth;
+    if (maxScroll <= 0) return;
+    const progress = scrollLeft / maxScroll;
+    setActiveChip(Math.round(progress * (chips.length - 1)));
   }
 
   const chips = [

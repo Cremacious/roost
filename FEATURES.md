@@ -1,5 +1,5 @@
 # Roost — Feature Registry
-> Last updated: 2026-04-09 (Chores page: moved + button from fixed FAB to header top-right; History/Leaderboard collapse to icon-only on mobile; Grocery page: animated scroll progress indicator on list pill row replaces native scrollbar; Tasks page: per-section client-side pagination via usePaginatedList hook + ShowMoreButton component; Expenses page: tab active state uses green COLOR; balance stat cards fixed to consistent height with justify-between label/value layout)
+> Last updated: 2026-04-09 (Chores page: moved + button from fixed FAB to header top-right; History/Leaderboard collapse to icon-only on mobile; Grocery page: animated scroll progress indicator on list pill row replaces native scrollbar; Tasks page: per-section client-side pagination via usePaginatedList hook + ShowMoreButton component; Expenses page: tab active state uses green COLOR; balance stat cards fixed to consistent height; dot pagination fixed to use progress-based index calculation)
 > Use this file for homepage copy, paywall screens, upgrade prompts, and App Store descriptions.
 
 ---

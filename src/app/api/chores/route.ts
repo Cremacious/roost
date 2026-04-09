@@ -1,7 +1,7 @@
 import { NextRequest } from "next/server";
 import { requireSession } from "@/lib/auth/helpers";
 import { db } from "@/lib/db";
-import { chores, chore_completions, household_members, households, users } from "@/db/schema";
+import { chores, chore_categories, chore_completions, household_members, households, users } from "@/db/schema";
 import { and, desc, eq, gte, isNull } from "drizzle-orm";
 import { addDays, addMonths, startOfDay } from "date-fns";
 import { checkChoreLimit } from "@/lib/utils/premiumGating";
@@ -82,11 +82,16 @@ export async function GET(request: NextRequest): Promise<Response> {
       created_by: chores.created_by,
       household_id: chores.household_id,
       created_at: chores.created_at,
+      category_id: chores.category_id,
       assignee_name: users.name,
       assignee_avatar: users.avatar_color,
+      category_name: chore_categories.name,
+      category_icon: chore_categories.icon,
+      category_color: chore_categories.color,
     })
     .from(chores)
     .leftJoin(users, eq(chores.assigned_to, users.id))
+    .leftJoin(chore_categories, eq(chores.category_id, chore_categories.id))
     .where(and(eq(chores.household_id, householdId), isNull(chores.deleted_at)));
 
   if (choreRows.length === 0) {
@@ -134,6 +139,9 @@ export async function GET(request: NextRequest): Promise<Response> {
 
   const result = choreRows.map((c) => ({
     ...c,
+    category: c.category_id
+      ? { id: c.category_id, name: c.category_name, icon: c.category_icon, color: c.category_color }
+      : null,
     is_complete_today: completedTodayByAnyone.has(c.id),
     completed_today_by_me: completedTodayByMe.has(c.id),
     latest_completion: latestCompletionMap.get(c.id) ?? null,
@@ -173,6 +181,7 @@ export async function POST(request: NextRequest): Promise<Response> {
     assigned_to?: string;
     frequency?: string;
     custom_days?: number[];
+    category_id?: string | null;
   };
   try {
     body = await request.json();
@@ -222,6 +231,7 @@ export async function POST(request: NextRequest): Promise<Response> {
       assigned_to: body.assigned_to || null,
       frequency: body.frequency,
       custom_days: body.custom_days ? JSON.stringify(body.custom_days) : null,
+      category_id: body.category_id ?? null,
       next_due_at,
       created_by: session.user.id,
     })

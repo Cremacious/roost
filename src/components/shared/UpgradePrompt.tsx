@@ -101,6 +101,11 @@ const PROMPT_MAP: Record<string, PromptConfig> = {
     title: "5 members on free.",
     body: "Got a big family or a full house? Upgrade for unlimited members and unlimited child accounts.",
   },
+  CHORE_CATEGORIES_PREMIUM: {
+    icon: CheckSquare,
+    title: "Organize chores your way.",
+    body: "Create custom categories and icons that match how your household actually works. Your home, your system.",
+  },
   LEADERBOARD_PREMIUM: {
     icon: Trophy,
     title: "The leaderboard is premium.",

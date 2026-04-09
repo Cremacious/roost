@@ -2,6 +2,7 @@ export * from "./auth";
 export * from "./households";
 export * from "./users";
 export * from "./members";
+export * from "./choreCategories";
 export * from "./chores";
 export * from "./grocery";
 export * from "./tasks";

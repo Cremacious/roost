@@ -1,0 +1,67 @@
+import { NextRequest } from "next/server";
+import { requireSession } from "@/lib/auth/helpers";
+import { db } from "@/lib/db";
+import { chore_categories, households } from "@/db/schema";
+import { eq } from "drizzle-orm";
+import { getUserHousehold } from "@/app/api/chores/route";
+
+export async function POST(request: NextRequest): Promise<Response> {
+  let session;
+  try {
+    session = await requireSession(request);
+  } catch (r) {
+    return r as Response;
+  }
+
+  const membership = await getUserHousehold(session.user.id);
+  if (!membership) {
+    return Response.json({ error: "No household found" }, { status: 404 });
+  }
+  if (membership.role === "child") {
+    return Response.json({ error: "Forbidden" }, { status: 403 });
+  }
+  const { householdId } = membership;
+
+  // Premium check
+  const [household] = await db
+    .select({ subscription_status: households.subscription_status })
+    .from(households)
+    .where(eq(households.id, householdId))
+    .limit(1);
+  if (household?.subscription_status !== "premium") {
+    return Response.json(
+      { error: "Custom chore categories require premium", code: "CHORE_CATEGORIES_PREMIUM" },
+      { status: 403 }
+    );
+  }
+
+  let body: { name?: string; icon?: string; color?: string };
+  try {
+    body = await request.json();
+  } catch {
+    return Response.json({ error: "Invalid request body" }, { status: 400 });
+  }
+
+  if (!body.name?.trim()) return Response.json({ error: "Name is required" }, { status: 400 });
+  if (!body.icon?.trim()) return Response.json({ error: "Icon is required" }, { status: 400 });
+  if (!body.color?.trim()) return Response.json({ error: "Color is required" }, { status: 400 });
+
+  const [category] = await db
+    .insert(chore_categories)
+    .values({
+      household_id: householdId,
+      name: body.name.trim(),
+      icon: body.icon.trim(),
+      color: body.color.trim(),
+      is_default: false,
+      is_custom: true,
+      suggested_by: session.user.id,
+      status: "pending",
+    })
+    .returning();
+
+  // TODO: push notify admin when Expo push is wired up
+  // Copy: `${user.name} suggested a new chore category: ${category.name}`
+
+  return Response.json({ category }, { status: 201 });
+}

@@ -1,5 +1,6 @@
 import { date, integer, pgTable, text, timestamp, unique, uuid } from "drizzle-orm/pg-core";
 import { households } from "./households";
+import { chore_categories } from "./choreCategories";
 
 export const chores = pgTable("chores", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -11,6 +12,8 @@ export const chores = pgTable("chores", {
   assigned_to: text("assigned_to"),
   frequency: text("frequency").notNull(),
   custom_days: text("custom_days"),
+  category_id: uuid("category_id")
+    .references(() => chore_categories.id),
   last_completed_at: timestamp("last_completed_at"),
   next_due_at: timestamp("next_due_at"),
   created_by: text("created_by").notNull(),

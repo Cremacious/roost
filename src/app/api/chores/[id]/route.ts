@@ -51,6 +51,7 @@ export async function PATCH(
     assigned_to?: string | null;
     frequency?: string;
     custom_days?: number[] | null;
+    category_id?: string | null;
   };
   try {
     body = await request.json();
@@ -85,6 +86,8 @@ export async function PATCH(
         body.assigned_to !== undefined ? body.assigned_to : existing.assigned_to,
       frequency: newFrequency,
       custom_days: newCustomDays ? JSON.stringify(newCustomDays) : null,
+      category_id:
+        body.category_id !== undefined ? body.category_id : existing.category_id,
       next_due_at,
       updated_at: new Date(),
     })

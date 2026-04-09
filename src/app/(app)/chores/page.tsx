@@ -41,6 +41,13 @@ import { PageContainer } from "@/components/layout/PageContainer";
 
 // ---- Types ------------------------------------------------------------------
 
+interface ChoreCategory {
+  id: string;
+  name: string;
+  icon: string;
+  color: string;
+}
+
 interface ChoreRow {
   id: string;
   title: string;
@@ -54,6 +61,8 @@ interface ChoreRow {
   assignee_avatar: string | null;
   created_by: string;
   household_id: string;
+  category_id: string | null;
+  category: ChoreCategory | null;
   is_complete_today: boolean;
   completed_today_by_me: boolean;
   latest_completion: { completedAt: string | null; completedBy: string } | null;
@@ -102,6 +111,7 @@ export default function ChoresPage() {
   const queryClient = useQueryClient();
 
   const [view, setView] = useState<"mine" | "all">("mine");
+  const [categoryFilter, setCategoryFilter] = useState<string | null>(null);
   const [completedExpanded, setCompletedExpanded] = useState(false);
   const [sheetOpen, setSheetOpen] = useState(false);
   const [editingChore, setEditingChore] = useState<ChoreData | null>(null);
@@ -143,6 +153,16 @@ export default function ChoresPage() {
     },
     staleTime: 10_000,
     retry: 2,
+  });
+
+  const { data: categoriesData } = useQuery<{ categories: ChoreCategory[] }>({
+    queryKey: ["choreCategories"],
+    queryFn: async () => {
+      const r = await fetch("/api/chore-categories");
+      if (!r.ok) throw new Error("Failed to load categories");
+      return r.json();
+    },
+    staleTime: 60_000,
   });
 
   // ---- Mutations -----------------------------------------------------------
@@ -196,13 +216,21 @@ export default function ChoresPage() {
 
   const allChores = choresData?.chores ?? [];
   const members = membersData?.members ?? [];
+  const categories = categoriesData?.categories ?? [];
   const currentMember = members.find((m) => m.userId === currentUserId);
   const isAdmin = currentMember?.role === "admin";
   const isPremium = membersData?.household?.subscriptionStatus === "premium";
 
-  const filtered = view === "mine"
+  // Categories that actually have chores assigned (for filter pills)
+  const usedCategoryIds = new Set(allChores.map((c) => c.category_id).filter(Boolean));
+  const activeCategories = categories.filter((c) => usedCategoryIds.has(c.id));
+
+  const viewFiltered = view === "mine"
     ? allChores.filter((c) => c.assigned_to === currentUserId || !c.assigned_to)
     : allChores;
+  const filtered = categoryFilter
+    ? viewFiltered.filter((c) => c.category_id === categoryFilter)
+    : viewFiltered;
 
   const incomplete = filtered.filter((c) => !c.is_complete_today);
   const complete = filtered.filter((c) => c.is_complete_today);
@@ -215,7 +243,15 @@ export default function ChoresPage() {
 
   function openCreate() { setEditingChore(null); setSheetOpen(true); }
   function openEdit(chore: ChoreRow) {
-    setEditingChore({ id: chore.id, title: chore.title, description: chore.description, frequency: chore.frequency, custom_days: chore.custom_days, assigned_to: chore.assigned_to });
+    setEditingChore({
+      id: chore.id,
+      title: chore.title,
+      description: chore.description,
+      frequency: chore.frequency,
+      custom_days: chore.custom_days,
+      assigned_to: chore.assigned_to,
+      category_id: chore.category_id,
+    });
     setSheetOpen(true);
   }
 
@@ -312,6 +348,44 @@ export default function ChoresPage() {
           </button>
         ))}
       </div>
+
+      {/* Category filter pills */}
+      {activeCategories.length > 0 && (
+        <div className="flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={() => setCategoryFilter(null)}
+            className="flex h-8 items-center gap-1.5 rounded-full px-3 text-xs"
+            style={{
+              backgroundColor: categoryFilter === null ? COLOR : "var(--roost-surface)",
+              border: `1.5px solid ${categoryFilter === null ? COLOR : "var(--roost-border)"}`,
+              color: categoryFilter === null ? "white" : "var(--roost-text-secondary)",
+              fontWeight: 700,
+            }}
+          >
+            All
+          </button>
+          {activeCategories.map((cat) => {
+            const active = categoryFilter === cat.id;
+            return (
+              <button
+                key={cat.id}
+                type="button"
+                onClick={() => setCategoryFilter(active ? null : cat.id)}
+                className="flex h-8 items-center gap-1.5 rounded-full px-3 text-xs"
+                style={{
+                  backgroundColor: active ? cat.color : "var(--roost-surface)",
+                  border: `1.5px solid ${active ? cat.color : "var(--roost-border)"}`,
+                  color: active ? "white" : "var(--roost-text-secondary)",
+                  fontWeight: 700,
+                }}
+              >
+                {cat.name}
+              </button>
+            );
+          })}
+        </div>
+      )}
 
       {/* Loading */}
       {choresLoading && (
@@ -552,7 +626,7 @@ function ChoreItem({
   completing,
   done = false,
 }: {
-  chore: ChoreRow;
+  chore: ChoreRow & { category?: ChoreCategory | null };
   currentUserId: string;
   isAdmin: boolean;
   onComplete: () => void;
@@ -607,6 +681,19 @@ function ChoreItem({
         </p>
         <div className="mt-1 flex flex-wrap items-center gap-1.5">
           <SectionColorBadge label={frequencyLabel(chore.frequency)} color={SECTION_COLORS.chores} />
+          {chore.category && (
+            <span
+              className="rounded-full px-2 py-0.5 text-[10px]"
+              style={{
+                backgroundColor: `${chore.category.color}18`,
+                color: chore.category.color,
+                fontWeight: 700,
+                border: `1px solid ${chore.category.color}30`,
+              }}
+            >
+              {chore.category.name}
+            </span>
+          )}
           {chore.assignee_name && chore.assigned_to !== currentUserId && (
             <span className="text-xs" style={{ color: "var(--roost-text-muted)", fontWeight: 600 }}>
               {chore.assignee_name}

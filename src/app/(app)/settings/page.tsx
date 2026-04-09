@@ -8,6 +8,8 @@ import { motion } from "framer-motion";
 import { toast } from "sonner";
 import { CategoryIcon, ICON_OPTIONS, COLOR_OPTIONS } from "@/components/expenses/CategoryPicker";
 import type { Category } from "@/components/expenses/CategoryPicker";
+import { ChoreIcon, type ChoreCategory } from "@/components/chores/ChoreCategoryPicker";
+import { CHORE_ICON_OPTIONS } from "@/components/chores/choreIconMap";
 import { THEMES, type ThemeKey } from "@/lib/constants/themes";
 import { useTheme } from "@/components/providers/ThemeProvider";
 import { useSession } from "@/lib/auth/client";
@@ -76,6 +78,7 @@ const NAV_SECTIONS = [
   { id: "section-members", label: "Members" },
   { id: "section-notifications", label: "Notifications" },
   { id: "section-categories", label: "Categories", adminOnly: true },
+  { id: "section-chore-categories", label: "Chore Categories", adminOnly: true },
   { id: "section-billing", label: "Billing" },
   { id: "section-danger", label: "Danger Zone", adminOnly: true },
 ];
@@ -455,6 +458,266 @@ function CategoriesSettingsSection() {
             <AlertDialogTitle>Remove category?</AlertDialogTitle>
             <AlertDialogDescription>
               Any expenses using this category will be moved to Other.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <button
+              type="button"
+              onClick={() => setDeleteConfirmId(null)}
+              className="h-10 rounded-xl px-4 text-sm"
+              style={{ border: "1.5px solid var(--roost-border)", borderBottom: "3px solid var(--roost-border-bottom)", color: "var(--roost-text-primary)", fontWeight: 700 }}
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={() => deleteConfirmId && deleteMutation.mutate(deleteConfirmId)}
+              disabled={deleteMutation.isPending}
+              className="h-10 rounded-xl px-4 text-sm text-white"
+              style={{ backgroundColor: "#EF4444", border: "1.5px solid #EF4444", borderBottom: "3px solid #A63030", fontWeight: 800 }}
+            >
+              {deleteMutation.isPending ? <Loader2 className="size-4 animate-spin" /> : "Remove"}
+            </button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </div>
+  );
+}
+
+// ---- ChoreCategoriesSettingsSection -----------------------------------------
+
+function ChoreCategoriesSettingsSection() {
+  const queryClient = useQueryClient();
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editName, setEditName] = useState("");
+  const [editIcon, setEditIcon] = useState("CheckSquare");
+  const [editColor, setEditColor] = useState("#EF4444");
+  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+
+  const { data } = useQuery<{ categories: ChoreCategory[]; pendingSuggestions?: ChoreCategory[] }>({
+    queryKey: ["choreCategories"],
+    queryFn: async () => {
+      const r = await fetch("/api/chore-categories");
+      if (!r.ok) throw new Error("Failed to load chore categories");
+      return r.json();
+    },
+    staleTime: 30_000,
+  });
+
+  const customCategories = (data?.categories ?? []).filter((c) => c.is_custom);
+  const pendingSuggestions = data?.pendingSuggestions ?? [];
+
+  const patchMutation = useMutation({
+    mutationFn: async ({ id, updates }: { id: string; updates: Partial<ChoreCategory & { status: string }> }) => {
+      const r = await fetch(`/api/chore-categories/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(updates),
+      });
+      if (!r.ok) {
+        const d = await r.json().catch(() => ({}));
+        throw new Error(d.error ?? "Failed to update category");
+      }
+      return r.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["choreCategories"] });
+      setEditingId(null);
+    },
+    onError: (err: Error) => toast.error("Failed to update", { description: err.message }),
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const r = await fetch(`/api/chore-categories/${id}`, { method: "DELETE" });
+      if (!r.ok) {
+        const d = await r.json().catch(() => ({}));
+        throw new Error(d.error ?? "Failed to delete category");
+      }
+      return r.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["choreCategories"] });
+      setDeleteConfirmId(null);
+      toast.success("Category removed");
+    },
+    onError: (err: Error) => toast.error("Failed to delete", { description: err.message }),
+  });
+
+  function startEdit(cat: ChoreCategory) {
+    setEditingId(cat.id);
+    setEditName(cat.name);
+    setEditIcon(cat.icon);
+    setEditColor(cat.color);
+  }
+
+  const inputStyle: React.CSSProperties = {
+    backgroundColor: "var(--roost-surface)",
+    border: "1.5px solid var(--roost-border)",
+    borderBottom: "3px solid var(--roost-border-bottom)",
+    borderRadius: 10,
+    padding: "8px 12px",
+    color: "var(--roost-text-primary)",
+    fontWeight: 600,
+    fontSize: 13,
+    width: "100%",
+  };
+
+  return (
+    <div className="space-y-4">
+      <SlabCard>
+        {customCategories.length === 0 ? (
+          <div className="px-4 py-3">
+            <p className="text-sm" style={{ color: "var(--roost-text-muted)", fontWeight: 600 }}>
+              No custom chore categories yet. Use the chore form to add one.
+            </p>
+          </div>
+        ) : (
+          customCategories.map((cat, i) => (
+            <div key={cat.id}>
+              {i > 0 && <div style={{ height: 1, backgroundColor: "var(--roost-border)" }} />}
+              {editingId === cat.id ? (
+                <div className="space-y-3 px-4 py-3">
+                  <input value={editName} onChange={(e) => setEditName(e.target.value)} style={inputStyle} placeholder="Category name" />
+                  <div className="flex flex-wrap gap-1.5">
+                    {CHORE_ICON_OPTIONS.map((iconName) => {
+                      const active = editIcon === iconName;
+                      return (
+                        <button
+                          key={iconName}
+                          type="button"
+                          onClick={() => setEditIcon(iconName)}
+                          className="flex h-8 w-8 items-center justify-center rounded-xl"
+                          style={{
+                            border: active ? `1.5px solid ${editColor}` : "1.5px solid var(--roost-border)",
+                            borderBottom: active ? `3px solid ${editColor}` : "3px solid var(--roost-border-bottom)",
+                            backgroundColor: active ? `${editColor}18` : "transparent",
+                          }}
+                        >
+                          <ChoreIcon icon={iconName} color={active ? editColor : "var(--roost-text-muted)"} size={14} />
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {COLOR_OPTIONS.map((c) => (
+                      <button
+                        key={c}
+                        type="button"
+                        onClick={() => setEditColor(c)}
+                        className="h-6 w-6 rounded-full"
+                        style={{
+                          backgroundColor: c,
+                          boxShadow: editColor === c ? `0 0 0 2px white, 0 0 0 4px ${c}` : "none",
+                        }}
+                      />
+                    ))}
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setEditingId(null)}
+                      className="h-9 flex-1 rounded-xl text-xs"
+                      style={{ border: "1.5px solid var(--roost-border)", borderBottom: "3px solid var(--roost-border-bottom)", color: "var(--roost-text-secondary)", fontWeight: 700 }}
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => patchMutation.mutate({ id: cat.id, updates: { name: editName, icon: editIcon, color: editColor } })}
+                      disabled={!editName.trim() || patchMutation.isPending}
+                      className="h-9 flex-1 rounded-xl text-xs text-white"
+                      style={{ backgroundColor: "#EF4444", border: "1.5px solid #EF4444", borderBottom: "3px solid #C93B3B", fontWeight: 700, opacity: !editName.trim() || patchMutation.isPending ? 0.6 : 1 }}
+                    >
+                      {patchMutation.isPending ? <Loader2 className="mx-auto size-4 animate-spin" /> : "Save"}
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <SlabRow topBorder={i > 0}>
+                  <div
+                    className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full"
+                    style={{ backgroundColor: `${cat.color}20` }}
+                  >
+                    <ChoreIcon icon={cat.icon} color={cat.color} size={18} />
+                  </div>
+                  <span className="flex-1 text-sm" style={{ color: "var(--roost-text-primary)", fontWeight: 700 }}>
+                    {cat.name}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => startEdit(cat)}
+                    className="flex h-9 w-9 items-center justify-center rounded-xl"
+                    style={{ border: "1.5px solid var(--roost-border)", borderBottom: "3px solid var(--roost-border-bottom)" }}
+                  >
+                    <Pencil className="size-4" style={{ color: "var(--roost-text-secondary)" }} />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setDeleteConfirmId(cat.id)}
+                    className="flex h-9 w-9 items-center justify-center rounded-xl"
+                    style={{ border: "1.5px solid #EF444430", borderBottom: "3px solid #EF444440" }}
+                  >
+                    <Trash2 className="size-4 text-red-500" />
+                  </button>
+                </SlabRow>
+              )}
+            </div>
+          ))
+        )}
+      </SlabCard>
+
+      {pendingSuggestions.length > 0 && (
+        <div className="space-y-2">
+          <p className="text-xs" style={{ color: "#D97706", fontWeight: 700 }}>
+            Pending suggestions
+          </p>
+          <SlabCard>
+            {pendingSuggestions.map((cat, i) => (
+              <div key={cat.id}>
+                {i > 0 && <div style={{ height: 1, backgroundColor: "var(--roost-border)" }} />}
+                <SlabRow topBorder={i > 0}>
+                  <div
+                    className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full"
+                    style={{ backgroundColor: `${cat.color}20` }}
+                  >
+                    <ChoreIcon icon={cat.icon} color={cat.color} size={18} />
+                  </div>
+                  <span className="flex-1 text-sm" style={{ color: "var(--roost-text-primary)", fontWeight: 700 }}>
+                    {cat.name}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => patchMutation.mutate({ id: cat.id, updates: { status: "active" } })}
+                    disabled={patchMutation.isPending}
+                    className="h-9 rounded-xl px-3 text-xs text-white"
+                    style={{ backgroundColor: "#22C55E", border: "1.5px solid #22C55E", borderBottom: "3px solid #16A34A", fontWeight: 700 }}
+                  >
+                    Approve
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => patchMutation.mutate({ id: cat.id, updates: { status: "rejected" } })}
+                    disabled={patchMutation.isPending}
+                    className="h-9 rounded-xl px-3 text-xs"
+                    style={{ border: "1.5px solid #EF444430", borderBottom: "3px solid #EF444440", color: "#EF4444", fontWeight: 700 }}
+                  >
+                    Reject
+                  </button>
+                </SlabRow>
+              </div>
+            ))}
+          </SlabCard>
+        </div>
+      )}
+
+      <AlertDialog open={!!deleteConfirmId} onOpenChange={(v) => !v && setDeleteConfirmId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remove category?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Any chores using this category will be unassigned from it.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -1461,6 +1724,17 @@ export default function SettingsPage() {
             subtitle="Manage expense categories for your household."
           >
             <CategoriesSettingsSection />
+          </SettingsSection>
+        )}
+
+        {/* ---- SECTION 7b: CHORE CATEGORIES (admin only) ------------------ */}
+        {isAdmin && (
+          <SettingsSection
+            id="section-chore-categories"
+            title="Chore Categories"
+            subtitle="Manage chore categories and approve member suggestions."
+          >
+            <ChoreCategoriesSettingsSection />
           </SettingsSection>
         )}
 

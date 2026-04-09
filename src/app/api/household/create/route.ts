@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 import { households, household_members } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { seedDefaultCategories } from "@/lib/utils/seedCategories";
+import { seedChoreCategories } from "@/lib/utils/seedChoreCategories";
 
 function randomCode(): string {
   return Math.random().toString(36).substring(2, 8).toUpperCase();
@@ -63,8 +64,16 @@ export async function POST(request: NextRequest): Promise<Response> {
   try {
     await seedDefaultCategories(household.id);
   } catch (err) {
-    console.error("[household/create] Failed to seed categories:", err);
+    console.error("[household/create] Failed to seed expense categories:", err);
     // Non-fatal — categories will be auto-seeded on first GET /api/expenses/categories
+  }
+
+  // Seed default chore categories for every new household
+  try {
+    await seedChoreCategories(household.id);
+  } catch (err) {
+    console.error("[household/create] Failed to seed chore categories:", err);
+    // Non-fatal — categories will be auto-seeded on first GET /api/chore-categories
   }
 
   return Response.json({ household: { id: household.id, name: household.name, code: household.code } });

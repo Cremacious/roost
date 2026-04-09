@@ -1,5 +1,5 @@
 # Roost — Feature Registry
-> Last updated: 2026-04-09 (grocery smart sort built)
+> Last updated: 2026-04-09 (custom chore categories built)
 > Use this file for homepage copy, paywall screens, upgrade prompts, and App Store descriptions.
 
 ---
@@ -133,6 +133,14 @@
   - Full log of every chore completed by anyone in the household
   - Filter by member and date range
   - Stats: total completions, most active member, streak leader
+- Custom chore categories with icons and colors
+  - 8 seeded defaults: Kitchen, Bathroom, Bedroom, Outdoor, Laundry, Pet Care, Errands, Other
+  - Admins create custom categories inline in the chore form
+  - Members can suggest categories (admin approves or rejects)
+  - Category filter pills on the chores list page
+  - Category badge on each chore row
+  - Admin management in Settings > Chore Categories
+  - Premium gate: CHORE_CATEGORIES_PREMIUM error code
 
 #### Grocery (Premium)
 - Multiple named grocery lists (Costco run, Target, weekly shop, etc.)
@@ -215,9 +223,7 @@ Premium feature.
 
 ~~**Grocery Smart Sort**~~ — BUILT (see above)
 
-**Custom Chore Categories and Icons**
-Admins create custom chore categories. Members can suggest new ones. Admins approve.
-Premium feature.
+~~**Custom Chore Categories and Icons**~~ — BUILT (see above)
 
 **Superadmin Panel** (/admin)
 Internal dashboard for the Roost team. Not user-facing. Protected by separate admin credentials.

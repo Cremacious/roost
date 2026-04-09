@@ -19,6 +19,7 @@ import {
 } from "@/components/ui/dialog";
 import { Loader2, Lock, Trash2 } from "lucide-react";
 import { SECTION_COLORS } from "@/lib/constants/colors";
+import ChoreCategoryPicker from "./ChoreCategoryPicker";
 
 const COLOR = SECTION_COLORS.chores;
 
@@ -31,6 +32,7 @@ export interface ChoreData {
   frequency: string;
   custom_days: string | null;
   assigned_to: string | null;
+  category_id: string | null;
 }
 
 interface Member {
@@ -98,6 +100,7 @@ export default function ChoreSheet({
   const [assignedTo, setAssignedTo] = useState("");
   const [frequency, setFrequency] = useState("daily");
   const [customDays, setCustomDays] = useState<number[]>([]);
+  const [categoryId, setCategoryId] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
 
   useEffect(() => {
@@ -109,12 +112,14 @@ export default function ChoreSheet({
       setCustomDays(
         chore.custom_days ? (JSON.parse(chore.custom_days) as number[]) : []
       );
+      setCategoryId(chore.category_id ?? null);
     } else {
       setTitle("");
       setDescription("");
       setAssignedTo("");
       setFrequency("daily");
       setCustomDays([]);
+      setCategoryId(null);
     }
   }, [chore, open]);
 
@@ -142,6 +147,7 @@ export default function ChoreSheet({
         assigned_to: assignedTo || undefined,
         frequency,
         custom_days: frequency === "custom" ? customDays : undefined,
+        category_id: categoryId ?? null,
       };
 
       const url = isEdit ? `/api/chores/${chore!.id}` : "/api/chores";
@@ -257,6 +263,29 @@ export default function ChoreSheet({
                 rows={2}
                 className="w-full rounded-xl px-4 py-3 text-sm placeholder:italic focus:outline-none resize-none"
                 style={inputStyle}
+              />
+            </div>
+
+            {/* Category */}
+            <div className="space-y-1.5">
+              <label
+                className="text-sm"
+                style={{ color: "var(--roost-text-primary)", fontWeight: 700 }}
+              >
+                Category
+                <span
+                  className="ml-1.5 text-xs"
+                  style={{ color: "var(--roost-text-muted)", fontWeight: 600 }}
+                >
+                  optional
+                </span>
+              </label>
+              <ChoreCategoryPicker
+                selectedId={categoryId}
+                onSelect={setCategoryId}
+                isPremium={isPremium}
+                isAdmin={isAdmin}
+                onUpgradeRequired={onUpgradeRequired}
               />
             </div>
 

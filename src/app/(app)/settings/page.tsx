@@ -1660,6 +1660,7 @@ export default function SettingsPage() {
 
         {/* ---- SECTION 6: NOTIFICATIONS ----------------------------------- */}
         <SettingsSection id="section-notifications" title="Notifications" subtitle="Push notifications are available in the iOS and Android apps. Coming soon.">
+          <p style={{ fontSize: 14, color: 'var(--roost-text-muted)' }}>No settings available yet.</p>
         </SettingsSection>
 
         {/* ---- SECTION 7: CATEGORIES (admin only) ------------------------- */}

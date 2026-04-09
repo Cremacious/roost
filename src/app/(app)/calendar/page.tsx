@@ -373,6 +373,21 @@ export default function CalendarPage() {
           Calendar
         </h1>
         <div className="flex items-center gap-2">
+          {/* Add button */}
+          <motion.button
+            type="button"
+            onClick={() => openCreate()}
+            whileTap={{ y: 1 }}
+            className="flex h-9 w-9 items-center justify-center rounded-xl"
+            style={{
+              backgroundColor: COLOR,
+              border: `1.5px solid ${COLOR}`,
+              borderBottom: `3px solid ${COLOR_DARK}`,
+            }}
+            aria-label="Add event"
+          >
+            <Plus className="size-4 text-white" />
+          </motion.button>
           {/* View toggle */}
           <div
             className="flex overflow-hidden rounded-xl"
@@ -398,21 +413,6 @@ export default function CalendarPage() {
               </button>
             ))}
           </div>
-          {/* Add button */}
-          <motion.button
-            type="button"
-            onClick={() => openCreate()}
-            whileTap={{ y: 1 }}
-            className="flex h-9 w-9 items-center justify-center rounded-xl"
-            style={{
-              backgroundColor: COLOR,
-              border: `1.5px solid ${COLOR}`,
-              borderBottom: `3px solid ${COLOR_DARK}`,
-            }}
-            aria-label="Add event"
-          >
-            <Plus className="size-4 text-white" />
-          </motion.button>
         </div>
       </div>
 

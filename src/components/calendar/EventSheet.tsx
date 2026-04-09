@@ -511,7 +511,7 @@ export default function EventSheet({
     return (
       <>
         <DraggableSheet open={open} onOpenChange={(v) => !v && onClose()} featureColor={COLOR}>
-          <div className="overflow-y-auto px-4 pb-8" style={{ maxHeight: "calc(88dvh - 60px)" }}>
+          <div className="overflow-x-hidden overflow-y-auto px-4 pb-8" style={{ maxHeight: "calc(88dvh - 60px)" }}>
             <div className="mb-4 flex items-start gap-2">
               <p style={{ color: "var(--roost-text-primary)", fontWeight: 800, fontSize: 20, flex: 1 }}>
                 {event.title}
@@ -665,7 +665,7 @@ export default function EventSheet({
 
   return (
     <DraggableSheet open={open} onOpenChange={(v) => !v && onClose()} featureColor={COLOR} desktopMaxWidth={860}>
-      <div className="overflow-y-auto px-4 pb-8" style={{ maxHeight: "calc(92dvh - 60px)" }}>
+      <div className="overflow-x-hidden overflow-y-auto px-4 pb-8" style={{ maxHeight: "calc(92dvh - 60px)" }}>
         <p className="mb-5 text-lg" style={{ color: "var(--roost-text-primary)", fontWeight: 800 }}>
           {mode === "create" ? "New Event" : "Edit Event"}
         </p>
@@ -738,7 +738,7 @@ export default function EventSheet({
 
             {/* Time inputs */}
             {!allDay && (
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4">
                 <div>
                   <label className="mb-1.5 block text-xs" style={{ color: "#374151", fontWeight: 700 }}>
                     Start time

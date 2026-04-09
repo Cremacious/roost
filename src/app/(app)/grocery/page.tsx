@@ -768,10 +768,10 @@ export default function GroceryPage() {
                   whileTap={{ y: 1 }}
                   className="flex h-10 w-10 items-center justify-center rounded-xl"
                   style={{
-                    backgroundColor: 'var(--roost-surface)',
-                    border: '1.5px solid var(--roost-border)',
-                    borderBottom: `3px solid ${COLOR_DARK}`,
-                    color: 'var(--roost-text-secondary)',
+                    backgroundColor: COLOR,
+                    border: `1.5px solid ${COLOR}`,
+                    borderBottom: '3px solid #B45309',
+                    color: '#fff',
                   }}
                   title="Add item with details"
                 >
@@ -847,10 +847,10 @@ export default function GroceryPage() {
                   whileTap={{ y: 1 }}
                   className="flex h-10 w-10 items-center justify-center rounded-xl"
                   style={{
-                    backgroundColor: 'var(--roost-surface)',
-                    border: '1.5px solid var(--roost-border)',
-                    borderBottom: `3px solid ${COLOR_DARK}`,
-                    color: 'var(--roost-text-secondary)',
+                    backgroundColor: COLOR,
+                    border: `1.5px solid ${COLOR}`,
+                    borderBottom: '3px solid #B45309',
+                    color: '#fff',
                   }}
                   title="Add item with details"
                 >

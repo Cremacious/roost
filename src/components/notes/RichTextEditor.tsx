@@ -32,7 +32,6 @@ interface RichTextEditorProps {
   onChange: (html: string) => void;
   placeholder?: string;
   editable?: boolean;
-  autofocus?: boolean;
   hideToolbar?: boolean;
 }
 
@@ -101,7 +100,6 @@ export default function RichTextEditor({
   onChange,
   placeholder,
   editable = true,
-  autofocus = false,
   hideToolbar = false,
 }: RichTextEditorProps) {
   const editor = useEditor({
@@ -135,7 +133,7 @@ export default function RichTextEditor({
     ],
     content: content || "",
     editable,
-    autofocus,
+    autofocus: false,
     onUpdate: ({ editor }) => {
       onChange(editor.getHTML());
     },

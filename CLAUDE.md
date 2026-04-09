@@ -424,6 +424,14 @@ Tasks: one-off to-dos
   Rules: The drag handle is rendered automatically by DraggableSheet — never add a manual handle div.
   Inner scroll wrapper uses maxHeight: calc(Xdvh - 60px) (60px accounts for handle + padding).
   Use dvh (not vh). Vaul handles scroll vs drag detection automatically.
+  onOpenAutoFocus={(e) => e.preventDefault()} on DrawerPrimitive.Content prevents iOS Safari from
+  auto-focusing the first input and raising the keyboard before the user sees the form.
+- Mobile Safari UX rules:
+  All inputs/textareas/selects/[contenteditable] have font-size: 16px !important on mobile
+  (globals.css @media max-width 768px). iOS Safari auto-zooms on focus when font-size < 16px.
+  viewport export in layout.tsx sets maximumScale: 1 as a secondary guard against auto-zoom.
+  Tiptap RichTextEditor has autofocus: false hardcoded in useEditor — Tiptap calls .focus()
+  programmatically and bypasses Radix/Vaul onOpenAutoFocus. Never pass autofocus prop to RichTextEditor.
 - UI scales: phone / tablet / desktop
 - Font: Nunito (400-900) via next/font/google; weights 600/700/800/900 only in UI. Never below 600.
 - framer-motion animations:

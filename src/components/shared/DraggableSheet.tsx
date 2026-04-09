@@ -51,6 +51,7 @@ export default function DraggableSheet({
         <DrawerPrimitive.Content
           aria-label="Sheet"
           className="roost-draggable-sheet fixed bottom-0 left-0 right-0 sm:left-1/2 sm:right-auto sm:-translate-x-1/2 sm:max-w-170 sm:w-full"
+          onOpenAutoFocus={(e) => e.preventDefault()}
           style={
             {
               zIndex: 50,

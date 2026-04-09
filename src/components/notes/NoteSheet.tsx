@@ -399,7 +399,6 @@ export default function NoteSheet({
                   onChange={setContent}
                   placeholder="Write whatever you want. Nobody is grading this."
                   editable={true}
-                  autofocus={mode === "create"}
                 />
               ) : (
                 <>

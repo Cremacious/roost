@@ -5,15 +5,15 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  AlertTriangle,
   ArrowLeft,
+  Check,
   CheckCircle,
+  Home,
   Loader2,
   X,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useHousehold } from "@/lib/hooks/useHousehold";
-import SlabCard from "@/components/shared/SlabCard";
 import { PageContainer } from "@/components/layout/PageContainer";
 import {
   Sheet,
@@ -21,6 +21,46 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
+import { PREMIUM_GATE_CONFIG } from "@/lib/constants/premiumGateConfig";
+
+// ---- Constants ---------------------------------------------------------------
+
+const FEATURE_ORDER = [
+  "chores",
+  "expenses",
+  "grocery",
+  "meals",
+  "reminders",
+  "calendar",
+  "tasks",
+  "notes",
+] as const;
+
+const FEATURE_NAMES: Record<string, string> = {
+  chores: "Chores",
+  expenses: "Expenses",
+  grocery: "Grocery",
+  meals: "Meals",
+  reminders: "Reminders",
+  calendar: "Calendar",
+  tasks: "Tasks",
+  notes: "Notes",
+};
+
+const HOUSEHOLD_EXTRA_PERKS = [
+  "Allowance system tied to chore completion",
+  "Guest member access for temporary members",
+  "All app themes unlocked",
+  "Household-wide stats and activity history",
+];
+
+const CANCEL_LOSSES = [
+  "Bill splitting and receipt scanning",
+  "Recurring chores and leaderboard",
+  "Meal suggestions and voting",
+  "Unlimited reminders",
+  "Allowance system for kids",
+];
 
 // ---- Helpers -----------------------------------------------------------------
 
@@ -32,58 +72,192 @@ function formatDate(iso: string) {
   });
 }
 
-// ---- Free tier feature limits ------------------------------------------------
+// ---- Sub-components ----------------------------------------------------------
 
-const FREE_LIMITS = [
-  "Up to 5 members",
-  "Up to 5 chores",
-  "Basic features only",
-];
+function PerkRow({ text, featureHex }: { text: string; featureHex: string }) {
+  return (
+    <div className="flex items-start gap-2" style={{ marginBottom: 6 }}>
+      <div
+        style={{
+          width: 14,
+          height: 14,
+          borderRadius: "50%",
+          backgroundColor: featureHex + "1F",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          flexShrink: 0,
+          marginTop: 2,
+        }}
+      >
+        <Check size={8} strokeWidth={3.5} style={{ color: featureHex }} />
+      </div>
+      <span
+        style={{
+          color: "var(--roost-text-primary)",
+          fontSize: 12,
+          fontWeight: 600,
+          lineHeight: 1.4,
+        }}
+      >
+        {text}
+      </span>
+    </div>
+  );
+}
 
-const PREMIUM_FEATURES = [
-  "Unlimited chores and recurring schedules",
-  "Bill splitting and receipt scanning",
-  "Meal suggestions and household voting",
-  "Recurring reminders, notify anyone",
-  "Chore streaks and leaderboard",
-  "Unlimited members and child accounts",
-  "Allowance system for kids",
-];
+function FeatureCard({ featureKey }: { featureKey: string }) {
+  const config = PREMIUM_GATE_CONFIG[featureKey];
+  if (!config) return null;
+  const Icon = config.icon;
+  const { featureHex } = config;
+  const name = FEATURE_NAMES[featureKey] ?? featureKey;
 
-const CANCEL_LOSSES = [
-  "Bill splitting and receipt scanning",
-  "Recurring chores and leaderboard",
-  "Meal suggestions and voting",
-  "Unlimited reminders",
-  "Allowance system for kids",
-];
+  return (
+    <div
+      style={{
+        backgroundColor: "var(--roost-surface)",
+        border: "1px solid var(--roost-border)",
+        borderBottom: `3px solid ${featureHex}`,
+        borderRadius: 16,
+        padding: "16px 18px",
+      }}
+    >
+      <div className="flex items-center gap-3" style={{ marginBottom: 12 }}>
+        <div
+          style={{
+            width: 36,
+            height: 36,
+            borderRadius: 10,
+            backgroundColor: featureHex + "1A",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            flexShrink: 0,
+          }}
+        >
+          <Icon size={18} style={{ color: featureHex }} />
+        </div>
+        <span style={{ color: "var(--roost-text-primary)", fontSize: 14, fontWeight: 800 }}>
+          {name}
+        </span>
+      </div>
 
-// ---- Inner component that uses useSearchParams (requires Suspense) -----------
+      <div>
+        {config.perks.map((perk) => (
+          <PerkRow key={perk} text={perk} featureHex={featureHex} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function HouseholdExtrasCard() {
+  return (
+    <div
+      style={{
+        backgroundColor: "var(--roost-surface)",
+        border: "1px solid var(--roost-border)",
+        borderBottom: "3px solid #EF4444",
+        borderRadius: 16,
+        padding: "16px 18px",
+        gridColumn: "1 / -1",
+      }}
+    >
+      <div className="flex items-center gap-3" style={{ marginBottom: 12 }}>
+        <div
+          style={{
+            width: 36,
+            height: 36,
+            borderRadius: 10,
+            backgroundColor: "#EF44441A",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            flexShrink: 0,
+          }}
+        >
+          <Home size={18} style={{ color: "#EF4444" }} />
+        </div>
+        <span style={{ color: "var(--roost-text-primary)", fontSize: 14, fontWeight: 800 }}>
+          Household extras
+        </span>
+      </div>
+
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
+          gap: "0 24px",
+        }}
+      >
+        {HOUSEHOLD_EXTRA_PERKS.map((perk) => (
+          <PerkRow key={perk} text={perk} featureHex="#EF4444" />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ---- Upgrade button (reused in hero + bottom CTA) ----------------------------
+
+function UpgradeButton({
+  label,
+  loading,
+  onClick,
+}: {
+  label: string;
+  loading: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <motion.button
+      type="button"
+      whileTap={{ y: 2 }}
+      onClick={onClick}
+      disabled={loading}
+      className="flex items-center justify-center"
+      style={{
+        width: "100%",
+        height: 52,
+        backgroundColor: "#EF4444",
+        borderRadius: 14,
+        boxShadow: "0 4px 0 #C93B3B",
+        border: "none",
+        color: "white",
+        fontSize: 15,
+        fontWeight: 800,
+        opacity: loading ? 0.7 : 1,
+        cursor: loading ? "not-allowed" : "pointer",
+      }}
+    >
+      {loading ? <Loader2 className="size-4 animate-spin" /> : label}
+    </motion.button>
+  );
+}
+
+// ---- Inner component (requires Suspense for useSearchParams) -----------------
 
 function BillingPageInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const queryClient = useQueryClient();
-  const { isPremium, isCancelled, premiumExpiresAt, role, isLoading } =
-    useHousehold();
+  const { isPremium, isCancelled, premiumExpiresAt, role, isLoading } = useHousehold();
 
   const [showCancelFlow, setShowCancelFlow] = useState(false);
   const [isCancelling, setIsCancelling] = useState(false);
   const [isReactivating, setIsReactivating] = useState(false);
   const [isCheckingOut, setIsCheckingOut] = useState(false);
   const [isPortalLoading, setIsPortalLoading] = useState(false);
-
   const [successBanner, setSuccessBanner] = useState(false);
   const [cancelledBanner, setCancelledBanner] = useState(false);
 
   const isAdmin = role === "admin";
 
-  // Handle URL params on mount
   useEffect(() => {
     if (searchParams.get("success") === "true") {
       setSuccessBanner(true);
       router.replace("/settings/billing");
-      // Invalidate household query after brief delay for webhook to process
       setTimeout(() => {
         queryClient.invalidateQueries({ queryKey: ["household"] });
       }, 2000);
@@ -152,8 +326,13 @@ function BillingPageInner() {
       }
       await queryClient.invalidateQueries({ queryKey: ["household"] });
       setShowCancelFlow(false);
-      const endDate = premiumExpiresAt ? formatDate(premiumExpiresAt) : "the end of your billing period";
-      toast.success(`Subscription cancelled. You will stay Premium until ${endDate}.`);
+      const endDate =
+        premiumExpiresAt
+          ? formatDate(premiumExpiresAt)
+          : "the end of your billing period";
+      toast.success(
+        `Subscription cancelled. You will stay Premium until ${endDate}.`
+      );
     } catch {
       toast.error("Could not cancel", {
         description: "A network error occurred. Please try again.",
@@ -203,14 +382,76 @@ function BillingPageInner() {
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.18 }}
-        className="space-y-5 pb-10"
+        className="space-y-6 pb-16 pt-2"
       >
-        {/* Header */}
-        <div className="flex items-center gap-3 pt-2">
+        {/* ---- Banners ------------------------------------------------------- */}
+        <AnimatePresence>
+          {successBanner && (
+            <motion.div
+              initial={{ opacity: 0, y: -8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              transition={{ duration: 0.15 }}
+              className="flex items-start gap-3 rounded-2xl p-4"
+              style={{
+                backgroundColor: "var(--roost-surface)",
+                border: "1.5px solid var(--roost-border)",
+                borderBottom: "4px solid #22C55E",
+              }}
+            >
+              <CheckCircle
+                className="mt-0.5 size-5 shrink-0"
+                style={{ color: "#22C55E" }}
+              />
+              <div>
+                <p
+                  className="text-sm"
+                  style={{ color: "var(--roost-text-primary)", fontWeight: 800 }}
+                >
+                  Welcome to Premium. Your household is now upgraded.
+                </p>
+                <p
+                  className="mt-0.5 text-xs"
+                  style={{ color: "var(--roost-text-muted)", fontWeight: 600 }}
+                >
+                  It may take a moment to reflect.
+                </p>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        <AnimatePresence>
+          {cancelledBanner && (
+            <motion.div
+              initial={{ opacity: 0, y: -8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              transition={{ duration: 0.15 }}
+              className="flex items-center gap-3 rounded-2xl p-4"
+              style={{
+                backgroundColor: "var(--roost-surface)",
+                border: "1.5px solid var(--roost-border)",
+                borderBottom: "4px solid var(--roost-border-bottom)",
+              }}
+            >
+              <X className="size-4 shrink-0" style={{ color: "var(--roost-text-muted)" }} />
+              <p
+                className="text-sm"
+                style={{ color: "var(--roost-text-secondary)", fontWeight: 600 }}
+              >
+                No worries. Your plan was not changed.
+              </p>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* ---- 1. Page header ------------------------------------------------ */}
+        <div className="flex items-center gap-3">
           <button
             type="button"
             onClick={() => router.push("/settings")}
-            className="flex h-10 w-10 items-center justify-center rounded-xl"
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl"
             style={{
               backgroundColor: "var(--roost-surface)",
               border: "1.5px solid var(--roost-border)",
@@ -227,296 +468,368 @@ function BillingPageInner() {
           </h1>
         </div>
 
-        {/* Success banner */}
-        <AnimatePresence>
-          {successBanner && (
-            <motion.div
-              initial={{ opacity: 0, y: -8 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -8 }}
-              transition={{ duration: 0.15 }}
-            >
-              <SlabCard color="#22C55E">
-                <div className="flex items-start gap-3 p-4">
-                  <CheckCircle className="mt-0.5 size-5 shrink-0" style={{ color: "#22C55E" }} />
-                  <div>
-                    <p className="text-sm" style={{ color: "var(--roost-text-primary)", fontWeight: 800 }}>
-                      Welcome to Premium! Your household is now upgraded.
-                    </p>
-                    <p className="mt-0.5 text-xs" style={{ color: "var(--roost-text-muted)", fontWeight: 600 }}>
-                      It may take a moment to reflect.
-                    </p>
-                  </div>
-                </div>
-              </SlabCard>
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        {/* Cancelled banner */}
-        <AnimatePresence>
-          {cancelledBanner && (
-            <motion.div
-              initial={{ opacity: 0, y: -8 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -8 }}
-              transition={{ duration: 0.15 }}
-            >
-              <SlabCard>
-                <div className="flex items-center gap-3 p-4">
-                  <X className="size-4 shrink-0" style={{ color: "var(--roost-text-muted)" }} />
-                  <p className="text-sm" style={{ color: "var(--roost-text-secondary)", fontWeight: 600 }}>
-                    No worries. Your plan was not changed.
-                  </p>
-                </div>
-              </SlabCard>
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        {/* ---- FREE TIER -------------------------------------------------- */}
-        {!isPremium && (
-          <>
-            {/* Current plan */}
-            <SlabCard>
-              <div className="p-5 space-y-3">
-                <p className="text-xs uppercase tracking-widest" style={{ color: "var(--roost-text-muted)", fontWeight: 700 }}>
-                  Current plan
+        {/* ---- 2. Current plan card ------------------------------------------ */}
+        <div
+          style={{
+            backgroundColor: "var(--roost-surface)",
+            border: "1.5px solid var(--roost-border)",
+            borderBottom: "4px solid var(--roost-border-bottom)",
+            borderRadius: 20,
+            padding: "18px 20px",
+          }}
+        >
+          <div className="flex items-start justify-between gap-4">
+            {/* Left */}
+            <div className="flex flex-col gap-1.5">
+              <p
+                style={{
+                  fontSize: 11,
+                  fontWeight: 700,
+                  color: "var(--roost-text-muted)",
+                  textTransform: "uppercase",
+                  letterSpacing: "0.8px",
+                }}
+              >
+                Current plan
+              </p>
+              <div className="flex items-center gap-2">
+                <p
+                  style={{
+                    color: "var(--roost-text-primary)",
+                    fontSize: 18,
+                    fontWeight: 900,
+                  }}
+                >
+                  {isPremium ? "Roost Premium" : "Free plan"}
                 </p>
-                <p className="text-lg" style={{ color: "var(--roost-text-primary)", fontWeight: 800 }}>
-                  Free plan
-                </p>
-                <p className="text-sm" style={{ color: "var(--roost-text-secondary)", fontWeight: 600 }}>
-                  You are on the free plan.
-                </p>
-                <div className="flex flex-wrap gap-2 pt-1">
-                  {FREE_LIMITS.map((limit) => (
-                    <span
-                      key={limit}
-                      className="rounded-full px-3 py-1 text-xs"
-                      style={{
-                        backgroundColor: "var(--roost-bg)",
-                        border: "1.5px solid var(--roost-border)",
-                        color: "var(--roost-text-muted)",
-                        fontWeight: 700,
-                      }}
-                    >
-                      {limit}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            </SlabCard>
-
-            {/* Premium plan card */}
-            {isAdmin && (
-              <SlabCard color="#EF4444">
-                <div className="p-5 space-y-4">
-                  <p
-                    className="text-xs uppercase tracking-widest"
-                    style={{ color: "#EF4444", fontWeight: 800 }}
-                  >
-                    Roost Premium
-                  </p>
-                  <div className="flex items-baseline gap-1">
-                    <span
-                      className="text-4xl"
-                      style={{ color: "var(--roost-text-primary)", fontWeight: 900 }}
-                    >
-                      $4
-                    </span>
-                    <span
-                      className="text-base"
-                      style={{ color: "var(--roost-text-muted)", fontWeight: 700 }}
-                    >
-                      /month
-                    </span>
-                  </div>
-                  <p className="text-sm" style={{ color: "var(--roost-text-secondary)", fontWeight: 600 }}>
-                    Per household. Everyone benefits.
-                  </p>
-
-                  <ul className="space-y-2">
-                    {PREMIUM_FEATURES.map((feature) => (
-                      <li key={feature} className="flex items-start gap-2">
-                        <span
-                          className="mt-1.5 size-1.5 shrink-0 rounded-full"
-                          style={{ backgroundColor: "#EF4444" }}
-                        />
-                        <span
-                          className="text-sm"
-                          style={{ color: "var(--roost-text-secondary)", fontWeight: 600 }}
-                        >
-                          {feature}
-                        </span>
-                      </li>
-                    ))}
-                  </ul>
-
-                  <motion.button
-                    type="button"
-                    whileTap={{ y: 2 }}
-                    onClick={handleCheckout}
-                    disabled={isCheckingOut}
-                    className="mt-2 flex h-13 w-full items-center justify-center gap-2 rounded-xl text-sm text-white"
+                {isPremium && (
+                  <span
                     style={{
-                      backgroundColor: "#EF4444",
-                      border: "none",
-                      borderRadius: 14,
-                      boxShadow: "0 4px 0 #C93B3B",
+                      fontSize: 11,
                       fontWeight: 800,
+                      color: "#22C55E",
+                      backgroundColor: "rgba(34,197,94,0.12)",
+                      border: "1px solid rgba(34,197,94,0.25)",
+                      borderRadius: 100,
+                      padding: "2px 8px",
                     }}
                   >
-                    {isCheckingOut ? (
-                      <Loader2 className="size-4 animate-spin" />
-                    ) : (
-                      "Upgrade to Premium"
-                    )}
-                  </motion.button>
-                </div>
-              </SlabCard>
-            )}
-
-            {!isAdmin && (
-              <SlabCard>
-                <div className="p-5">
-                  <p className="text-sm" style={{ color: "var(--roost-text-secondary)", fontWeight: 600 }}>
-                    Ask your household admin to upgrade to Premium for $4/month.
-                  </p>
-                </div>
-              </SlabCard>
-            )}
-          </>
-        )}
-
-        {/* ---- PREMIUM ---------------------------------------------------- */}
-        {isPremium && (
-          <SlabCard color={isCancelled ? "#F59E0B" : "#22C55E"}>
-            <div className="p-5 space-y-4">
-              {/* Cancelling warning banner */}
-              {isCancelled && premiumExpiresAt && (
-                <div
-                  className="flex items-start gap-3 rounded-xl p-3"
-                  style={{
-                    backgroundColor: "rgba(245,158,11,0.10)",
-                    border: "1.5px solid rgba(245,158,11,0.25)",
-                  }}
-                >
-                  <AlertTriangle
-                    className="mt-0.5 size-4 shrink-0"
-                    style={{ color: "#F59E0B" }}
-                  />
-                  <div>
-                    <p className="text-sm" style={{ color: "var(--roost-text-primary)", fontWeight: 800 }}>
-                      Your Premium ends on {formatDate(premiumExpiresAt)}.
-                    </p>
-                    <p className="mt-0.5 text-xs" style={{ color: "var(--roost-text-muted)", fontWeight: 600 }}>
-                      You will lose access to all premium features after this date.
-                    </p>
-                  </div>
-                </div>
-              )}
-
-              <div>
-                <div
-                  className="inline-flex items-center rounded-full px-3 py-1 text-xs"
-                  style={{
-                    backgroundColor: "rgba(34,197,94,0.12)",
-                    border: "1px solid rgba(34,197,94,0.25)",
-                    color: "#22C55E",
-                    fontWeight: 800,
-                  }}
-                >
-                  Premium
-                </div>
+                    Active
+                  </span>
+                )}
               </div>
+            </div>
 
-              <p className="text-sm" style={{ color: "var(--roost-text-secondary)", fontWeight: 600 }}>
-                Your household is on Premium.
-              </p>
-
-              <ul className="space-y-2">
-                {PREMIUM_FEATURES.map((feature) => (
-                  <li key={feature} className="flex items-start gap-2">
-                    <CheckCircle
-                      className="mt-0.5 size-4 shrink-0"
-                      style={{ color: "#22C55E" }}
-                    />
+            {/* Right: status pills + actions */}
+            <div className="flex shrink-0 flex-col items-end gap-2">
+              {isPremium ? (
+                <>
+                  {isCancelled && premiumExpiresAt ? (
                     <span
-                      className="text-sm"
-                      style={{ color: "var(--roost-text-secondary)", fontWeight: 600 }}
-                    >
-                      {feature}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-
-              {isAdmin && (
-                <div className="space-y-3 pt-2">
-                  {isCancelled ? (
-                    <motion.button
-                      type="button"
-                      whileTap={{ y: 2 }}
-                      onClick={handleReactivate}
-                      disabled={isReactivating}
-                      className="flex h-12 w-full items-center justify-center gap-2 rounded-xl text-sm text-white"
                       style={{
-                        backgroundColor: "#22C55E",
-                        border: "1.5px solid #22C55E",
-                        borderBottom: "3px solid #159040",
-                        fontWeight: 800,
+                        fontSize: 11,
+                        fontWeight: 700,
+                        color: "#F59E0B",
+                        backgroundColor: "rgba(245,158,11,0.10)",
+                        border: "1px solid rgba(245,158,11,0.25)",
+                        borderRadius: 100,
+                        padding: "3px 10px",
+                        whiteSpace: "nowrap",
                       }}
                     >
-                      {isReactivating ? (
-                        <Loader2 className="size-4 animate-spin" />
-                      ) : (
-                        "Reactivate Premium"
-                      )}
-                    </motion.button>
+                      Cancels {formatDate(premiumExpiresAt)}
+                    </span>
                   ) : (
-                    <>
-                      <motion.button
+                    <span
+                      style={{
+                        fontSize: 11,
+                        fontWeight: 700,
+                        color: "var(--roost-text-muted)",
+                        backgroundColor: "var(--roost-bg)",
+                        border: "1px solid var(--roost-border)",
+                        borderRadius: 100,
+                        padding: "3px 10px",
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      Billed monthly
+                    </span>
+                  )}
+                  {isAdmin &&
+                    (isCancelled ? (
+                      <button
                         type="button"
-                        whileTap={{ y: 1 }}
-                        onClick={handlePortal}
-                        disabled={isPortalLoading}
-                        className="flex h-11 w-full items-center justify-center gap-2 rounded-xl text-sm"
-                        style={{
-                          backgroundColor: "var(--roost-bg)",
-                          border: "1.5px solid var(--roost-border)",
-                          borderBottom: "3px solid var(--roost-border-bottom)",
-                          color: "var(--roost-text-secondary)",
-                          fontWeight: 700,
-                        }}
+                        onClick={handleReactivate}
+                        disabled={isReactivating}
+                        style={{ fontSize: 12, fontWeight: 700, color: "#22C55E" }}
                       >
-                        {isPortalLoading ? (
-                          <Loader2 className="size-4 animate-spin" />
-                        ) : (
-                          "Manage payment method"
-                        )}
-                      </motion.button>
-
+                        {isReactivating ? "Reactivating..." : "Reactivate"}
+                      </button>
+                    ) : (
                       <button
                         type="button"
                         onClick={() => setShowCancelFlow(true)}
-                        className="flex w-full items-center justify-center text-sm"
-                        style={{ color: "#EF4444", fontWeight: 700 }}
+                        style={{ fontSize: 12, fontWeight: 700, color: "#EF4444" }}
                       >
-                        Cancel subscription
+                        Cancel plan
                       </button>
-                    </>
+                    ))}
+                </>
+              ) : (
+                <div className="flex flex-col items-end gap-1.5">
+                  {["Up to 5 chores", "Up to 5 members", "Basic features only"].map(
+                    (pill) => (
+                      <span
+                        key={pill}
+                        style={{
+                          fontSize: 11,
+                          fontWeight: 700,
+                          color: "var(--roost-text-muted)",
+                          backgroundColor: "var(--roost-bg)",
+                          border: "1px solid var(--roost-border)",
+                          borderRadius: 100,
+                          padding: "3px 10px",
+                          whiteSpace: "nowrap",
+                        }}
+                      >
+                        {pill}
+                      </span>
+                    )
                   )}
                 </div>
               )}
             </div>
-          </SlabCard>
+          </div>
+        </div>
+
+        {/* ---- 3. Premium hero card (free + admin only) ----------------------- */}
+        {!isPremium && isAdmin && (
+          <div
+            style={{
+              backgroundColor: "var(--roost-surface)",
+              border: "1px solid var(--roost-border)",
+              borderBottom: "4px solid #EF4444",
+              borderRadius: 20,
+              padding: "28px 24px",
+            }}
+          >
+            <p
+              style={{
+                fontSize: 11,
+                fontWeight: 700,
+                color: "#EF4444",
+                textTransform: "uppercase",
+                letterSpacing: "1px",
+                marginBottom: 12,
+              }}
+            >
+              Roost Premium
+            </p>
+
+            <div className="flex items-baseline gap-1" style={{ marginBottom: 6 }}>
+              <span
+                style={{
+                  fontSize: 52,
+                  fontWeight: 900,
+                  color: "var(--roost-text-primary)",
+                  lineHeight: 1,
+                }}
+              >
+                $4
+              </span>
+              <span
+                style={{
+                  fontSize: 18,
+                  fontWeight: 700,
+                  color: "var(--roost-text-secondary)",
+                }}
+              >
+                /month
+              </span>
+            </div>
+
+            <p
+              style={{
+                fontSize: 13,
+                fontWeight: 700,
+                color: "var(--roost-text-secondary)",
+                marginBottom: 16,
+              }}
+            >
+              Per household. Everyone benefits.
+            </p>
+
+            <div
+              style={{
+                backgroundColor: "rgba(239,68,68,0.08)",
+                border: "1px solid rgba(239,68,68,0.25)",
+                borderRadius: 10,
+                padding: "8px 14px",
+                marginBottom: 20,
+              }}
+            >
+              <p style={{ fontSize: 13, fontWeight: 700, color: "#EF4444" }}>
+                A family of four pays less than $1/month each.
+              </p>
+            </div>
+
+            <UpgradeButton
+              label="Upgrade to Premium"
+              loading={isCheckingOut}
+              onClick={handleCheckout}
+            />
+
+            <div className="mt-4 flex justify-center">
+              <button
+                type="button"
+                onClick={() => router.back()}
+                style={{
+                  fontSize: 14,
+                  fontWeight: 600,
+                  color: "var(--roost-text-secondary)",
+                }}
+              >
+                Maybe later
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Non-admin free tier nudge */}
+        {!isPremium && !isAdmin && (
+          <div
+            style={{
+              backgroundColor: "var(--roost-surface)",
+              border: "1.5px solid var(--roost-border)",
+              borderBottom: "4px solid var(--roost-border-bottom)",
+              borderRadius: 16,
+              padding: "16px 20px",
+            }}
+          >
+            <p style={{ fontSize: 14, fontWeight: 600, color: "var(--roost-text-secondary)" }}>
+              Ask your household admin to upgrade to Premium for $4/month.
+            </p>
+          </div>
+        )}
+
+        {/* ---- 4. Section label ----------------------------------------------- */}
+        <p
+          style={{
+            fontSize: 11,
+            fontWeight: 700,
+            color: "var(--roost-text-secondary)",
+            textTransform: "uppercase",
+            letterSpacing: "0.8px",
+          }}
+        >
+          Everything that's included
+        </p>
+
+        {/* ---- 5. Feature grid ------------------------------------------------ */}
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
+            gap: 12,
+          }}
+        >
+          {FEATURE_ORDER.map((key) => (
+            <FeatureCard key={key} featureKey={key} />
+          ))}
+          <HouseholdExtrasCard />
+        </div>
+
+        {/* ---- 6. Bottom CTA (free + admin only) ------------------------------ */}
+        {!isPremium && isAdmin && (
+          <div
+            style={{
+              backgroundColor: "var(--roost-surface)",
+              border: "1.5px solid var(--roost-border)",
+              borderBottom: "4px solid #EF4444",
+              borderRadius: 20,
+              padding: "28px 24px",
+              textAlign: "center",
+            }}
+          >
+            <p
+              style={{
+                color: "var(--roost-text-primary)",
+                fontSize: 20,
+                fontWeight: 900,
+                marginBottom: 8,
+              }}
+            >
+              One subscription. The whole house.
+            </p>
+            <p
+              style={{
+                fontSize: 13,
+                fontWeight: 600,
+                color: "var(--roost-text-secondary)",
+                marginBottom: 20,
+              }}
+            >
+              Every member in your household gets everything. No per-person fees, no tiers, no games.
+            </p>
+
+            <hr
+              style={{
+                border: "none",
+                borderTop: "0.5px solid var(--roost-border)",
+                marginBottom: 20,
+              }}
+            />
+
+            <UpgradeButton
+              label="Upgrade to Premium for $4/month"
+              loading={isCheckingOut}
+              onClick={handleCheckout}
+            />
+
+            <div className="mt-4 flex justify-center">
+              <button
+                type="button"
+                onClick={() => router.back()}
+                style={{
+                  fontSize: 14,
+                  fontWeight: 600,
+                  color: "var(--roost-text-secondary)",
+                }}
+              >
+                Maybe later
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Premium: manage payment link */}
+        {isPremium && isAdmin && !isCancelled && (
+          <div className="flex justify-center pb-2">
+            <button
+              type="button"
+              onClick={handlePortal}
+              disabled={isPortalLoading}
+              style={{ fontSize: 13, fontWeight: 700, color: "var(--roost-text-muted)" }}
+            >
+              {isPortalLoading ? (
+                <span className="flex items-center gap-2">
+                  <Loader2 className="size-3 animate-spin" /> Loading...
+                </span>
+              ) : (
+                "Manage payment method"
+              )}
+            </button>
+          </div>
         )}
       </motion.div>
 
-      {/* ---- CANCEL FLOW SHEET ---------------------------------------------- */}
+      {/* ---- Cancel flow sheet ---------------------------------------------- */}
       <Sheet open={showCancelFlow} onOpenChange={setShowCancelFlow}>
-        <SheetContent side="bottom" className="rounded-t-2xl">
+        <SheetContent
+          side="bottom"
+          className="rounded-t-2xl"
+          style={{ backgroundColor: "var(--roost-bg)" }}
+        >
           <SheetHeader className="pb-2">
             <div
               className="mx-auto mb-3 h-1 w-10 rounded-full"
@@ -528,15 +841,17 @@ function BillingPageInner() {
             >
               Before you go...
             </SheetTitle>
-            <p className="text-sm" style={{ color: "var(--roost-text-muted)", fontWeight: 600 }}>
+            <p
+              className="text-sm"
+              style={{ color: "var(--roost-text-muted)", fontWeight: 600 }}
+            >
               Here is what you will lose when Premium ends.
             </p>
           </SheetHeader>
 
           <div className="space-y-5 px-1 pb-6">
-            {/* Loss list */}
             <div
-              className="rounded-2xl p-4 space-y-3"
+              className="space-y-3 rounded-2xl p-4"
               style={{
                 backgroundColor: "rgba(0,0,0,0.04)",
                 border: "1.5px solid rgba(0,0,0,0.08)",
@@ -557,12 +872,14 @@ function BillingPageInner() {
             </div>
 
             {premiumExpiresAt && (
-              <p className="text-sm" style={{ color: "var(--roost-text-muted)", fontWeight: 600 }}>
+              <p
+                className="text-sm"
+                style={{ color: "var(--roost-text-muted)", fontWeight: 600 }}
+              >
                 You will stay Premium until {formatDate(premiumExpiresAt)}. After that your household returns to the free plan.
               </p>
             )}
 
-            {/* Keep premium */}
             <motion.button
               type="button"
               whileTap={{ y: 2 }}
@@ -578,7 +895,6 @@ function BillingPageInner() {
               Keep Premium
             </motion.button>
 
-            {/* Cancel anyway */}
             <button
               type="button"
               onClick={handleCancel}

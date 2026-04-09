@@ -2,10 +2,20 @@ import { NextRequest } from "next/server";
 import { requireAdminSession } from "@/lib/admin/requireAdmin";
 import { db } from "@/lib/db";
 import { sql } from "drizzle-orm";
+import {
+  EXCLUDE_TEST_USERS_SQL,
+  EXCLUDE_TEST_HOUSEHOLDS_SQL,
+} from "@/lib/admin/testFilters";
 
 export async function GET(request: NextRequest): Promise<Response> {
   const authError = await requireAdminSession(request);
   if (authError) return authError;
+
+  const { searchParams } = new URL(request.url);
+  const hideTest = searchParams.get("hideTest") !== "false";
+
+  const testUserClause = hideTest ? sql.raw(EXCLUDE_TEST_USERS_SQL) : sql``;
+  const testHouseholdClause = hideTest ? sql.raw(EXCLUDE_TEST_HOUSEHOLDS_SQL) : sql``;
 
   const [
     overviewRows,
@@ -17,48 +27,54 @@ export async function GET(request: NextRequest): Promise<Response> {
     // 1. Overview counts
     db.execute(sql`
       SELECT
-        (SELECT COUNT(*) FROM "user") AS total_users,
-        (SELECT COUNT(*) FROM households WHERE deleted_at IS NULL) AS total_households,
-        (SELECT COUNT(*) FROM households WHERE subscription_status = 'premium' AND deleted_at IS NULL) AS premium_households,
-        (SELECT COUNT(*) FROM households WHERE subscription_status = 'free' AND deleted_at IS NULL) AS free_households
+        (SELECT COUNT(*) FROM "user" u WHERE 1=1 ${testUserClause}) AS total_users,
+        (SELECT COUNT(*) FROM households h WHERE h.deleted_at IS NULL ${testHouseholdClause}) AS total_households,
+        (SELECT COUNT(*) FROM households h WHERE h.subscription_status = 'premium' AND h.deleted_at IS NULL ${testHouseholdClause}) AS premium_households,
+        (SELECT COUNT(*) FROM households h WHERE h.subscription_status = 'free' AND h.deleted_at IS NULL ${testHouseholdClause}) AS free_households
     `),
 
     // 2. Signups over time (last 90 days)
     db.execute(sql`
       SELECT
-        DATE(created_at) AS date,
+        DATE(u.created_at) AS date,
         COUNT(*) AS count
-      FROM "user"
-      WHERE created_at > NOW() - INTERVAL '90 days'
-      GROUP BY DATE(created_at)
+      FROM "user" u
+      WHERE u.created_at > NOW() - INTERVAL '90 days'
+      ${testUserClause}
+      GROUP BY DATE(u.created_at)
       ORDER BY date ASC
     `),
 
     // 3. Premium conversions over time (last 90 days)
     db.execute(sql`
       SELECT
-        DATE(subscription_upgraded_at) AS date,
+        DATE(h.subscription_upgraded_at) AS date,
         COUNT(*) AS count
-      FROM households
-      WHERE subscription_upgraded_at > NOW() - INTERVAL '90 days'
-        AND subscription_upgraded_at IS NOT NULL
-        AND deleted_at IS NULL
-      GROUP BY DATE(subscription_upgraded_at)
+      FROM households h
+      WHERE h.subscription_upgraded_at > NOW() - INTERVAL '90 days'
+        AND h.subscription_upgraded_at IS NOT NULL
+        AND h.deleted_at IS NULL
+      ${testHouseholdClause}
+      GROUP BY DATE(h.subscription_upgraded_at)
       ORDER BY date ASC
     `),
 
     // 4. Active households last 30 days
     db.execute(sql`
-      SELECT COUNT(DISTINCT household_id) AS count
-      FROM household_activity
-      WHERE created_at > NOW() - INTERVAL '30 days'
+      SELECT COUNT(DISTINCT ha.household_id) AS count
+      FROM household_activity ha
+      JOIN households h ON h.id = ha.household_id
+      WHERE ha.created_at > NOW() - INTERVAL '30 days'
+        AND h.deleted_at IS NULL
+      ${testHouseholdClause}
     `),
 
     // 5. New users this week
     db.execute(sql`
       SELECT COUNT(*) AS count
-      FROM "user"
-      WHERE created_at > NOW() - INTERVAL '7 days'
+      FROM "user" u
+      WHERE u.created_at > NOW() - INTERVAL '7 days'
+      ${testUserClause}
     `),
   ]);
 

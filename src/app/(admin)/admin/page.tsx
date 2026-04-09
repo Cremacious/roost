@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { Eye, EyeOff } from "lucide-react";
 import {
   AreaChart,
   Area,
@@ -117,15 +118,66 @@ const TOOLTIP_STYLE = {
   fontSize: "13px",
 };
 
+// ---- Hide-test toggle -------------------------------------------------------
+
+function HideTestToggle({
+  hideTest,
+  onToggle,
+}: {
+  hideTest: boolean;
+  onToggle: () => void;
+}) {
+  return (
+    <button
+      onClick={onToggle}
+      style={{
+        display: "flex",
+        alignItems: "center",
+        gap: "6px",
+        background: "#1E293B",
+        border: `1px solid ${hideTest ? "#22C55E" : "#475569"}`,
+        borderRadius: "20px",
+        padding: "4px 12px",
+        cursor: "pointer",
+        color: hideTest ? "#22C55E" : "#94A3B8",
+        fontSize: "12px",
+        fontWeight: 700,
+      }}
+    >
+      {hideTest ? (
+        <EyeOff size={14} color="#22C55E" />
+      ) : (
+        <Eye size={14} color="#94A3B8" />
+      )}
+      {hideTest ? "Hiding test accounts" : "Showing test accounts"}
+    </button>
+  );
+}
+
 // ---- Page -------------------------------------------------------------------
+
+const LS_KEY = "admin-hide-test-accounts";
 
 export default function AdminOverviewPage() {
   const [stats, setStats] = useState<StatsResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [hideTest, setHideTest] = useState(true);
+  const [mounted, setMounted] = useState(false);
 
+  // Load persisted preference
   useEffect(() => {
-    fetch("/api/admin/stats")
+    const stored = localStorage.getItem(LS_KEY);
+    if (stored !== null) setHideTest(stored !== "false");
+    setMounted(true);
+  }, []);
+
+  // Fetch stats whenever hideTest changes (after mount)
+  useEffect(() => {
+    if (!mounted) return;
+    setLoading(true);
+    setError("");
+    fetch(`/api/admin/stats?hideTest=${hideTest}`)
       .then((r) => {
         if (!r.ok) throw new Error("Failed to load stats");
         return r.json();
@@ -133,9 +185,17 @@ export default function AdminOverviewPage() {
       .then(setStats)
       .catch((e) => setError(e.message))
       .finally(() => setLoading(false));
-  }, []);
+  }, [hideTest, mounted]);
 
-  if (loading) {
+  function toggleHideTest() {
+    setHideTest((prev) => {
+      const next = !prev;
+      localStorage.setItem(LS_KEY, String(next));
+      return next;
+    });
+  }
+
+  if (!mounted || loading) {
     return (
       <div style={{ color: "#64748B", fontSize: "14px", fontWeight: 600 }}>
         Loading stats...
@@ -166,13 +226,36 @@ export default function AdminOverviewPage() {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "28px" }}>
-      <div>
-        <h1 style={{ fontSize: "24px", fontWeight: 900, color: "#F1F5F9", margin: 0, letterSpacing: "-0.02em" }}>
-          Overview
-        </h1>
-        <p style={{ color: "#64748B", fontSize: "13px", fontWeight: 600, marginTop: "4px" }}>
-          Real-time metrics across all households
-        </p>
+      {/* Header row */}
+      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between" }}>
+        <div>
+          <h1 style={{ fontSize: "24px", fontWeight: 900, color: "#F1F5F9", margin: 0, letterSpacing: "-0.02em" }}>
+            Overview
+          </h1>
+          <p style={{ color: "#64748B", fontSize: "13px", fontWeight: 600, marginTop: "4px" }}>
+            Real-time metrics across all households
+          </p>
+        </div>
+        <HideTestToggle hideTest={hideTest} onToggle={toggleHideTest} />
+      </div>
+
+      {/* Test accounts banner */}
+      <div
+        style={{
+          background: "#1E293B",
+          border: `1px solid ${hideTest ? "#334155" : "#F59E0B"}`,
+          borderRadius: "8px",
+          padding: "8px 16px",
+          marginTop: "-8px",
+          fontSize: "12px",
+          color: hideTest ? "#64748B" : "#F59E0B",
+          textAlign: "center",
+          fontWeight: 600,
+        }}
+      >
+        {hideTest
+          ? "Test accounts excluded from all metrics. Toggle above to include them."
+          : "Test accounts are included in metrics."}
       </div>
 
       {/* Stat cards */}

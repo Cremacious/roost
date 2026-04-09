@@ -2,6 +2,7 @@ import { NextRequest } from "next/server";
 import { requireAdminSession } from "@/lib/admin/requireAdmin";
 import { db } from "@/lib/db";
 import { sql } from "drizzle-orm";
+import { EXCLUDE_TEST_USERS_SQL } from "@/lib/admin/testFilters";
 
 export async function GET(request: NextRequest): Promise<Response> {
   const authError = await requireAdminSession(request);
@@ -12,6 +13,7 @@ export async function GET(request: NextRequest): Promise<Response> {
   const limit = Math.min(100, Math.max(1, Number(searchParams.get("limit") ?? 50)));
   const search = searchParams.get("search")?.trim() ?? "";
   const filter = searchParams.get("filter") ?? "all";
+  const hideTest = searchParams.get("hideTest") !== "false";
   const offset = (page - 1) * limit;
 
   const searchClause = search
@@ -24,6 +26,8 @@ export async function GET(request: NextRequest): Promise<Response> {
       : filter === "free"
       ? sql`AND (h.subscription_status = 'free' OR h.subscription_status IS NULL)`
       : sql``;
+
+  const testClause = hideTest ? sql.raw(EXCLUDE_TEST_USERS_SQL) : sql``;
 
   const [usersRows, countRows] = await Promise.all([
     db.execute(sql`
@@ -44,6 +48,7 @@ export async function GET(request: NextRequest): Promise<Response> {
       WHERE u.deleted_at IS NULL
       ${searchClause}
       ${filterClause}
+      ${testClause}
       ORDER BY u.created_at DESC
       LIMIT ${limit} OFFSET ${offset}
     `),
@@ -55,6 +60,7 @@ export async function GET(request: NextRequest): Promise<Response> {
       WHERE u.deleted_at IS NULL
       ${searchClause}
       ${filterClause}
+      ${testClause}
     `),
   ]);
 

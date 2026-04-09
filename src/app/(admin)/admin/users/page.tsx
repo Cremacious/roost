@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback, useRef } from "react";
+import { Eye, EyeOff } from "lucide-react";
 import { format, parseISO, formatDistanceToNow } from "date-fns";
 
 // ---- Types ------------------------------------------------------------------
@@ -216,6 +217,8 @@ const FILTER_OPTIONS = [
   { value: "free", label: "Free" },
 ];
 
+const LS_KEY = "admin-hide-test-accounts";
+
 export default function AdminUsersPage() {
   const [data, setData] = useState<UsersResponse | null>(null);
   const [loading, setLoading] = useState(true);
@@ -223,13 +226,22 @@ export default function AdminUsersPage() {
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState("all");
   const [page, setPage] = useState(1);
+  const [hideTest, setHideTest] = useState(true);
+  const [mounted, setMounted] = useState(false);
 
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // Load persisted preference
+  useEffect(() => {
+    const stored = localStorage.getItem(LS_KEY);
+    if (stored !== null) setHideTest(stored !== "false");
+    setMounted(true);
+  }, []);
+
   const load = useCallback(
-    (q: string, f: string, p: number) => {
+    (q: string, f: string, p: number, ht: boolean) => {
       setLoading(true);
-      const params = new URLSearchParams({ page: String(p), limit: "50", filter: f });
+      const params = new URLSearchParams({ page: String(p), limit: "50", filter: f, hideTest: String(ht) });
       if (q) params.set("search", q);
       fetch(`/api/admin/users?${params}`)
         .then((r) => {
@@ -246,11 +258,12 @@ export default function AdminUsersPage() {
     []
   );
 
-  // Initial load
+  // Load after mount (once hideTest is hydrated from localStorage)
   useEffect(() => {
-    load(search, filter, page);
+    if (!mounted) return;
+    load(search, filter, page, hideTest);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filter, page]);
+  }, [filter, page, hideTest, mounted]);
 
   // Debounced search
   function handleSearchChange(val: string) {
@@ -258,12 +271,21 @@ export default function AdminUsersPage() {
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(() => {
       setPage(1);
-      load(val, filter, 1);
+      load(val, filter, 1, hideTest);
     }, 300);
   }
 
   function handleFilterChange(val: string) {
     setFilter(val);
+    setPage(1);
+  }
+
+  function toggleHideTest() {
+    setHideTest((prev) => {
+      const next = !prev;
+      localStorage.setItem(LS_KEY, String(next));
+      return next;
+    });
     setPage(1);
   }
 
@@ -329,6 +351,31 @@ export default function AdminUsersPage() {
               {opt.label}
             </button>
           ))}
+        </div>
+        <div style={{ marginLeft: "auto" }}>
+          <button
+            onClick={toggleHideTest}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "6px",
+              background: "#1E293B",
+              border: `1px solid ${hideTest ? "#22C55E" : "#475569"}`,
+              borderRadius: "20px",
+              padding: "4px 12px",
+              cursor: "pointer",
+              color: hideTest ? "#22C55E" : "#94A3B8",
+              fontSize: "12px",
+              fontWeight: 700,
+            }}
+          >
+            {hideTest ? (
+              <EyeOff size={14} color="#22C55E" />
+            ) : (
+              <Eye size={14} color="#94A3B8" />
+            )}
+            {hideTest ? "Hiding test accounts" : "Showing test accounts"}
+          </button>
         </div>
       </div>
 

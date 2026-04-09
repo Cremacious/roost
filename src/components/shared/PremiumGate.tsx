@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, CheckCircle2 } from 'lucide-react';
@@ -177,35 +178,47 @@ function GateContent({
   );
 }
 
+function PremiumGateSheet({ feature, onClose }: { feature: PremiumGateFeature; onClose?: () => void }) {
+  const [open, setOpen] = useState(true);
+  return (
+    <Sheet
+      open={open}
+      onOpenChange={(isOpen) => {
+        if (!isOpen) {
+          setOpen(false);
+          if (onClose) onClose();
+        }
+      }}
+    >
+      <SheetContent
+        side="bottom"
+        className="rounded-t-2xl"
+        style={{ backgroundColor: 'var(--roost-bg)', maxWidth: 480 }}
+        onOpenAutoFocus={(e) => e.preventDefault()}
+      >
+        {/* Drag handle */}
+        <div
+          style={{
+            width: 32,
+            height: 4,
+            borderRadius: 9999,
+            backgroundColor: 'var(--roost-border)',
+            margin: '12px auto 0',
+          }}
+        />
+        <div style={{ padding: '24px 24px 40px' }}>
+          <GateContent feature={feature} onClose={onClose} />
+        </div>
+      </SheetContent>
+    </Sheet>
+  );
+}
+
 export default function PremiumGate({ feature, trigger, onClose }: PremiumGateProps) {
   const router = useRouter();
 
   if (trigger === 'sheet') {
-    const config = PREMIUM_GATE_CONFIG[feature];
-    return (
-      <Sheet open onOpenChange={(v) => { if (!v && onClose) onClose(); }}>
-        <SheetContent
-          side="bottom"
-          className="rounded-t-2xl"
-          style={{ backgroundColor: 'var(--roost-bg)', maxWidth: 480 }}
-          onOpenAutoFocus={(e) => e.preventDefault()}
-        >
-          {/* Drag handle */}
-          <div
-            style={{
-              width: 32,
-              height: 4,
-              borderRadius: 9999,
-              backgroundColor: 'var(--roost-border)',
-              margin: '12px auto 0',
-            }}
-          />
-          <div style={{ padding: '24px 24px 40px' }}>
-            <GateContent feature={feature} onClose={onClose} />
-          </div>
-        </SheetContent>
-      </Sheet>
-    );
+    return <PremiumGateSheet feature={feature} onClose={onClose} />;
   }
 
   if (trigger === 'inline') {

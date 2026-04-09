@@ -56,7 +56,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import PremiumGate from '@/components/shared/PremiumGate';
 
 const COLOR = SECTION_COLORS.grocery; // #F59E0B
 const COLOR_DARK = '#fbd494';
@@ -403,7 +402,6 @@ export default function GroceryPage() {
   const [showItemSheet, setShowItemSheet] = useState(false);
   const [showListSheet, setShowListSheet] = useState(false);
   const [listToEdit, setListToEdit] = useState<GroceryListData | null>(null);
-  const [upgradeCode, setUpgradeCode] = useState<string | null>(null);
   const [showDeleteListConfirm, setShowDeleteListConfirm] = useState(false);
 
   const pillRowRef = useRef<HTMLDivElement>(null);
@@ -771,9 +769,9 @@ export default function GroceryPage() {
               <motion.button
                 type="button"
                 onClick={
-                  isPremium
+                  isPremium || lists.length === 0
                     ? openAddList
-                    : () => setUpgradeCode('MULTIPLE_LISTS_PREMIUM')
+                    : () => {}
                 }
                 whileTap={{ y: 1 }}
                 className="flex h-10 w-10 shrink-0 items-center justify-center gap-1.5 rounded-xl sm:w-auto sm:px-3 text-sm"
@@ -1160,6 +1158,7 @@ export default function GroceryPage() {
           }}
           list={listToEdit}
           isPremium={isPremium}
+          existingListCount={lists.length}
         />
 
         {/* Delete list confirmation */}
@@ -1227,10 +1226,6 @@ export default function GroceryPage() {
           </AlertDialogContent>
         </AlertDialog>
 
-        {/* Upgrade prompt */}
-        {!!upgradeCode && (
-          <PremiumGate feature="grocery" trigger="sheet" onClose={() => setUpgradeCode(null)} />
-        )}
       </PageContainer>
     </motion.div>
   );

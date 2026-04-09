@@ -923,7 +923,7 @@ function BillingPageInner() {
             letterSpacing: "0.8px",
           }}
         >
-          Everything that's included
+          Everything that&apos;s included
         </p>
 
         {/* ---- 5. Feature grid ------------------------------------------------ */}

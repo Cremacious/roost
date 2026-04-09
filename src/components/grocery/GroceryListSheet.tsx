@@ -24,6 +24,7 @@ interface GroceryListSheetProps {
   onClose: () => void;
   list?: GroceryListData | null;
   isPremium: boolean;
+  existingListCount: number;
 }
 
 // ---- Component --------------------------------------------------------------
@@ -33,6 +34,7 @@ export default function GroceryListSheet({
   onClose,
   list,
   isPremium,
+  existingListCount,
 }: GroceryListSheetProps) {
   const queryClient = useQueryClient();
   const isEdit = !!list;
@@ -84,8 +86,8 @@ export default function GroceryListSheet({
 
   const canSubmit = name.trim().length > 0 && !saveMutation.isPending;
 
-  // Free tier trying to add a new list
-  if (!isPremium && !isEdit) {
+  // Free tier trying to add a second or additional list
+  if (open && !isPremium && !isEdit && existingListCount >= 1) {
     return <PremiumGate feature="grocery" trigger="sheet" onClose={onClose} />;
   }
 

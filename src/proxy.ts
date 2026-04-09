@@ -9,19 +9,24 @@ const ALWAYS_PUBLIC = ["/"];
 const AUTH_PAGES = ["/login", "/signup", "/child-login"];
 
 // Prefixes that always pass through without session check
-const SKIP_PREFIXES = ["/api/", "/_next", "/favicon.ico", "/brand/", "/images/", "/invite/"];
+// /admin handles its own auth via admin session cookie
+const SKIP_PREFIXES = ["/api/", "/_next", "/favicon.ico", "/brand/", "/images/", "/invite/", "/admin"];
 
 export async function proxy(request: NextRequest): Promise<NextResponse> {
   const { pathname } = request.nextUrl;
 
   // Always public — homepage is never redirected
   if (ALWAYS_PUBLIC.includes(pathname)) {
-    return NextResponse.next();
+    const res = NextResponse.next();
+    res.headers.set("x-pathname", pathname);
+    return res;
   }
 
-  // Skip assets and API routes (API routes handle their own auth)
+  // Skip assets, API routes, and admin routes (each handles own auth)
   if (SKIP_PREFIXES.some((prefix) => pathname.startsWith(prefix))) {
-    return NextResponse.next();
+    const res = NextResponse.next();
+    res.headers.set("x-pathname", pathname);
+    return res;
   }
 
   // Auth pages: redirect to /dashboard if already signed in
@@ -30,7 +35,9 @@ export async function proxy(request: NextRequest): Promise<NextResponse> {
     if (session) {
       return NextResponse.redirect(new URL("/dashboard", request.url));
     }
-    return NextResponse.next();
+    const res = NextResponse.next();
+    res.headers.set("x-pathname", pathname);
+    return res;
   }
 
   // All other routes (app shell, onboarding, etc.) require auth
@@ -41,7 +48,9 @@ export async function proxy(request: NextRequest): Promise<NextResponse> {
     return NextResponse.redirect(loginUrl);
   }
 
-  return NextResponse.next();
+  const res = NextResponse.next();
+  res.headers.set("x-pathname", pathname);
+  return res;
 }
 
 export const config = {

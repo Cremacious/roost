@@ -1,5 +1,5 @@
 # Roost — Feature Registry
-> Last updated: 2026-04-09 (custom chore categories built)
+> Last updated: 2026-04-09 (superadmin panel built)
 > Use this file for homepage copy, paywall screens, upgrade prompts, and App Store descriptions.
 
 ---
@@ -225,18 +225,22 @@ Premium feature.
 
 ~~**Custom Chore Categories and Icons**~~ — BUILT (see above)
 
-**Superadmin Panel** (/admin)
-Internal dashboard for the Roost team. Not user-facing. Protected by separate admin credentials.
-- User and household management
-- Subscription override (manually set premium)
-- Signup and conversion charts
-- Activity metrics across all households
-- CSV export
+~~**Admin Panel**~~ — BUILT (see Internal Tools below)
 
 #### Platform (after web launch)
 - iOS app via Expo
 - Android app via Expo
 - Ambient tablet mode
+
+---
+
+### Internal Tools (not user-facing)
+
+#### Admin Panel (/admin)
+Protected by ADMIN_EMAIL + ADMIN_PASSWORD env vars. Own JWT session cookie (8 hours). Completely separate from better-auth.
+- Overview page: 6 stat cards (total users, households, premium, free, active 30d, new this week) + 2 Recharts area charts (signups over time, premium conversions over time)
+- Users page: search by name/email, filter All/Premium/Free, paginated table (50/page), expandable rows with User ID + Household ID + Stripe Customer ID (copyable)
+- Households page: search, filter, paginated table, expandable rows with all Stripe IDs + member emails, Set Premium / Set Free action buttons with confirmation dialog (optimistic UI update)
 - Spanish localization
 
 ---

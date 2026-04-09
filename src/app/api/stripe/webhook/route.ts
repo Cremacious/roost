@@ -46,6 +46,13 @@ export async function POST(request: NextRequest): Promise<Response> {
         checkoutSession.subscription as string
       );
 
+      // Only set subscription_upgraded_at on first upgrade, not on renewals
+      const [existing] = await db
+        .select({ subscription_upgraded_at: households.subscription_upgraded_at })
+        .from(households)
+        .where(eq(households.id, householdId))
+        .limit(1);
+
       await db
         .update(households)
         .set({
@@ -53,6 +60,7 @@ export async function POST(request: NextRequest): Promise<Response> {
           stripe_subscription_id: subscription.id,
           stripe_price_id: STRIPE_PRICE_ID,
           premium_expires_at: null,
+          subscription_upgraded_at: existing?.subscription_upgraded_at ?? new Date(),
           updated_at: new Date(),
         })
         .where(eq(households.id, householdId));

@@ -5,7 +5,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useSession } from "@/lib/auth/client";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
-import { Loader2, Plus, StickyNote } from "lucide-react";
+import { FileText, Loader2, Plus, StickyNote } from "lucide-react";
 import { relativeTime } from "@/lib/utils/time";
 import PageHeader from "@/components/shared/PageHeader";
 import EmptyState from "@/components/shared/EmptyState";
@@ -43,6 +43,24 @@ interface MembersResponse {
   members: { userId: string; name: string; avatarColor: string | null; role: string }[];
 }
 
+// ---- Helpers ----------------------------------------------------------------
+
+function stripHtml(html: string): string {
+  return html.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
+}
+
+function detectHtml(content: string): boolean {
+  return (
+    content.startsWith("<") ||
+    content.includes("<p>") ||
+    content.includes("<h1") ||
+    content.includes("<h2") ||
+    content.includes("<h3") ||
+    content.includes("<ul") ||
+    content.includes("<ol")
+  );
+}
+
 // ---- Note card --------------------------------------------------------------
 
 function NoteCard({
@@ -56,8 +74,11 @@ function NoteCard({
 }) {
   const [expanded, setExpanded] = useState(false);
   const CHAR_LIMIT = 200;
-  const isLong = note.content.length > CHAR_LIMIT;
-  const displayContent = expanded || !isLong ? note.content : note.content.slice(0, CHAR_LIMIT) + "…";
+  const isHtml = detectHtml(note.content);
+  const plainText = isHtml ? stripHtml(note.content) : note.content;
+  const isLong = plainText.length > CHAR_LIMIT;
+  const displayContent =
+    expanded || !isLong ? plainText : plainText.slice(0, CHAR_LIMIT) + "…";
   const borderColor = COLOR_DARK;
 
   return (
@@ -84,7 +105,7 @@ function NoteCard({
         </p>
       )}
 
-      {/* Content */}
+      {/* Content preview */}
       <p
         className="text-sm leading-relaxed whitespace-pre-wrap"
         style={{ color: "var(--roost-text-primary)", fontWeight: 600 }}
@@ -115,9 +136,24 @@ function NoteCard({
             {note.creator_name?.split(" ")[0] ?? "Someone"}
           </span>
         </div>
-        <span className="text-xs" style={{ color: "var(--roost-text-muted)", fontWeight: 600 }}>
-          {note.created_at ? relativeTime(note.created_at) : ""}
-        </span>
+        <div className="flex items-center gap-2">
+          {isHtml && (
+            <span
+              className="flex items-center gap-1 rounded-md px-1.5 py-0.5 text-xs"
+              style={{
+                backgroundColor: `${COLOR}15`,
+                color: COLOR,
+                fontWeight: 700,
+              }}
+            >
+              <FileText className="size-3" />
+              Rich
+            </span>
+          )}
+          <span className="text-xs" style={{ color: "var(--roost-text-muted)", fontWeight: 600 }}>
+            {note.created_at ? relativeTime(note.created_at) : ""}
+          </span>
+        </div>
       </div>
     </motion.div>
   );

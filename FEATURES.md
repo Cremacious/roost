@@ -1,5 +1,5 @@
 # Roost — Feature Registry
-> Last updated: 2026-04-09 (stats page built)
+> Last updated: 2026-04-09 (rich text notes built)
 > Use this file for homepage copy, paywall screens, upgrade prompts, and App Store descriptions.
 
 ---
@@ -165,6 +165,22 @@
 - Child dashboard widget hidden for free households
 - Earned allowances appear in expenses settle-up flow
 
+#### Notes (Premium)
+**Sell it as:** "Notes worth keeping."
+- Rich text editor powered by Tiptap (open source, zero cost)
+  - Bold, italic, strikethrough
+  - Headings (H1, H2, H3)
+  - Bullet lists, ordered lists, task lists (interactive checkboxes)
+  - Blockquotes, code blocks
+  - Links with one-click insert
+  - Full undo/redo history
+- Task checkboxes auto-save in view mode (500ms debounce)
+- Free users see plain textarea unchanged, with upgrade nudge
+- NoteCard preview strips HTML tags for clean card display
+- "Rich" badge shown on HTML notes in the card grid
+- Content limit raised to 50,000 characters for rich content
+- Premium gate: RICH_TEXT_NOTES_PREMIUM error code
+
 ---
 
 ### 🔜 PLANNED — Not Yet Built
@@ -177,9 +193,7 @@ Premium feature.
 
 ~~**Household Stats Page**~~ — BUILT (see above)
 
-**Rich Text Notes** (premium)
-Upgrade plain notes with headings, bold, checklists, and links. Powered by Tiptap (open source). Makes notes feel like a real tool.
-Premium feature.
+~~**Rich Text Notes**~~ — BUILT (see above)
 
 **Guest / Temporary Member**
 Invite someone to your household temporarily with an auto-expiring link. Great for Airbnb splitting, visiting family, or short-term roommates.

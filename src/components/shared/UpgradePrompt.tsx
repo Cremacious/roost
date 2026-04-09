@@ -10,6 +10,7 @@ import {
   ChefHat,
   UtensilsCrossed,
   Download,
+  FileText,
   Lightbulb,
   ListPlus,
   ListTodo,
@@ -139,6 +140,11 @@ const PROMPT_MAP: Record<string, PromptConfig> = {
     icon: Baby,
     title: "One child account on free.",
     body: "Upgrade to add unlimited child accounts, each with their own PIN login, chore assignments, and allowance tracking.",
+  },
+  RICH_TEXT_NOTES_PREMIUM: {
+    icon: FileText,
+    title: "Notes worth keeping.",
+    body: "Add headings, checklists, bold text, and links to your household notes. Upgrade from a scratchpad to a real knowledge base.",
   },
 };
 

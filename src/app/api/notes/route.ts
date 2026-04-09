@@ -85,11 +85,16 @@ export async function POST(request: NextRequest): Promise<Response> {
     return Response.json({ error: "Invalid request body" }, { status: 400 });
   }
 
-  if (!body.content?.trim()) {
+  const rawContent = body.content ?? "";
+  const isEmpty =
+    !rawContent ||
+    rawContent.trim() === "" ||
+    rawContent === "<p></p>";
+  if (isEmpty) {
     return Response.json({ error: "Content is required" }, { status: 400 });
   }
-  if (body.content.trim().length > 1000) {
-    return Response.json({ error: "Content must be 1000 characters or less" }, { status: 400 });
+  if (rawContent.length > 50000) {
+    return Response.json({ error: "Content must be 50,000 characters or less" }, { status: 400 });
   }
 
   const [note] = await db
@@ -97,7 +102,7 @@ export async function POST(request: NextRequest): Promise<Response> {
     .values({
       household_id: householdId,
       title: body.title?.trim() || null,
-      content: body.content.trim(),
+      content: rawContent,
       created_by: session.user.id,
     })
     .returning();

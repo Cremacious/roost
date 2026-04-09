@@ -50,18 +50,22 @@ export async function PATCH(
     return Response.json({ error: "Invalid request body" }, { status: 400 });
   }
 
-  if (body.content !== undefined && !body.content.trim()) {
-    return Response.json({ error: "Content is required" }, { status: 400 });
-  }
-  if (body.content && body.content.trim().length > 1000) {
-    return Response.json({ error: "Content must be 1000 characters or less" }, { status: 400 });
+  if (body.content !== undefined) {
+    const isEmpty =
+      body.content.trim() === "" || body.content === "<p></p>";
+    if (isEmpty) {
+      return Response.json({ error: "Content is required" }, { status: 400 });
+    }
+    if (body.content.length > 50000) {
+      return Response.json({ error: "Content must be 50,000 characters or less" }, { status: 400 });
+    }
   }
 
   const [updated] = await db
     .update(notes)
     .set({
       title: body.title !== undefined ? (body.title?.trim() || null) : existing.title,
-      content: body.content?.trim() ?? existing.content,
+      content: body.content ?? existing.content,
       updated_at: new Date(),
     })
     .where(eq(notes.id, id))

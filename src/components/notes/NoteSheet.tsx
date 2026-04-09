@@ -239,7 +239,7 @@ export default function NoteSheet({
       <>
         <DraggableSheet open={open} onOpenChange={(v) => !v && onClose()} featureColor={COLOR}>
           <div
-            className="overflow-y-auto px-4 pb-8"
+            className="px-4 pb-8"
             style={{ maxHeight: "calc(88dvh - 60px)" }}
           >
               {/* Header with edit button */}

@@ -203,7 +203,7 @@ export default function ChoreSheet({
   return (
     <>
       <DraggableSheet open={open} onOpenChange={(v) => !v && onClose()} featureColor="#EF4444">
-        <div className="overflow-y-auto px-4 pb-8" style={{ maxHeight: "calc(90dvh - 60px)" }}>
+        <div className="px-4 pb-8" style={{ maxHeight: "calc(90dvh - 60px)" }}>
           <p className="mb-5 text-lg" style={{ color: "var(--roost-text-primary)", fontWeight: 900 }}>
             {isEdit ? "Edit chore" : "Add chore"}
           </p>

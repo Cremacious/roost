@@ -271,16 +271,6 @@ html {
   }
 }
 
-/* ---- DraggableSheet (Vaul) desktop centering --------------------------- */
-
-@media (min-width: 640px) {
-  .roost-draggable-sheet {
-    /* Override max-width for sheets that need a non-default width (e.g. EventSheet at 860px) */
-    max-width: var(--draggable-sheet-max-width, 680px) !important;
-    border-radius: 16px 16px 0 0 !important;
-  }
-}
-
 /* ---- Compact calendar (EventSheet desktop right column) ---------------- */
 
 .roost-calendar-compact {

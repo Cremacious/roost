@@ -45,7 +45,7 @@ export default function DaySheet({
 
   return (
     <DraggableSheet open={open} onOpenChange={(v) => !v && onClose()} featureColor="#3B82F6">
-      <div className="overflow-y-auto px-4 pb-8" style={{ maxHeight: "calc(80dvh - 60px)" }}>
+      <div className="px-4 pb-8" style={{ maxHeight: "calc(80dvh - 60px)" }}>
         <p className="mb-4 text-lg" style={{ color: "var(--roost-text-primary)", fontWeight: 800 }}>
           {dateLabel}
         </p>

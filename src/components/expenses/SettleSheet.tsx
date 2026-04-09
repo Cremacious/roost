@@ -361,7 +361,7 @@ export default function SettleSheet({
   return (
     <DraggableSheet open={open} onOpenChange={(v) => { if (!v) handleClose(); }} featureColor="#22C55E">
       <div
-        className="overflow-y-auto px-4 pb-8"
+        className="px-4 pb-8"
         style={{ maxHeight: "calc(80dvh - 60px)" }}
       >
         {renderContent()}

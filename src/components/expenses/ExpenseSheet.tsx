@@ -490,8 +490,7 @@ export default function ExpenseSheet({
       <>
         <DraggableSheet open={open} onOpenChange={(v) => !v && onClose()} featureColor={COLOR}>
             <div
-              className="overflow-y-auto px-4 pb-8"
-              style={{ maxHeight: 'calc(88dvh - 60px)' }}
+              className="px-4 pb-8"
             >
 
             <div className="mb-4 flex items-start justify-between gap-3">
@@ -919,8 +918,7 @@ export default function ExpenseSheet({
   return (
     <DraggableSheet open={open} onOpenChange={(v) => !v && onClose()} featureColor={COLOR}>
         <div
-          className="overflow-y-auto px-4 pb-8"
-          style={{ maxHeight: 'calc(88dvh - 60px)' }}
+          className="px-4 pb-8"
         >
 
         {/* ---- Scanner view ---- */}

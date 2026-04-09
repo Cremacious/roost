@@ -183,7 +183,7 @@ export default function EditRecurringSheet({ open, onClose, template, members }:
   return (
     <>
       <DraggableSheet open={open} onOpenChange={(v) => !v && onClose()} featureColor={COLOR}>
-        <div className="overflow-y-auto px-4 pb-8" style={{ maxHeight: "calc(88dvh - 60px)" }}>
+        <div className="px-4 pb-8" style={{ maxHeight: "calc(88dvh - 60px)" }}>
           <p className="mb-5 text-lg" style={{ color: "var(--roost-text-primary)", fontWeight: 800 }}>
             Edit Recurring Expense
           </p>

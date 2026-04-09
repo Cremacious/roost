@@ -139,7 +139,7 @@ export default function InviteGuestSheet({ open, onClose }: InviteGuestSheetProp
   return (
     <DraggableSheet open={open} onOpenChange={(v) => !v && handleClose()} featureColor={AMBER}>
         <div
-          className="overflow-y-auto px-4 pb-8"
+          className="px-4 pb-8"
           style={{ maxHeight: "calc(88dvh - 60px)" }}
         >
           {result ? (

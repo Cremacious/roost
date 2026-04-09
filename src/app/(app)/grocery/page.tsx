@@ -43,6 +43,7 @@ import ErrorState from '@/components/shared/ErrorState';
 import { Skeleton } from '@/components/ui/skeleton';
 import { PageContainer } from '@/components/layout/PageContainer';
 import GroceryItemSheet from '@/components/grocery/GroceryItemSheet';
+import PremiumGate from '@/components/shared/PremiumGate';
 import GroceryListSheet, {
   type GroceryListData,
 } from '@/components/grocery/GroceryListSheet';
@@ -771,7 +772,7 @@ export default function GroceryPage() {
                 onClick={
                   isPremium || lists.length === 0
                     ? openAddList
-                    : () => {}
+                    : () => setShowListSheet(true)
                 }
                 whileTap={{ y: 1 }}
                 className="flex h-10 w-10 shrink-0 items-center justify-center gap-1.5 rounded-xl sm:w-auto sm:px-3 text-sm"

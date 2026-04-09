@@ -406,15 +406,15 @@ Tasks: one-off to-dos
   More opens a sheet with Profile and Settings links
 - Sheet Rules (ALL sheets in the app):
   ALL content bottom sheets use DraggableSheet (src/components/shared/DraggableSheet.tsx).
-  This wraps Vaul (vaul ^1.1.2) with native drag-to-dismiss and a colored drag handle pill.
+  This wraps shadcn Sheet (side="bottom") with a colored drag handle pill and centered desktop layout.
+  DraggableSheet wraps shadcn Sheet (Radix Dialog) internally so height sizes to content correctly.
   shadcn Sheet (side="bottom") is ONLY used for: BottomNav "More" menu, PremiumGate (sheet trigger).
   DraggableSheet props: open, onOpenChange, children, featureColor? (handle color), desktopMaxWidth? (default 680)
-  Desktop centering: Tailwind sm:left-1/2 sm:right-auto sm:-translate-x-1/2 sm:max-w-170 sm:w-full on DrawerPrimitive.Content.
-  Non-default width override (e.g. EventSheet 860px): --draggable-sheet-max-width CSS var on inline style, consumed by .roost-draggable-sheet in globals.css.
+  Desktop centering: inline style left: "50%", right: "auto", transform: "translateX(-50%)", maxWidth: desktopMaxWidth on SheetContent.
   EventSheet uses desktopMaxWidth={860} for two-column desktop layout.
   Correct usage pattern:
     <DraggableSheet open={open} onOpenChange={(v) => !v && onClose()} featureColor={COLOR}>
-      <div className="overflow-y-auto px-4 pb-8" style={{ maxHeight: "calc(92dvh - 60px)" }}>
+      <div className="px-4 pb-8">
         <p className="mb-5 text-lg" style={{ color: "var(--roost-text-primary)", fontWeight: 800 }}>
           Sheet Title
         </p>
@@ -422,16 +422,15 @@ Tasks: one-off to-dos
       </div>
     </DraggableSheet>
   Rules: The drag handle is rendered automatically by DraggableSheet — never add a manual handle div.
-  Inner scroll wrapper uses maxHeight: calc(Xdvh - 60px) (60px accounts for handle + padding).
-  Use dvh (not vh). Vaul handles scroll vs drag detection automatically.
-  onOpenAutoFocus={(e) => e.preventDefault()} on DrawerPrimitive.Content prevents iOS Safari from
+  Inner content divs use px-4 pb-8 only. No overflow-y-auto or maxHeight on inner divs — the sheet itself handles scroll via overflowY: auto and maxHeight: 96dvh on SheetContent.
+  onOpenAutoFocus={(e) => e.preventDefault()} on SheetContent prevents iOS Safari from
   auto-focusing the first input and raising the keyboard before the user sees the form.
 - Mobile Safari UX rules:
   All inputs/textareas/selects/[contenteditable] have font-size: 16px !important on mobile
   (globals.css @media max-width 768px). iOS Safari auto-zooms on focus when font-size < 16px.
   viewport export in layout.tsx sets maximumScale: 1 as a secondary guard against auto-zoom.
   Tiptap RichTextEditor has autofocus: false hardcoded in useEditor — Tiptap calls .focus()
-  programmatically and bypasses Radix/Vaul onOpenAutoFocus. Never pass autofocus prop to RichTextEditor.
+  programmatically and bypasses Radix onOpenAutoFocus. Never pass autofocus prop to RichTextEditor.
 - UI scales: phone / tablet / desktop
 - Font: Nunito (400-900) via next/font/google; weights 600/700/800/900 only in UI. Never below 600.
 - framer-motion animations:
@@ -584,7 +583,7 @@ src/components/shared/StatCard.tsx             Stat tile: big number + label, sl
 src/components/shared/PageHeader.tsx           Page title + subtitle + optional badge + action
 src/components/shared/SectionColorBadge.tsx    Inline color badge pill: bg color+18, border color+30
 src/components/shared/MemberAvatar.tsx         Initials avatar, sizes sm/md/lg, color prop
-src/components/shared/DraggableSheet.tsx        Vaul-based drag-to-dismiss bottom sheet wrapper; props: open, onOpenChange, children, featureColor?, desktopMaxWidth? (default 680); replaces all shadcn Sheet (side="bottom") in content sheets
+src/components/shared/DraggableSheet.tsx        shadcn Sheet (side="bottom") wrapper with colored handle pill + centered desktop layout; props: open, onOpenChange, children, featureColor?, desktopMaxWidth? (default 680); used for all content bottom sheets
 src/components/shared/PremiumGate.tsx          Unified premium gate: 3 trigger variants (sheet/inline/page), driven by PREMIUM_GATE_CONFIG keyed by feature slug
 src/lib/constants/premiumGateConfig.ts         PREMIUM_GATE_CONFIG: 13 feature entries (chores/grocery/expenses/calendar/tasks/notes/reminders/meals/allowances/guests/themes/stats/chore-categories), each with featureColor, featureHex, featureDarkHex, icon, title, subtitle, perks[], valueProp
 src/components/settings/MemberSheet.tsx        Admin member management: role picker, 12 permission toggles, child PIN change, allowance config, remove member

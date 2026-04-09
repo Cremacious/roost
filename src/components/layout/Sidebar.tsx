@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { motion } from "framer-motion";
+import { useQuery } from "@tanstack/react-query";
 import { useSession } from "@/lib/auth/client";
 import { signOut } from "@/lib/auth/client";
 import { useHousehold } from "@/lib/hooks/useHousehold";
@@ -63,8 +64,20 @@ export default function Sidebar() {
   const [signingOut, setSigningOut] = useState(false);
   const [hoverSignOut, setHoverSignOut] = useState(false);
 
+  // avatar_color lives in the custom users table, not in better-auth's session.
+  // Read it from the same ["user-profile"] query that settings/page.tsx invalidates on save.
+  const { data: profileData } = useQuery<{ user: { avatar_color?: string | null } }>({
+    queryKey: ["user-profile"],
+    queryFn: async () => {
+      const r = await fetch("/api/user/profile");
+      if (!r.ok) return { user: {} };
+      return r.json();
+    },
+    staleTime: 60_000,
+  });
+
   const userName = sessionData?.user?.name ?? "";
-  const avatarColor = (sessionData?.user as { avatar_color?: string })?.avatar_color ?? null;
+  const avatarColor = profileData?.user?.avatar_color ?? null;
 
   async function handleSignOut() {
     setSigningOut(true);

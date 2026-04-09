@@ -12,7 +12,7 @@ import { ChoreIcon, type ChoreCategory } from "@/components/chores/ChoreCategory
 import { CHORE_ICON_OPTIONS } from "@/components/chores/choreIconMap";
 import { THEMES, type ThemeKey } from "@/lib/constants/themes";
 import { useTheme } from "@/components/providers/ThemeProvider";
-import { useSession } from "@/lib/auth/client";
+import { useSession, authClient } from "@/lib/auth/client";
 import { useHousehold } from "@/lib/hooks/useHousehold";
 import { useUserPreferences } from "@/lib/hooks/useUserPreferences";
 import {
@@ -922,6 +922,8 @@ export default function SettingsPage() {
         throw new Error(d.error ?? "Failed to save");
       }
       queryClient.invalidateQueries({ queryKey: ["user-profile"] });
+      // Refresh better-auth session so sidebar avatar/name update immediately
+      await authClient.getSession();
       toast.success("Saved");
     } catch (err) {
       toast.error("Could not save", { description: (err as Error).message });

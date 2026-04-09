@@ -128,50 +128,40 @@ export default function Sidebar() {
           })}
         </div>
 
-        {/* Bottom: Settings + user info + sign out */}
+        {/* Bottom: user block + sign out */}
         <div
           className="px-2 pt-3"
           style={{ borderTop: "1.5px solid var(--roost-sidebar-divider)" }}
         >
-          <Link
-            href="/settings"
-            className="flex h-10 items-center gap-3 rounded-xl px-3 transition-colors"
+          {/* Clickable user block — navigates to Settings */}
+          <button
+            type="button"
+            onClick={() => router.push("/settings")}
+            className="flex w-full items-center gap-2.5 transition-colors"
             style={{
-              backgroundColor:
-                pathname === "/settings"
-                  ? "var(--roost-sidebar-active-bg)"
-                  : "transparent",
+              padding: "10px 8px",
+              borderRadius: 14,
+              background: pathname === "/settings" ? "var(--roost-sidebar-active-bg)" : "transparent",
+              border: "none",
+              cursor: "pointer",
+            }}
+            onMouseEnter={(e) => {
+              if (pathname !== "/settings") {
+                (e.currentTarget as HTMLButtonElement).style.background = "var(--roost-bg)";
+              }
+            }}
+            onMouseLeave={(e) => {
+              if (pathname !== "/settings") {
+                (e.currentTarget as HTMLButtonElement).style.background = "transparent";
+              }
             }}
           >
-            <Settings
-              className="size-4 shrink-0"
-              style={{
-                color: pathname === "/settings"
-                  ? "var(--roost-sidebar-active-text)"
-                  : "var(--roost-sidebar-inactive-text)",
-              }}
-            />
-            <span
-              className="text-sm"
-              style={{
-                color: pathname === "/settings"
-                  ? "var(--roost-sidebar-active-text)"
-                  : "var(--roost-sidebar-inactive-text)",
-                fontWeight: pathname === "/settings" ? 700 : 600,
-              }}
-            >
-              Settings
-            </span>
-          </Link>
-
-          {/* User info */}
-          <div className="mt-2 flex items-center gap-2.5 px-3 py-2">
             <MemberAvatar
               name={userName || "?"}
               avatarColor={avatarColor}
               size="sm"
             />
-            <div className="min-w-0 flex-1">
+            <div className="min-w-0 flex-1 text-left">
               {userName && (
                 <p
                   className="truncate text-[13px]"
@@ -189,7 +179,17 @@ export default function Sidebar() {
                 </p>
               )}
             </div>
-          </div>
+            <Settings
+              style={{
+                width: 15,
+                height: 15,
+                flexShrink: 0,
+                color: pathname === "/settings"
+                  ? "var(--roost-sidebar-active-text)"
+                  : "var(--roost-sidebar-inactive-text)",
+              }}
+            />
+          </button>
 
           {/* Sign out button */}
           <button
@@ -198,18 +198,24 @@ export default function Sidebar() {
             onClick={() => setConfirmSignOut(true)}
             onMouseEnter={() => setHoverSignOut(true)}
             onMouseLeave={() => setHoverSignOut(false)}
-            className="flex w-full items-center gap-2 rounded-[10px] px-2.5 py-2 text-xs"
+            className="mt-1 flex w-full items-center gap-2 rounded-[10px] px-2.5"
             style={{
-              background: hoverSignOut ? "rgba(0,0,0,0.06)" : "transparent",
+              height: 34,
+              background: hoverSignOut ? "rgba(239,68,68,0.08)" : "transparent",
               color: hoverSignOut ? "#EF4444" : "var(--roost-text-muted)",
               fontWeight: 700,
+              fontSize: 12,
               cursor: "pointer",
               border: "none",
             }}
           >
             <LogOut
-              className="size-4 shrink-0"
-              style={{ color: hoverSignOut ? "#EF4444" : "var(--roost-text-muted)" }}
+              style={{
+                width: 13,
+                height: 13,
+                flexShrink: 0,
+                color: hoverSignOut ? "#EF4444" : "var(--roost-text-muted)",
+              }}
             />
             Sign out
           </button>

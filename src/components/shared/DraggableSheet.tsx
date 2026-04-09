@@ -50,13 +50,9 @@ export default function DraggableSheet({
         {/* Sheet content */}
         <DrawerPrimitive.Content
           aria-label="Sheet"
-          className="roost-draggable-sheet"
+          className="roost-draggable-sheet fixed bottom-0 left-0 right-0 sm:left-1/2 sm:right-auto sm:-translate-x-1/2 sm:max-w-170 sm:w-full"
           style={
             {
-              position: "fixed",
-              bottom: 0,
-              left: 0,
-              right: 0,
               zIndex: 50,
               backgroundColor: "var(--roost-surface)",
               borderRadius: "20px 20px 0 0",
@@ -65,7 +61,7 @@ export default function DraggableSheet({
               paddingBottom: "env(safe-area-inset-bottom)",
               display: "flex",
               flexDirection: "column",
-              /* CSS variable read by the @media rule in globals.css */
+              /* CSS variable read by the @media rule in globals.css for non-680px sheets */
               "--draggable-sheet-max-width": `${desktopMaxWidth}px`,
             } as React.CSSProperties
           }

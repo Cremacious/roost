@@ -264,11 +264,8 @@ html {
 
 @media (min-width: 640px) {
   .roost-draggable-sheet {
-    left: 50% !important;
-    right: auto !important;
-    width: 100% !important;
+    /* Override max-width for sheets that need a non-default width (e.g. EventSheet at 860px) */
     max-width: var(--draggable-sheet-max-width, 680px) !important;
-    transform: translateX(-50%) !important;
     border-radius: 16px 16px 0 0 !important;
   }
 }

@@ -409,7 +409,8 @@ Tasks: one-off to-dos
   This wraps Vaul (vaul ^1.1.2) with native drag-to-dismiss and a colored drag handle pill.
   shadcn Sheet (side="bottom") is ONLY used for: BottomNav "More" menu, PremiumGate (sheet trigger).
   DraggableSheet props: open, onOpenChange, children, featureColor? (handle color), desktopMaxWidth? (default 680)
-  Desktop centering: .roost-draggable-sheet media query in globals.css, uses CSS var --draggable-sheet-max-width
+  Desktop centering: Tailwind sm:left-1/2 sm:right-auto sm:-translate-x-1/2 sm:max-w-170 sm:w-full on DrawerPrimitive.Content.
+  Non-default width override (e.g. EventSheet 860px): --draggable-sheet-max-width CSS var on inline style, consumed by .roost-draggable-sheet in globals.css.
   EventSheet uses desktopMaxWidth={860} for two-column desktop layout.
   Correct usage pattern:
     <DraggableSheet open={open} onOpenChange={(v) => !v && onClose()} featureColor={COLOR}>

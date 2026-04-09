@@ -12,13 +12,6 @@ export interface ParsedReceipt {
   lineItems: { description: string; amount: number }[];
 }
 
-function detectContentType(base64: string): "image/jpeg" | "image/png" | "image/heic" {
-  if (base64.startsWith("/9j/")) return "image/jpeg";
-  if (base64.startsWith("iVBOR")) return "image/png";
-  if (base64.startsWith("AAAAF") || base64.startsWith("AAAA")) return "image/heic";
-  return "image/jpeg"; // safe default
-}
-
 export async function parseReceiptImage(imageBase64: string): Promise<ParsedReceipt> {
   const endpoint = process.env.AZURE_DOCUMENT_INTELLIGENCE_ENDPOINT;
   const key = process.env.AZURE_DOCUMENT_INTELLIGENCE_KEY;
@@ -34,9 +27,8 @@ export async function parseReceiptImage(imageBase64: string): Promise<ParsedRece
   // Strip data URL prefix if present
   const cleanBase64 = imageBase64.includes(",") ? imageBase64.split(",")[1] : imageBase64;
   const buffer = Buffer.from(cleanBase64, "base64");
-  const contentType = detectContentType(cleanBase64);
 
-  const poller = await client.beginAnalyzeDocument("prebuilt-receipt", buffer, { contentType });
+  const poller = await client.beginAnalyzeDocument("prebuilt-receipt", buffer);
   const result = await poller.pollUntilDone();
   const doc = result.documents?.[0];
 
@@ -45,7 +37,15 @@ export async function parseReceiptImage(imageBase64: string): Promise<ParsedRece
     return { lineItems: [] };
   }
 
-  const fields = doc.fields;
+  // Cast fields to a typed record that matches the prebuilt-receipt schema.
+  // DocumentField is a discriminated union; casting through unknown lets us
+  // access .value/.values/.properties without narrowing every field individually.
+  type FieldMap = Record<string, {
+    value?: unknown;
+    values?: Array<{ properties?: Record<string, { value?: unknown }> }>;
+    properties?: Record<string, { value?: unknown }>;
+  }>;
+  const fields = doc.fields as FieldMap;
 
   const merchant = fields?.MerchantName?.value as string | undefined;
 

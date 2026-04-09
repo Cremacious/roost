@@ -120,7 +120,12 @@ export async function GET(request: NextRequest): Promise<Response> {
     );
 
   // Combine: non-recurring rows as-is, recurring rows expanded for this range
-  const expandedRecurring = expandEventsForRange(recurringRows, monthStart, monthEnd);
+  // attendees: [] placeholder — real attendees are merged in below after the attendee query
+  const expandedRecurring = expandEventsForRange(
+    recurringRows.map((r) => ({ ...r, attendees: [] })),
+    monthStart,
+    monthEnd
+  );
 
   const allEventRows = [
     ...nonRecurringRows.map((e) => ({ ...e, isRecurring: false as const, template_start_time: null })),

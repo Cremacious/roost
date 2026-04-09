@@ -1,5 +1,5 @@
 # Roost — Feature Registry
-> Last updated: 2026-04-09 (E2E test infrastructure: fixed seed accounts replace timestamp-email pattern)
+> Last updated: 2026-04-09 (Admin test filter: added %@roost.test email pattern and seeded account names to testFilters.ts)
 > Use this file for homepage copy, paywall screens, upgrade prompts, and App Store descriptions.
 
 ---

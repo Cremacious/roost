@@ -554,7 +554,7 @@ src/app/api/chore-categories/[id]/route.ts     PATCH (admin: approve/reject/edit
 src/components/chores/choreIconMap.ts          CHORE_ICON_MAP (29 Lucide icons) + CHORE_ICON_OPTIONS
 src/components/chores/ChoreCategoryPicker.tsx  Category picker: None tile, defaults grid, custom grid, inline create/suggest form (premium-gated); exports ChoreIcon + ChoreCategory type
 src/lib/admin/auth.ts                          createAdminSession (jose SignJWT HS256 8h), verifyAdminSession, checkAdminCredentials (env vars)
-src/lib/admin/testFilters.ts                   TEST_USER_CONDITIONS, TEST_HOUSEHOLD_CONDITIONS, EXCLUDE_TEST_USERS_SQL, EXCLUDE_TEST_HOUSEHOLDS_SQL — single source of truth for test account patterns
+src/lib/admin/testFilters.ts                   TEST_USER_CONDITIONS, TEST_HOUSEHOLD_CONDITIONS, EXCLUDE_TEST_USERS_SQL, EXCLUDE_TEST_HOUSEHOLDS_SQL — single source of truth for test account patterns. Email patterns: %@example.com, %@roost.test, %test%. Name patterns include all seeded E2E accounts (Free Admin, Premium Admin, Test Member, Test Child) and legacy Playwright names.
 src/lib/admin/requireAdmin.ts                  requireAdminSession(request) — returns Response|null; parses cookie header manually
 src/app/api/admin/login/route.ts               POST (no auth): verify credentials, create JWT, set HttpOnly cookie
 src/app/api/admin/logout/route.ts              POST: clear admin cookie, redirect to /admin/login

@@ -407,6 +407,11 @@ export default function GroceryPage() {
   const [upgradeCode, setUpgradeCode] = useState<string | null>(null);
   const [showDeleteListConfirm, setShowDeleteListConfirm] = useState(false);
 
+  const pillRowRef = useRef<HTMLDivElement>(null);
+  const [pillScrollProgress, setPillScrollProgress] = useState(0);
+  const [pillScrollOffset, setPillScrollOffset] = useState(0);
+  const [pillOverflows, setPillOverflows] = useState(false);
+
   const PLACEHOLDERS = ['Add milk...', 'Add eggs...', 'Add anything...'];
   const [placeholderIdx, setPlaceholderIdx] = useState(0);
   useEffect(() => {
@@ -444,6 +449,27 @@ export default function GroceryPage() {
     const stored = localStorage.getItem(`grocery-smart-sort-${activeListId}`);
     setSmartSort(stored === 'true');
   }, [activeListId]);
+
+  const handlePillScroll = useCallback(() => {
+    const el = pillRowRef.current;
+    if (!el) return;
+    const maxScroll = el.scrollWidth - el.clientWidth;
+    if (maxScroll <= 0) return;
+    const progress = el.scrollLeft / maxScroll;
+    const thumbWidth = el.clientWidth / el.scrollWidth;
+    setPillScrollProgress(thumbWidth);
+    setPillScrollOffset(progress * (100 - thumbWidth * 100));
+  }, []);
+
+  useEffect(() => {
+    const el = pillRowRef.current;
+    if (!el) return;
+    const check = () => setPillOverflows(el.scrollWidth > el.clientWidth);
+    check();
+    const ro = new ResizeObserver(check);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [lists]);
 
   const itemsQuery = useQuery<ItemsResponse>({
     queryKey: ['grocery-items', activeListId],
@@ -902,47 +928,70 @@ export default function GroceryPage() {
 
         {/* List pill switcher — only shown when 2+ lists exist */}
         {lists.length > 1 && (
-          <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
-            {lists.map((list) => {
-              const active = list.id === activeListId;
-              return (
-                <motion.button
-                  key={list.id}
-                  type="button"
-                  onClick={() => setSelectedListId(list.id)}
-                  whileTap={{ y: 1 }}
-                  className="flex h-9 shrink-0 items-center gap-1.5 rounded-xl px-3 text-sm"
-                  style={{
-                    backgroundColor: active
-                      ? COLOR + '18'
-                      : 'var(--roost-surface)',
-                    border: active
-                      ? `1.5px solid ${COLOR}40`
-                      : '1.5px solid var(--roost-border)',
-                    borderBottom: active
-                      ? `3px solid ${COLOR}60`
-                      : '3px solid #E5E7EB',
-                    color: active ? COLOR : 'var(--roost-text-primary)',
-                    fontWeight: active ? 800 : 600,
+          <div className="relative">
+            <div
+              ref={pillRowRef}
+              onScroll={handlePillScroll}
+              className="flex items-center gap-2 overflow-x-auto scrollbar-none pb-3"
+            >
+              {lists.map((list) => {
+                const active = list.id === activeListId;
+                return (
+                  <motion.button
+                    key={list.id}
+                    type="button"
+                    onClick={() => setSelectedListId(list.id)}
+                    whileTap={{ y: 1 }}
+                    className="flex h-9 shrink-0 items-center gap-1.5 rounded-xl px-3 text-sm"
+                    style={{
+                      backgroundColor: active
+                        ? COLOR + '18'
+                        : 'var(--roost-surface)',
+                      border: active
+                        ? `1.5px solid ${COLOR}40`
+                        : '1.5px solid var(--roost-border)',
+                      borderBottom: active
+                        ? `3px solid ${COLOR}60`
+                        : '3px solid #E5E7EB',
+                      color: active ? COLOR : 'var(--roost-text-primary)',
+                      fontWeight: active ? 800 : 600,
+                    }}
+                  >
+                    {list.name}
+                    {list.item_count > 0 && (
+                      <span
+                        className="flex h-5 min-w-5 items-center justify-center rounded-full px-1 text-[11px] text-white"
+                        style={{
+                          backgroundColor: active
+                            ? COLOR
+                            : 'var(--roost-text-muted)',
+                          fontWeight: 700,
+                        }}
+                      >
+                        {list.item_count}
+                      </span>
+                    )}
+                  </motion.button>
+                );
+              })}
+            </div>
+
+            {pillOverflows && (
+              <div
+                className="absolute bottom-0 left-0 right-0 h-1 rounded-full"
+                style={{ backgroundColor: COLOR + '20' }}
+              >
+                <motion.div
+                  className="h-full rounded-full"
+                  style={{ backgroundColor: COLOR }}
+                  animate={{
+                    width: `${pillScrollProgress * 100}%`,
+                    x: `${pillScrollOffset}%`,
                   }}
-                >
-                  {list.name}
-                  {list.item_count > 0 && (
-                    <span
-                      className="flex h-5 min-w-5 items-center justify-center rounded-full px-1 text-[11px] text-white"
-                      style={{
-                        backgroundColor: active
-                          ? COLOR
-                          : 'var(--roost-text-muted)',
-                        fontWeight: 700,
-                      }}
-                    >
-                      {list.item_count}
-                    </span>
-                  )}
-                </motion.button>
-              );
-            })}
+                  transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+                />
+              </div>
+            )}
           </div>
         )}
 

@@ -872,6 +872,11 @@ src/lib/constants/colors.ts                   Added "stats": "#6366F1" (indigo) 
   + button is type="button" with onClick. Input has onKeyDown for Enter. No form element needed.
 - Grocery header: one row — list name h1 on left (single list free), or list pills + "+ Shopping List"
   pill for premium/multi-list. Right side always has + add item and ... more menu.
+- Grocery list pill row: wrapped in `relative` container. Scrollable div uses `overflow-x-auto scrollbar-none pb-3`.
+  A `ResizeObserver` on the pill row detects overflow (pillOverflows state). When overflowing, an animated
+  progress indicator bar (`h-1`, `COLOR + '20'` track, `COLOR` thumb) is shown at the bottom via `absolute bottom-0`.
+  Thumb width = clientWidth/scrollWidth ratio; offset tracks scroll position proportionally.
+  Animated with framer-motion spring (stiffness 300, damping 30). Hidden entirely when all pills fit.
 
 ## Receipt Scanning Rules
 - Uses Azure Document Intelligence prebuilt-receipt model via /api/expenses/scan (premium + non-child only)

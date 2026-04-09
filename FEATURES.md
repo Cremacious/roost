@@ -1,5 +1,5 @@
 # Roost — Feature Registry
-> Last updated: 2026-04-09 (Chores page: moved + button from fixed FAB to header top-right; History/Leaderboard collapse to icon-only on mobile)
+> Last updated: 2026-04-09 (Chores page: moved + button from fixed FAB to header top-right; History/Leaderboard collapse to icon-only on mobile; Grocery page: animated scroll progress indicator on list pill row replaces native scrollbar)
 > Use this file for homepage copy, paywall screens, upgrade prompts, and App Store descriptions.
 
 ---

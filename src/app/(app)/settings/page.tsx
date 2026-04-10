@@ -48,6 +48,7 @@ import MemberSheet, {
   type SheetMember,
 } from '@/components/settings/MemberSheet';
 import InviteGuestSheet from '@/components/settings/InviteGuestSheet';
+import AddChildSheet from '@/components/settings/AddChildSheet';
 import MemberAvatar from '@/components/shared/MemberAvatar';
 import PremiumGate from '@/components/shared/PremiumGate';
 import { PageContainer } from '@/components/layout/PageContainer';
@@ -1152,6 +1153,7 @@ export default function SettingsPage() {
     null,
   );
   const [inviteGuestOpen, setInviteGuestOpen] = useState(false);
+  const [addChildOpen, setAddChildOpen] = useState(false);
 
   // ---- Danger zone state ----------------------------------------------------
   const [deleteDataOpen, setDeleteDataOpen] = useState(false);
@@ -2372,28 +2374,68 @@ export default function SettingsPage() {
             </SlabCard>
 
             {isAdmin && (
-              <motion.button
-                type="button"
-                whileTap={{ y: 1 }}
-                onClick={() => {
-                  if (!isPremium) {
-                    setUpgradeCode('GUEST_MEMBER_PREMIUM');
-                  } else {
-                    setInviteGuestOpen(true);
-                  }
-                }}
-                className="flex h-12 w-full items-center justify-center gap-2 rounded-xl text-sm"
-                style={{
-                  backgroundColor: 'var(--roost-surface)',
-                  border: '1.5px solid var(--roost-border)',
-                  borderBottom: '3px solid var(--roost-border-bottom)',
-                  color: 'var(--roost-text-secondary)',
-                  fontWeight: 700,
-                }}
-              >
-                <UserPlus className="size-4" />
-                Invite Temporary Guest
-              </motion.button>
+              <div className="mt-3 flex flex-col gap-2">
+                <motion.button
+                  type="button"
+                  whileTap={{ y: 1 }}
+                  onClick={() => setAddChildOpen(true)}
+                  className="flex h-12 w-full items-center justify-center gap-2 rounded-xl text-sm"
+                  style={{
+                    backgroundColor: 'var(--roost-surface)',
+                    border: '1.5px solid var(--roost-border)',
+                    borderBottom: '3px solid var(--roost-border-bottom)',
+                    color: 'var(--roost-text-secondary)',
+                    fontWeight: 700,
+                  }}
+                >
+                  <UserPlus className="size-4" />
+                  Add Child Account
+                </motion.button>
+
+                <motion.button
+                  type="button"
+                  whileTap={{ y: 1 }}
+                  onClick={() => {
+                    if (!isPremium) {
+                      setUpgradeCode('GUEST_MEMBER_PREMIUM');
+                    } else {
+                      setInviteGuestOpen(true);
+                    }
+                  }}
+                  className="flex h-12 w-full items-center justify-center gap-2 rounded-xl text-sm"
+                  style={{
+                    backgroundColor: 'var(--roost-surface)',
+                    border: '1.5px solid var(--roost-border)',
+                    borderBottom: '3px solid var(--roost-border-bottom)',
+                    color: 'var(--roost-text-secondary)',
+                    fontWeight: 700,
+                  }}
+                >
+                  <UserPlus className="size-4" />
+                  Invite Temporary Guest
+                </motion.button>
+
+                <div
+                  className="rounded-xl px-4 py-3"
+                  style={{
+                    backgroundColor: 'var(--roost-bg)',
+                    border: '1px solid var(--roost-border)',
+                  }}
+                >
+                  <p
+                    style={{
+                      fontSize: 12,
+                      fontWeight: 700,
+                      color: 'var(--roost-text-secondary)',
+                      lineHeight: 1.5,
+                    }}
+                  >
+                    Child accounts use a 4-digit PIN to log in at{' '}
+                    <span style={{ color: '#EF4444' }}>roost.app/child-login</span>.
+                    No email needed. Share the household code and PIN with them.
+                  </p>
+                </div>
+              </div>
             )}
           </SettingsSection>
 
@@ -3086,6 +3128,12 @@ export default function SettingsPage() {
         <InviteGuestSheet
           open={inviteGuestOpen}
           onClose={() => setInviteGuestOpen(false)}
+        />
+
+        {/* Add child sheet */}
+        <AddChildSheet
+          open={addChildOpen}
+          onClose={() => setAddChildOpen(false)}
         />
 
         {/* Upgrade prompt */}

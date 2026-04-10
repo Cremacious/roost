@@ -48,12 +48,14 @@
 - Notify just yourself
 
 #### Auth & Household
-- Adult signup and login
-- Child PIN login
+- Adult signup and login (email/password)
+- Child PIN login at /child-login: household code entry (cookie-persisted), name picker, 4-digit PIN pad with shake on wrong PIN
+- Add child accounts from Settings: admin-only, generates random 4-digit PIN shown once, no email needed
 - Create or join household via invite code
 - Household invite code sharing
 - Member roles: Child, Member, Admin
-- Up to 1 child account on free (enforced server-side via CHILDREN_LIMIT)
+- Up to 2 child accounts on free (enforced server-side via CHILDREN_LIMIT)
+- Welcome modal on first dashboard visit (has_seen_welcome flag, dismissed via POST /api/user/dismiss-welcome)
 
 #### Meals (Free)
 - Weekly meal planner (Mon-Sun, 4 slots per day)

@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { useSession } from "@/lib/auth/client";
@@ -25,6 +26,7 @@ import { SECTION_COLORS, type SectionKey } from "@/lib/constants/colors";
 import { PageContainer } from "@/components/layout/PageContainer";
 import SlabCard from "@/components/shared/SlabCard";
 import AllowanceWidget from "@/components/shared/AllowanceWidget";
+import WelcomeModal from "@/components/shared/WelcomeModal";
 
 // ---- Types ------------------------------------------------------------------
 
@@ -320,6 +322,18 @@ export default function DashboardPage() {
   const { data: sessionData } = useSession();
   const userName = sessionData?.user?.name ?? "";
   const { isPremium, role } = useHousehold();
+  const [welcomeDismissed, setWelcomeDismissed] = useState(false);
+
+  const { data: profileData } = useQuery<{ user: { has_seen_welcome: boolean } }>({
+    queryKey: ["user-profile"],
+    queryFn: async () => {
+      const r = await fetch("/api/user/profile");
+      if (!r.ok) return { user: { has_seen_welcome: true } };
+      return r.json();
+    },
+    staleTime: Infinity,
+    retry: 1,
+  });
 
   const {
     data: membersData,
@@ -469,6 +483,11 @@ export default function DashboardPage() {
     return t;
   });
 
+  const showWelcome =
+    !welcomeDismissed &&
+    profileData !== undefined &&
+    profileData.user.has_seen_welcome === false;
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 12 }}
@@ -477,6 +496,9 @@ export default function DashboardPage() {
       className="py-4 pb-24 md:py-6"
       style={{ backgroundColor: "var(--roost-bg)" }}
     >
+      {showWelcome && (
+        <WelcomeModal onDismiss={() => setWelcomeDismissed(true)} />
+      )}
       <PageContainer className="flex flex-col gap-6">
         {/* Greeting */}
         {userName && (

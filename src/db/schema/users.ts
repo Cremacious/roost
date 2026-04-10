@@ -13,6 +13,11 @@ export const users = pgTable("users", {
   longitude: numeric("longitude"),
   temperature_unit: text("temperature_unit").notNull().default("fahrenheit"),
   chore_reminders_enabled: boolean("chore_reminders_enabled").notNull().default(false),
+  // Child account fields
+  is_child_account: boolean("is_child_account").notNull().default(false),
+  child_of_household_id: text("child_of_household_id"),
+  // Onboarding
+  has_seen_welcome: boolean("has_seen_welcome").notNull().default(false),
   created_at: timestamp("created_at").defaultNow(),
   updated_at: timestamp("updated_at").defaultNow(),
   deleted_at: timestamp("deleted_at"),

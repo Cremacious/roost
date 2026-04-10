@@ -498,7 +498,7 @@ src/lib/store/themeStore.ts                    Zustand store: { theme, setTheme 
 src/lib/db/index.ts                            Neon + Drizzle instance
 src/db/schema/auth.ts                          better-auth tables (user, session, account, verification)
 src/db/schema/households.ts
-src/db/schema/users.ts                         App user table; includes theme, latitude, longitude, temperature_unit, chore_reminders_enabled columns (chore_reminders_enabled unused in UI — column kept in schema)
+src/db/schema/users.ts                         App user table; includes theme, latitude, longitude, temperature_unit, chore_reminders_enabled columns (chore_reminders_enabled unused in UI — column kept in schema); also has_seen_welcome (bool), is_child_account (bool), child_of_household_id (text)
 src/db/schema/members.ts                       household_members, member_permissions
 src/db/schema/chores.ts                        chores, chore_completions, chore_streaks
 src/db/schema/grocery.ts                       grocery_lists, grocery_items
@@ -521,7 +521,7 @@ src/app/(app)/chores/page.tsx                  Chores list, summary bar, view to
 src/app/layout.tsx                             Root layout: Nunito font, ThemeProvider with server-side theme
 src/app/globals.css                            Tailwind + shadcn vars + --roost-* CSS variable defaults
 src/app/api/auth/[...all]/route.ts             better-auth catch-all handler
-src/app/api/auth/child-login/route.ts          PIN auth, creates session via internalAdapter
+src/app/api/auth/child-login/route.ts          GET: list child accounts for a household (public, by householdCode); POST: verify PIN + create session via internalAdapter
 src/app/api/household/create/route.ts          POST: create household, generate unique code
 src/app/api/household/join/route.ts            POST: join by code, premium multi-household check
 src/app/api/household/members/route.ts         GET: household info + member list with user data (includes email)
@@ -530,6 +530,7 @@ src/app/api/household/members/[id]/role/route.ts  PATCH: change member role; chi
 src/app/api/household/members/[id]/permissions/route.ts  GET + PATCH: 12 permission toggles; child-locked perms cannot be enabled for child role
 src/app/api/household/members/[id]/pin/route.ts  PATCH (admin only): set/change child PIN, hashed before storage
 src/app/api/household/members/[id]/allowance/route.ts  GET + PATCH (admin only): allowance settings per child member
+src/app/api/household/members/add-child/route.ts  POST (admin only): create child user (no email, is_child_account=true), generate + hash 4-digit PIN, return plain PIN once
 src/app/api/user/theme/route.ts                PATCH: update users.theme for current user
 src/app/api/chores/route.ts                    GET (list with joins) + POST (create); exports getUserHousehold + calcNextDueAt
 src/app/api/chores/[id]/route.ts               PATCH (update) + DELETE (soft delete)
@@ -573,7 +574,8 @@ src/lib/utils/time.ts                          relativeTime(date) -- returns "Ju
 src/lib/hooks/useHousehold.ts                  Client hook: returns { household, role, permissions, isPremium, isLoading, error } via /api/household/me
 src/lib/hooks/useUserPreferences.ts            Client hook: returns { temperatureUnit, latitude, longitude, updatePreferences } via /api/user/preferences
 src/app/api/user/preferences/route.ts          GET + PATCH: temperature_unit, latitude, longitude, timezone, language
-src/app/api/user/profile/route.ts              GET + PATCH: name, email (unique check), avatar_color, timezone, language, push_token
+src/app/api/user/profile/route.ts              GET + PATCH: name, email (unique check), avatar_color, timezone, language, push_token; GET includes has_seen_welcome
+src/app/api/user/dismiss-welcome/route.ts      POST: sets has_seen_welcome=true for current user (called by WelcomeModal on dismiss)
 src/app/api/user/change-password/route.ts      POST: verifyPassword current via account table, hashPassword new; strength validation
 src/app/api/household/[id]/route.ts            PATCH: rename household (admin); DELETE: hard delete all content + household
 src/app/api/household/[id]/delete-data/route.ts  POST (admin only): hard delete all household content in FK order, household row remains
@@ -620,6 +622,7 @@ src/app/api/invite/[token]/route.ts           GET (public): check invite validit
 src/app/api/cron/guest-expiry/route.ts        Daily 2am UTC: hard-delete expired guest household_members rows + member_permissions; logs guest_expired activity
 src/app/invite/[token]/page.tsx               Public invite landing page: loading/valid/not_found/expired/error states; shows household name, amber guest badge, 5 capability bullets; logged-in join button or signup+login links
 src/components/settings/InviteGuestSheet.tsx  Admin-only guest invite sheet: optional email, preset pills (1d/3d/1w/2w/30d), custom date, live preview, generate link, copy + share; amber color scheme
+src/components/settings/AddChildSheet.tsx     Admin-only sheet: name input (step A) + PIN reveal with copy button + amber warning (step B); calls POST /api/household/members/add-child; invalidates ["members"] query
 src/app/(app)/expenses/page.tsx               Expenses module: inline upgrade pitch for free users (no blurred preview), balance summary, debt cards, settle flow
 src/app/api/expenses/route.ts                 GET (expenses + splits + debt simplification + myBalance + isPremium) + POST (premium, splits validation)
 src/app/api/expenses/[id]/route.ts            PATCH (title/category only, paid_by or admin) + DELETE (soft delete)
@@ -660,6 +663,7 @@ src/app/api/allowances/route.ts               GET: payout history for household,
 src/app/api/allowances/child/route.ts         GET: allowance settings + payouts + current week progress for current user
 src/app/api/cron/allowances/route.ts          Vercel cron GET (Sunday 11pm UTC): evaluate chore completion, create expense entries
 src/components/shared/AllowanceWidget.tsx     Child-only widget: weekly progress bar, status message, last 4 weeks history
+src/components/shared/WelcomeModal.tsx        First-visit welcome dialog: shadcn Dialog, 3 tip rows (household/child/chores), red CTA dismisses + POSTs /api/user/dismiss-welcome; shown when has_seen_welcome=false
 src/lib/hooks/use-paginated-list.ts           usePaginatedList<T>(items, { pageSize }) — client-side slice pagination; auto-resets when items identity changes; returns visibleItems, hasMore, loadMore, reset, visibleCount, totalCount
 src/components/ui/show-more-button.tsx        ShowMoreButton — renders "Showing X of Y" + "+ Show N more" slab button; returns null when all items visible; accepts color prop for section tinting
 src/lib/utils/azureReceipts.ts              parseReceiptImage(base64) via Azure Document Intelligence prebuilt-receipt, returns ParsedReceipt
@@ -1231,7 +1235,9 @@ Update this file after every major decision or completed phase.
 - e2e/.auth/*.json files contain session tokens — always in .gitignore, never commit. e2e/.auth/.gitkeep tracks the empty directory.
 - Empty-state tests (chores/grocery) only reliable on first run against a clean DB. Test data accumulates with shared accounts — this is an accepted tradeoff.
 
-Last updated: 2026-04-09 (Sidebar footer redesigned: replaced Settings nav link + user-info row + sign-out button with a single clickable user block (button → router.push('/settings'), padding 10px 8px, borderRadius 14, hover var(--roost-bg), contains 34px avatar + name/role + 15px gear icon) and a separate sign-out button below (34px height, red hover tint, 12px/700 font, 13px LogOut icon). The Settings nav link is gone — the user block navigates to /settings and highlights when pathname==='/settings'. Avatar color sync fixed: root cause was a source mismatch — avatar_color lives in the custom users table, not in better-auth's user table, so useSession() never contained it. Sidebar now reads avatar_color from a useQuery(["user-profile"]) against /api/user/profile (same key settings/page.tsx already invalidates on save) instead of casting the session object. No authClient.getSession() call needed — TanStack Query invalidation is the correct mechanism.)
+Last updated: 2026-04-09 (Child auth system built. Schema: users.ts gained is_child_account, child_of_household_id, has_seen_welcome. API: POST /api/household/members/add-child (admin only, generates 4-digit PIN, hashes it, creates child user + household_member); GET /api/auth/child-login (public, returns children list by householdCode); POST /api/auth/child-login rewritten to take {householdCode, childId, pin} — targets specific child; POST /api/user/dismiss-welcome sets has_seen_welcome=true. child-login page fully rewritten: 3-step flow — (1) house code input with cookie persistence (365-day), (2) name picker grid, (3) PIN pad with auto-submit + shake on wrong PIN. AddChildSheet: 2-step form/PIN-reveal. WelcomeModal: shadcn Dialog shown once on dashboard for new users. Settings Members section gains "Add Child Account" button + callout. FREE_TIER_LIMITS.children = 2. Run npm run db:push to sync schema.)
+
+Previous: 2026-04-09 (Sidebar footer redesigned: replaced Settings nav link + user-info row + sign-out button with a single clickable user block (button → router.push('/settings'), padding 10px 8px, borderRadius 14, hover var(--roost-bg), contains 34px avatar + name/role + 15px gear icon) and a separate sign-out button below (34px height, red hover tint, 12px/700 font, 13px LogOut icon). The Settings nav link is gone — the user block navigates to /settings and highlights when pathname==='/settings'. Avatar color sync fixed: root cause was a source mismatch — avatar_color lives in the custom users table, not in better-auth's user table, so useSession() never contained it. Sidebar now reads avatar_color from a useQuery(["user-profile"]) against /api/user/profile (same key settings/page.tsx already invalidates on save) instead of casting the session object. No authClient.getSession() call needed — TanStack Query invalidation is the correct mechanism.)
 
 Previous: 2026-04-09 (Billing page current plan card redesigned. Free tier: icon box (48px, Home icon) + plan name + "Free forever" badge in top section; divider; 4 usage progress bars in bottom section (Chores/Members/Grocery lists/Reminders, each with label + "X / Y used" count + colored fill bar). Premium tier: same top section with "Active" green badge + Cancel/Reactivate links; divider; "Next billing date" or "Premium ends" row. UsageItem interface + UsageRow component + CurrentPlanCard component added. 4 useQuery hooks added for real usage data (chores, household-members, grocery-lists, reminders). Progress bar colors: chores #EF4444, members #3B82F6, grocery #F59E0B, reminders #06B6D4.)
 

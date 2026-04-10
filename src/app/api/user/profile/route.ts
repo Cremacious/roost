@@ -23,6 +23,7 @@ export async function GET(request: NextRequest): Promise<Response> {
       timezone: users.timezone,
       language: users.language,
       theme: users.theme,
+      has_seen_welcome: users.has_seen_welcome,
     })
     .from(users)
     .where(eq(users.id, session.user.id))

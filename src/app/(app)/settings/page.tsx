@@ -1807,8 +1807,8 @@ export default function SettingsPage() {
                     onClick={handlePasswordChange}
                     className="flex h-11 w-full items-center justify-center rounded-xl text-sm text-white disabled:opacity-50"
                     style={{
-                      backgroundColor: 'var(--roost-text-primary)',
-                      border: '1.5px solid var(--roost-border)',
+                      backgroundColor: '#E24B4A',
+                      border: '1.5px solid #E24B4A',
                       borderBottom: '3px solid rgba(0,0,0,0.2)',
                       fontWeight: 800,
                     }}
@@ -1880,14 +1880,10 @@ export default function SettingsPage() {
                         onClick={() => handleTempUnitChange(unit)}
                         className="flex h-10 flex-1 items-center justify-center rounded-xl text-sm"
                         style={{
-                          backgroundColor: active
-                            ? 'var(--roost-text-primary)'
-                            : 'var(--roost-bg)',
+                          backgroundColor: active ? '#E24B4A' : 'var(--roost-bg)',
                           border: '1.5px solid var(--roost-border)',
                           borderBottom: '3px solid var(--roost-border-bottom)',
-                          color: active
-                            ? 'var(--roost-surface)'
-                            : 'var(--roost-text-secondary)',
+                          color: active ? '#fff' : 'var(--roost-text-secondary)',
                           fontWeight: 700,
                         }}
                       >
@@ -2008,14 +2004,10 @@ export default function SettingsPage() {
                         }}
                         className="flex h-10 flex-1 items-center justify-center rounded-xl text-sm"
                         style={{
-                          backgroundColor: active
-                            ? 'var(--roost-text-primary)'
-                            : 'var(--roost-bg)',
+                          backgroundColor: active ? '#E24B4A' : 'var(--roost-bg)',
                           border: '1.5px solid var(--roost-border)',
                           borderBottom: '3px solid var(--roost-border-bottom)',
-                          color: active
-                            ? 'var(--roost-surface)'
-                            : 'var(--roost-text-secondary)',
+                          color: active ? '#fff' : 'var(--roost-text-secondary)',
                           fontWeight: 700,
                         }}
                       >

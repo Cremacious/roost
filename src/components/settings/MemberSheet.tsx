@@ -311,10 +311,10 @@ export default function MemberSheet({
                       disabled={roleMutation.isPending}
                       className="flex h-10 flex-1 items-center justify-center rounded-xl text-sm"
                       style={{
-                        backgroundColor: active ? "var(--roost-text-primary)" : "var(--roost-surface)",
+                        backgroundColor: active ? "#E24B4A" : "var(--roost-surface)",
                         border: "1.5px solid var(--roost-border)",
                         borderBottom: "3px solid var(--roost-border-bottom)",
-                        color: active ? "var(--roost-surface)" : "var(--roost-text-secondary)",
+                        color: active ? "#fff" : "var(--roost-text-secondary)",
                         fontWeight: 700,
                       }}
                     >
@@ -341,6 +341,8 @@ export default function MemberSheet({
                   border: "1.5px solid var(--roost-border)",
                   borderBottom: "4px solid var(--roost-border-bottom)",
                   backgroundColor: "var(--roost-surface)",
+                  // @ts-expect-error CSS custom property
+                  "--primary": "#E24B4A",
                 }}
               >
                 {PERMISSION_LABELS.map((p, i) => {

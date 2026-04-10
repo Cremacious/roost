@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { Check, Clock, Loader2 } from "lucide-react";
-import { format, differenceInDays, isToday } from "date-fns";
+import { format, isToday } from "date-fns";
 import { useSession } from "@/lib/auth/client";
 import RoostLogo from "@/components/shared/RoostLogo";
 
@@ -40,8 +40,9 @@ function formatExpiryDate(isoString: string): string {
 
 function formatRelativeExpiry(isoString: string): string {
   const date = new Date(isoString);
+  const now = new Date();
   if (isToday(date)) return "expires today";
-  const days = differenceInDays(date, new Date());
+  const days = Math.max(1, Math.ceil((date.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)));
   if (days <= 3) return `expires in ${days} day${days === 1 ? "" : "s"}`;
   return `expires ${format(date, "MMM d")}`;
 }

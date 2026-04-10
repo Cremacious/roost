@@ -2,7 +2,7 @@ import { NextRequest } from "next/server";
 import { getSession, requireSession } from "@/lib/auth/helpers";
 import { db } from "@/lib/db";
 import { household_invites, household_members, households, users } from "@/db/schema";
-import { and, eq, isNull } from "drizzle-orm";
+import { and, count, eq, isNull } from "drizzle-orm";
 import { logActivity } from "@/lib/utils/activity";
 import { format } from "date-fns";
 
@@ -129,11 +129,11 @@ export async function POST(
 
   // Sanity cap: no household should have more than 50 members
   const [countRow] = await db
-    .select({ count: household_members.id })
+    .select({ count: count() })
     .from(household_members)
     .where(eq(household_members.household_id, invite.household_id));
 
-  if (countRow && countRow.count && (countRow as { count: string }).count >= "50") {
+  if (countRow && countRow.count >= 50) {
     return Response.json({ error: "Household is at capacity" }, { status: 403 });
   }
 

@@ -207,7 +207,7 @@ export default function InviteGuestSheet({ open, onClose }: InviteGuestSheetProp
                   This link expires in 7 days.
                 </p>
                 <p className="text-xs mt-1" style={{ color: AMBER_TEXT, fontWeight: 600 }}>
-                  Your guest's access will end on {format(new Date(result.expires_at), "MMMM d, yyyy")}.
+                  Your guest&apos;s access will end on {format(new Date(result.expires_at), "MMMM d, yyyy")}.
                 </p>
               </div>
 
@@ -243,14 +243,14 @@ export default function InviteGuestSheet({ open, onClose }: InviteGuestSheetProp
                   Invite a Guest
                 </p>
                 <p className="mt-1 text-sm" style={{ color: "var(--roost-text-secondary)", fontWeight: 600 }}>
-                  They'll get temporary access that expires automatically.
+                  They&apos;ll get temporary access that expires automatically.
                 </p>
               </div>
 
               {/* Email */}
               <div>
                 <label className="mb-1.5 block text-xs" style={{ color: "#374151", fontWeight: 700 }}>
-                  Guest's email (optional)
+                  Guest&apos;s email (optional)
                 </label>
                 <input
                   type="email"
@@ -260,7 +260,7 @@ export default function InviteGuestSheet({ open, onClose }: InviteGuestSheetProp
                   style={inputStyle}
                 />
                 <p className="mt-1 text-xs" style={{ color: "var(--roost-text-muted)", fontWeight: 600 }}>
-                  We'll pre-fill their signup form
+                  We&apos;ll pre-fill their signup form
                 </p>
               </div>
 

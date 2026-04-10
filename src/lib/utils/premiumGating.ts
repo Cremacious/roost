@@ -1,6 +1,6 @@
 import { db } from "@/lib/db";
 import { chores, tasks, notes, calendar_events, reminders, meals, household_members } from "@/db/schema";
-import { and, count, eq, gte, isNull, lt, sql as drizzleSql } from "drizzle-orm";
+import { and, count, eq, gte, isNull, lt, ne, sql as drizzleSql } from "drizzle-orm";
 import { FREE_TIER_LIMITS } from "@/lib/constants/freeTierLimits";
 
 // ---- Chores -----------------------------------------------------------------
@@ -115,7 +115,7 @@ export async function checkMemberLimit(
   const [row] = await db
     .select({ count: count(household_members.id) })
     .from(household_members)
-    .where(eq(household_members.household_id, householdId));
+    .where(and(eq(household_members.household_id, householdId), ne(household_members.role, "guest")));
   const n = Number(row?.count ?? 0);
   return { count: n, allowed: n < FREE_TIER_LIMITS.members };
 }

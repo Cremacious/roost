@@ -176,9 +176,13 @@
 - Smart meal suggestions based on your meal bank
 
 #### Allowances (Premium)
-- Set weekly allowances for child accounts (UI gated in MemberSheet)
-- Tied to chore completion percentage
-- Adjustable threshold (50-100%)
+- Dedicated /chores/allowances management page (admin only, redirect for free/child)
+- Per-child allowance cards: toggle on/off, weekly amount input, threshold slider (50-100%), evaluation day picker
+- Default evaluation day stored in localStorage (roost_default_eval_day)
+- Current week progress bar per child (completion rate vs threshold)
+- Allowances button in chores header: hidden for child role, Lock icon for non-premium, navigates to /chores/allowances for premium
+- Allowance settings also configurable in MemberSheet (Settings page)
+- Tied to chore completion percentage; evaluation_day column in allowance_settings
 - Child dashboard widget hidden for free households
 - Earned allowances appear in expenses settle-up flow
 

@@ -80,7 +80,7 @@ export async function PATCH(
     return Response.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  let body: { enabled?: boolean; weeklyAmount?: number; thresholdPercent?: number };
+  let body: { enabled?: boolean; weeklyAmount?: number; thresholdPercent?: number; evaluationDay?: string };
   try {
     body = await request.json();
   } catch {
@@ -96,6 +96,11 @@ export async function PATCH(
     (body.thresholdPercent < 50 || body.thresholdPercent > 100)
   ) {
     return Response.json({ error: "Threshold must be between 50 and 100" }, { status: 400 });
+  }
+
+  const VALID_DAYS = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"];
+  if (body.evaluationDay !== undefined && !VALID_DAYS.includes(body.evaluationDay)) {
+    return Response.json({ error: "Invalid evaluation day" }, { status: 400 });
   }
 
   const [target] = await db
@@ -125,6 +130,7 @@ export async function PATCH(
       enabled: body.enabled ?? false,
       weekly_amount: String(body.weeklyAmount ?? 0),
       threshold_percent: body.thresholdPercent ?? 80,
+      evaluation_day: body.evaluationDay ?? "sunday",
       created_by: session.user.id,
     })
     .onConflictDoUpdate({
@@ -133,6 +139,7 @@ export async function PATCH(
         enabled: body.enabled ?? false,
         weekly_amount: String(body.weeklyAmount ?? 0),
         threshold_percent: body.thresholdPercent ?? 80,
+        evaluation_day: body.evaluationDay ?? "sunday",
         updated_at: new Date(),
       },
     })

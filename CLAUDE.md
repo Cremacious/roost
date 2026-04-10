@@ -662,7 +662,10 @@ src/app/(app)/activity/page.tsx               Full activity feed: paginated list
 src/app/api/allowances/route.ts               GET: payout history for household, optional ?userId filter
 src/app/api/allowances/child/route.ts         GET: allowance settings + payouts + current week progress for current user
 src/app/api/cron/allowances/route.ts          Vercel cron GET (Sunday 11pm UTC): evaluate chore completion, create expense entries
-src/components/shared/AllowanceWidget.tsx     Child-only widget: weekly progress bar, status message, last 4 weeks history
+src/components/shared/AllowanceWidget.tsx     Child-only widget: weekly progress bar, status message, last 4 weeks history; uses settings.evaluation_day for dynamic "evaluated on X" text
+src/components/allowances/AllowanceChildCard.tsx  Admin card per child: enable toggle, weekly amount input, threshold slider (50-100%), evaluation day pills, current week progress bar, save button (dirty state)
+src/app/(app)/chores/allowances/page.tsx      Allowances management page: admin + premium only (redirect otherwise), default eval day card (localStorage roost_default_eval_day), AllowanceChildCard per child, empty state if no children
+src/app/api/allowances/child-progress/route.ts  GET (admin only, ?userId=): current week chore progress for a specific child member
 src/components/shared/WelcomeModal.tsx        First-visit welcome dialog: shadcn Dialog, 3 tip rows (household/child/chores), red CTA dismisses + POSTs /api/user/dismiss-welcome; shown when has_seen_welcome=false
 src/lib/hooks/use-paginated-list.ts           usePaginatedList<T>(items, { pageSize }) — client-side slice pagination; auto-resets when items identity changes; returns visibleItems, hasMore, loadMore, reset, visibleCount, totalCount
 src/components/ui/show-more-button.tsx        ShowMoreButton — renders "Showing X of Y" + "+ Show N more" slab button; returns null when all items visible; accepts color prop for section tinting
@@ -1195,9 +1198,12 @@ Share GitHub file URLs, paste code, or describe what was built.
 Update this file after every major decision or completed phase.
 ## Allowance System Rules
 - Allowance is premium only (enforced via household subscription_status)
-- allowance_settings: one row per child per household, admin configures via MemberSheet
+- allowance_settings: one row per child per household; admin configures via MemberSheet (Settings) or /chores/allowances
+- allowance_settings.evaluation_day: text column (monday-sunday), default "sunday"; controls which day the cron evaluates
 - allowance_payouts: one row per child per week, unique (household_id, user_id, week_start)
 - Cron runs Sunday 11pm UTC via /api/cron/allowances, secured with CRON_SECRET
+- /chores/allowances page: dedicated management page; admin + premium only; default eval day in localStorage (roost_default_eval_day)
+- Allowances button in chores header: hidden for child role, Lock icon for non-premium users, navigates to /chores/allowances for premium
 - Earned allowances create a real expense entry (paid_by = admin, split = child owes admin)
   This means earned allowances appear in the settle-up flow automatically
 - Completion rate = (completions this week) / (total assigned chores) * 100

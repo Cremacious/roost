@@ -12,6 +12,7 @@ import {
   History,
   Lock,
   Pencil,
+  PiggyBank,
   Plus,
   Trophy,
 } from "lucide-react";
@@ -364,6 +365,44 @@ export default function ChoresPage() {
             Leaderboard
             {!isPremium && <Lock className="size-3 ml-0.5" style={{ color: "var(--roost-text-muted)" }} />}
           </motion.button>
+
+          {/* Allowances — hidden for children; icon only on mobile, text+icon on desktop */}
+          {currentMember?.role !== "child" && (
+            <>
+              <motion.button
+                type="button"
+                onClick={() => isPremium ? router.push("/chores/allowances") : setUpgradeCode("ALLOWANCES_PREMIUM")}
+                whileTap={{ y: 1 }}
+                className="md:hidden flex h-10 w-10 items-center justify-center rounded-xl"
+                style={{
+                  backgroundColor: "var(--roost-surface)",
+                  border: "1.5px solid var(--roost-border)",
+                  borderBottom: "3px solid #E5E7EB",
+                }}
+                aria-label="Allowances"
+              >
+                {!isPremium && <Lock className="size-3 mr-0.5" style={{ color: "var(--roost-text-muted)" }} />}
+                <PiggyBank className="size-4" style={{ color: COLOR }} />
+              </motion.button>
+              <motion.button
+                type="button"
+                onClick={() => isPremium ? router.push("/chores/allowances") : setUpgradeCode("ALLOWANCES_PREMIUM")}
+                whileTap={{ y: 1 }}
+                className="hidden md:flex h-10 items-center gap-1.5 rounded-xl px-3 text-sm"
+                style={{
+                  backgroundColor: "var(--roost-surface)",
+                  border: "1.5px solid var(--roost-border)",
+                  borderBottom: "3px solid #E5E7EB",
+                  color: "var(--roost-text-primary)",
+                  fontWeight: 700,
+                }}
+              >
+                <PiggyBank className="size-4" style={{ color: COLOR }} />
+                Allowances
+                {!isPremium && <Lock className="size-3 ml-0.5" style={{ color: "var(--roost-text-muted)" }} />}
+              </motion.button>
+            </>
+          )}
         </div>
       </div>
 

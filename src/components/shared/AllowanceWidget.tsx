@@ -14,6 +14,7 @@ const COLOR_DARK = "#159040";
 interface AllowanceSetting {
   weekly_amount: string;
   threshold_percent: number;
+  evaluation_day?: string | null;
 }
 
 interface AllowancePayout {
@@ -162,7 +163,7 @@ export default function AllowanceWidget() {
 
       {payouts.length === 0 ? (
         <p className="text-xs" style={{ color: "var(--roost-text-muted)", fontWeight: 600 }}>
-          Your first allowance will be evaluated on Sunday.
+          {`Your first allowance will be evaluated on ${settings.evaluation_day ? settings.evaluation_day.charAt(0).toUpperCase() + settings.evaluation_day.slice(1) : "Sunday"}.`}
         </p>
       ) : (
         <div className="space-y-2">

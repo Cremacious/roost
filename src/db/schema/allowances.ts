@@ -13,6 +13,7 @@ export const allowance_settings = pgTable(
     enabled: boolean("enabled").notNull().default(false),
     weekly_amount: numeric("weekly_amount").notNull().default("0"),
     threshold_percent: integer("threshold_percent").notNull().default(80),
+    evaluation_day: text("evaluation_day").notNull().default("sunday"),
     created_by: text("created_by").notNull(),
     created_at: timestamp("created_at").defaultNow(),
     updated_at: timestamp("updated_at").defaultNow(),

@@ -92,7 +92,7 @@ export default function AddChildSheet({ open, onClose }: Props) {
               style={{ color: "var(--roost-text-secondary)", fontWeight: 600, lineHeight: 1.5 }}
             >
               Child accounts log in with a 4-digit PIN on the child login screen.
-              No email address needed.
+              No email address needed. Pin can be edited under Member Settings.
             </p>
 
             <label

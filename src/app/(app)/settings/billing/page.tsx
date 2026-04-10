@@ -6,10 +6,18 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   ArrowLeft,
+  Bell,
+  CalendarDays,
   Check,
   CheckCircle,
+  CheckSquare,
+  ClipboardList,
+  DollarSign,
+  FileText,
   Home,
   Loader2,
+  ShoppingCart,
+  UtensilsCrossed,
   X,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -21,36 +29,146 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
-import { PREMIUM_GATE_CONFIG } from "@/lib/constants/premiumGateConfig";
+// ---- Feature card data -------------------------------------------------------
 
-// ---- Constants ---------------------------------------------------------------
+interface FeatureCardSpec {
+  icon: React.ElementType;
+  title: string;
+  hook: string;
+  bullets: string[];
+  borderColor: string;
+  iconBg: string;
+  checkColor: string;
+}
 
-const FEATURE_ORDER = [
-  "chores",
-  "expenses",
-  "grocery",
-  "meals",
-  "reminders",
-  "calendar",
-  "tasks",
-  "notes",
-] as const;
-
-const FEATURE_NAMES: Record<string, string> = {
-  chores: "Chores",
-  expenses: "Expenses",
-  grocery: "Grocery",
-  meals: "Meals",
-  reminders: "Reminders",
-  calendar: "Calendar",
-  tasks: "Tasks",
-  notes: "Notes",
+const EXPENSES_CARD: FeatureCardSpec = {
+  icon: DollarSign,
+  title: "Expenses",
+  hook: "Split it. Settle it. Done.",
+  borderColor: "#639922",
+  iconBg: "#EAF3DE",
+  checkColor: "#639922",
+  bullets: [
+    "Expense splitting so any bill can be divided between any members",
+    "Debt simplification with one clean settle-up instead of a web of IOUs",
+    "Full expense history with every transaction saved forever",
+    "Balance tracking so you always know who owes what",
+    "Receipt scanning so you can snap a receipt and split it instantly",
+    "Recurring expenses so monthly bills only need to be entered once",
+    "Spending insights to see where your household money goes",
+    "Budget tracking with limits and alerts when you're close",
+    "Data export to download your full expense history",
+  ],
 };
 
-const HOUSEHOLD_EXTRA_PERKS = [
-  "Allowance system tied to chore completion",
-  "Guest member access for temporary members",
-  "Household-wide stats and activity history",
+const ROW1_CARDS: FeatureCardSpec[] = [
+  {
+    icon: CheckSquare,
+    title: "Chores",
+    hook: "Auto-reset. Always done.",
+    borderColor: "#E24B4A",
+    iconBg: "#FCEBEB",
+    checkColor: "#E24B4A",
+    bullets: [
+      "Recurring daily, weekly, or monthly",
+      "Streaks and leaderboard rankings",
+      "Full history and unlimited chores",
+    ],
+  },
+  {
+    icon: ShoppingCart,
+    title: "Grocery",
+    hook: "Never forget an item.",
+    borderColor: "#BA7517",
+    iconBg: "#FAEEDA",
+    checkColor: "#BA7517",
+    bullets: [
+      "Multiple lists per store or trip",
+      "Meal plan syncs to your list",
+      "Real-time sync for everyone",
+    ],
+  },
+  {
+    icon: UtensilsCrossed,
+    title: "Meals",
+    hook: "Everyone votes. Nobody argues.",
+    borderColor: "#EF9F27",
+    iconBg: "#FAEEDA",
+    checkColor: "#EF9F27",
+    bullets: [
+      "Household voting on the week's meals",
+      "Auto-add ingredients to grocery",
+      "Meal bank and unlimited history",
+    ],
+  },
+  {
+    icon: Bell,
+    title: "Reminders",
+    hook: "Set once. Never miss it.",
+    borderColor: "#1D9E75",
+    iconBg: "#E1F5EE",
+    checkColor: "#1D9E75",
+    bullets: [
+      "Recurring reminders forever",
+      "Notify one person or whole house",
+      "Unlimited — no five-reminder cap",
+    ],
+  },
+];
+
+const ROW2_CARDS: FeatureCardSpec[] = [
+  {
+    icon: CalendarDays,
+    title: "Calendar",
+    hook: "One calendar. Whole household.",
+    borderColor: "#2563EB",
+    iconBg: "#E6F1FB",
+    checkColor: "#2563EB",
+    bullets: [
+      "Recurring events, daily to monthly",
+      "Household-wide visibility",
+      "Unlimited events with no cap",
+    ],
+  },
+  {
+    icon: ClipboardList,
+    title: "Tasks",
+    hook: "Assign it. Track it. Done.",
+    borderColor: "#D4537E",
+    iconBg: "#FBEAF0",
+    checkColor: "#D4537E",
+    bullets: [
+      "Assign to any household member",
+      "Due dates and priority levels",
+      "Unlimited tasks with full history",
+    ],
+  },
+  {
+    icon: FileText,
+    title: "Notes",
+    hook: "Shared. Formatted. Pinned.",
+    borderColor: "#7F77DD",
+    iconBg: "#EEEDFE",
+    checkColor: "#7F77DD",
+    bullets: [
+      "Rich text with bold, italic, headings",
+      "Shared across your whole household",
+      "Unlimited notes with no cap",
+    ],
+  },
+  {
+    icon: Home,
+    title: "Household extras",
+    hook: "The whole package.",
+    borderColor: "#E24B4A",
+    iconBg: "#FCEBEB",
+    checkColor: "#E24B4A",
+    bullets: [
+      "Allowance tied to chore completion",
+      "Guest access for temporary members",
+      "Household-wide stats and activity",
+    ],
+  },
 ];
 
 const CANCEL_LOSSES = [
@@ -73,29 +191,18 @@ function formatDate(iso: string) {
 
 // ---- Sub-components ----------------------------------------------------------
 
-function PerkRow({ text, featureHex }: { text: string; featureHex: string }) {
+function BulletRow({ text, color }: { text: string; color: string }) {
   return (
-    <div className="flex items-start gap-2" style={{ marginBottom: 6 }}>
-      <div
-        style={{
-          width: 14,
-          height: 14,
-          borderRadius: "50%",
-          backgroundColor: featureHex + "1F",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          flexShrink: 0,
-          marginTop: 2,
-        }}
-      >
-        <Check size={8} strokeWidth={3.5} style={{ color: featureHex }} />
-      </div>
+    <div className="flex items-start gap-2">
+      <Check
+        style={{ width: 14, height: 14, color, flexShrink: 0, marginTop: 2 }}
+        strokeWidth={3}
+      />
       <span
         style={{
-          color: "var(--roost-text-primary)",
           fontSize: 12,
           fontWeight: 600,
+          color: "var(--roost-text-secondary)",
           lineHeight: 1.4,
         }}
       >
@@ -105,95 +212,70 @@ function PerkRow({ text, featureHex }: { text: string; featureHex: string }) {
   );
 }
 
-function FeatureCard({ featureKey }: { featureKey: string }) {
-  const config = PREMIUM_GATE_CONFIG[featureKey];
-  if (!config) return null;
-  const Icon = config.icon;
-  const { featureHex } = config;
-  const name = FEATURE_NAMES[featureKey] ?? featureKey;
-
+function NewFeatureCard({ spec, fullWidth }: { spec: FeatureCardSpec; fullWidth?: boolean }) {
+  const Icon = spec.icon;
   return (
     <div
       style={{
         backgroundColor: "var(--roost-surface)",
         border: "1px solid var(--roost-border)",
-        borderBottom: `3px solid ${featureHex}`,
+        borderBottom: `3px solid ${spec.borderColor}`,
         borderRadius: 16,
-        padding: "16px 18px",
+        padding: 18,
+        display: "flex",
+        flexDirection: "column",
+        gap: 12,
       }}
     >
-      <div className="flex items-center gap-3" style={{ marginBottom: 12 }}>
+      {/* Header */}
+      <div className="flex items-center gap-3">
         <div
           style={{
-            width: 36,
-            height: 36,
-            borderRadius: 10,
-            backgroundColor: featureHex + "1A",
+            width: 40,
+            height: 40,
+            borderRadius: 12,
+            backgroundColor: spec.iconBg,
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
             flexShrink: 0,
           }}
         >
-          <Icon size={18} style={{ color: featureHex }} />
+          <Icon style={{ width: 20, height: 20, color: spec.borderColor }} />
         </div>
-        <span style={{ color: "var(--roost-text-primary)", fontSize: 14, fontWeight: 800 }}>
-          {name}
-        </span>
+        <div>
+          <p style={{ fontSize: 15, fontWeight: 800, color: "var(--roost-text-primary)" }}>
+            {spec.title}
+          </p>
+          <p style={{ fontSize: 12, fontWeight: 600, color: "var(--roost-text-muted)" }}>
+            {spec.hook}
+          </p>
+        </div>
       </div>
 
-      <div>
-        {config.perks.map((perk) => (
-          <PerkRow key={perk} text={perk} featureHex={featureHex} />
-        ))}
-      </div>
-    </div>
-  );
-}
+      {/* Divider */}
+      <div style={{ borderTop: "1px solid var(--roost-border)" }} />
 
-function HouseholdExtrasCard() {
-  return (
-    <div
-      style={{
-        backgroundColor: "var(--roost-surface)",
-        border: "1px solid var(--roost-border)",
-        borderBottom: "3px solid #EF4444",
-        borderRadius: 16,
-        padding: "16px 18px",
-        gridColumn: "1 / -1",
-      }}
-    >
-      <div className="flex items-center gap-3" style={{ marginBottom: 12 }}>
+      {/* Bullets */}
+      {fullWidth ? (
         <div
           style={{
-            width: 36,
-            height: 36,
-            borderRadius: 10,
-            backgroundColor: "#EF44441A",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            flexShrink: 0,
+            display: "grid",
+            gridTemplateColumns: "repeat(3, 1fr)",
+            gap: "6px 24px",
           }}
         >
-          <Home size={18} style={{ color: "#EF4444" }} />
+          {spec.bullets.map((b) => (
+            <BulletRow key={b} text={b} color={spec.checkColor} />
+          ))}
         </div>
-        <span style={{ color: "var(--roost-text-primary)", fontSize: 14, fontWeight: 800 }}>
-          Household extras
-        </span>
-      </div>
-
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
-          gap: "0 24px",
-        }}
-      >
-        {HOUSEHOLD_EXTRA_PERKS.map((perk) => (
-          <PerkRow key={perk} text={perk} featureHex="#EF4444" />
-        ))}
-      </div>
+      ) : (
+        <div className="flex flex-col gap-1.5">
+          {spec.bullets.map((b) => (
+            <BulletRow key={b} text={b} color={spec.checkColor} />
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -923,21 +1005,39 @@ function BillingPageInner() {
             letterSpacing: "0.8px",
           }}
         >
-          Everything that&apos;s included
+          What you unlock with Premium
         </p>
 
-        {/* ---- 5. Feature grid ------------------------------------------------ */}
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
-            gap: 12,
-          }}
-        >
-          {FEATURE_ORDER.map((key) => (
-            <FeatureCard key={key} featureKey={key} />
-          ))}
-          <HouseholdExtrasCard />
+        {/* ---- 5. Feature sections -------------------------------------------- */}
+        <div className="flex flex-col gap-3">
+          {/* Expenses — full width, 3-col bullet grid */}
+          <NewFeatureCard spec={EXPENSES_CARD} fullWidth />
+
+          {/* Row 1: Chores, Grocery, Meals, Reminders */}
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(4, 1fr)",
+              gap: 12,
+            }}
+          >
+            {ROW1_CARDS.map((spec) => (
+              <NewFeatureCard key={spec.title} spec={spec} />
+            ))}
+          </div>
+
+          {/* Row 2: Calendar, Tasks, Notes, Household extras */}
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(4, 1fr)",
+              gap: 12,
+            }}
+          >
+            {ROW2_CARDS.map((spec) => (
+              <NewFeatureCard key={spec.title} spec={spec} />
+            ))}
+          </div>
         </div>
 
         {/* ---- 6. Bottom CTA (free + admin only) ------------------------------ */}

@@ -97,8 +97,6 @@ export async function POST(request: NextRequest): Promise<Response> {
     );
   }
 
-  console.log("member found:", !!member, "pin set:", !!member.pin);
-
   const valid = await verifyPassword({ hash: member.pin, password: pin });
   if (!valid) {
     return Response.json({ error: "Invalid PIN" }, { status: 401 });

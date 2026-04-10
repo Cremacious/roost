@@ -86,9 +86,18 @@ export async function POST(request: NextRequest): Promise<Response> {
     )
     .limit(1);
 
-  if (!member || !member.pin) {
+  if (!member) {
     return Response.json({ error: "Invalid PIN" }, { status: 401 });
   }
+
+  if (!member.pin) {
+    return Response.json(
+      { error: "No PIN set. Ask a parent to set one in Settings." },
+      { status: 401 }
+    );
+  }
+
+  console.log("member found:", !!member, "pin set:", !!member.pin);
 
   const valid = await verifyPassword({ hash: member.pin, password: pin });
   if (!valid) {

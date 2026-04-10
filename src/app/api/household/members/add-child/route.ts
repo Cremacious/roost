@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireSession } from "@/lib/auth/helpers";
 import { db } from "@/lib/db";
-import { users, household_members } from "@/db/schema";
+import { user, users, household_members } from "@/db/schema";
 import { hashPassword } from "better-auth/crypto";
 import { getUserHousehold } from "@/app/api/chores/route";
 
@@ -47,6 +47,19 @@ export async function POST(request: NextRequest): Promise<Response> {
 
     // Generate unique user ID
     const userId = crypto.randomUUID();
+    const placeholderEmail = `child_${userId}@roost.internal`;
+
+    // Insert a minimal row into better-auth's "user" table so the session
+    // FK constraint (session.user_id → user.id) is satisfied when we call
+    // createSession() during child login.
+    await db.insert(user).values({
+      id: userId,
+      name,
+      email: placeholderEmail,
+      emailVerified: false,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    }).onConflictDoNothing();
 
     // Create the child user record (no email needed)
     await db.insert(users).values({

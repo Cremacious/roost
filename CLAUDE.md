@@ -740,7 +740,16 @@ src/lib/constants/colors.ts                   Added "stats": "#6366F1" (indigo) 
 - GET /api/reminders select must include snoozed_until or isSnoozed() breaks on refetch.
 
 ## Expense UX Patterns
-- Premium-gated: free tier sees inline upgrade pitch (no blurred preview)
+- Free tier: expenses page is fully accessible (view list, add expense, split bill)
+- Premium inline gates (click-time check, opens PremiumGate sheet trigger="sheet" feature="expenses"):
+  - Receipt scanning (scan button in ExpenseSheet, gated via isPremium check before setScanView)
+  - Expense categories (CategoryPicker replaced by locked button for free users, calls onUpgradeRequired)
+  - Recurring/repeat toggle in ExpenseSheet (Lock icon shown, tapping calls onUpgradeRequired)
+  - Budget tab/button (Budget page has its own page-level gate too)
+  - Insights tab/button (Insights page has its own page-level gate too)
+  - Export button, Recurring tab
+- Gate pattern: upgradeCode state + setUpgradeCode(code) on click + PremiumGate feature="expenses" trigger="sheet" at bottom of page when upgradeCode is truthy
+- Note: API POST /api/expenses still requires premium server-side (free users hit a 403 if they submit)
 - Desktop: two-column grid (340px left: balance hero + settle cards; 1fr right: expense list)
 - Mobile: scrollable 3-chip strip (You're owed / You owe / Spent this month) with scroll dots + right-fade overlay
 - Balance hero (desktop): 3-column stat box inside SlabCard — green border-bottom if owed, red if you owe
@@ -1197,6 +1206,9 @@ Update this file after every major decision or completed phase.
 - Allowance history is visible in the expenses page allowance section (admins/members only)
 - Activity types: allowance_earned (green dot, maps to expenses), allowance_missed (amber dot)
 - vercel.json cron: /api/cron/allowances runs "0 23 * * 0" (Sunday 11pm UTC)
+- ["allowance-child"] query must be invalidated whenever a chore is completed or unchecked.
+  Both completeMutation.onSettled and uncheckMutation.onSuccess in chores/page.tsx do this.
+  Without it, AllowanceWidget shows stale progress until a manual browser refresh.
 
 ## Playwright E2E Testing Notes
 - Use `**/path` glob patterns for `waitForURL`, not bare `/path` strings, to handle baseURL prefixes

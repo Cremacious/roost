@@ -12,6 +12,7 @@ import {
   Clock,
   DollarSign,
   Download,
+  Lock,
   MoreHorizontal,
   MoreVertical,
   PiggyBank,
@@ -700,16 +701,6 @@ export default function ExpensesPage() {
 
   // ---- Render ----------------------------------------------------------------
 
-  if (isPremium === false) {
-    return (
-      <PageContainer>
-        <div className="py-6 pb-24">
-          <PremiumGate feature="expenses" trigger="inline" />
-        </div>
-      </PageContainer>
-    );
-  }
-
   return (
     <motion.div
       initial={{ opacity: 0, y: 12 }}
@@ -725,7 +716,7 @@ export default function ExpensesPage() {
           <div className="flex-1">
             <h1 className="text-2xl" style={{ color: "var(--roost-text-primary)", fontWeight: 900 }}>
               Expenses
-              {isPremium && allExpenses.length > 0 && activeTab === "expenses" && (
+              {allExpenses.length > 0 && activeTab === "expenses" && (
                 <span
                   className="ml-2 inline-flex h-6 items-center rounded-full px-2.5 text-xs"
                   style={{ backgroundColor: `${COLOR}18`, color: COLOR, fontWeight: 800 }}
@@ -736,155 +727,178 @@ export default function ExpensesPage() {
             </h1>
           </div>
 
-          {isPremium && (
-            <div className="flex items-center gap-2">
-              {/* Desktop: Budget + Insights + Export */}
-              <div className="hidden sm:flex items-center gap-2">
-                <Link
-                  href="/expenses/budget"
-                  className="flex h-10 items-center gap-1.5 rounded-xl px-3"
-                  style={{
-                    backgroundColor: "var(--roost-surface)",
-                    border: "1.5px solid var(--roost-border)",
-                    borderBottom: "3px solid var(--roost-border-bottom)",
-                    color: "var(--roost-text-secondary)",
-                    fontWeight: 700,
-                    fontSize: 13,
-                    textDecoration: "none",
-                  }}
-                >
-                  <Target className="size-4" />
-                  Budget
-                </Link>
-                <Link
-                  href="/expenses/insights"
-                  className="flex h-10 items-center gap-1.5 rounded-xl px-3"
-                  style={{
-                    backgroundColor: "var(--roost-surface)",
-                    border: "1.5px solid var(--roost-border)",
-                    borderBottom: "3px solid var(--roost-border-bottom)",
-                    color: "var(--roost-text-secondary)",
-                    fontWeight: 700,
-                    fontSize: 13,
-                    textDecoration: "none",
-                  }}
-                >
-                  <BarChart2 className="size-4" />
-                  Insights
-                </Link>
-                <motion.button
-                  type="button"
-                  whileTap={{ y: 1 }}
-                  onClick={() => setExportSheetOpen(true)}
-                  className="flex h-10 items-center gap-1.5 rounded-xl px-3"
-                  style={{
-                    backgroundColor: "var(--roost-surface)",
-                    border: "1.5px solid var(--roost-border)",
-                    borderBottom: "3px solid var(--roost-border-bottom)",
-                    color: "var(--roost-text-secondary)",
-                    fontWeight: 700,
-                    fontSize: 13,
-                  }}
-                  aria-label="Export expenses"
-                >
-                  <Download className="size-4" />
-                  Export
-                </motion.button>
-              </div>
-
-              {/* Mobile: Export + ••• */}
-              <div className="flex items-center gap-2 sm:hidden">
-                <motion.button
-                  type="button"
-                  whileTap={{ y: 1 }}
-                  onClick={() => setExportSheetOpen(true)}
-                  className="flex h-10 w-10 items-center justify-center rounded-xl"
-                  style={{
-                    backgroundColor: "var(--roost-surface)",
-                    border: "1.5px solid var(--roost-border)",
-                    borderBottom: "3px solid var(--roost-border-bottom)",
-                    color: "var(--roost-text-secondary)",
-                  }}
-                  aria-label="Export expenses"
-                >
-                  <Download className="size-4" />
-                </motion.button>
-                <motion.button
-                  type="button"
-                  whileTap={{ y: 1 }}
-                  onClick={() => setMoreMenuOpen(true)}
-                  className="flex h-10 w-10 items-center justify-center rounded-xl"
-                  style={{
-                    backgroundColor: "var(--roost-surface)",
-                    border: "1.5px solid var(--roost-border)",
-                    borderBottom: "3px solid var(--roost-border-bottom)",
-                    color: "var(--roost-text-secondary)",
-                  }}
-                  aria-label="More options"
-                >
-                  <MoreHorizontal className="size-4" />
-                </motion.button>
-              </div>
-
+          <div className="flex items-center gap-2">
+            {/* Desktop: Budget + Insights + Export */}
+            <div className="hidden sm:flex items-center gap-2">
+              <Link
+                href="/expenses/budget"
+                className="flex h-10 items-center gap-1.5 rounded-xl px-3"
+                style={{
+                  backgroundColor: "var(--roost-surface)",
+                  border: "1.5px solid var(--roost-border)",
+                  borderBottom: "3px solid var(--roost-border-bottom)",
+                  color: "var(--roost-text-secondary)",
+                  fontWeight: 700,
+                  fontSize: 13,
+                  textDecoration: "none",
+                }}
+                onClick={(e) => {
+                  if (!isPremium) {
+                    e.preventDefault();
+                    setUpgradeCode("BUDGET_PREMIUM");
+                  }
+                }}
+              >
+                <Target className="size-4" />
+                Budget
+                {!isPremium && <Lock className="size-3" style={{ color: "var(--roost-text-muted)" }} />}
+              </Link>
+              <Link
+                href="/expenses/insights"
+                className="flex h-10 items-center gap-1.5 rounded-xl px-3"
+                style={{
+                  backgroundColor: "var(--roost-surface)",
+                  border: "1.5px solid var(--roost-border)",
+                  borderBottom: "3px solid var(--roost-border-bottom)",
+                  color: "var(--roost-text-secondary)",
+                  fontWeight: 700,
+                  fontSize: 13,
+                  textDecoration: "none",
+                }}
+                onClick={(e) => {
+                  if (!isPremium) {
+                    e.preventDefault();
+                    setUpgradeCode("INSIGHTS_PREMIUM");
+                  }
+                }}
+              >
+                <BarChart2 className="size-4" />
+                Insights
+                {!isPremium && <Lock className="size-3" style={{ color: "var(--roost-text-muted)" }} />}
+              </Link>
               <motion.button
                 type="button"
-                onClick={openCreate}
                 whileTap={{ y: 1 }}
-                className="flex h-10 w-10 items-center justify-center rounded-xl"
+                onClick={() => isPremium ? setExportSheetOpen(true) : setUpgradeCode("EXPORT_PREMIUM")}
+                className="flex h-10 items-center gap-1.5 rounded-xl px-3"
                 style={{
-                  backgroundColor: COLOR,
-                  border: `1.5px solid ${COLOR}`,
-                  borderBottom: `3px solid ${COLOR_DARK}`,
+                  backgroundColor: "var(--roost-surface)",
+                  border: "1.5px solid var(--roost-border)",
+                  borderBottom: "3px solid var(--roost-border-bottom)",
+                  color: "var(--roost-text-secondary)",
+                  fontWeight: 700,
+                  fontSize: 13,
                 }}
-                aria-label="New expense"
+                aria-label="Export expenses"
               >
-                <Plus className="size-4 text-white" />
+                <Download className="size-4" />
+                Export
+                {!isPremium && <Lock className="size-3" style={{ color: "var(--roost-text-muted)" }} />}
               </motion.button>
             </div>
-          )}
+
+            {/* Mobile: Export + ••• */}
+            <div className="flex items-center gap-2 sm:hidden">
+              <motion.button
+                type="button"
+                whileTap={{ y: 1 }}
+                onClick={() => isPremium ? setExportSheetOpen(true) : setUpgradeCode("EXPORT_PREMIUM")}
+                className="relative flex h-10 w-10 items-center justify-center rounded-xl"
+                style={{
+                  backgroundColor: "var(--roost-surface)",
+                  border: "1.5px solid var(--roost-border)",
+                  borderBottom: "3px solid var(--roost-border-bottom)",
+                  color: "var(--roost-text-secondary)",
+                }}
+                aria-label="Export expenses"
+              >
+                <Download className="size-4" />
+                {!isPremium && (
+                  <Lock
+                    className="absolute -top-1 -right-1 size-3 rounded-full"
+                    style={{ color: "var(--roost-text-muted)", backgroundColor: "var(--roost-surface)" }}
+                  />
+                )}
+              </motion.button>
+              <motion.button
+                type="button"
+                whileTap={{ y: 1 }}
+                onClick={() => setMoreMenuOpen(true)}
+                className="flex h-10 w-10 items-center justify-center rounded-xl"
+                style={{
+                  backgroundColor: "var(--roost-surface)",
+                  border: "1.5px solid var(--roost-border)",
+                  borderBottom: "3px solid var(--roost-border-bottom)",
+                  color: "var(--roost-text-secondary)",
+                }}
+                aria-label="More options"
+              >
+                <MoreHorizontal className="size-4" />
+              </motion.button>
+            </div>
+
+            <motion.button
+              type="button"
+              onClick={openCreate}
+              whileTap={{ y: 1 }}
+              className="flex h-10 w-10 items-center justify-center rounded-xl"
+              style={{
+                backgroundColor: COLOR,
+                border: `1.5px solid ${COLOR}`,
+                borderBottom: `3px solid ${COLOR_DARK}`,
+              }}
+              aria-label="New expense"
+            >
+              <Plus className="size-4 text-white" />
+            </motion.button>
+          </div>
         </div>
 
-        {/* Tab row — premium only */}
-        {isPremium && (
-          <div className="flex gap-2">
-            {(["expenses", "recurring"] as const).map((tab) => {
-              const active = activeTab === tab;
-              const label = tab === "expenses" ? "Expenses" : "Recurring";
-              const badge = tab === "recurring" && recurringTemplates.length > 0
-                ? recurringTemplates.length
-                : null;
-              return (
-                <button
-                  key={tab}
-                  type="button"
-                  onClick={() => setActiveTab(tab)}
-                  className="flex h-10 items-center gap-1.5 rounded-xl px-4 text-sm"
-                  style={{
-                    backgroundColor: active ? COLOR : "var(--roost-surface)",
-                    border: active ? `1.5px solid ${COLOR}` : "1.5px solid var(--roost-border)",
-                    borderBottom: active ? "3px solid #159040" : "3px solid var(--roost-border-bottom)",
-                    color: active ? "white" : "var(--roost-text-secondary)",
-                    fontWeight: 700,
-                  }}
-                >
-                  {label}
-                  {badge !== null && (
-                    <span
-                      className="inline-flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-xs"
-                      style={{
-                        backgroundColor: active ? "rgba(255,255,255,0.2)" : `${COLOR}20`,
-                        color: active ? "white" : COLOR,
-                        fontWeight: 800,
-                      }}
-                    >
-                      {badge}
-                    </span>
-                  )}
-                </button>
-              );
-            })}
-          </div>
-        )}
+        {/* Tab row */}
+        <div className="flex gap-2">
+          {(["expenses", "recurring"] as const).map((tab) => {
+            const active = activeTab === tab;
+            const label = tab === "expenses" ? "Expenses" : "Recurring";
+            const badge = tab === "recurring" && recurringTemplates.length > 0
+              ? recurringTemplates.length
+              : null;
+            return (
+              <button
+                key={tab}
+                type="button"
+                onClick={() => {
+                  if (tab === "recurring" && !isPremium) {
+                    setUpgradeCode("RECURRING_EXPENSES_PREMIUM");
+                    return;
+                  }
+                  setActiveTab(tab);
+                }}
+                className="flex h-10 items-center gap-1.5 rounded-xl px-4 text-sm"
+                style={{
+                  backgroundColor: active ? COLOR : "var(--roost-surface)",
+                  border: active ? `1.5px solid ${COLOR}` : "1.5px solid var(--roost-border)",
+                  borderBottom: active ? "3px solid #159040" : "3px solid var(--roost-border-bottom)",
+                  color: active ? "white" : "var(--roost-text-secondary)",
+                  fontWeight: 700,
+                }}
+              >
+                {label}
+                {badge !== null && (
+                  <span
+                    className="inline-flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-xs"
+                    style={{
+                      backgroundColor: active ? "rgba(255,255,255,0.2)" : `${COLOR}20`,
+                      color: active ? "white" : COLOR,
+                      fontWeight: 800,
+                    }}
+                  >
+                    {badge}
+                  </span>
+                )}
+              </button>
+            );
+          })}
+        </div>
 
         {/* ===== EXPENSES TAB ===== */}
         {activeTab === "expenses" && <>
@@ -907,8 +921,8 @@ export default function ExpensesPage() {
           </div>
         )}
 
-        {/* Premium content */}
-        {!isLoading && !householdLoading && !isError && isPremium && (
+        {/* Expenses content */}
+        {!isLoading && !householdLoading && !isError && (
           <>
             {/* Mobile chip strip */}
             <BalanceChips myBalance={myBalance} totalSpentThisMonth={totalSpentThisMonth} />
@@ -1265,7 +1279,15 @@ export default function ExpensesPage() {
               <div className="space-y-2">
                 <Link
                   href="/expenses/insights"
-                  onClick={() => setMoreMenuOpen(false)}
+                  onClick={(e) => {
+                    if (!isPremium) {
+                      e.preventDefault();
+                      setMoreMenuOpen(false);
+                      setUpgradeCode("INSIGHTS_PREMIUM");
+                      return;
+                    }
+                    setMoreMenuOpen(false);
+                  }}
                   className="flex w-full items-center gap-3 rounded-xl px-4 py-3"
                   style={{
                     backgroundColor: "var(--roost-surface)",
@@ -1282,7 +1304,15 @@ export default function ExpensesPage() {
                 </Link>
                 <Link
                   href="/expenses/budget"
-                  onClick={() => setMoreMenuOpen(false)}
+                  onClick={(e) => {
+                    if (!isPremium) {
+                      e.preventDefault();
+                      setMoreMenuOpen(false);
+                      setUpgradeCode("BUDGET_PREMIUM");
+                      return;
+                    }
+                    setMoreMenuOpen(false);
+                  }}
                   className="flex w-full items-center gap-3 rounded-xl px-4 py-3"
                   style={{
                     backgroundColor: "var(--roost-surface)",
@@ -1299,7 +1329,15 @@ export default function ExpensesPage() {
                 </Link>
                 <button
                   type="button"
-                  onClick={() => { setActiveTab("recurring"); setMoreMenuOpen(false); }}
+                  onClick={() => {
+                    if (!isPremium) {
+                      setMoreMenuOpen(false);
+                      setUpgradeCode("RECURRING_EXPENSES_PREMIUM");
+                      return;
+                    }
+                    setActiveTab("recurring");
+                    setMoreMenuOpen(false);
+                  }}
                   className="flex w-full items-center gap-3 rounded-xl px-4 py-3"
                   style={{
                     backgroundColor: "var(--roost-surface)",

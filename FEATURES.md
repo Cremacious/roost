@@ -1,5 +1,7 @@
 # Roost — Feature Registry
-> Last updated: 2026-04-10 (Child account system fully operational. add-child route inserts into better-auth "user" table first (FK requirement), then app "users" table. Placeholder email child_${userId}@roost.internal satisfies the NOT NULL unique constraint. Any tooling that creates child accounts must do both inserts in this order.)
+> Last updated: 2026-04-10 (Bug fix: AllowanceWidget progress now updates immediately after a chore is completed or unchecked. completeMutation.onSettled and uncheckMutation.onSuccess in chores/page.tsx now both invalidate ["allowance-child"] query cache.)
+> Previous: 2026-04-10 (Expenses gating model changed: page is now free for all users. Basic expense add and split bill are free. Premium features gated inline at click-time via PremiumGate sheet: receipt scanning, categories, recurring payments, budget, insights, export. API POST /api/expenses still enforces premium server-side.)
+> Previous: 2026-04-10 (Child account system fully operational. add-child route inserts into better-auth "user" table first (FK requirement), then app "users" table. Placeholder email child_${userId}@roost.internal satisfies the NOT NULL unique constraint. Any tooling that creates child accounts must do both inserts in this order.)
 > Previous: 2026-04-09 (Settings sidebar active section fixed: replaced IntersectionObserver with scroll-based "closest section above viewport midpoint" approach so Billing and Danger Zone sections always highlight correctly. Email notification toggle removed from Notifications section: chore_reminders_enabled column kept in DB schema but removed from UI and API response; Notifications section now shows info text only. ScrollToTop component added for mobile nav. Mobile Safari UX fixes: all inputs/textareas/selects/contenteditable elements have font-size 16px floor on mobile via globals.css to prevent iOS auto-zoom on focus; viewport maximumScale=1 added to layout.tsx; DraggableSheet adds onOpenAutoFocus preventDefault to stop keyboard popup before user sees form; RichTextEditor hardcodes autofocus: false in useEditor. DraggableSheet now centered on desktop via Tailwind sm: classes; full-width on mobile unaffected. All content bottom sheets migrated to DraggableSheet. Billing page current plan card updated: shows real usage data for free tier (chores/members/grocery lists/reminders with progress bars), premium tier shows Active badge and billing date. Themes made free: no premium gate on theme API or settings picker. Billing page redesigned with hero card, feature grid from PREMIUM_GATE_CONFIG, and bottom CTA. Price $4/month.)
 > Use this file for homepage copy, paywall screens, upgrade prompts, and App Store descriptions.
 
@@ -65,6 +67,13 @@
 - Meal suggestions — any member (including kids) can suggest a meal
 - Household voting on suggestions
 
+#### Expenses (Free)
+- View the expenses page and expense list
+- Add an expense (amount, note, payer, split)
+- Split bills equally, by amount, or just-me
+- Debt tracking: see who owes what at a glance
+- Two-sided settlement confirmation
+
 #### Settings
 - Profile management (name, email, avatar color)
 - Theme selection (8 themes — non-default locked for free)
@@ -77,16 +86,9 @@
 
 ### 💎 BUILT — Premium Features ($4/month)
 
-#### Expenses & Bill Splitting
-**Sell it as:** "No more awkward money talks."
-- Add expenses manually with title, amount, category, notes
-- Split bills equally, by amount, or by percentage
-- Debt simplification — automatically reduces "A owes B, B owes C" to "A owes C"
-- See who owes what at a glance
-- Two-sided settlement confirmation — both parties must confirm before marked settled
-- Dispute settlements if payment wasn't received
-- Send reminders to confirm pending payments
-- Settle all debts between two members in one tap
+#### Expenses (Premium features)
+**Sell it as:** "Unlock the full picture."
+**Gate model:** Page is free (view, add, split). Premium features gated inline at click-time (April 2026).
 - Expense categories with custom icons and colors
 - Custom household categories (admin creates, members suggest)
 - Receipt scanning with Azure Document Intelligence (any receipt format)

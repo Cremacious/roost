@@ -182,7 +182,10 @@ export default function ChoresPage() {
       if (context?.previous) queryClient.setQueryData(["chores"], context.previous);
       toast.error("Could not complete chore", { description: "Something went wrong. Try again." });
     },
-    onSettled: () => queryClient.invalidateQueries({ queryKey: ["chores"] }),
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ["chores"] });
+      queryClient.invalidateQueries({ queryKey: ["allowance-child"] });
+    },
   });
 
   const uncheckMutation = useMutation({
@@ -206,6 +209,7 @@ export default function ChoresPage() {
     onSuccess: (_data, choreId) => {
       toast("Chore unmarked", { action: { label: "Undo", onClick: () => completeMutation.mutate(choreId) } });
       queryClient.invalidateQueries({ queryKey: ["chores"] });
+      queryClient.invalidateQueries({ queryKey: ["allowance-child"] });
     },
   });
 

@@ -978,7 +978,13 @@ export default function ExpenseSheet({
               {mode === 'create' && (
                 <button
                   type="button"
-                  onClick={() => setScanView('scanner')}
+                  onClick={() => {
+                    if (!isPremium) {
+                      onUpgradeRequired?.('RECEIPT_SCANNING_PREMIUM');
+                      return;
+                    }
+                    setScanView('scanner');
+                  }}
                   style={{
                     width: '100%',
                     background: 'rgba(34,197,94,0.08)',
@@ -1128,11 +1134,30 @@ export default function ExpenseSheet({
                 >
                   Category (optional)
                 </label>
-                <CategoryPicker
-                  value={categoryId}
-                  onChange={setCategoryId}
-                  isAdmin={isAdmin}
-                />
+                {isPremium ? (
+                  <CategoryPicker
+                    value={categoryId}
+                    onChange={setCategoryId}
+                    isAdmin={isAdmin}
+                  />
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => onUpgradeRequired?.('EXPENSES_CATEGORIES_PREMIUM')}
+                    className="flex w-full items-center gap-2 h-11 rounded-xl px-4"
+                    style={{
+                      backgroundColor: 'var(--roost-surface)',
+                      border: '1.5px solid var(--roost-border)',
+                      borderBottom: '3px solid var(--roost-border-bottom)',
+                      color: 'var(--roost-text-muted)',
+                      fontWeight: 600,
+                      fontSize: 13,
+                    }}
+                  >
+                    <span className="flex-1 text-left">Add a category</span>
+                    <Lock size={14} style={{ color: 'var(--roost-text-muted)', flexShrink: 0 }} />
+                  </button>
+                )}
               </div>
 
               {/* Split method — create only */}

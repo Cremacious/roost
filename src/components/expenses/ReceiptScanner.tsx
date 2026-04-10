@@ -6,8 +6,6 @@ import { motion } from "framer-motion";
 import { Camera, Crop, Maximize2, ScanLine, Square, Sun, Upload } from "lucide-react";
 import { fileToBase64, validateReceiptImage } from "@/lib/utils/imageUpload";
 import type { ParsedReceipt } from "@/lib/utils/azureReceipts";
-import { useHousehold } from "@/lib/hooks/useHousehold";
-import PremiumGate from "@/components/shared/PremiumGate";
 
 const COLOR = "#22C55E";
 const COLOR_DARK = "#159040";
@@ -24,7 +22,6 @@ interface ReceiptScannerProps {
 type ScanState = "idle" | "scanning" | "empty" | "error";
 
 export default function ReceiptScanner({ onReceiptParsed, onClose }: ReceiptScannerProps) {
-  const { isPremium } = useHousehold();
   const [state, setState] = useState<ScanState>("idle");
   const [errorMessage, setErrorMessage] = useState("");
   const [emptyReceipt, setEmptyReceipt] = useState<ParsedReceipt | null>(null);
@@ -82,16 +79,6 @@ export default function ReceiptScanner({ onReceiptParsed, onClose }: ReceiptScan
 
   function skipToManual() {
     onReceiptParsed({ lineItems: [] });
-  }
-
-  // ---- Premium gate ----------------------------------------------------------
-
-  if (isPremium === false) {
-    return (
-      <div className="px-1 py-4">
-        <PremiumGate feature="expenses" trigger="inline" onClose={onClose} />
-      </div>
-    );
   }
 
   // ---- Scanning state --------------------------------------------------------

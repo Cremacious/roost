@@ -44,20 +44,17 @@ interface FeatureCardSpec {
 const EXPENSES_CARD: FeatureCardSpec = {
   icon: DollarSign,
   title: "Expenses",
-  hook: "Split it. Settle it. Done.",
+  hook: "Split expenses — free. Master your money — premium.",
   borderColor: "#639922",
   iconBg: "#EAF3DE",
   checkColor: "#639922",
   bullets: [
-    "Expense splitting so any bill can be divided between any members",
-    "Debt simplification with one clean settle-up instead of a web of IOUs",
-    "Full expense history with every transaction saved forever",
-    "Balance tracking so you always know who owes what",
-    "Receipt scanning so you can snap a receipt and split it instantly",
-    "Recurring expenses so monthly bills only need to be entered once",
-    "Spending insights to see where your household money goes",
-    "Budget tracking with limits and alerts when you're close",
-    "Data export to download your full expense history",
+    "Scan receipts with your camera",
+    "Categorize expenses your way",
+    "Track recurring payments automatically",
+    "Set and monitor budgets",
+    "Visualize spending with insights",
+    "Export data as CSV or PDF",
   ],
 };
 

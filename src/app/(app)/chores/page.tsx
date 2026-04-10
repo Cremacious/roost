@@ -15,7 +15,7 @@ import {
   Plus,
   Trophy,
 } from "lucide-react";
-import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { isPast } from "date-fns";
 import { motion, AnimatePresence } from "framer-motion";
 import ChoreSheet, { type ChoreData } from "@/components/chores/ChoreSheet";
@@ -106,6 +106,7 @@ export default function ChoresPage() {
   const currentUserId = sessionData?.user.id ?? "";
   const queryClient = useQueryClient();
 
+  const router = useRouter();
   const [view, setView] = useState<"mine" | "all">("mine");
   const [categoryFilter, setCategoryFilter] = useState<string | null>(null);
   const [completedExpanded, setCompletedExpanded] = useState(false);
@@ -295,8 +296,10 @@ export default function ChoresPage() {
           </motion.button>
 
           {/* History — icon only on mobile, text+icon on desktop */}
-          <Link
-            href="/chores/history"
+          <motion.button
+            type="button"
+            onClick={() => isPremium ? router.push("/chores/history") : setUpgradeCode("HISTORY_PREMIUM")}
+            whileTap={{ y: 1 }}
             className="md:hidden flex h-10 w-10 items-center justify-center rounded-xl"
             style={{
               backgroundColor: "var(--roost-surface)",
@@ -306,9 +309,11 @@ export default function ChoresPage() {
           >
             {!isPremium && <Lock className="size-3 mr-1" style={{ color: "var(--roost-text-muted)" }} />}
             <History className="size-4" style={{ color: COLOR }} />
-          </Link>
-          <Link
-            href="/chores/history"
+          </motion.button>
+          <motion.button
+            type="button"
+            onClick={() => isPremium ? router.push("/chores/history") : setUpgradeCode("HISTORY_PREMIUM")}
+            whileTap={{ y: 1 }}
             className="hidden md:flex h-10 items-center gap-1.5 rounded-xl px-3 text-sm"
             style={{
               backgroundColor: "var(--roost-surface)",
@@ -321,7 +326,7 @@ export default function ChoresPage() {
             <History className="size-4" style={{ color: COLOR }} />
             History
             {!isPremium && <Lock className="size-3 ml-0.5" style={{ color: "var(--roost-text-muted)" }} />}
-          </Link>
+          </motion.button>
 
           {/* Leaderboard — icon only on mobile, text+icon on desktop */}
           <motion.button

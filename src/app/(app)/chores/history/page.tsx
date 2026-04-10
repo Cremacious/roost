@@ -16,7 +16,6 @@ import { ArrowLeft, CheckCircle2, ClipboardX } from "lucide-react";
 import { PageContainer } from "@/components/layout/PageContainer";
 import MemberAvatar from "@/components/shared/MemberAvatar";
 import StatCard from "@/components/shared/StatCard";
-import PremiumGate from "@/components/shared/PremiumGate";
 import { useHousehold } from "@/lib/hooks/useHousehold";
 import { Skeleton } from "@/components/ui/skeleton";
 import { SECTION_COLORS } from "@/lib/constants/colors";
@@ -195,44 +194,6 @@ export default function ChoreHistoryPage() {
           </div>
         </PageContainer>
       </div>
-    );
-  }
-
-  if (!isPremium) {
-    return (
-      <motion.div
-        initial={{ opacity: 0, y: 12 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.18, ease: "easeOut" }}
-        className="py-4 pb-24 md:py-6"
-        style={{ backgroundColor: "var(--roost-bg)" }}
-      >
-        <PageContainer className="flex flex-col gap-4">
-          {/* Header */}
-          <div className="flex items-center gap-3">
-            <button
-              type="button"
-              onClick={() => router.push("/chores")}
-              className="flex h-10 w-10 items-center justify-center rounded-xl"
-              style={{
-                backgroundColor: "var(--roost-surface)",
-                border: "1.5px solid var(--roost-border)",
-                borderBottom: "3px solid var(--roost-border-bottom)",
-                color: "var(--roost-text-primary)",
-              }}
-            >
-              <ArrowLeft className="size-4" />
-            </button>
-            <div>
-              <h1 className="text-2xl" style={{ color: "var(--roost-text-primary)", fontWeight: 900 }}>
-                Completion History
-              </h1>
-            </div>
-          </div>
-
-          <PremiumGate feature="chores" trigger="page" />
-        </PageContainer>
-      </motion.div>
     );
   }
 

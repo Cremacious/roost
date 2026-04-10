@@ -248,7 +248,7 @@ export default function InviteGuestSheet({ open, onClose }: InviteGuestSheetProp
               </div>
 
               {/* Email */}
-              <div>
+              {/* <div>
                 <label className="mb-1.5 block text-xs" style={{ color: "#374151", fontWeight: 700 }}>
                   Guest&apos;s email (optional)
                 </label>
@@ -262,7 +262,7 @@ export default function InviteGuestSheet({ open, onClose }: InviteGuestSheetProp
                 <p className="mt-1 text-xs" style={{ color: "var(--roost-text-muted)", fontWeight: 600 }}>
                   We&apos;ll pre-fill their signup form
                 </p>
-              </div>
+              </div> */}
 
               {/* Expiry */}
               <div>

@@ -44,13 +44,14 @@ export default function AddChildSheet({ open, onClose }: Props) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name: trimmed }),
       });
-      const data = await r.json();
       if (!r.ok) {
-        toast.error(data.error ?? "Failed to add child account.", {
+        const body = await r.json().catch(() => ({})) as { error?: string };
+        toast.error(body.error ?? "Failed to create child account.", {
           description: "Check that you have not reached your account limit.",
         });
         return;
       }
+      const data = await r.json() as { child: { name: string }; pin: string };
       setCreatedName(data.child.name);
       setCreatedPin(data.pin);
       setStep("pin");

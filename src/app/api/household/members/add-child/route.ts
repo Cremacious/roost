@@ -1,4 +1,4 @@
-import { NextRequest } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { requireSession } from "@/lib/auth/helpers";
 import { db } from "@/lib/db";
 import { users, household_members } from "@/db/schema";
@@ -40,43 +40,51 @@ export async function POST(request: NextRequest): Promise<Response> {
     );
   }
 
-  // Generate random 4-digit PIN (1000-9999)
-  const rawPin = String(Math.floor(Math.random() * 9000) + 1000);
-  const hashedPin = await hashPassword(rawPin);
+  try {
+    // Generate random 4-digit PIN (1000-9999)
+    const rawPin = String(Math.floor(Math.random() * 9000) + 1000);
+    const hashedPin = await hashPassword(rawPin);
 
-  // Generate unique user ID
-  const userId = crypto.randomUUID();
+    // Generate unique user ID
+    const userId = crypto.randomUUID();
 
-  // Create the child user record (no email needed)
-  await db.insert(users).values({
-    id: userId,
-    name,
-    email: null,
-    is_child_account: true,
-    child_of_household_id: householdId,
-    timezone: "America/New_York",
-    language: "en",
-    theme: "default",
-    temperature_unit: "fahrenheit",
-    chore_reminders_enabled: false,
-    has_seen_welcome: true, // children skip welcome modal
-    created_at: new Date(),
-    updated_at: new Date(),
-  });
+    // Create the child user record (no email needed)
+    await db.insert(users).values({
+      id: userId,
+      name,
+      email: null,
+      is_child_account: true,
+      child_of_household_id: householdId,
+      timezone: "America/New_York",
+      language: "en",
+      theme: "default",
+      temperature_unit: "fahrenheit",
+      chore_reminders_enabled: false,
+      has_seen_welcome: true, // children skip welcome modal
+      created_at: new Date(),
+      updated_at: new Date(),
+    });
 
-  // Add as child member with hashed PIN
-  await db.insert(household_members).values({
-    household_id: householdId,
-    user_id: userId,
-    role: "child",
-    pin: hashedPin,
-  });
+    // Add as child member with hashed PIN
+    await db.insert(household_members).values({
+      household_id: householdId,
+      user_id: userId,
+      role: "child",
+      pin: hashedPin,
+    });
 
-  return Response.json(
-    {
-      child: { id: userId, name },
-      pin: rawPin,
-    },
-    { status: 201 }
-  );
+    return Response.json(
+      {
+        child: { id: userId, name },
+        pin: rawPin,
+      },
+      { status: 201 }
+    );
+  } catch (error) {
+    console.error("add-child error:", error);
+    return NextResponse.json(
+      { error: "Failed to create child account" },
+      { status: 500 }
+    );
+  }
 }

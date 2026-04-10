@@ -135,7 +135,7 @@ export function AllowanceChildCard({
     >
       {/* Header row */}
       <div className="flex items-center gap-3 px-4 pt-4 pb-3">
-        <MemberAvatar name={member.name} color={member.avatarColor} size="md" />
+        <MemberAvatar name={member.name} avatarColor={member.avatarColor} size="md" />
         <div className="flex-1 min-w-0">
           <p
             className="truncate text-sm"

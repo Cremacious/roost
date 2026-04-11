@@ -129,7 +129,7 @@ export default function LoginPage() {
           <span style={{ fontWeight: 900, fontSize: 26, color: "white", letterSpacing: "-0.5px" }}>Roost</span>
         </div>
         <p style={{ fontWeight: 700, fontSize: 13, color: "rgba(255,255,255,0.7)", marginBottom: 36 }}>
-          Home, sorted.
+          Homes run better with Roost.
         </p>
 
         {/* Feature list */}

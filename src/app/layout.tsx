@@ -27,7 +27,7 @@ export const metadata: Metadata = {
     default: "Roost",
     template: "%s | Roost",
   },
-  description: "Home, sorted. The household app for families and roommates.",
+  description: "The household app for families and roommates.",
   keywords: [
     "household management",
     "chores",
@@ -59,14 +59,14 @@ export const metadata: Metadata = {
     locale: "en_US",
     url: process.env.NEXT_PUBLIC_APP_URL,
     title: "Roost",
-    description: "Home, sorted.",
+    description: "Homes run better with Roost.",
     siteName: "Roost",
     // images resolved automatically from src/app/opengraph-image.tsx
   },
   twitter: {
     card: "summary_large_image",
     title: "Roost",
-    description: "Home, sorted.",
+    description: "Homes run better with Roost.",
     // images resolved automatically from src/app/opengraph-image.tsx
   },
   appleWebApp: {

@@ -11,7 +11,7 @@ const nunito = Nunito({
 });
 
 export const metadata: Metadata = {
-  title: 'Roost - Home, sorted.',
+  title: 'Roost - Homes run better with Roost.',
   description:
     'The household app for families and roommates. Chores, groceries, bills, meals, reminders, and a shared calendar. One app.',
 };
@@ -1296,7 +1296,7 @@ export default function HomePage() {
             fontFamily: ff,
           }}
         >
-          Your household, finally sorted.
+          One app. Zero excuses.
         </h1>
         <p
           style={{
@@ -1353,7 +1353,6 @@ export default function HomePage() {
             Sign in
           </Link>
         </div>
-     
       </section>
 
       {/* 4. PROBLEM */}
@@ -1411,28 +1410,13 @@ export default function HomePage() {
           style={{
             fontSize: 14,
             fontWeight: 700,
-            color: '#333',
+            color: '#666',
             marginBottom: 14,
             fontFamily: ff,
           }}
         >
-          All of that becomes one thing.
+          All of that becomes a thing of the past.
         </p>
-        <div
-          style={{
-            backgroundColor: 'white',
-            border: '2px solid #EF4444',
-            borderRadius: 12,
-            padding: '10px 22px',
-            display: 'inline-block',
-            fontSize: 15,
-            fontWeight: 800,
-            color: '#1a1a1a',
-            fontFamily: ff,
-          }}
-        >
-          Roost. Home, sorted.
-        </div>
       </section>
 
       {/* 5. FEATURES */}
@@ -2215,7 +2199,7 @@ export default function HomePage() {
               fontFamily: ff,
             }}
           >
-            Home, sorted.
+            Homes run better with Roost.
           </span>
           <div className="footer-links" style={{ display: 'flex', gap: 20 }}>
             <Link

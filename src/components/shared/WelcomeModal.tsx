@@ -101,7 +101,7 @@ export default function WelcomeModal({ onDismiss }: Props) {
               color: "var(--roost-text-secondary)",
             }}
           >
-            Home, sorted.
+            Homes run better with Roost.
           </p>
         </div>
 

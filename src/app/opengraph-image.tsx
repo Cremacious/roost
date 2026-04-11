@@ -1,7 +1,7 @@
 import { ImageResponse } from "next/og";
 
 export const runtime = "edge";
-export const alt = "Roost — Home, sorted.";
+export const alt = "Roost — Homes run better with Roost.";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
@@ -38,7 +38,7 @@ export default function OgImage() {
             color: "rgba(255,255,255,0.82)",
           }}
         >
-          Home, sorted.
+          Homes run better with Roost.
         </div>
       </div>
     ),

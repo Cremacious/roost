@@ -7,10 +7,10 @@ import Image from "next/image";
 
 const SIZE_CONFIG = {
   xs: { iconSize: 24, wordmarkSize: 0,  radius: 6,  gap: 0  },
-  sm: { iconSize: 32, wordmarkSize: 18, radius: 8,  gap: 8  },
-  md: { iconSize: 40, wordmarkSize: 22, radius: 10, gap: 10 },
-  lg: { iconSize: 56, wordmarkSize: 28, radius: 14, gap: 12 },
-  xl: { iconSize: 80, wordmarkSize: 36, radius: 18, gap: 16 },
+  sm: { iconSize: 32, wordmarkSize: 28, radius: 8,  gap: 8  },
+  md: { iconSize: 40, wordmarkSize: 30, radius: 10, gap: 10 },
+  lg: { iconSize: 56, wordmarkSize: 32, radius: 14, gap: 12 },
+  xl: { iconSize: 80, wordmarkSize: 34, radius: 18, gap: 16 },
 } as const;
 
 const VARIANT_CONFIG = {

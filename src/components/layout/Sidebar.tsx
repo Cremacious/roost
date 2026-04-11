@@ -96,8 +96,8 @@ export default function Sidebar() {
         }}
       >
         {/* Logo */}
-        <div className="px-4 pb-5">
-          <RoostLogo size="sm" />
+        <div className="px-4 pb-4 pt-2">
+          <RoostLogo size="md" />
         </div>
 
         {/* Nav */}

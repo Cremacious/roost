@@ -193,23 +193,48 @@ Files:
 - [ ] Add cron setup and verification steps.
 
 ### 2.2 Environment Management
-- [ ] Add `.env.example` with every required variable listed.
-- [ ] Separate required production env vars from optional/dev-only env vars.
-- [ ] Verify `NEXT_PUBLIC_APP_URL` is set and used correctly in production.
+- [x] Add `.env.example` with every required variable listed.
+- [x] Separate required production env vars from optional/dev-only env vars.
+- [x] Verify `NEXT_PUBLIC_APP_URL` is set and used correctly in production.
 - [ ] Confirm all secrets are configured in Vercel and not only in `.env.local`.
 
-Expected env vars:
-- `DATABASE_URL`
-- `NEXT_PUBLIC_APP_URL`
-- `STRIPE_SECRET_KEY`
-- `STRIPE_PRICE_ID`
-- `STRIPE_WEBHOOK_SECRET`
-- `CRON_SECRET`
-- `ADMIN_EMAIL`
-- `ADMIN_PASSWORD`
-- `ADMIN_SESSION_SECRET`
-- `AZURE_DOCUMENT_INTELLIGENCE_ENDPOINT`
-- `AZURE_DOCUMENT_INTELLIGENCE_KEY`
+What was added (2026-04-11):
+- `.env.example` created at the repo root with all variables classified and annotated.
+- `metadataBase` added to `src/app/layout.tsx` using `NEXT_PUBLIC_APP_URL`, eliminating
+  the build-time warning about OG/Twitter image resolution.
+
+NEXT_PUBLIC_APP_URL audit — four usages found:
+  1. `src/app/layout.tsx` — OG/Twitter metadataBase. Now uses it explicitly; falls back to
+     localhost:3000 for local dev.
+  2. `src/lib/auth/client.ts` — better-auth client baseURL. If undefined in production,
+     auth callbacks may break. Must be set.
+  3. `src/lib/utils/inviteToken.ts` — invite link base URL. Falls back to localhost:3000.
+     Invite links are silently broken in production if unset.
+  4. `src/lib/utils/stripe.ts` — Stripe checkout success/cancel redirect. Falls back to
+     localhost:3000. Payment redirects are broken in production if unset.
+  Verdict: NEXT_PUBLIC_APP_URL is REQUIRED for production. No hard failure exists on
+  missing value (silently falls back to localhost), making it a silent breakage risk.
+
+Env vars classified (full details in .env.example):
+
+  REQUIRED (app broken without these):
+    DATABASE_URL, BETTER_AUTH_SECRET, NEXT_PUBLIC_APP_URL,
+    CRON_SECRET, ADMIN_EMAIL, ADMIN_PASSWORD, ADMIN_SESSION_SECRET
+
+  REQUIRED for specific features:
+    STRIPE_SECRET_KEY, STRIPE_PRICE_ID, STRIPE_WEBHOOK_SECRET (billing)
+    AZURE_DOCUMENT_INTELLIGENCE_ENDPOINT, AZURE_DOCUMENT_INTELLIGENCE_KEY (receipt scanning)
+
+  RECOMMENDED:
+    BETTER_AUTH_URL (server-side better-auth base URL; dynamic detection works on Vercel
+    but explicit is safer)
+
+  OPTIONAL / not yet implemented:
+    RESEND_API_KEY (email — deferred), EXPO_ACCESS_TOKEN (push notifications — deferred)
+
+  NOT needed (removed from expected list):
+    NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY — Stripe checkout is fully server-side here.
+    No client-side Stripe.js is used.
 
 ### 2.3 Database and Migration Discipline
 - [ ] Audit current schema state against committed Drizzle migrations.
@@ -341,7 +366,7 @@ Notes:
 ### Phase 2: Lock Down Production Surfaces
 - [x] Harden cron auth
 - [x] Harden admin auth
-- [ ] Add env example and deploy docs
+- [x] Add env example and deploy docs
 - [ ] Review config/security headers/logging
 
 ### Phase 3: Prove the Critical Flows
@@ -365,5 +390,5 @@ At the start of each future Roost session:
 5. Update this file.
 
 Recommended next task:
-- Environment management: add `.env.example`, separate required from optional vars,
-  verify NEXT_PUBLIC_APP_URL wiring, confirm all secrets are in Vercel (2.2).
+- Database and migration discipline: audit schema state, verify production does not depend
+  on db:push, document deploy order (2.3).

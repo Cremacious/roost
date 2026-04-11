@@ -722,13 +722,37 @@ Notes:
   test infrastructure is stable.
 
 ### Cron Jobs
-- [ ] Reminders cron
-- [ ] Rewards cron
-- [ ] Subscription expiry cron
-- [ ] Settlement reminder cron
-- [ ] Recurring expense cron
-- [ ] Budget reset cron
-- [ ] Guest expiry cron
+- [x] Reminders cron
+- [x] Rewards cron
+- [x] Subscription expiry cron
+- [x] Settlement reminder cron
+- [x] Recurring expense cron
+- [x] Budget reset cron
+- [x] Guest expiry cron
+
+What was added (2026-04-11):
+
+`e2e/cron.spec.ts` — smoke tests for all 7 active Vercel cron routes.
+Added to the `unauthenticated` project in playwright.config.ts.
+
+Coverage per route:
+- `GET /api/cron/reminders` — 401 without auth; 200 + `{ processed: number }` with valid secret
+- `GET /api/cron/rewards` — 401 without auth; 200 + `{ processed: number, payouts: array }` with valid secret
+- `GET /api/cron/subscription` — 401 without auth; 200 + `{ expired: number }` with valid secret
+- `GET /api/cron/settlement-reminders` — 401 without auth; 200 + `{ reminded: number }` with valid secret
+- `GET /api/cron/recurring-expenses` — 401 without auth; 200 + `{ created, skipped, reminded: number }` with valid secret
+- `GET /api/cron/budget-reset` — 401 without auth; 200 + `{ reset: number }` with valid secret
+- `GET /api/cron/guest-expiry` — 401 without auth; 200 + `{ expired: number, timestamp: string }` with valid secret
+- Wrong secret → 401 (spot-checked on reminders route)
+
+CRON_SECRET handling:
+- Spec reads `process.env.CRON_SECRET` first (CI/shell injection)
+- Falls back to parsing `.env.local` directly (local dev without shell export)
+- Authorized-execution tests are skipped automatically when secret cannot be resolved
+- Unauthorized tests (expecting 401) always run regardless of secret availability
+
+Idempotency: all cron routes return 0-counts when there is nothing to process.
+Running the tests on a clean or near-empty DB is safe and produces no side effects.
 
 ### Expenses / OCR / Export
 - [ ] Receipt scan happy path
@@ -846,13 +870,15 @@ At the start of each future Roost session:
 5. Update this file.
 
 Recommended next task:
-- Phase 3 testing (4.2) — remaining gaps: cron job smoke tests (curl-based, low setup cost),
-  expense export (CSV/PDF content verification), and settle-all flows. After those, the 4.2
-  automated test coverage is complete enough to move to 4.3 manual QA.
+- Phase 3 testing (4.2) — remaining gaps: expense export (CSV/PDF content verification)
+  and settle-all flows (require multi-user state setup). After those, the 4.2 automated
+  test coverage is complete enough to move to 4.3 manual QA. Alternatively, skip
+  those edge cases and advance to 4.3 now — cron, auth, billing, permissions, and
+  household ops are the highest-value paths.
   Current coverage summary:
     Auth flows       — COVERED (signup, login, logout, child PIN, email change, invite page)
     Billing          — COVERED (auth/role gates, webhook sig rejection, UI states)
     Permissions      — COVERED (unauthenticated 401, premium 403, child finance block, member admin block)
     Household ops    — COVERED (create, join, add child, remove member, delete data, full delete, rename)
-    Cron jobs        — NOT COVERED (use curl against running dev server; see RUNBOOK.md)
+    Cron jobs        — COVERED (auth rejection + authorized execution + response shape for all 7 routes)
     Expenses/export  — NOT COVERED (manual QA with Stripe test mode + receipt images)

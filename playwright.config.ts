@@ -54,6 +54,7 @@ export default defineConfig({
         "**/billing.spec.ts",
         "**/permissions.spec.ts",
         "**/household.spec.ts",
+        "**/cron.spec.ts",
       ],
       timeout: 60000,
     },

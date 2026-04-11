@@ -16,12 +16,31 @@ Status legend:
 ## 1. Release Blockers
 
 ### 1.1 Auth Data Consistency
-- [ ] Fix profile email updates so the canonical Better Auth tables and app `users` table stay in sync.
-- [ ] Test changing email, then logging in with the new email.
-- [ ] Test duplicate-email rejection against both auth and app data.
+- [x] Fix profile email updates so the canonical Better Auth tables and app `users` table stay in sync.
+- [ ] Test changing email, then logging in with the new email (requires live DB — manual QA).
+- [ ] Test duplicate-email rejection against both auth and app data (requires live DB — manual QA).
 
 Why this matters:
-- Right now profile email changes update the app table but not the auth table, which can break login consistency.
+- Profile email changes were only updating the app `users` table. Better Auth reads from its own
+  `user` table for login, so after an email change the user could not log in with the new email.
+
+What was fixed (2026-04-11, `src/app/api/user/profile/route.ts`):
+- Imported `user as authUserTable` from `@/db/schema` (the Better Auth-managed table).
+- Email is normalized (trim + lowercase) once at the top of PATCH, before all checks and writes.
+- Duplicate-email check now queries BOTH the auth `user` table AND the app `users` table so
+  conflicts in either one are caught before the write.
+- When email changes, both tables are updated inside a single Drizzle transaction so they stay
+  in sync even if one write fails.
+- Added a catch around the transaction to return 409 on unique-constraint violations caused by
+  a race condition between the pre-check and the write.
+- Non-email field updates (name, avatar, timezone, etc.) are unchanged and do not touch the
+  auth table (those fields are app-only).
+
+Remaining risk:
+- The name field exists in both the auth `user` table and the app `users` table but is only
+  synced in the auth hook (create only). Name-change de-sync is not a login blocker but is
+  tracked as a future cleanup item.
+- The fix has not been verified against a live DB session; manual QA is required (see above).
 
 Files:
 - `src/app/api/user/profile/route.ts`
@@ -223,7 +242,7 @@ Notes:
 ## 6. Suggested Execution Order
 
 ### Phase 1: Stabilize the Build
-- [ ] Fix the email-sync bug
+- [x] Fix the email-sync bug
 - [ ] Fix lint blockers
 - [ ] Confirm clean build
 
@@ -254,4 +273,4 @@ At the start of each future Roost session:
 5. Update this file.
 
 Recommended next task:
-- Fix the profile email sync bug between Better Auth and the app `users` table.
+- Fix lint blockers: run `npm run lint` and address any blocking errors (1.2).

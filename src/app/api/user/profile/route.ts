@@ -1,7 +1,7 @@
 import { NextRequest } from "next/server";
 import { requireSession } from "@/lib/auth/helpers";
 import { db } from "@/lib/db";
-import { users } from "@/db/schema";
+import { users, user as authUserTable } from "@/db/schema";
 import { eq } from "drizzle-orm";
 
 // ---- GET --------------------------------------------------------------------
@@ -60,43 +60,90 @@ export async function PATCH(request: NextRequest): Promise<Response> {
     return Response.json({ error: "Invalid request body" }, { status: 400 });
   }
 
-  if (body.email !== undefined) {
+  // Normalize email upfront so all checks and writes use the same value.
+  const normalizedEmail =
+    body.email !== undefined ? body.email.trim().toLowerCase() : undefined;
+
+  if (normalizedEmail !== undefined) {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(body.email)) {
+    if (!emailRegex.test(normalizedEmail)) {
       return Response.json({ error: "Invalid email address" }, { status: 400 });
     }
-    // Check email not already taken by another user
-    const [existing] = await db
+
+    // Check the Better Auth table first — this is what drives login.
+    const [authConflict] = await db
+      .select({ id: authUserTable.id })
+      .from(authUserTable)
+      .where(eq(authUserTable.email, normalizedEmail))
+      .limit(1);
+    if (authConflict && authConflict.id !== session.user.id) {
+      return Response.json({ error: "Email already in use" }, { status: 409 });
+    }
+
+    // Also check the app users table to catch any de-sync edge cases.
+    const [appConflict] = await db
       .select({ id: users.id })
       .from(users)
-      .where(eq(users.email, body.email))
+      .where(eq(users.email, normalizedEmail))
       .limit(1);
-    if (existing && existing.id !== session.user.id) {
+    if (appConflict && appConflict.id !== session.user.id) {
       return Response.json({ error: "Email already in use" }, { status: 409 });
     }
   }
 
-  const updates: Record<string, unknown> = { updated_at: new Date() };
-  if (body.name !== undefined) updates.name = body.name.trim();
-  if (body.email !== undefined) updates.email = body.email.trim().toLowerCase();
-  if (body.avatar_color !== undefined) updates.avatar_color = body.avatar_color;
-  if (body.timezone !== undefined) updates.timezone = body.timezone;
-  if (body.language !== undefined) updates.language = body.language;
-  if (body.push_token !== undefined) updates.push_token = body.push_token;
+  const appUpdates: Record<string, unknown> = { updated_at: new Date() };
+  if (body.name !== undefined) appUpdates.name = body.name.trim();
+  if (normalizedEmail !== undefined) appUpdates.email = normalizedEmail;
+  if (body.avatar_color !== undefined) appUpdates.avatar_color = body.avatar_color;
+  if (body.timezone !== undefined) appUpdates.timezone = body.timezone;
+  if (body.language !== undefined) appUpdates.language = body.language;
+  if (body.push_token !== undefined) appUpdates.push_token = body.push_token;
 
-  const [updated] = await db
-    .update(users)
-    .set(updates)
-    .where(eq(users.id, session.user.id))
-    .returning({
-      id: users.id,
-      name: users.name,
-      email: users.email,
-      avatar_color: users.avatar_color,
-      timezone: users.timezone,
-      language: users.language,
-      theme: users.theme,
-    });
+  const returning = {
+    id: users.id,
+    name: users.name,
+    email: users.email,
+    avatar_color: users.avatar_color,
+    timezone: users.timezone,
+    language: users.language,
+    theme: users.theme,
+  } as const;
+
+  let updated;
+
+  if (normalizedEmail !== undefined) {
+    // Keep both tables in sync inside a transaction when email changes.
+    try {
+      updated = await db.transaction(async (tx) => {
+        await tx
+          .update(authUserTable)
+          .set({ email: normalizedEmail, updatedAt: new Date() })
+          .where(eq(authUserTable.id, session.user.id));
+
+        const [row] = await tx
+          .update(users)
+          .set(appUpdates)
+          .where(eq(users.id, session.user.id))
+          .returning(returning);
+
+        return row;
+      });
+    } catch (err) {
+      // Unique constraint violation — another user claimed this email between
+      // our pre-check and the write (race condition).
+      if (err instanceof Error && err.message.includes("unique")) {
+        return Response.json({ error: "Email already in use" }, { status: 409 });
+      }
+      throw err;
+    }
+  } else {
+    const [row] = await db
+      .update(users)
+      .set(appUpdates)
+      .where(eq(users.id, session.user.id))
+      .returning(returning);
+    updated = row;
+  }
 
   return Response.json({ user: updated });
 }

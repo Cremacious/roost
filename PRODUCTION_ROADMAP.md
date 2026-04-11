@@ -185,12 +185,42 @@ Files:
 ## 2. Production Setup and Ops
 
 ### 2.1 Documentation
-- [ ] Replace the default README with a real Roost project README.
-- [ ] Document local setup, env vars, database setup, and test commands.
-- [ ] Add a deployment runbook.
-- [ ] Add a rollback / incident checklist.
-- [ ] Add Stripe webhook setup instructions.
-- [ ] Add cron setup and verification steps.
+- [x] Replace the default README with a real Roost project README.
+- [x] Document local setup, env vars, database setup, and test commands.
+- [x] Add a deployment runbook.
+- [x] Add a rollback / incident checklist.
+- [x] Add Stripe webhook setup instructions.
+- [x] Add cron setup and verification steps.
+
+What was added (2026-04-11):
+
+`README.md` (replaced):
+- Tech stack reference table
+- Prerequisites (Node 20+, Neon, npm)
+- Step-by-step local dev setup (clone, env, db:push, seed, dev server)
+- Full scripts table with descriptions
+- Testing section (unit + Playwright e2e, project breakdown)
+- Project structure tree
+- Env var quick reference (required / billing / receipt scanning)
+- Key design decisions (schema migration, cron auth, premium gating, child accounts, themes)
+- Pointer to RUNBOOK.md for all ops procedures
+
+`RUNBOOK.md` (new file):
+- First deploy checklist (10 items in order)
+- Environment variables table: required / billing / receipt scanning / not needed / silent risks
+- Database setup and migration: initial push, routine deploy order, dry-run verification
+- Stripe setup: product/price creation, webhook registration (exact steps + 5 required events),
+  Customer Portal activation, KYC note, local CLI testing, log verification
+- Cron job reference: all 7 jobs with schedule and purpose; how to verify in Vercel dashboard;
+  how to trigger manually via curl; how to read structured logs
+- Post-deploy smoke test: auth, core features, billing (with test card), admin panel, cron
+- Routine deploy procedure: code-only vs schema-change order
+- Rollback procedure: Option A (Vercel instant rollback), Option B (manual schema SQL),
+  Option C (Neon PITR — last resort)
+- Incident checklist: locate error (Vercel logs / browser / Neon), classify by symptom,
+  Stripe-specific diagnosis (webhook delivery logs, re-trigger, DB check),
+  DB diagnostic SQL queries, communication guidance
+- Useful references table: all dashboards, Stripe test cards, Azure quota, log prefixes
 
 ### 2.2 Environment Management
 - [x] Add `.env.example` with every required variable listed.
@@ -668,6 +698,7 @@ Notes:
 - [x] Add env example and deploy docs
 - [x] Review config/security headers/logging
 - [x] Add structured logging and observability hooks (2.4)
+- [x] Write README and production runbook (2.1)
 
 ### Phase 3: Prove the Critical Flows
 - [ ] Expand tests for auth, billing, permissions, and cron jobs
@@ -690,8 +721,9 @@ At the start of each future Roost session:
 5. Update this file.
 
 Recommended next task:
-- Documentation (2.1): write the production README and deployment runbook. The build, security,
-  env, and logging work is all done — the last ops gap is a written record of how to deploy,
-  roll back, and verify the app. This unblocks handing off ops to another person and is
-  required before Phase 3 testing begins.
-- Then: Phase 3 — expand test coverage for auth, billing, permissions, and cron jobs.
+- Phase 3 testing (4.2): the build is clean, security is hardened, env is documented,
+  logging is in place, and the runbook is written. The remaining launch gap is test coverage.
+  Priority order for tests: auth flows (signup/login/child PIN/invite), billing (Stripe webhook
+  paths), permissions (admin/member/child/guest route access), and cron job behavior.
+  Start with auth — it is the highest-risk flow and currently has zero automated coverage
+  for the email-sync fix shipped in 1.1.

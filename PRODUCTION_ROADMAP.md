@@ -609,13 +609,57 @@ Files changed:
 ## 4.2 Must-Have Automated Tests Before Production
 
 ### Auth
-- [ ] Signup flow
-- [ ] Login flow
-- [ ] Logout flow
-- [ ] Child PIN login
+- [x] Signup flow
+- [x] Login flow
+- [x] Logout flow
+- [x] Child PIN login
 - [ ] Password change
-- [ ] Profile email change and re-login
-- [ ] Invite accept/join flow
+- [x] Profile email change and re-login
+- [x] Invite accept/join flow (page render + invalid token; full multi-user join is manual QA)
+
+What was added (2026-04-11):
+
+Seed fix (`src/db/seed.ts`):
+- Child account now inserts into the better-auth `user` table FIRST (placeholder email
+  `child_${id}@roost.internal`), then the app `users` table. This satisfies the FK
+  constraint on `session.userId` when `internalAdapter.createSession()` is called.
+- Existing seed runs without the auth row are back-filled via `onConflictDoNothing`.
+- `is_child_account: true` added to the `users` insert.
+
+`e2e/helpers/auth.ts`:
+- Exported `FREE_HOUSEHOLD_CODE = "RSTFRE"` and `PREMIUM_HOUSEHOLD_CODE = "RSTPRM"`.
+
+`e2e/auth.spec.ts`:
+- Added "valid login with existing account reaches dashboard" to the public block.
+- Added "sign out clears session and returns to login" to the signed-in block,
+  including verification that /dashboard redirects to /login after sign-out.
+
+`e2e/auth-child.spec.ts` (new):
+- Full PIN flow: code input → auto-advance to PIN step (only 1 child) → 4-digit PIN → dashboard.
+- Wrong PIN stays on /child-login and PIN pad resets for retry.
+- Invalid household code stays on code step (no advance to PIN).
+
+`e2e/auth-invite.spec.ts` (new):
+- Invalid 64-char hex token renders an error state (not a crash or redirect).
+- Valid invite: premium admin creates invite via API, fresh unauthenticated context
+  visits the page, verifies household name and auth prompts are shown.
+
+`e2e/auth-email-change.spec.ts` (new):
+- Fresh signup → create household → PATCH email → sign out → sign in with new email → /dashboard.
+  This is the regression test for roadmap item 1.1 (both auth tables updated in transaction).
+- Second test confirms old email is rejected after the change.
+
+`playwright.config.ts`:
+- Added auth-child.spec.ts, auth-invite.spec.ts, auth-email-change.spec.ts to the
+  `unauthenticated` project testMatch array. Mobile project unchanged (desktop-only new tests).
+
+Notes:
+- Run `npm run db:seed` before running the new tests if the seed has not been run since
+  the child auth fix was applied. Existing seeded environments without the auth user row
+  are back-filled automatically on the next seed run.
+- Full multi-user invite join (premium admin creates, different user accepts and reaches
+  dashboard as a guest member) is tracked as manual QA in 4.3 — test isolation across
+  two full auth sessions is complex and the page-render test already covers the critical path.
 
 ### Billing
 - [ ] Stripe checkout creation

@@ -244,7 +244,9 @@ async function seed() {
     SEED_ACCOUNTS.member.name
   );
 
-  // Child account: no email, no better-auth entry — users table only
+  // Child account — needs a row in BOTH better-auth "user" table AND app "users" table.
+  // internalAdapter.createSession(childId) sets a FK to "user".id, so the auth row
+  // must exist first. Placeholder email: child_${id}@roost.internal.
   let childId: string;
   const existingChild = await db
     .select({ id: users.id })
@@ -255,13 +257,34 @@ async function seed() {
   if (existingChild[0]) {
     console.log(`  ↩ Skipped: ${SEED_CHILD.name} (child)`);
     childId = existingChild[0].id;
+    // Back-fill the auth "user" row if it was missing from an older seed run
+    await db.insert(authUser).values({
+      id: childId,
+      name: SEED_CHILD.name,
+      email: `child_${childId}@roost.internal`,
+      emailVerified: false,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    }).onConflictDoNothing();
   } else {
     childId = randomUUID();
+    const now = new Date();
+    // Insert into better-auth "user" table FIRST (FK requirement for session creation)
+    await db.insert(authUser).values({
+      id: childId,
+      name: SEED_CHILD.name,
+      email: `child_${childId}@roost.internal`,
+      emailVerified: false,
+      createdAt: now,
+      updatedAt: now,
+    });
+    // Then mirror into app "users" table
     await db.insert(users).values({
       id: childId,
       name: SEED_CHILD.name,
       timezone: "America/New_York",
       language: "en",
+      is_child_account: true,
     });
     console.log(`  ✓ Created: ${SEED_CHILD.name} (child, PIN-only)`);
   }

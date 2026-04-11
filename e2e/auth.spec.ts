@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { signUp, createHousehold, FREE_ADMIN } from "./helpers/auth";
+import { signUp, createHousehold, signIn, signOut, FREE_ADMIN } from "./helpers/auth";
 
 // Fresh user for the signup flow test — needs a unique email each run
 // because the signup test exercises the actual account creation path.
@@ -59,6 +59,15 @@ test.describe("Auth flows — public", () => {
     await signUp(page, freshUser());
     await expect(page).toHaveURL(/\/onboarding/);
   });
+
+  test("valid login with existing account reaches dashboard", async ({
+    page,
+  }) => {
+    await signIn(page, FREE_ADMIN);
+    await expect(page).toHaveURL(/\/dashboard/);
+    // Verify the app shell rendered (not just a redirect)
+    await expect(page.locator("body")).toBeVisible();
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -79,5 +88,15 @@ test.describe("Auth flows — signed in", () => {
       timeout: 15000,
     });
     await expect(page).toHaveURL(/\/dashboard/);
+  });
+
+  test("sign out clears session and returns to login", async ({ page }) => {
+    await page.goto("/dashboard");
+    await page.waitForURL(/\/dashboard/, { timeout: 15000 });
+    await signOut(page);
+    await expect(page).toHaveURL(/\/login/);
+    // Verify protected route is no longer accessible
+    await page.goto("/dashboard");
+    await expect(page).toHaveURL(/\/login/);
   });
 });

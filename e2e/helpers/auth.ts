@@ -29,6 +29,8 @@ export const TEST_CHILD = {
 };
 
 export const HOUSEHOLD_NAME = "Roost Free House";
+export const FREE_HOUSEHOLD_CODE = "RSTFRE";
+export const PREMIUM_HOUSEHOLD_CODE = "RSTPRM";
 
 // ---------------------------------------------------------------------------
 // Helpers

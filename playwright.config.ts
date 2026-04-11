@@ -40,11 +40,17 @@ export default defineConfig({
       testMatch: ["**/premium.spec.ts"],
       timeout: 60000,
     },
-    // Desktop — unauthenticated (signup, login, onboarding flows)
+    // Desktop — unauthenticated (signup, login, onboarding, child PIN, invite, email change)
     {
       name: "unauthenticated",
       use: { ...devices["Desktop Chrome"] },
-      testMatch: ["**/auth.spec.ts", "**/onboarding.spec.ts"],
+      testMatch: [
+        "**/auth.spec.ts",
+        "**/onboarding.spec.ts",
+        "**/auth-child.spec.ts",
+        "**/auth-invite.spec.ts",
+        "**/auth-email-change.spec.ts",
+      ],
       timeout: 60000,
     },
     // Mobile — unauthenticated

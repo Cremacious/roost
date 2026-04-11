@@ -10,11 +10,6 @@ import { parseReceiptImage } from "@/lib/utils/azureReceipts";
 const MAX_BASE64_LENGTH = 14_000_000;
 
 export async function POST(request: NextRequest): Promise<Response> {
-  console.log("[scan] route hit:", {
-    hasEndpoint: !!process.env.AZURE_DOCUMENT_INTELLIGENCE_ENDPOINT,
-    nodeEnv: process.env.NODE_ENV,
-  });
-
   let session;
   try {
     session = await requireSession(request);

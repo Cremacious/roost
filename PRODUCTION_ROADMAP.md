@@ -299,10 +299,45 @@ Safe deploy process (document in 2.1 runbook):
 - [ ] Check whether any dev/test endpoints could be exposed in production.
 
 ### 3.2 Next.js / App Config
-- [ ] Add production-oriented Next.js config where needed.
-- [ ] Add security headers and review CSP needs.
-- [ ] Verify metadata, canonical URLs, and public asset behavior.
-- [ ] Confirm no debug logging should remain in production routes.
+- [x] Add production-oriented Next.js config where needed.
+- [x] Add security headers and review CSP needs.
+- [x] Verify metadata, canonical URLs, and public asset behavior.
+- [x] Confirm no debug logging should remain in production routes.
+
+What was added (2026-04-11):
+
+Security headers in `next.config.ts` (applied to all routes via `source: "/(.*)"`)
+- `X-Frame-Options: SAMEORIGIN` — prevents clickjacking by blocking cross-origin iframe embedding.
+- `X-Content-Type-Options: nosniff` — prevents browsers from MIME-sniffing response content types.
+- `Referrer-Policy: strict-origin-when-cross-origin` — sends full URL for same-origin, origin only
+  for cross-origin, nothing for downgrade (HTTPS → HTTP) navigation.
+- `Permissions-Policy: camera=(self), microphone=(), geolocation=(self)` — allows camera (receipt
+  scanning) and geolocation (weather) from the app origin only; blocks microphone entirely.
+
+Not added and why:
+- `Strict-Transport-Security (HSTS)`: Vercel sets this automatically on production custom domains.
+  Adding it here would duplicate it and could cause issues in local dev.
+- `Content-Security-Policy (CSP)`: Deferred. The app uses Next.js inline scripts, Stripe Checkout
+  redirects (external JS/redirect), Recharts, and Tiptap. A safe CSP requires identifying every
+  script/style source and testing thoroughly. Post-launch, once traffic patterns are established,
+  Vercel's built-in CSP tooling or a middleware-based approach would be more maintainable.
+
+Metadata / canonical URL:
+- `metadataBase` is set in `src/app/layout.tsx` from `NEXT_PUBLIC_APP_URL` with localhost:3000
+  fallback. OG and Twitter image URLs resolve correctly in production when env var is set.
+- `openGraph.url` is set to `process.env.NEXT_PUBLIC_APP_URL` directly. If the var is undefined
+  at runtime, Next.js resolves it against `metadataBase` (same value), so no broken URL.
+- No explicit `<link rel="canonical">` is generated. This is acceptable for an app with auth-
+  gated routes — canonical tags matter most for public SEO landing pages. The homepage (`/`) is
+  public but does not have duplicate content risk. Post-launch item.
+
+Debug logging removed:
+- `src/app/api/expenses/scan/route.ts`: removed `console.log("[scan] route hit:", {...})`.
+  This logged Azure env var presence and NODE_ENV to Vercel function logs on every scan request.
+- `src/lib/utils/azureReceipts.ts`: removed 5 `console.log` calls that logged merchant name,
+  subtotal, tax, total, and every scanned line item (description + amount) to function logs.
+  This was a privacy concern: user receipt data (purchases, amounts) was flowing into logs.
+  The `console.error` on failure in the route handler is kept — error logging is appropriate.
 
 ### 3.3 Third-Party Integrations
 - [ ] Validate Stripe production credentials and webhook configuration.
@@ -430,6 +465,6 @@ At the start of each future Roost session:
 5. Update this file.
 
 Recommended next task:
-- Security headers and Next.js production config (3.2): add security headers in
-  next.config.ts (X-Frame-Options, X-Content-Type-Options, Referrer-Policy, etc.),
-  confirm no debug logging remains in production routes, verify canonical URL behavior.
+- App security audit (3.1): review auth/session cookie settings for production, check whether
+  any dev/test endpoints could be exposed in production (/api/dev/*), review destructive
+  endpoints for authorization gaps.

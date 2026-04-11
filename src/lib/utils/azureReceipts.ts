@@ -20,8 +20,6 @@ export async function parseReceiptImage(imageBase64: string): Promise<ParsedRece
     throw new Error("Azure Document Intelligence credentials not configured");
   }
 
-  console.log("[Azure] Starting receipt analysis...");
-
   const client = new DocumentAnalysisClient(endpoint, new AzureKeyCredential(key));
 
   // Strip data URL prefix if present
@@ -33,7 +31,6 @@ export async function parseReceiptImage(imageBase64: string): Promise<ParsedRece
   const doc = result.documents?.[0];
 
   if (!doc) {
-    console.log("[Azure] No document detected in image");
     return { lineItems: [] };
   }
 
@@ -74,11 +71,6 @@ export async function parseReceiptImage(imageBase64: string): Promise<ParsedRece
       }
     }
   }
-
-  console.log("[Azure] Merchant:", merchant ?? "unknown");
-  console.log("[Azure] Subtotal:", subtotal, "| Tax:", tax, "| Total:", total);
-  console.log("[Azure] Line items found:", lineItems.length);
-  lineItems.forEach((i) => console.log("  -", i.description, "$" + i.amount.toFixed(2)));
 
   return { merchant, date, subtotal, tax, total, lineItems };
 }

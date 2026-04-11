@@ -2,387 +2,311 @@ import type { Metadata } from "next";
 import { Nunito } from "next/font/google";
 import Image from "next/image";
 import Link from "next/link";
-import { Users, Home, GraduationCap } from "lucide-react";
+import { Bell, GraduationCap, Home, Users } from "lucide-react";
 
 const nunito = Nunito({
   subsets: ["latin"],
-  weight: ["400", "600", "700", "800", "900"],
+  weight: ["600", "700", "800", "900"],
+  display: "swap",
 });
 
 export const metadata: Metadata = {
   title: "Roost - Home, sorted.",
   description:
-    "The household app for families and roommates. Chores, groceries, bills, meals, reminders, and calendars. One app.",
+    "The household app for families and roommates. Chores, groceries, bills, meals, reminders, and a shared calendar. One app.",
 };
 
-// ---- Mockup: Chores ----------------------------------------------------------
+// ---------------------------------------------------------------------------
+// Mockup components (decorative static UI previews)
+// ---------------------------------------------------------------------------
 
 function ChoresMockup() {
+  const items = [
+    { name: "Take out trash", detail: "7 day streak", checked: true },
+    { name: "Unload dishwasher", detail: "3 day streak", checked: true },
+    { name: "Wipe counters", detail: "12 day streak", checked: true },
+    { name: "Vacuum living room", detail: "Alex", checked: false },
+    { name: "Clean bathroom", detail: "Jordan", checked: false },
+  ];
   return (
-    <div style={{ backgroundColor: "white", borderRadius: 16, border: "1.5px solid #E5E7EB", borderBottom: "4px solid #C93B3B", maxWidth: 320, width: "100%", overflow: "hidden" }}>
-      <div style={{ padding: "14px 16px 12px", borderBottom: "1px solid #F3F4F6" }}>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
-          <span style={{ fontSize: 11, fontWeight: 800, color: "#EF4444", textTransform: "uppercase", letterSpacing: "0.6px" }}>Chores</span>
-          <span style={{ fontSize: 11, fontWeight: 600, color: "#9CA3AF" }}>This week</span>
-        </div>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 6 }}>
-          {[{ label: "Done", value: "2", color: "#EF4444" }, { label: "Left", value: "3", color: "#9CA3AF" }, { label: "Streak", value: "7d", color: "#F59E0B" }].map((s) => (
-            <div key={s.label} style={{ backgroundColor: "#FFF5F5", border: "1px solid #FECACA", borderRadius: 10, padding: "8px 4px", textAlign: "center" }}>
-              <div style={{ fontSize: 18, fontWeight: 900, color: s.color, lineHeight: 1 }}>{s.value}</div>
-              <div style={{ fontSize: 10, fontWeight: 700, color: "#9CA3AF", marginTop: 2 }}>{s.label}</div>
-            </div>
-          ))}
-        </div>
+    <div style={{ backgroundColor: "white", borderRadius: 16, border: "1.5px solid #fecaca", borderBottom: "4px solid #EF4444", padding: 16, maxWidth: 300, width: "100%" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+        <span style={{ fontSize: 12, fontWeight: 800, color: "#374151" }}>Today&apos;s chores</span>
+        <span style={{ fontSize: 12, fontWeight: 800, color: "#EF4444" }}>3 of 5 done</span>
       </div>
-      <div style={{ padding: "10px 12px", display: "flex", flexDirection: "column", gap: 7 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 9, padding: "9px 10px", backgroundColor: "#FFF5F5", borderRadius: 10, border: "1px solid #FECACA", borderBottom: "3px solid #C93B3B" }}>
-          <div style={{ width: 20, height: 20, borderRadius: "50%", backgroundColor: "#EF4444", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-            <span style={{ color: "white", fontSize: 10, fontWeight: 900 }}>✓</span>
+      {items.map((item) => (
+        <div key={item.name} style={{ display: "flex", alignItems: "center", gap: 8, padding: "7px 0", borderBottom: "1px solid #fef2f2" }}>
+          <div style={{ width: 18, height: 18, borderRadius: 5, backgroundColor: item.checked ? "#EF4444" : "transparent", border: item.checked ? "none" : "2px solid #fecaca", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+            {item.checked && <span style={{ color: "white", fontSize: 10, fontWeight: 900, lineHeight: 1 }}>&#10003;</span>}
           </div>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 12, fontWeight: 700, color: "#9CA3AF", textDecoration: "line-through" }}>Take out trash</div>
-            <div style={{ fontSize: 10, fontWeight: 600, color: "#FECACA" }}>Completed by Jake</div>
-          </div>
-          <span style={{ fontSize: 9, fontWeight: 800, color: "#EF4444", backgroundColor: "#FFF5F5", border: "1px solid #FECACA", borderRadius: 6, padding: "2px 5px", flexShrink: 0 }}>Daily</span>
+          <span style={{ flex: 1, fontSize: 12, fontWeight: 700, color: item.checked ? "#9CA3AF" : "#374151", textDecoration: item.checked ? "line-through" : "none" }}>{item.name}</span>
+          <span style={{ fontSize: 10, fontWeight: 700, color: item.checked ? "#EF4444" : "#9CA3AF" }}>{item.detail}</span>
         </div>
-        {[
-          { label: "Vacuum living room", person: "Assigned to Kyle", freq: "Weekly" },
-          { label: "Clean bathrooms", person: "Assigned to Emma", freq: "Weekly" },
-        ].map((c) => (
-          <div key={c.label} style={{ display: "flex", alignItems: "center", gap: 9, padding: "9px 10px", backgroundColor: "white", borderRadius: 10, border: "1px solid #F3F4F6", borderBottom: "3px solid #E5E7EB" }}>
-            <div style={{ width: 20, height: 20, borderRadius: "50%", border: "2px solid #FECACA", flexShrink: 0 }} />
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: 12, fontWeight: 700, color: "#374151" }}>{c.label}</div>
-              <div style={{ fontSize: 10, fontWeight: 600, color: "#9CA3AF" }}>{c.person}</div>
-            </div>
-            <span style={{ fontSize: 9, fontWeight: 800, color: "#9CA3AF", backgroundColor: "#F9FAFB", border: "1px solid #E5E7EB", borderRadius: 6, padding: "2px 5px", flexShrink: 0 }}>{c.freq}</span>
-          </div>
-        ))}
+      ))}
+      <div style={{ marginTop: 12, height: 8, backgroundColor: "#fef2f2", borderRadius: 99, overflow: "hidden" }}>
+        <div style={{ width: "72%", height: "100%", backgroundColor: "#EF4444", borderRadius: 99 }} />
       </div>
-      <div style={{ padding: "8px 12px 12px", borderTop: "1px solid #F3F4F6" }}>
-        <div style={{ fontSize: 10, fontWeight: 800, color: "#9CA3AF", textTransform: "uppercase", letterSpacing: "0.6px", marginBottom: 7 }}>Leaderboard</div>
-        {[
-          { initials: "JK", color: "#EF4444", pts: "42pts", barWidth: "100%" },
-          { initials: "SR", color: "#EC4899", pts: "31pts", barWidth: "62%" },
-        ].map((p) => (
-          <div key={p.initials} style={{ display: "flex", alignItems: "center", gap: 7, marginBottom: 5 }}>
-            <div style={{ width: 20, height: 20, borderRadius: "50%", backgroundColor: p.color, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-              <span style={{ fontSize: 7, fontWeight: 900, color: "white" }}>{p.initials}</span>
-            </div>
-            <div style={{ flex: 1 }}>
-              <div style={{ height: 5, backgroundColor: "#F3F4F6", borderRadius: 3, overflow: "hidden" }}>
-                <div style={{ width: p.barWidth, height: "100%", backgroundColor: p.color, borderRadius: 3 }} />
-              </div>
-            </div>
-            <span style={{ fontSize: 10, fontWeight: 800, color: "#374151", minWidth: 26, textAlign: "right" }}>{p.pts}</span>
-          </div>
-        ))}
+      <div style={{ display: "flex", justifyContent: "space-between", marginTop: 6 }}>
+        <span style={{ fontSize: 11, fontWeight: 700, color: "#EF4444" }}>Alex leading with 72 pts</span>
+        <span style={{ fontSize: 11, fontWeight: 700, color: "#EF4444" }}>Week resets Sun</span>
       </div>
     </div>
   );
 }
-
-// ---- Mockup: Grocery ---------------------------------------------------------
 
 function GroceryMockup() {
+  const items = [
+    { name: "Milk (2 gallons)", person: "Sam", checked: true },
+    { name: "Eggs", person: "Alex", checked: true },
+    { name: "Chicken breast", person: "Sam", checked: false },
+    { name: "Pasta (3 boxes)", person: "Jordan", checked: false },
+    { name: "Dish soap", person: "Alex", checked: false },
+    { name: "Paper towels", person: "Jordan", checked: false },
+  ];
   return (
-    <div style={{ backgroundColor: "white", borderRadius: 16, border: "1.5px solid #E5E7EB", borderBottom: "4px solid #C87D00", maxWidth: 320, width: "100%", overflow: "hidden" }}>
-      <div style={{ padding: "14px 16px 12px", borderBottom: "1px solid #FEF3C7" }}>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
-          <span style={{ fontSize: 11, fontWeight: 800, color: "#F59E0B", textTransform: "uppercase", letterSpacing: "0.6px" }}>Shopping List</span>
-          <span style={{ fontSize: 11, fontWeight: 600, color: "#9CA3AF" }}>14 items</span>
-        </div>
-        <div style={{ display: "flex", alignItems: "center", height: 38, borderRadius: 10, border: "1.5px solid #F59E0B", borderBottom: "3px solid #C87D00", backgroundColor: "#FFFBF0", padding: "0 12px", gap: 8 }}>
-          <span style={{ fontSize: 13, fontWeight: 700, color: "#D1D5DB", flex: 1 }}>Add milk, eggs, anything...</span>
-        </div>
-      </div>
-      <div style={{ padding: "10px 12px", display: "flex", flexDirection: "column", gap: 7 }}>
-        {[
-          { label: "Milk", person: "Added by Sarah", checked: true },
-          { label: "Eggs", person: "Added by Jake", checked: false },
-          { label: "Chicken breast", person: "Added by Kyle", checked: false },
-          { label: "Pasta", person: "Added by Emma", checked: false },
-        ].map((item) => (
-          <div key={item.label} style={{ display: "flex", alignItems: "center", gap: 9, padding: "8px 10px", backgroundColor: item.checked ? "#FFFBF0" : "white", borderRadius: 10, border: `1px solid ${item.checked ? "#FDE68A" : "#F3F4F6"}`, borderBottom: `3px solid ${item.checked ? "#C87D00" : "#E5E7EB"}` }}>
-            <div style={{ width: 20, height: 20, borderRadius: "50%", backgroundColor: item.checked ? "#F59E0B" : "transparent", border: item.checked ? "none" : "2px solid #FDE68A", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-              {item.checked && <span style={{ color: "white", fontSize: 10, fontWeight: 900 }}>✓</span>}
-            </div>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: 12, fontWeight: 700, color: item.checked ? "#9CA3AF" : "#374151", textDecoration: item.checked ? "line-through" : "none" }}>{item.label}</div>
-              <div style={{ fontSize: 10, fontWeight: 600, color: "#9CA3AF" }}>{item.person}</div>
-            </div>
-          </div>
+    <div style={{ backgroundColor: "white", borderRadius: 16, border: "1.5px solid #fde68a", borderBottom: "4px solid #D97706", padding: 16, maxWidth: 300, width: "100%" }}>
+      <div style={{ display: "flex", gap: 6, marginBottom: 12, flexWrap: "wrap" as const }}>
+        {["Weekly Shop", "Costco Run", "Target"].map((tab, i) => (
+          <span key={tab} style={{ fontSize: 11, fontWeight: i === 0 ? 800 : 700, backgroundColor: i === 0 ? "#D97706" : "#fef3c7", color: i === 0 ? "white" : "#92400e", padding: "4px 10px", borderRadius: 99 }}>{tab}</span>
         ))}
       </div>
-      <div style={{ padding: "8px 12px 12px", borderTop: "1px solid #FEF3C7", display: "flex", gap: 6 }}>
-        <span style={{ fontSize: 11, fontWeight: 800, color: "#F59E0B", backgroundColor: "#FFFBF0", border: "1.5px solid #FDE68A", borderBottom: "2px solid #C87D00", borderRadius: 20, padding: "4px 10px" }}>Shopping List</span>
-        <span style={{ fontSize: 11, fontWeight: 700, color: "#9CA3AF", backgroundColor: "#F9FAFB", border: "1.5px solid #E5E7EB", borderRadius: 20, padding: "4px 10px" }}>+ Costco run</span>
-      </div>
+      {items.map((item) => (
+        <div key={item.name} style={{ display: "flex", alignItems: "center", gap: 8, padding: "7px 0", borderBottom: "1px solid #fef3c7" }}>
+          <div style={{ width: 16, height: 16, borderRadius: 4, backgroundColor: item.checked ? "#D97706" : "transparent", border: item.checked ? "none" : "1.5px solid #fde68a", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+            {item.checked && <span style={{ color: "white", fontSize: 9, fontWeight: 900 }}>&#10003;</span>}
+          </div>
+          <span style={{ flex: 1, fontSize: 12, fontWeight: 700, color: item.checked ? "#9CA3AF" : "#374151", textDecoration: item.checked ? "line-through" : "none" }}>{item.name}</span>
+          <span style={{ fontSize: 10, fontWeight: 700, backgroundColor: "#fef3c7", color: "#92400e", padding: "2px 7px", borderRadius: 99 }}>{item.person}</span>
+        </div>
+      ))}
     </div>
   );
 }
-
-// ---- Mockup: Calendar --------------------------------------------------------
 
 function CalendarMockup() {
   const days = ["S", "M", "T", "W", "T", "F", "S"];
-  const dates1 = [" ", " ", " ", 1, 2, 3, 4];
-  const dates2 = [5, 6, 7, 8, 9, 10, 11];
+  const row1: (number | string)[] = ["", "", "", 1, 2, 3, 4];
+  const row2 = [5, 6, 7, 8, 9, 10, 11];
+  const dotsRow2 = [7, 8, 10, 11];
   return (
-    <div style={{ backgroundColor: "white", borderRadius: 16, border: "1.5px solid #E5E7EB", borderBottom: "4px solid #1A5CB5", maxWidth: 320, width: "100%", overflow: "hidden" }}>
-      <div style={{ padding: "14px 16px 12px", borderBottom: "1px solid #EFF6FF" }}>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <div style={{ width: 22, height: 22, borderRadius: "50%", backgroundColor: "#EFF6FF", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}>
-              <span style={{ fontSize: 10, color: "#3B82F6", fontWeight: 800 }}>{"<"}</span>
-            </div>
-            <span style={{ fontSize: 13, fontWeight: 800, color: "#3B82F6" }}>April 2026</span>
-            <div style={{ width: 22, height: 22, borderRadius: "50%", backgroundColor: "#EFF6FF", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}>
-              <span style={{ fontSize: 10, color: "#3B82F6", fontWeight: 800 }}>{">"}</span>
-            </div>
-          </div>
-        </div>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 2, textAlign: "center" }}>
-          {days.map((d, i) => (
-            <div key={i} style={{ fontSize: 9, fontWeight: 700, color: "#9CA3AF", paddingBottom: 4 }}>{d}</div>
-          ))}
-          {dates1.map((d, i) => (
-            <div key={`r1-${i}`} style={{ fontSize: 11, fontWeight: d === 7 ? 900 : 600, color: typeof d === "number" ? "#374151" : "transparent", width: 24, height: 24, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto" }}>
-              {typeof d === "number" ? d : ""}
-            </div>
-          ))}
-          {dates2.map((d, i) => (
-            <div key={`r2-${i}`} style={{ fontSize: 11, fontWeight: d === 7 ? 900 : 600, color: d === 7 ? "white" : "#374151", width: 24, height: 24, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto", backgroundColor: d === 7 ? "#3B82F6" : "transparent" }}>
-              {d}
-            </div>
-          ))}
-        </div>
+    <div style={{ backgroundColor: "white", borderRadius: 16, border: "1.5px solid #bfdbfe", borderBottom: "4px solid #2563EB", padding: 16, maxWidth: 300, width: "100%" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+        <span style={{ fontSize: 13, fontWeight: 800, color: "#2563EB" }}>April 2026</span>
+        <span style={{ fontSize: 11, fontWeight: 700, color: "#9CA3AF" }}>4 events this week</span>
       </div>
-      <div style={{ padding: "10px 12px", display: "flex", flexDirection: "column", gap: 7 }}>
-        {[
-          { dot: "#3B82F6", label: "Emma soccer practice", time: "Today at 3:00 PM" },
-          { dot: "#3B82F6", label: "Family dinner", time: "Today at 6:30 PM" },
-          { dot: "#EF4444", label: "Rent due", time: "Apr 1, recurring monthly" },
-        ].map((ev) => (
-          <div key={ev.label} style={{ display: "flex", alignItems: "center", gap: 9, padding: "8px 10px", backgroundColor: "white", borderRadius: 10, border: "1px solid #EFF6FF", borderBottom: "3px solid #BAD3F7" }}>
-            <div style={{ width: 8, height: 8, borderRadius: "50%", backgroundColor: ev.dot, flexShrink: 0 }} />
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: 12, fontWeight: 700, color: "#374151" }}>{ev.label}</div>
-              <div style={{ fontSize: 10, fontWeight: 600, color: "#9CA3AF" }}>{ev.time}</div>
-            </div>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", marginBottom: 2 }}>
+        {days.map((d, i) => (
+          <div key={i} style={{ textAlign: "center", fontSize: 9, fontWeight: 700, color: "#9CA3AF", paddingBottom: 3 }}>{d}</div>
+        ))}
+      </div>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", marginBottom: 2 }}>
+        {row1.map((d, i) => (
+          <div key={i} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 1 }}>
+            <div style={{ width: 22, height: 22, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, fontWeight: 600, color: d ? "#374151" : "transparent" }}>{d || ""}</div>
+            {[3, 4].includes(d as number) ? <div style={{ width: 4, height: 4, borderRadius: "50%", backgroundColor: "#2563EB" }} /> : <div style={{ width: 4, height: 4 }} />}
           </div>
         ))}
       </div>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", marginBottom: 10 }}>
+        {row2.map((d) => (
+          <div key={d} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 1 }}>
+            <div style={{ width: 22, height: 22, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, fontWeight: d === 10 ? 900 : 600, color: d === 10 ? "white" : "#374151", backgroundColor: d === 10 ? "#2563EB" : "transparent" }}>{d}</div>
+            {dotsRow2.includes(d) ? <div style={{ width: 4, height: 4, borderRadius: "50%", backgroundColor: "#2563EB" }} /> : <div style={{ width: 4, height: 4 }} />}
+          </div>
+        ))}
+      </div>
+      {[
+        { color: "#EF4444", name: "Alex dentist appt", time: "9am" },
+        { color: "#16A34A", name: "Rent due", time: "1st" },
+        { color: "#D97706", name: "Sam&apos;s game night", time: "7pm" },
+      ].map((ev) => (
+        <div key={ev.name} style={{ display: "flex", alignItems: "center", gap: 8, padding: "6px 8px", backgroundColor: "#EFF6FF", borderRadius: 8, marginBottom: 5 }}>
+          <div style={{ width: 8, height: 8, borderRadius: "50%", backgroundColor: ev.color, flexShrink: 0 }} />
+          <span style={{ flex: 1, fontSize: 11, fontWeight: 700, color: "#1e40af" }}>{ev.name}</span>
+          <span style={{ fontSize: 10, fontWeight: 700, color: "#9CA3AF" }}>{ev.time}</span>
+        </div>
+      ))}
     </div>
   );
 }
-
-// ---- Mockup: Expenses --------------------------------------------------------
 
 function ExpensesMockup() {
+  const expenses = [
+    { icon: "G", iconBg: "#f0fdf4", iconColor: "#16A34A", name: "Grocery run", sub: "Split 3 ways", amount: "$84.20", status: "You owe $28.07", statusColor: "#dc2626", statusBg: "#fff1f2" },
+    { icon: "E", iconBg: "#fefce8", iconColor: "#D97706", name: "Electric bill", sub: "Split equally", amount: "$127.50", status: "Settled", statusColor: "#16A34A", statusBg: "#f0fdf4" },
+    { icon: "P", iconBg: "#fff7ed", iconColor: "#ea580c", name: "Pizza Friday", sub: "Item split", amount: "$56.00", status: "Jordan owes $18", statusColor: "#dc2626", statusBg: "#fff1f2" },
+  ];
   return (
-    <div style={{ backgroundColor: "white", borderRadius: 16, border: "1.5px solid #E5E7EB", borderBottom: "4px solid #159040", maxWidth: 320, width: "100%", overflow: "hidden" }}>
-      <div style={{ padding: "14px 16px 12px", borderBottom: "1px solid #F0FDF4" }}>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-          <span style={{ fontSize: 11, fontWeight: 800, color: "#22C55E", textTransform: "uppercase", letterSpacing: "0.6px" }}>Expenses</span>
-          <span style={{ fontSize: 11, fontWeight: 800, color: "#22C55E" }}>You are owed $38</span>
-        </div>
-      </div>
-      <div style={{ padding: "10px 12px", display: "flex", flexDirection: "column", gap: 7 }}>
-        {[
-          { title: "Electric bill", sub: "Split equally", badge: "Kyle owes $40", badgeColor: "#EF4444" },
-          { title: "Costco run", sub: "Receipt scanned by Sarah", badge: "Owed $28", badgeColor: "#22C55E" },
-          { title: "Netflix", sub: "Split equally", badge: "You owe $6", badgeColor: "#EF4444" },
-        ].map((e) => (
-          <div key={e.title} style={{ display: "flex", alignItems: "center", gap: 9, padding: "9px 10px", backgroundColor: "white", borderRadius: 10, border: "1px solid #F0FDF4", borderBottom: "3px solid #BBF7D0" }}>
-            <div style={{ width: 28, height: 28, borderRadius: 8, backgroundColor: "#F0FDF4", border: "1px solid #BBF7D0", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
-              <span style={{ fontSize: 12 }}>$</span>
-            </div>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: 12, fontWeight: 700, color: "#374151" }}>{e.title}</div>
-              <div style={{ fontSize: 10, fontWeight: 600, color: "#9CA3AF" }}>{e.sub}</div>
-            </div>
-            <span style={{ fontSize: 10, fontWeight: 800, color: e.badgeColor, flexShrink: 0 }}>{e.badge}</span>
+    <div style={{ backgroundColor: "white", borderRadius: 16, border: "1.5px solid #bbf7d0", borderBottom: "4px solid #16A34A", padding: 16, maxWidth: 300, width: "100%" }}>
+      {expenses.map((e) => (
+        <div key={e.name} style={{ display: "flex", alignItems: "center", gap: 9, padding: "9px 0", borderBottom: "1px solid #f0fdf4" }}>
+          <div style={{ width: 32, height: 32, borderRadius: 10, backgroundColor: e.iconBg, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+            <span style={{ fontSize: 13, fontWeight: 900, color: e.iconColor }}>{e.icon}</span>
           </div>
-        ))}
-      </div>
-      <div style={{ padding: "8px 12px 12px", borderTop: "1px solid #F0FDF4" }}>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
-          <span style={{ fontSize: 10, fontWeight: 700, color: "#9CA3AF" }}>Net balance</span>
-          <span style={{ fontSize: 13, fontWeight: 900, color: "#22C55E" }}>+$22.00</span>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: 12, fontWeight: 800, color: "#374151" }}>{e.name}</div>
+            <div style={{ fontSize: 10, fontWeight: 600, color: "#9CA3AF" }}>{e.sub}</div>
+          </div>
+          <div style={{ textAlign: "right" as const, flexShrink: 0 }}>
+            <div style={{ fontSize: 12, fontWeight: 800, color: "#374151" }}>{e.amount}</div>
+            <div style={{ fontSize: 10, fontWeight: 700, color: e.statusColor, backgroundColor: e.statusBg, padding: "1px 6px", borderRadius: 99, whiteSpace: "nowrap" as const }}>{e.status}</div>
+          </div>
         </div>
-        <div style={{ height: 6, backgroundColor: "#F3F4F6", borderRadius: 3, overflow: "hidden" }}>
-          <div style={{ width: "65%", height: "100%", backgroundColor: "#22C55E", borderRadius: 3 }} />
+      ))}
+      <div style={{ marginTop: 10, backgroundColor: "#f0fdf4", borderRadius: 10, padding: "10px 12px", display: "flex", justifyContent: "space-between" }}>
+        <div style={{ textAlign: "center" as const }}>
+          <div style={{ fontSize: 11, fontWeight: 800, color: "#16A34A" }}>$46.14</div>
+          <div style={{ fontSize: 9, fontWeight: 700, color: "#9CA3AF" }}>You&apos;re owed</div>
+        </div>
+        <div style={{ textAlign: "center" as const }}>
+          <div style={{ fontSize: 11, fontWeight: 800, color: "#dc2626" }}>$28.07</div>
+          <div style={{ fontSize: 9, fontWeight: 700, color: "#9CA3AF" }}>You owe</div>
+        </div>
+        <div style={{ textAlign: "center" as const }}>
+          <div style={{ fontSize: 11, fontWeight: 800, color: "#16A34A" }}>$312</div>
+          <div style={{ fontSize: 9, fontWeight: 700, color: "#9CA3AF" }}>This month</div>
         </div>
       </div>
     </div>
   );
 }
-
-// ---- Mockup: Reminders -------------------------------------------------------
 
 function RemindersMockup() {
+  const reminders = [
+    { name: "Pay rent", sub: "1st of every month", badge: "Household", badgeBg: "#fef3c7", badgeColor: "#92400e" },
+    { name: "Change AC filter", sub: "Every 3 months", badge: "Recurring", badgeBg: "#ecfeff", badgeColor: "#0891B2" },
+    { name: "Water plants", sub: "Every Sunday", badge: "Recurring", badgeBg: "#ecfeff", badgeColor: "#0891B2" },
+    { name: "Trash day", sub: "Every Tuesday", badge: "Household", badgeBg: "#fef3c7", badgeColor: "#92400e" },
+  ];
   return (
-    <div style={{ backgroundColor: "white", borderRadius: 16, border: "1.5px solid #E5E7EB", borderBottom: "4px solid #0891B2", maxWidth: 320, width: "100%", overflow: "hidden" }}>
-      <div style={{ padding: "14px 16px 12px", borderBottom: "1px solid #ECFEFF" }}>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-          <span style={{ fontSize: 11, fontWeight: 800, color: "#06B6D4", textTransform: "uppercase", letterSpacing: "0.6px" }}>Reminders</span>
-          <span style={{ fontSize: 11, fontWeight: 700, color: "#9CA3AF" }}>3 active</span>
-        </div>
+    <div style={{ backgroundColor: "white", borderRadius: 16, border: "1.5px solid #a5f3fc", borderBottom: "4px solid #0891B2", padding: 16, maxWidth: 300, width: "100%" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+        <span style={{ fontSize: 12, fontWeight: 800, color: "#374151" }}>Active reminders</span>
+        <span style={{ fontSize: 12, fontWeight: 800, color: "#0891B2" }}>5 set</span>
       </div>
-      <div style={{ padding: "10px 12px", display: "flex", flexDirection: "column", gap: 7 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 9, padding: "9px 10px", backgroundColor: "#ECFEFF", borderRadius: 10, border: "1px solid #A5F3FC", borderBottom: "3px solid #0891B2", opacity: 0.75 }}>
-          <div style={{ width: 20, height: 20, borderRadius: "50%", backgroundColor: "#06B6D4", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-            <span style={{ color: "white", fontSize: 10, fontWeight: 900 }}>✓</span>
+      {reminders.map((r) => (
+        <div key={r.name} style={{ display: "flex", alignItems: "center", gap: 9, padding: "8px 0", borderBottom: "1px solid #ecfeff" }}>
+          <div style={{ width: 28, height: 28, borderRadius: 8, backgroundColor: "#ecfeff", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+            <Bell size={13} color="#0891B2" />
           </div>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 12, fontWeight: 700, color: "#9CA3AF", textDecoration: "line-through" }}>Dog flea treatment</div>
-            <div style={{ fontSize: 10, fontWeight: 600, color: "#67E8F9" }}>Done. Resets in 6 weeks.</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: "#374151" }}>{r.name}</div>
+            <div style={{ fontSize: 10, fontWeight: 600, color: "#9CA3AF" }}>{r.sub}</div>
           </div>
+          <span style={{ fontSize: 10, fontWeight: 800, backgroundColor: r.badgeBg, color: r.badgeColor, padding: "2px 7px", borderRadius: 99, flexShrink: 0 }}>{r.badge}</span>
         </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 9, padding: "9px 10px", backgroundColor: "white", borderRadius: 10, border: "1px solid #ECFEFF", borderBottom: "3px solid #A5F3FC" }}>
-          <div style={{ width: 20, height: 20, borderRadius: "50%", border: "2px solid #06B6D4", flexShrink: 0 }} />
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 12, fontWeight: 700, color: "#374151" }}>Pay rent</div>
-            <div style={{ fontSize: 10, fontWeight: 600, color: "#9CA3AF" }}>Monthly, whole household</div>
-          </div>
-          <span style={{ fontSize: 10, fontWeight: 800, color: "#EF4444", flexShrink: 0 }}>Due Apr 1</span>
-        </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 9, padding: "9px 10px", backgroundColor: "white", borderRadius: 10, border: "1px solid #ECFEFF", borderBottom: "3px solid #A5F3FC" }}>
-          <div style={{ width: 20, height: 20, borderRadius: "50%", border: "2px solid #06B6D4", flexShrink: 0 }} />
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 12, fontWeight: 700, color: "#374151" }}>Change air filter</div>
-            <div style={{ fontSize: 10, fontWeight: 600, color: "#9CA3AF" }}>Every 3 months, just you</div>
-          </div>
-        </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 9, padding: "9px 10px", backgroundColor: "white", borderRadius: 10, border: "1px solid #F3F4F6", borderBottom: "3px solid #E5E7EB", opacity: 0.55 }}>
-          <div style={{ width: 20, height: 20, borderRadius: "50%", border: "2px solid #D1D5DB", flexShrink: 0 }} />
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 12, fontWeight: 700, color: "#9CA3AF" }}>Call the vet</div>
-            <div style={{ fontSize: 10, fontWeight: 600, color: "#06B6D4" }}>Snoozed until Friday</div>
-          </div>
-        </div>
-      </div>
+      ))}
     </div>
   );
 }
-
-// ---- Mockup: Meals -----------------------------------------------------------
 
 function MealsMockup() {
+  const days = [
+    { day: "MON", meal: "Spaghetti carbonara", votes: "3 votes", empty: false },
+    { day: "TUE", meal: "Chicken tacos", votes: "2 votes", empty: false },
+    { day: "WED", meal: "Stir fry + rice", votes: "1 vote", empty: false },
+    { day: "THU", meal: "No plan yet", votes: "", empty: true },
+    { day: "FRI", meal: "Pizza night", votes: "5 votes", empty: false },
+  ];
   return (
-    <div style={{ backgroundColor: "white", borderRadius: 16, border: "1.5px solid #E5E7EB", borderBottom: "4px solid #C4581A", maxWidth: 320, width: "100%", overflow: "hidden" }}>
-      <div style={{ padding: "14px 16px 12px", borderBottom: "1px solid #FFF7ED" }}>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-          <span style={{ fontSize: 11, fontWeight: 800, color: "#F97316", textTransform: "uppercase", letterSpacing: "0.6px" }}>Meal Planner</span>
-          <span style={{ fontSize: 11, fontWeight: 600, color: "#9CA3AF" }}>This week</span>
-        </div>
+    <div style={{ backgroundColor: "white", borderRadius: 16, border: "1.5px solid #fed7aa", borderBottom: "4px solid #EA580C", padding: 16, maxWidth: 300, width: "100%" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+        <span style={{ fontSize: 12, fontWeight: 800, color: "#374151" }}>This week&apos;s meals</span>
+        <span style={{ fontSize: 11, fontWeight: 700, color: "#EA580C" }}>Tap to add to list</span>
       </div>
-      <div style={{ padding: "10px 12px", display: "flex", flexDirection: "column", gap: 7 }}>
-        {[
-          { day: "MON", meal: "Chicken tacos", sub: "4 votes", filled: true },
-          { day: "TUE", meal: "Spaghetti bolognese", sub: "Kyle's suggestion", filled: true },
-        ].map((m) => (
-          <div key={m.day} style={{ display: "flex", alignItems: "center", gap: 9, padding: "9px 10px", backgroundColor: "#FFF7ED", borderRadius: 10, border: "1px solid #FDBA74", borderLeft: "3px solid #F97316", borderBottom: "3px solid #C4581A" }}>
-            <span style={{ fontSize: 9, fontWeight: 800, color: "#9CA3AF", minWidth: 24 }}>{m.day}</span>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: 12, fontWeight: 700, color: "#374151" }}>{m.meal}</div>
-              <div style={{ fontSize: 10, fontWeight: 600, color: "#9CA3AF" }}>{m.sub}</div>
-            </div>
-          </div>
+      {days.map((d) => (
+        <div key={d.day} style={{ display: "flex", alignItems: "center", gap: 8, padding: "7px 0", borderBottom: "1px solid #fff7ed" }}>
+          <span style={{ fontSize: 9, fontWeight: 800, color: "#EA580C", minWidth: 26, flexShrink: 0 }}>{d.day}</span>
+          <span style={{ flex: 1, fontSize: 12, fontWeight: 700, color: d.empty ? "#9CA3AF" : "#374151", fontStyle: d.empty ? "italic" : "normal" }}>{d.meal}</span>
+          {!d.empty && <span style={{ fontSize: 10, fontWeight: 800, color: "#EA580C", flexShrink: 0 }}>{d.votes}</span>}
+        </div>
+      ))}
+      <div style={{ marginTop: 10, display: "flex", gap: 5, flexWrap: "wrap" as const }}>
+        {["Alex voted", "Sam voted", "Jordan voted"].map((v) => (
+          <span key={v} style={{ fontSize: 10, fontWeight: 800, color: "#EA580C", backgroundColor: "#fff7ed", padding: "2px 8px", borderRadius: 99 }}>{v}</span>
         ))}
-        <div style={{ display: "flex", alignItems: "center", gap: 9, padding: "9px 10px", backgroundColor: "white", borderRadius: 10, border: "1.5px dashed #FDBA74" }}>
-          <span style={{ fontSize: 9, fontWeight: 800, color: "#9CA3AF", minWidth: 24 }}>WED</span>
-          <span style={{ fontSize: 12, fontWeight: 700, color: "#F97316" }}>+ Add a meal</span>
+      </div>
+    </div>
+  );
+}
+
+function AllowancesMockup() {
+  return (
+    <div style={{ backgroundColor: "white", borderRadius: 16, border: "1.5px solid #ddd6fe", borderBottom: "4px solid #7C3AED", padding: 16, maxWidth: 300, width: "100%" }}>
+      <div style={{ fontSize: 12, fontWeight: 800, color: "#7C3AED", textTransform: "uppercase" as const, letterSpacing: "0.5px", marginBottom: 12 }}>Weekly allowances</div>
+      <div style={{ marginBottom: 12 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+          <div style={{ width: 28, height: 28, borderRadius: "50%", backgroundColor: "#ede9fe", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+            <span style={{ fontSize: 10, fontWeight: 900, color: "#7C3AED" }}>EJ</span>
+          </div>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontSize: 12, fontWeight: 800, color: "#374151" }}>Ethan Jr</div>
+            <div style={{ fontSize: 10, fontWeight: 600, color: "#9CA3AF" }}>Earned <span style={{ color: "#7C3AED", fontWeight: 700 }}>$4.50</span> of $5.00</div>
+          </div>
+        </div>
+        <div style={{ height: 6, backgroundColor: "#ede9fe", borderRadius: 99, overflow: "hidden", marginBottom: 4 }}>
+          <div style={{ width: "90%", height: "100%", backgroundColor: "#7C3AED", borderRadius: 99 }} />
+        </div>
+        <div style={{ display: "flex", justifyContent: "space-between" }}>
+          <span style={{ fontSize: 10, fontWeight: 700, color: "#7C3AED" }}>90% chores done</span>
+          <span style={{ fontSize: 10, fontWeight: 700, color: "#7C3AED" }}>1 chore left</span>
         </div>
       </div>
-      <div style={{ padding: "8px 12px 12px", borderTop: "1px solid #FFF7ED" }}>
-        <div style={{ fontSize: 10, fontWeight: 800, color: "#9CA3AF", textTransform: "uppercase", letterSpacing: "0.6px", marginBottom: 7 }}>Household suggestions</div>
-        <div style={{ display: "flex", gap: 6 }}>
-          <span style={{ fontSize: 11, fontWeight: 800, color: "#F97316", backgroundColor: "#FFF7ED", border: "1.5px solid #FDBA74", borderRadius: 20, padding: "3px 10px" }}>Pizza 3 votes</span>
-          <span style={{ fontSize: 11, fontWeight: 700, color: "#9CA3AF", backgroundColor: "#F9FAFB", border: "1.5px solid #E5E7EB", borderRadius: 20, padding: "3px 10px" }}>Stir fry 1 vote</span>
+      <div style={{ height: 1, backgroundColor: "#ede9fe", margin: "10px 0" }} />
+      <div>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+          <div style={{ width: 28, height: 28, borderRadius: "50%", backgroundColor: "#fce7f3", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+            <span style={{ fontSize: 10, fontWeight: 900, color: "#BE185D" }}>LS</span>
+          </div>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontSize: 12, fontWeight: 800, color: "#374151" }}>Lily S</div>
+            <div style={{ fontSize: 10, fontWeight: 600, color: "#9CA3AF" }}>Earned <span style={{ color: "#BE185D", fontWeight: 700 }}>$2.50</span> of $5.00</div>
+          </div>
+        </div>
+        <div style={{ height: 6, backgroundColor: "#fce7f3", borderRadius: 99, overflow: "hidden", marginBottom: 4 }}>
+          <div style={{ width: "50%", height: "100%", backgroundColor: "#BE185D", borderRadius: 99 }} />
+        </div>
+        <div style={{ display: "flex", justifyContent: "space-between" }}>
+          <span style={{ fontSize: 10, fontWeight: 700, color: "#BE185D" }}>50% done</span>
+          <span style={{ fontSize: 10, fontWeight: 700, color: "#BE185D" }}>5 chores left</span>
         </div>
       </div>
     </div>
   );
 }
 
-// ---- Feature row component ---------------------------------------------------
-
-interface FeatureRowProps {
-  bg: string;
-  reversed: boolean;
-  mockup: React.ReactNode;
-  tag: string;
-  tagColor: string;
-  headline: string;
-  body: string;
-  quote: string;
-  quoteBg: string;
-  quoteColor: string;
-}
-
-function FeatureRow({ bg, reversed, mockup, tag, tagColor, headline, body, quote, quoteBg, quoteColor }: FeatureRowProps) {
-  return (
-    <section
-      className="feat-row"
-      style={{
-        backgroundColor: bg,
-        padding: "64px 40px",
-      }}
-    >
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          flexDirection: reversed ? "row-reverse" : "row",
-          gap: 56,
-          maxWidth: 1040,
-          margin: "0 auto",
-          flexWrap: "wrap",
-        }}
-      >
-        {/* Mockup */}
-        <div className="feat-mockup" style={{ width: "46%", minWidth: 260, display: "flex", justifyContent: reversed ? "flex-end" : "flex-start" }}>
-          <div className="feat-mock-card" style={{ width: "100%" }}>
-            {mockup}
-          </div>
-        </div>
-        {/* Copy */}
-        <div style={{ flex: 1, minWidth: 260 }}>
-          <div style={{ fontSize: 11, fontWeight: 800, color: tagColor, textTransform: "uppercase", letterSpacing: "0.8px", marginBottom: 10 }}>{tag}</div>
-          <h3 style={{ fontSize: "clamp(20px, 3vw, 26px)", fontWeight: 900, color: "#111827", letterSpacing: "-0.6px", marginBottom: 14, lineHeight: 1.2, margin: "0 0 14px" }}>{headline}</h3>
-          <p style={{ fontSize: 15, fontWeight: 600, color: "#4B5563", lineHeight: 1.75, margin: 0 }}>{body}</p>
-          <div style={{ marginTop: 18, padding: "14px 16px", borderRadius: 12, backgroundColor: quoteBg, fontSize: 14, fontWeight: 700, fontStyle: "italic", lineHeight: 1.5, color: quoteColor }}>
-            {quote}
-          </div>
-        </div>
-      </div>
-    </section>
-  );
-}
-
-// ---- Comparison table --------------------------------------------------------
+// ---------------------------------------------------------------------------
+// Comparison table
+// ---------------------------------------------------------------------------
 
 const TABLE_ROWS = [
-  { feature: "Chores and scheduling", roost: "check", split: "no", cozi: "Basic" },
-  { feature: "Shared grocery lists", roost: "check", split: "no", cozi: "check" },
-  { feature: "Shared calendar", roost: "check", split: "no", cozi: "check" },
-  { feature: "Bill splitting and receipts", roost: "check", split: "check", cozi: "no" },
-  { feature: "Meal planning and voting", roost: "check", split: "no", cozi: "no" },
-  { feature: "Child accounts and allowances", roost: "check", split: "no", cozi: "no" },
-  { feature: "Per-household pricing", roost: "check", split: "Per user", cozi: "Per user" },
-  { feature: "iOS and Android app", roost: "soon", split: "check", cozi: "check" },
+  { feature: "Chores + assignment", roost: "check", split: "cross", cozi: "check", ourhome: "check" },
+  { feature: "Chore streaks + leaderboard", roost: "check", split: "cross", cozi: "cross", ourhome: "Basic" },
+  { feature: "Bill splitting + debt tracking", roost: "check", split: "check", cozi: "cross", ourhome: "cross" },
+  { feature: "Receipt scanning (item split)", roost: "check", split: "Paid", cozi: "cross", ourhome: "cross" },
+  { feature: "Shared grocery lists", roost: "check", split: "cross", cozi: "check", ourhome: "check" },
+  { feature: "Multiple grocery lists", roost: "check", split: "cross", cozi: "cross", ourhome: "cross" },
+  { feature: "Shared household calendar", roost: "check", split: "cross", cozi: "check", ourhome: "Basic" },
+  { feature: "Reminders (recurring)", roost: "check", split: "cross", cozi: "Basic", ourhome: "check" },
+  { feature: "Meal planning + voting", roost: "check", split: "cross", cozi: "Basic", ourhome: "cross" },
+  { feature: "Child accounts + allowances", roost: "check", split: "cross", cozi: "cross", ourhome: "Basic" },
+  { feature: "Spending insights + budgets", roost: "check", split: "Paid", cozi: "cross", ourhome: "cross" },
+  { feature: "Notes + household tasks", roost: "check", split: "cross", cozi: "cross", ourhome: "Basic" },
+  { feature: "iOS + Android app", roost: "Soon", split: "check", cozi: "check", ourhome: "check" },
 ];
 
-function TableCell({ value, isRoost }: { value: string; isRoost?: boolean }) {
-  if (value === "check") return <span style={{ color: isRoost ? "white" : "#22C55E", fontWeight: 800, fontSize: 15 }}>✓</span>;
-  if (value === "no") return <span style={{ color: "#9CA3AF", fontWeight: 700, fontSize: 13 }}>No</span>;
-  if (value === "soon") return <span style={{ color: isRoost ? "#FDE68A" : "#F59E0B", fontWeight: 800, fontSize: 11 }}>Soon</span>;
-  return <span style={{ color: isRoost ? "rgba(255,255,255,0.8)" : "#9CA3AF", fontWeight: 700, fontSize: 11 }}>{value}</span>;
+function CellValue({ value }: { value: string }) {
+  if (value === "check") return <span style={{ color: "#16A34A", fontWeight: 800, fontSize: 15 }}>&#10003;</span>;
+  if (value === "cross") return <span style={{ color: "#dc2626", fontWeight: 700, fontSize: 14 }}>&#10007;</span>;
+  if (value === "Soon") return <span style={{ color: "#D97706", fontWeight: 800, fontSize: 11 }}>Soon</span>;
+  if (value === "Paid") return <span style={{ color: "#D97706", fontWeight: 800, fontSize: 11 }}>Paid</span>;
+  if (value === "Basic") return <span style={{ color: "#D97706", fontWeight: 700, fontSize: 11 }}>Basic</span>;
+  return <span style={{ color: "#9CA3AF", fontWeight: 600, fontSize: 12 }}>{value}</span>;
 }
 
-// ---- Main page ---------------------------------------------------------------
+// ---------------------------------------------------------------------------
+// Page
+// ---------------------------------------------------------------------------
 
 export default function HomePage() {
   const ff = nunito.style.fontFamily;
@@ -391,27 +315,38 @@ export default function HomePage() {
     <main style={{ fontFamily: ff, margin: 0, padding: 0 }}>
 
       <style>{`
+        .feat-inner {
+          max-width: 1100px;
+          margin: 0 auto;
+          display: flex;
+          align-items: center;
+          min-height: 300px;
+        }
+        .feat-copy { flex: 1; padding: 48px 44px; }
+        .feat-ui {
+          flex: 1; padding: 32px;
+          display: flex; align-items: center; justify-content: center;
+        }
+        .feat-ui-left .feat-copy { order: 2; }
+        .feat-ui-left .feat-ui { order: 1; }
         @media (max-width: 640px) {
-          .nav-features-link { display: none !important; }
-          .nav-right { gap: 8px !important; }
-          .nav-signin { font-size: 12px !important; }
-          .nav-cta { font-size: 12px !important; padding: 6px 12px !important; }
-          .nav-logo-text { font-size: 17px !important; }
-          .feat-row { padding: 40px 20px !important; flex-direction: column !important; }
-          .feat-mockup { width: 100% !important; justify-content: center !important; align-items: center !important; }
-          .feat-mock-card { margin: 0 auto !important; }
-          .comp-section { padding: 48px 16px !important; }
-          .comp-table { width: 100% !important; border-radius: 10px !important; }
-          .comp-cell { padding: 8px 8px !important; font-size: 11px !important; }
-          .comp-feat-cell { padding: 8px 8px !important; font-size: 11px !important; }
-          .comp-val-cell { padding: 8px 6px !important; font-size: 11px !important; }
-          .personas-grid { grid-template-columns: 1fr !important; }
-          .personas-section { padding: 48px 20px !important; }
+          .nav-features { display: none !important; }
+          .feat-inner { flex-direction: column; }
+          .feat-copy { order: 1 !important; padding: 32px 20px 16px; width: 100%; box-sizing: border-box; }
+          .feat-ui { order: 2 !important; padding: 16px 20px 32px; width: 100%; box-sizing: border-box; }
+          .hero-section { padding: 48px 20px 56px !important; }
+          .hero-h1 { font-size: 32px !important; letter-spacing: -0.8px !important; }
           .problem-section { padding: 48px 20px !important; }
-          .hero-section { padding: 52px 20px 60px !important; }
+          .comp-section { padding: 48px 16px !important; }
+          .comp-grid { border-radius: 10px !important; }
+          .comp-feat { font-size: 11px !important; padding: 8px 10px !important; }
+          .comp-val { font-size: 11px !important; padding: 8px 5px !important; }
+          .personas-section { padding: 48px 20px !important; }
+          .personas-grid { grid-template-columns: 1fr !important; }
           .cta-section { padding: 52px 20px !important; }
           .footer-inner { flex-direction: column !important; align-items: center !important; text-align: center !important; gap: 12px !important; }
-          .mobile-teaser { padding: 10px 16px !important; }
+          .footer-links { gap: 12px !important; flex-wrap: wrap; justify-content: center; }
+          .teaser-bar { padding: 10px 16px !important; }
         }
       `}</style>
 
@@ -419,201 +354,210 @@ export default function HomePage() {
       <nav style={{ backgroundColor: "#EF4444", height: 64, padding: "0 40px", display: "flex", alignItems: "center", justifyContent: "space-between", position: "sticky", top: 0, zIndex: 50 }}>
         <Link href="/" style={{ display: "flex", alignItems: "center", gap: 10, textDecoration: "none" }}>
           <Image src="/brand/roost-icon.png" alt="Roost" width={32} height={32} style={{ borderRadius: 9, objectFit: "cover" }} />
-          <span className="nav-logo-text" style={{ fontWeight: 900, fontSize: 20, color: "white", letterSpacing: "-0.3px", fontFamily: ff }}>Roost</span>
+          <span style={{ fontWeight: 900, fontSize: 20, color: "white", letterSpacing: "-0.3px", fontFamily: ff }}>Roost</span>
         </Link>
-        <div className="nav-right" style={{ display: "flex", alignItems: "center", gap: 20 }}>
-          <a href="#features" className="nav-features-link" style={{ fontSize: 14, fontWeight: 700, color: "rgba(255,255,255,0.85)", textDecoration: "none", fontFamily: ff }}>Features</a>
-          <Link href="/login" className="nav-signin" style={{ fontSize: 14, fontWeight: 700, color: "rgba(255,255,255,0.85)", textDecoration: "none", fontFamily: ff }}>Sign in</Link>
-          <Link href="/signup" className="nav-cta" style={{ backgroundColor: "white", color: "#EF4444", fontWeight: 800, fontSize: 13, padding: "8px 18px", borderRadius: 20, textDecoration: "none", fontFamily: ff }}>Get started free</Link>
+        <div style={{ display: "flex", alignItems: "center", gap: 20 }}>
+          <a href="#features" className="nav-features" style={{ fontSize: 14, fontWeight: 700, color: "rgba(255,255,255,0.85)", textDecoration: "none", fontFamily: ff }}>Features</a>
+          <Link href="/login" style={{ fontSize: 14, fontWeight: 700, color: "rgba(255,255,255,0.85)", textDecoration: "none", fontFamily: ff }}>Sign in</Link>
+          <Link href="/signup" style={{ backgroundColor: "white", color: "#EF4444", fontWeight: 800, fontSize: 13, padding: "7px 18px", borderRadius: 99, textDecoration: "none", fontFamily: ff }}>Get started free</Link>
         </div>
       </nav>
 
-      {/* 2. MOBILE TEASER BAR */}
-      <div className="mobile-teaser" style={{ backgroundColor: "#C93B3B", padding: "10px 40px", display: "flex", alignItems: "center", justifyContent: "center", gap: 10 }}>
-        <span style={{ fontSize: 13, fontWeight: 700, color: "rgba(255,255,255,0.9)", fontFamily: ff }}>iOS and Android apps coming soon.</span>
-        <span style={{ backgroundColor: "rgba(255,255,255,0.15)", color: "white", fontSize: 10, fontWeight: 800, padding: "3px 10px", borderRadius: 20, fontFamily: ff, letterSpacing: "0.3px" }}>COMING SOON</span>
+      {/* 2. TEASER BAR */}
+      <div className="teaser-bar" style={{ backgroundColor: "#DC2626", padding: "10px 40px", display: "flex", alignItems: "center", justifyContent: "center", gap: 10 }}>
+        <span style={{ backgroundColor: "rgba(255,255,255,0.18)", color: "white", fontSize: 10, fontWeight: 800, padding: "3px 10px", borderRadius: 99, fontFamily: ff }}>COMING SOON</span>
+        <span style={{ fontSize: 12, fontWeight: 700, color: "rgba(255,255,255,0.85)", fontFamily: ff }}>iOS and Android apps are on the way</span>
       </div>
 
       {/* 3. HERO */}
-      <section className="hero-section" style={{ backgroundColor: "#EF4444", padding: "80px 40px 88px", textAlign: "center" }}>
-        <h1 style={{ fontSize: "clamp(28px, 5vw, 50px)", fontWeight: 900, color: "white", lineHeight: 1.05, letterSpacing: "-2px", maxWidth: 700, margin: "0 auto 18px", wordBreak: "break-word" }}>
-          Your house deserves better than a group chat.
+      <section className="hero-section" style={{ backgroundColor: "#EF4444", padding: "64px 40px 72px", textAlign: "center" }}>
+        <Image
+          src="/brand/roost-icon.png"
+          alt="Roost"
+          width={80}
+          height={80}
+          style={{ borderRadius: 22, objectFit: "cover", boxShadow: "0 0 0 4px rgba(255,255,255,0.2)", display: "block", margin: "0 auto 20px" }}
+        />
+        <h1 className="hero-h1" style={{ fontSize: 48, fontWeight: 900, color: "white", letterSpacing: "-1.5px", lineHeight: 1.06, maxWidth: 600, margin: "0 auto 16px", fontFamily: ff }}>
+          Your household, finally sorted.
         </h1>
-        <p style={{ fontSize: 17, fontWeight: 600, color: "rgba(255,255,255,0.88)", maxWidth: 480, margin: "0 auto 32px", lineHeight: 1.6, fontFamily: ff }}>
-          Chores, groceries, bills, meals, reminders, and calendars. One app. Everyone finally on the same page.
+        <p style={{ fontSize: 16, fontWeight: 600, color: "rgba(255,255,255,0.85)", lineHeight: 1.6, maxWidth: 420, margin: "0 auto 30px", fontFamily: ff }}>
+          One app for chores, groceries, bills, meals, and everything in between.
         </p>
         <div style={{ display: "flex", flexWrap: "wrap", gap: 12, justifyContent: "center" }}>
-          <Link href="/signup" style={{ backgroundColor: "white", color: "#EF4444", fontWeight: 800, fontSize: 15, padding: "14px 28px", borderRadius: 14, textDecoration: "none", borderBottom: "3px solid rgba(0,0,0,0.1)", fontFamily: ff }}>
-            Get started free
+          <Link href="/signup" style={{ backgroundColor: "white", color: "#EF4444", fontWeight: 800, fontSize: 15, padding: "12px 28px", borderRadius: 99, textDecoration: "none", borderBottom: "3px solid rgba(0,0,0,0.12)", fontFamily: ff }}>
+            Create your household
           </Link>
-          <a href="#features" style={{ backgroundColor: "rgba(255,255,255,0.12)", color: "white", fontWeight: 800, fontSize: 15, padding: "14px 28px", borderRadius: 14, textDecoration: "none", border: "1.5px solid rgba(255,255,255,0.3)", fontFamily: ff }}>
-            See the features
-          </a>
+          <Link href="/login" style={{ backgroundColor: "rgba(255,255,255,0.15)", color: "white", fontWeight: 700, fontSize: 15, padding: "12px 28px", borderRadius: 99, textDecoration: "none", border: "2px solid rgba(255,255,255,0.35)", fontFamily: ff }}>
+            Sign in
+          </Link>
         </div>
+        <p style={{ fontSize: 12, fontWeight: 700, color: "rgba(255,255,255,0.5)", marginTop: 16, fontFamily: ff }}>
+          Free to get started. No credit card needed.
+        </p>
       </section>
 
       {/* 4. PROBLEM */}
-      <section className="problem-section" style={{ backgroundColor: "#FFF0F0", padding: "72px 40px", textAlign: "center", borderBottom: "1px solid #FECACA" }}>
-        <h2 style={{ fontSize: "clamp(24px, 4vw, 34px)", fontWeight: 900, color: "#1A0505", letterSpacing: "-0.8px", lineHeight: 1.2, maxWidth: 560, margin: "0 auto 14px" }}>
-          You are running your home with four apps and a prayer.
+      <section className="problem-section" style={{ backgroundColor: "#FFF5F5", padding: "64px 40px", textAlign: "center" }}>
+        <div style={{ fontSize: 11, fontWeight: 800, color: "#EF4444", letterSpacing: "1px", textTransform: "uppercase", marginBottom: 12, fontFamily: ff }}>Sound familiar?</div>
+        <h2 style={{ fontSize: 32, fontWeight: 900, color: "#1a1a1a", letterSpacing: "-0.8px", lineHeight: 1.2, maxWidth: 560, margin: "0 auto 14px", fontFamily: ff }}>
+          Your household runs on five apps, a whiteboard, and a prayer.
         </h2>
-        <p style={{ fontSize: 16, fontWeight: 600, color: "#7F1D1D", maxWidth: 520, margin: "0 auto", lineHeight: 1.7, fontFamily: ff }}>
-          One app for splitting bills. Another for the grocery list nobody updates. A shared calendar three people ignore. And a group chat full of did anyone do the dishes messages.
+        <p style={{ fontSize: 15, fontWeight: 600, color: "#666", lineHeight: 1.7, maxWidth: 520, margin: "0 auto 24px", fontFamily: ff }}>
+          One app for splitting bills, another for the grocery list nobody updates, a shared calendar three people ignore, and a group chat full of did anyone do the dishes messages.
         </p>
+        <p style={{ fontSize: 14, fontWeight: 700, color: "#333", marginBottom: 14, fontFamily: ff }}>All of that becomes one thing.</p>
+        <div style={{ backgroundColor: "white", border: "2px solid #EF4444", borderRadius: 12, padding: "10px 22px", display: "inline-block", fontSize: 15, fontWeight: 800, color: "#1a1a1a", fontFamily: ff }}>
+          Roost. Home, sorted.
+        </div>
       </section>
 
       {/* 5. FEATURES */}
       <div id="features">
-        <FeatureRow
-          bg="#FFF5F5"
-          reversed={false}
-          mockup={<ChoresMockup />}
-          tag="Chores"
-          tagColor="#EF4444"
-          headline="Chores that actually get done."
-          body="Assign chores to specific people, set them on a recurring schedule, and let Roost reset them automatically. Daily dishes. Weekly vacuuming. Monthly deep cleans. Set it once and forget it. The leaderboard adds just enough competition to get everyone off the couch."
-          quote="Jake is winning this week. Again."
-          quoteBg="rgba(239,68,68,0.07)"
-          quoteColor="#C93B3B"
-        />
-        <FeatureRow
-          bg="#FFFBF0"
-          reversed={true}
-          mockup={<GroceryMockup />}
-          tag="Grocery"
-          tagColor="#F59E0B"
-          headline="A list the whole house actually uses."
-          body="Anyone can add to the list from wherever they are throughout the week. By the time someone heads to the store, everything is already there waiting. See who added what, create multiple lists for different stores, and check off items as you go."
-          quote="Why didn't you tell me we needed milk? Gone forever."
-          quoteBg="rgba(245,158,11,0.07)"
-          quoteColor="#C87D00"
-        />
-        <FeatureRow
-          bg="#F0F6FF"
-          reversed={false}
-          mockup={<CalendarMockup />}
-          tag="Calendar"
-          tagColor="#3B82F6"
-          headline="One calendar the whole house actually checks."
-          body="Stop texting wait when is that. Add events once and everyone sees them. School pickups, rent due dates, date nights, family dinners. Set recurring events for things that repeat and never add them again."
-          quote="Wait, when is that? Never again."
-          quoteBg="rgba(59,130,246,0.07)"
-          quoteColor="#1A5CB5"
-        />
-        <FeatureRow
-          bg="#F0FFF5"
-          reversed={true}
-          mockup={<ExpensesMockup />}
-          tag="Expenses"
-          tagColor="#22C55E"
-          headline="No more awkward money conversations."
-          body="Track every shared expense, split bills in seconds, and settle up without the spreadsheet. Scan a receipt with your camera and Roost reads the items automatically. Everyone sees exactly what they owe and nobody has an excuse."
-          quote="Nobody owes anyone anything. Enjoy it. It never lasts."
-          quoteBg="rgba(34,197,94,0.07)"
-          quoteColor="#159040"
-        />
-        <FeatureRow
-          bg="#F0FFFE"
-          reversed={false}
-          mockup={<RemindersMockup />}
-          tag="Reminders"
-          tagColor="#06B6D4"
-          headline="Never forget anything important again."
-          body="Set a reminder once and let Roost handle the rest. Recurring reminders reset automatically after someone marks them done. Notify just yourself, a specific person, or the entire household at once. Snooze anything that can wait."
-          quote="Did anyone pay rent this month? Last time you have to ask."
-          quoteBg="rgba(6,182,212,0.07)"
-          quoteColor="#0891B2"
-        />
-        <FeatureRow
-          bg="#FFF8F0"
-          reversed={true}
-          mockup={<MealsMockup />}
-          tag="Meals"
-          tagColor="#F97316"
-          headline="Dinner sorted. Every night."
-          body="Plan the week, let the household suggest and vote on what sounds good, then add every ingredient to the grocery list in one tap. Build a meal bank of your favorites so planning next week takes thirty seconds. Even the kids get a vote."
-          quote="What do you want for dinner? Now a democratic process."
-          quoteBg="rgba(249,115,22,0.07)"
-          quoteColor="#C4581A"
-        />
+
+        {/* CHORES: copy LEFT, UI RIGHT */}
+        <section style={{ backgroundColor: "#FFF5F5" }}>
+          <div className="feat-inner">
+            <div className="feat-copy">
+              <div style={{ fontSize: 11, fontWeight: 800, color: "#EF4444", textTransform: "uppercase", letterSpacing: "1px", marginBottom: 8, fontFamily: ff }}>Chores</div>
+              <h3 style={{ fontSize: 26, fontWeight: 900, color: "#1a1a1a", letterSpacing: "-0.6px", lineHeight: 1.15, margin: "0 0 10px", fontFamily: ff }}>Nobody can pretend they forgot.</h3>
+              <p style={{ fontSize: 14, fontWeight: 600, color: "#555", lineHeight: 1.65, margin: 0, fontFamily: ff }}>Assign chores to specific people, set them on a recurring schedule, and let Roost reset them automatically, daily dishes, weekly vacuuming, monthly deep cleans, set it once and let the leaderboard add just enough competition to get everyone off the couch.</p>
+            </div>
+            <div className="feat-ui"><ChoresMockup /></div>
+          </div>
+        </section>
+
+        {/* GROCERY: UI LEFT, copy RIGHT */}
+        <section style={{ backgroundColor: "#FFFBF0" }}>
+          <div className="feat-inner feat-ui-left">
+            <div className="feat-copy">
+              <div style={{ fontSize: 11, fontWeight: 800, color: "#D97706", textTransform: "uppercase", letterSpacing: "1px", marginBottom: 8, fontFamily: ff }}>Grocery lists</div>
+              <h3 style={{ fontSize: 26, fontWeight: 900, color: "#1a1a1a", letterSpacing: "-0.6px", lineHeight: 1.15, margin: "0 0 10px", fontFamily: ff }}>The list that everyone can actually find.</h3>
+              <p style={{ fontSize: 14, fontWeight: 600, color: "#555", lineHeight: 1.65, margin: 0, fontFamily: ff }}>Create multiple lists for different stores and trips, add items from anywhere, and see who put what in the cart, no more buying three bottles of dish soap because nobody checked the list, and no more can you grab milk texts because the list is right there.</p>
+            </div>
+            <div className="feat-ui"><GroceryMockup /></div>
+          </div>
+        </section>
+
+        {/* CALENDAR: copy LEFT, UI RIGHT */}
+        <section style={{ backgroundColor: "#EFF6FF" }}>
+          <div className="feat-inner">
+            <div className="feat-copy">
+              <div style={{ fontSize: 11, fontWeight: 800, color: "#2563EB", textTransform: "uppercase", letterSpacing: "1px", marginBottom: 8, fontFamily: ff }}>Shared calendar</div>
+              <h3 style={{ fontSize: 26, fontWeight: 900, color: "#1a1a1a", letterSpacing: "-0.6px", lineHeight: 1.15, margin: "0 0 10px", fontFamily: ff }}>The calendar everyone is actually on.</h3>
+              <p style={{ fontSize: 14, fontWeight: 600, color: "#555", lineHeight: 1.65, margin: 0, fontFamily: ff }}>Add events, assign them to household members, and set them to repeat so nothing falls through the cracks, dentist appointments, rent due dates, game nights, everyone sees the same calendar and nobody gets to say they did not know.</p>
+            </div>
+            <div className="feat-ui"><CalendarMockup /></div>
+          </div>
+        </section>
+
+        {/* EXPENSES: UI LEFT, copy RIGHT */}
+        <section style={{ backgroundColor: "#F0FDF4" }}>
+          <div className="feat-inner feat-ui-left">
+            <div className="feat-copy">
+              <div style={{ fontSize: 11, fontWeight: 800, color: "#16A34A", textTransform: "uppercase", letterSpacing: "1px", marginBottom: 8, fontFamily: ff }}>Expenses</div>
+              <h3 style={{ fontSize: 26, fontWeight: 900, color: "#1a1a1a", letterSpacing: "-0.6px", lineHeight: 1.15, margin: "0 0 10px", fontFamily: ff }}>Split bills, no awkward texts required.</h3>
+              <p style={{ fontSize: 14, fontWeight: 600, color: "#555", lineHeight: 1.65, margin: 0, fontFamily: ff }}>Log a shared expense, split it equally or by item, and watch the balances update in real time, scan a receipt to split it item by item, set recurring bills to post automatically, and track exactly who owes what so the awkward money conversations never have to happen.</p>
+            </div>
+            <div className="feat-ui"><ExpensesMockup /></div>
+          </div>
+        </section>
+
+        {/* REMINDERS: copy LEFT, UI RIGHT */}
+        <section style={{ backgroundColor: "#ECFEFF" }}>
+          <div className="feat-inner">
+            <div className="feat-copy">
+              <div style={{ fontSize: 11, fontWeight: 800, color: "#0891B2", textTransform: "uppercase", letterSpacing: "1px", marginBottom: 8, fontFamily: ff }}>Reminders</div>
+              <h3 style={{ fontSize: 26, fontWeight: 900, color: "#1a1a1a", letterSpacing: "-0.6px", lineHeight: 1.15, margin: "0 0 10px", fontFamily: ff }}>The nudge that actually gets things done.</h3>
+              <p style={{ fontSize: 14, fontWeight: 600, color: "#555", lineHeight: 1.65, margin: 0, fontFamily: ff }}>Set a reminder for yourself or send it to the whole household, make it repeat as often as you need, and never pay a late fee again, rent on the first, trash on Tuesdays, filter changes every three months, just set it and move on.</p>
+            </div>
+            <div className="feat-ui"><RemindersMockup /></div>
+          </div>
+        </section>
+
+        {/* MEALS: UI LEFT, copy RIGHT */}
+        <section style={{ backgroundColor: "#FFF7ED" }}>
+          <div className="feat-inner feat-ui-left">
+            <div className="feat-copy">
+              <div style={{ fontSize: 11, fontWeight: 800, color: "#EA580C", textTransform: "uppercase", letterSpacing: "1px", marginBottom: 8, fontFamily: ff }}>Meal planning</div>
+              <h3 style={{ fontSize: 26, fontWeight: 900, color: "#1a1a1a", letterSpacing: "-0.6px", lineHeight: 1.15, margin: "0 0 10px", fontFamily: ff }}>What is for dinner is now a solved problem.</h3>
+              <p style={{ fontSize: 14, fontWeight: 600, color: "#555", lineHeight: 1.65, margin: 0, fontFamily: ff }}>Plan the week, vote on what sounds good, and tap any meal to send its ingredients straight to your grocery list, no more standing in front of the fridge at 6pm with no plan, no more defaulting to takeout because nobody could decide.</p>
+            </div>
+            <div className="feat-ui"><MealsMockup /></div>
+          </div>
+        </section>
+
+        {/* ALLOWANCES: copy LEFT, UI RIGHT */}
+        <section style={{ backgroundColor: "#F5F3FF" }}>
+          <div className="feat-inner">
+            <div className="feat-copy">
+              <div style={{ fontSize: 11, fontWeight: 800, color: "#7C3AED", textTransform: "uppercase", letterSpacing: "1px", marginBottom: 8, fontFamily: ff }}>Allowances</div>
+              <h3 style={{ fontSize: 26, fontWeight: 900, color: "#1a1a1a", letterSpacing: "-0.6px", lineHeight: 1.15, margin: "0 0 10px", fontFamily: ff }}>Kids earn it, you set the rules.</h3>
+              <p style={{ fontSize: 14, fontWeight: 600, color: "#555", lineHeight: 1.65, margin: 0, fontFamily: ff }}>Set a weekly allowance for each kid, tie it to how many chores they complete, and watch the motivation sort itself out, kids see exactly what they have earned and what is left to do, and parents get a chore system that basically runs itself.</p>
+            </div>
+            <div className="feat-ui"><AllowancesMockup /></div>
+          </div>
+        </section>
+
       </div>
 
       {/* 6. COMPARISON TABLE */}
-      <section className="comp-section" style={{ backgroundColor: "#FFF0F0", padding: "72px 40px" }}>
-        <div style={{ textAlign: "center", marginBottom: 32 }}>
-          <div style={{ fontSize: 11, fontWeight: 800, color: "#C93B3B", textTransform: "uppercase", letterSpacing: "0.8px", marginBottom: 8 }}>How we stack up</div>
-          <h2 style={{ fontSize: 32, fontWeight: 900, color: "#1A0505", letterSpacing: "-0.8px", marginBottom: 8, lineHeight: 1.2, margin: "0 0 8px" }}>
-            Spoiler: the other guys only do one thing.
-          </h2>
-          <p style={{ fontSize: 14, fontWeight: 600, color: "#7F1D1D", margin: "8px 0 0" }}>
-            Splitwise is great at bills. Cozi is decent at calendars. Roost does everything.
-          </p>
+      <section className="comp-section" style={{ backgroundColor: "#FFF5F5", padding: "56px 40px" }}>
+        <div style={{ textAlign: "center", marginBottom: 30 }}>
+          <h2 style={{ fontSize: 28, fontWeight: 900, color: "#1a1a1a", letterSpacing: "-0.7px", margin: "0 0 8px", fontFamily: ff }}>How does Roost stack up?</h2>
+          <p style={{ fontSize: 14, fontWeight: 600, color: "#888", margin: 0, fontFamily: ff }}>You tell us how it compares when you try it.</p>
         </div>
-        <div className="comp-table" style={{ maxWidth: 680, margin: "0 auto", borderRadius: 16, overflow: "hidden", border: "1.5px solid #FECACA" }}>
-          {/* Table header */}
-          <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr 1fr 1fr" }}>
-            <div className="comp-feat-cell" style={{ backgroundColor: "white", padding: "12px 16px", borderBottom: "1px solid #FECACA" }}>
-              <span style={{ fontSize: 12, fontWeight: 700, color: "#374151" }}>Feature</span>
+        <div className="comp-grid" style={{ maxWidth: 720, margin: "0 auto", borderRadius: 16, overflow: "hidden", border: "1.5px solid #FECACA" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr 1fr 1fr 1fr" }}>
+            <div className="comp-feat" style={{ backgroundColor: "#f9fafb", padding: "12px 16px", borderBottom: "1px solid #FECACA" }}>
+              <span style={{ fontSize: 12, fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.5px", color: "#666", fontFamily: ff }}>Feature</span>
             </div>
-            <div className="comp-val-cell" style={{ backgroundColor: "#EF4444", padding: "12px 12px", textAlign: "center", borderBottom: "1px solid #C93B3B" }}>
-              <span style={{ fontSize: 13, fontWeight: 800, color: "white" }}>Roost</span>
+            <div className="comp-val" style={{ backgroundColor: "#EF4444", padding: "12px 8px", textAlign: "center", borderBottom: "1px solid #C93B3B" }}>
+              <span style={{ fontSize: 13, fontWeight: 800, color: "white", fontFamily: ff }}>Roost</span>
             </div>
-            <div className="comp-val-cell" style={{ backgroundColor: "white", padding: "12px 12px", textAlign: "center", borderBottom: "1px solid #FECACA" }}>
-              <span style={{ fontSize: 13, fontWeight: 700, color: "#9CA3AF" }}>Splitwise</span>
-            </div>
-            <div className="comp-val-cell" style={{ backgroundColor: "white", padding: "12px 12px", textAlign: "center", borderBottom: "1px solid #FECACA" }}>
-              <span style={{ fontSize: 13, fontWeight: 700, color: "#9CA3AF" }}>Cozi</span>
-            </div>
+            {["Splitwise", "Cozi", "OurHome"].map((h) => (
+              <div key={h} className="comp-val" style={{ backgroundColor: "#f3f4f6", padding: "12px 8px", textAlign: "center", borderBottom: "1px solid #e5e7eb" }}>
+                <span style={{ fontSize: 12, fontWeight: 700, color: "#888", fontFamily: ff }}>{h}</span>
+              </div>
+            ))}
           </div>
-          {/* Data rows */}
           {TABLE_ROWS.map((row, i) => (
-            <div key={row.feature} style={{ display: "grid", gridTemplateColumns: "2fr 1fr 1fr 1fr", backgroundColor: i % 2 === 0 ? "white" : "#FFFAFA" }}>
-              <div className="comp-feat-cell" style={{ padding: "12px 16px", borderBottom: "1px solid #FEF2F2" }}>
-                <span style={{ fontSize: 13, fontWeight: 700, color: "#1A0505" }}>{row.feature}</span>
+            <div key={row.feature} style={{ display: "grid", gridTemplateColumns: "2fr 1fr 1fr 1fr 1fr", backgroundColor: i % 2 === 0 ? "white" : "#fafafa" }}>
+              <div className="comp-feat" style={{ padding: "11px 16px", borderBottom: "1px solid #fef2f2" }}>
+                <span style={{ fontSize: 12, fontWeight: 700, color: "#1a1a1a", fontFamily: ff }}>{row.feature}</span>
               </div>
-              <div className="comp-val-cell" style={{ padding: "12px 12px", textAlign: "center", backgroundColor: "rgba(239,68,68,0.06)", borderBottom: "1px solid rgba(239,68,68,0.12)" }}>
-                <TableCell value={row.roost} isRoost />
+              <div className="comp-val" style={{ padding: "11px 8px", textAlign: "center", backgroundColor: "#fff5f5", borderBottom: "1px solid rgba(239,68,68,0.1)" }}>
+                <CellValue value={row.roost} />
               </div>
-              <div className="comp-val-cell" style={{ padding: "12px 12px", textAlign: "center", borderBottom: "1px solid #FEF2F2" }}>
-                <TableCell value={row.split} />
+              <div className="comp-val" style={{ padding: "11px 8px", textAlign: "center", borderBottom: "1px solid #fef2f2" }}>
+                <CellValue value={row.split} />
               </div>
-              <div className="comp-val-cell" style={{ padding: "12px 12px", textAlign: "center", borderBottom: "1px solid #FEF2F2" }}>
-                <TableCell value={row.cozi} />
+              <div className="comp-val" style={{ padding: "11px 8px", textAlign: "center", borderBottom: "1px solid #fef2f2" }}>
+                <CellValue value={row.cozi} />
+              </div>
+              <div className="comp-val" style={{ padding: "11px 8px", textAlign: "center", borderBottom: "1px solid #fef2f2" }}>
+                <CellValue value={row.ourhome} />
               </div>
             </div>
           ))}
         </div>
       </section>
 
-      {/* 7. PERSONAS */}
-      <section className="personas-section" style={{ backgroundColor: "white", padding: "72px 40px", borderTop: "1px solid #E5E7EB" }}>
-        <h2 style={{ fontSize: 32, fontWeight: 900, color: "#111827", letterSpacing: "-0.8px", textAlign: "center", marginBottom: 32, margin: "0 0 32px" }}>
-          Whether you share a house or a last name.
-        </h2>
-        <div className="personas-grid" style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 14, maxWidth: 860, margin: "0 auto" }}>
+      {/* 7. WHO IS IT FOR */}
+      <section className="personas-section" style={{ backgroundColor: "white", padding: "56px 40px", borderTop: "1px solid #E5E7EB" }}>
+        <h2 style={{ fontSize: 26, fontWeight: 900, color: "#1a1a1a", letterSpacing: "-0.7px", textAlign: "center", margin: "0 0 28px", fontFamily: ff }}>Built for any household</h2>
+        <div className="personas-grid" style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 16, maxWidth: 880, margin: "0 auto" }}>
           {[
-            {
-              Icon: Users,
-              title: "Families",
-              body: "Assign chores to kids, set allowances they actually have to earn, plan meals, and keep everyone in sync without the daily interrogation.",
-            },
-            {
-              Icon: Home,
-              title: "Roommates",
-              body: "Split rent, utilities, and groceries without the awkward texts. Everyone sees what they owe and nobody pretends to forget about the electric bill.",
-            },
-            {
-              Icon: GraduationCap,
-              title: "College houses",
-              body: "Five people, one fridge, zero adults. Roost handles the boring stuff so nobody has to send the passive aggressive chore reminder text.",
-            },
+            { Icon: Users, title: "Families", body: "Manage chores, allowances, and a shared calendar that the whole family can see, kids earn their allowance, parents keep their sanity." },
+            { Icon: Home, title: "Roommates", body: "Split rent, utilities, and groceries without the awkward texts, everyone sees what they owe and nobody gets to pretend they forgot about the electric bill." },
+            { Icon: GraduationCap, title: "College houses", body: "Five people, one fridge, and nobody wants to be the house manager, Roost handles the boring stuff so you can handle everything else." },
           ].map(({ Icon, title, body }) => (
-            <div key={title} style={{ backgroundColor: "#FFF0F0", borderRadius: 18, border: "1.5px solid #FECACA", borderBottom: "4px solid #C93B3B", padding: 22 }}>
-              <div style={{ width: 40, height: 40, borderRadius: 12, backgroundColor: "rgba(239,68,68,0.1)", display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 12 }}>
-                <Icon size={18} color="#EF4444" />
+            <div key={title} style={{ borderRadius: 16, border: "1.5px solid #e5e7eb", borderBottom: "4px solid #EF4444", padding: 20 }}>
+              <div style={{ width: 40, height: 40, borderRadius: 10, backgroundColor: "#FFF5F5", display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 12 }}>
+                <Icon size={20} color="#EF4444" />
               </div>
-              <div style={{ fontSize: 15, fontWeight: 900, color: "#1A0505", marginBottom: 6 }}>{title}</div>
-              <div style={{ fontSize: 12, fontWeight: 600, color: "#7F1D1D", lineHeight: 1.6 }}>{body}</div>
+              <div style={{ fontSize: 15, fontWeight: 900, color: "#1a1a1a", marginBottom: 6, fontFamily: ff }}>{title}</div>
+              <div style={{ fontSize: 13, fontWeight: 600, color: "#666", lineHeight: 1.55, fontFamily: ff }}>{body}</div>
             </div>
           ))}
         </div>
@@ -621,17 +565,13 @@ export default function HomePage() {
 
       {/* 8. BOTTOM CTA */}
       <section className="cta-section" style={{ backgroundColor: "#EF4444", padding: "72px 40px", textAlign: "center" }}>
-        <h2 style={{ fontSize: 38, fontWeight: 900, color: "white", letterSpacing: "-0.8px", marginBottom: 10, margin: "0 0 10px" }}>
-          Your household is waiting.
-        </h2>
-        <p style={{ fontSize: 15, fontWeight: 600, color: "rgba(255,255,255,0.85)", marginBottom: 28, margin: "0 0 28px", fontFamily: ff }}>
-          Free to get started. No credit card. No excuses.
-        </p>
+        <h2 style={{ fontSize: 38, fontWeight: 900, color: "white", letterSpacing: "-0.8px", margin: "0 0 10px", fontFamily: ff }}>Your household is waiting.</h2>
+        <p style={{ fontSize: 15, fontWeight: 600, color: "rgba(255,255,255,0.8)", margin: "0 0 28px", fontFamily: ff }}>Free to get started, no credit card, no excuses.</p>
         <div style={{ display: "flex", flexWrap: "wrap", gap: 12, justifyContent: "center" }}>
-          <Link href="/signup" style={{ backgroundColor: "white", color: "#EF4444", fontWeight: 800, fontSize: 15, padding: "14px 28px", borderRadius: 14, textDecoration: "none", borderBottom: "3px solid rgba(0,0,0,0.1)", fontFamily: ff }}>
+          <Link href="/signup" style={{ backgroundColor: "white", color: "#EF4444", fontWeight: 800, fontSize: 15, padding: "12px 28px", borderRadius: 99, textDecoration: "none", borderBottom: "3px solid rgba(0,0,0,0.12)", fontFamily: ff }}>
             Create your household
           </Link>
-          <Link href="/login" style={{ backgroundColor: "rgba(255,255,255,0.12)", color: "white", fontWeight: 800, fontSize: 15, padding: "14px 28px", borderRadius: 14, textDecoration: "none", border: "1.5px solid rgba(255,255,255,0.3)", fontFamily: ff }}>
+          <Link href="/login" style={{ backgroundColor: "rgba(255,255,255,0.15)", color: "white", fontWeight: 700, fontSize: 15, padding: "12px 28px", borderRadius: 99, textDecoration: "none", border: "2px solid rgba(255,255,255,0.35)", fontFamily: ff }}>
             Sign in
           </Link>
         </div>
@@ -639,18 +579,19 @@ export default function HomePage() {
 
       {/* 9. FOOTER */}
       <footer style={{ backgroundColor: "#EF4444", padding: "28px 40px", borderTop: "1px solid rgba(255,255,255,0.2)" }}>
-      <div className="footer-inner" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 16 }}>
-        <Link href="/" style={{ display: "flex", alignItems: "center", gap: 8, textDecoration: "none" }}>
-          <Image src="/brand/roost-icon.png" alt="Roost" width={28} height={28} style={{ borderRadius: 8, objectFit: "cover" }} />
-          <span style={{ fontWeight: 900, color: "white", fontSize: 15, fontFamily: ff }}>Roost</span>
-        </Link>
-        <span style={{ fontSize: 13, fontWeight: 700, color: "rgba(255,255,255,0.6)", fontFamily: ff }}>Home, sorted.</span>
-        <div style={{ display: "flex", gap: 20 }}>
-          <Link href="/login" style={{ fontSize: 12, fontWeight: 700, color: "rgba(255,255,255,0.65)", textDecoration: "none", fontFamily: ff }}>Sign in</Link>
-          <Link href="/signup" style={{ fontSize: 12, fontWeight: 700, color: "rgba(255,255,255,0.65)", textDecoration: "none", fontFamily: ff }}>Sign up</Link>
-          <Link href="/privacy" style={{ fontSize: 12, fontWeight: 700, color: "rgba(255,255,255,0.65)", textDecoration: "none", fontFamily: ff }}>Privacy</Link>
+        <div className="footer-inner" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 16 }}>
+          <Link href="/" style={{ display: "flex", alignItems: "center", gap: 8, textDecoration: "none" }}>
+            <Image src="/brand/roost-icon.png" alt="Roost" width={28} height={28} style={{ borderRadius: 8, objectFit: "cover" }} />
+            <span style={{ fontWeight: 900, color: "white", fontSize: 15, fontFamily: ff }}>Roost</span>
+          </Link>
+          <span style={{ fontSize: 13, fontWeight: 700, color: "rgba(255,255,255,0.6)", fontFamily: ff }}>Home, sorted.</span>
+          <div className="footer-links" style={{ display: "flex", gap: 20 }}>
+            <Link href="/login" style={{ fontSize: 12, fontWeight: 700, color: "rgba(255,255,255,0.65)", textDecoration: "none", fontFamily: ff }}>Sign in</Link>
+            <Link href="/signup" style={{ fontSize: 12, fontWeight: 700, color: "rgba(255,255,255,0.65)", textDecoration: "none", fontFamily: ff }}>Sign up</Link>
+            <Link href="/privacy" style={{ fontSize: 12, fontWeight: 700, color: "rgba(255,255,255,0.65)", textDecoration: "none", fontFamily: ff }}>Privacy</Link>
+            <Link href="/terms" style={{ fontSize: 12, fontWeight: 700, color: "rgba(255,255,255,0.65)", textDecoration: "none", fontFamily: ff }}>Terms</Link>
+          </div>
         </div>
-      </div>
       </footer>
 
     </main>

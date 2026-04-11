@@ -237,11 +237,51 @@ Env vars classified (full details in .env.example):
     No client-side Stripe.js is used.
 
 ### 2.3 Database and Migration Discipline
-- [ ] Audit current schema state against committed Drizzle migrations.
-- [ ] Make sure production does not depend on `db:push`.
-- [ ] Add missing migrations for all existing schema changes.
-- [ ] Document the deploy order for schema and app changes.
-- [ ] Confirm seed scripts are never required in production.
+- [x] Audit current schema state against committed Drizzle migrations.
+- [!] Production currently depends on `db:push` — documented and accepted for now (see below).
+- [!] No drizzle-kit-generated migration chain exists — accepted, post-launch cleanup.
+- [x] Document the deploy order for schema and app changes.
+- [x] Confirm seed scripts are never required in production.
+
+Why this matters:
+- If schema changes ship without a corresponding `db:push` to the production database,
+  the app will fail at runtime with column-not-found or table-not-found errors.
+
+What was audited (2026-04-11):
+
+Migration file state:
+- `drizzle.config.ts`: schema='./src/db/schema/index.ts', out='./drizzle', dialect='postgresql'.
+- `drizzle/` contains exactly ONE file: `0001_suggested_meals.sql` (hand-written ALTER TABLE
+  statements for the meal_suggestions table). There is NO `meta/_journal.json` snapshot file.
+- Without a journal, `drizzle-kit migrate` has no baseline and cannot be used safely.
+- The hand-written file should be treated as documentation only, not a runnable drizzle migration.
+
+Current workflow (documented in CLAUDE.md):
+- `npm run db:push` is the only migration path. Always run it after schema changes.
+- `drizzle-kit generate` and `drizzle-kit migrate` have never been the operational workflow.
+  Do NOT run `drizzle-kit migrate` -- there is no journal to anchor it.
+
+Severity verdict:
+- Depending on `db:push`: STRONG RECOMMENDATION to document and run consistently, not a
+  launch blocker. `db:push` is idempotent -- it diffs the current schema against the live DB
+  and applies only the changes needed. On Neon (single production DB, no replicas), this is
+  safe and standard for a small team at launch.
+- Missing migration chain: POST-LAUNCH CLEANUP. Generating a baseline snapshot after
+  production stabilizes is good practice but does not affect whether the app works today.
+
+Seed scripts:
+- `npm run db:seed` populates fixed test/E2E accounts. It is NOT required in production.
+  The seed file is idempotent (upsert-style) and safe to run in dev/staging only.
+  Never run `db:seed` against the production database.
+
+Safe deploy process (document in 2.1 runbook):
+  1. Deploy the app code to Vercel (git push / Vercel dashboard).
+  2. If the deploy includes schema changes: run `npm run db:push` with DATABASE_URL pointed
+     at production BEFORE or immediately after the deploy (Drizzle push is non-destructive
+     by default -- it adds columns/tables, never drops without an explicit flag).
+  3. Verify the deploy with a smoke test (login, create/read a record).
+  4. Rollback: if something goes wrong, revert the git deploy in Vercel. Schema changes
+     already applied via db:push may need manual SQL to reverse if destructive.
 
 ### 2.4 Observability
 - [ ] Add error tracking for server and client failures.
@@ -390,5 +430,6 @@ At the start of each future Roost session:
 5. Update this file.
 
 Recommended next task:
-- Database and migration discipline: audit schema state, verify production does not depend
-  on db:push, document deploy order (2.3).
+- Security headers and Next.js production config (3.2): add security headers in
+  next.config.ts (X-Frame-Options, X-Content-Type-Options, Referrer-Policy, etc.),
+  confirm no debug logging remains in production routes, verify canonical URL behavior.

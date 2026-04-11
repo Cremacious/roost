@@ -2,7 +2,7 @@ import { NextRequest } from "next/server";
 import { requireSession } from "@/lib/auth/helpers";
 import { db } from "@/lib/db";
 import { household_members, households, user, users } from "@/db/schema";
-import { eq } from "drizzle-orm";
+import { desc, eq } from "drizzle-orm";
 
 export async function GET(request: NextRequest): Promise<Response> {
   let session;
@@ -12,11 +12,13 @@ export async function GET(request: NextRequest): Promise<Response> {
     return res as Response;
   }
 
-  // Find user's first household membership
+  // Keep this aligned with /api/household/me and the shared household helper:
+  // use the most recently joined household when a user has multiple memberships.
   const [membership] = await db
     .select({ householdId: household_members.household_id })
     .from(household_members)
     .where(eq(household_members.user_id, session.user.id))
+    .orderBy(desc(household_members.joined_at))
     .limit(1);
 
   if (!membership) {

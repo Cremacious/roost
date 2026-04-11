@@ -18,6 +18,7 @@ export async function getUserHousehold(userId: string) {
     })
     .from(household_members)
     .where(eq(household_members.user_id, userId))
+    .orderBy(desc(household_members.joined_at))
     .limit(1);
 
   if (!m) return null;

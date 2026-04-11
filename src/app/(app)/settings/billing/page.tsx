@@ -577,8 +577,10 @@ function BillingPageInner() {
   const [isReactivating, setIsReactivating] = useState(false);
   const [isCheckingOut, setIsCheckingOut] = useState(false);
   const [isPortalLoading, setIsPortalLoading] = useState(false);
+  const [isVerifyingCheckout, setIsVerifyingCheckout] = useState(false);
   const [successBanner, setSuccessBanner] = useState(false);
   const [cancelledBanner, setCancelledBanner] = useState(false);
+  const [mounted, setMounted] = useState(false);
 
   const isAdmin = role === "admin";
 
@@ -657,21 +659,56 @@ function BillingPageInner() {
   ];
 
   useEffect(() => {
-    if (searchParams.get("success") === "true") {
-      setSuccessBanner(true);
-      router.replace("/settings/billing");
-      setTimeout(() => {
-        queryClient.invalidateQueries({ queryKey: ["household"] });
-      }, 2000);
-      setTimeout(() => setSuccessBanner(false), 5000);
-    }
-    if (searchParams.get("cancelled") === "true") {
-      setCancelledBanner(true);
-      router.replace("/settings/billing");
-      setTimeout(() => setCancelledBanner(false), 3000);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    setMounted(true);
   }, []);
+
+  useEffect(() => {
+    async function reconcileCheckout() {
+      if (searchParams.get("success") === "true") {
+        const sessionId = searchParams.get("session_id");
+        router.replace("/settings/billing");
+
+        if (!sessionId) {
+          toast.error("Could not verify upgrade", {
+            description: "Missing Stripe session ID. Please refresh billing in a moment.",
+          });
+          return;
+        }
+
+        setIsVerifyingCheckout(true);
+        try {
+          const res = await fetch(`/api/stripe/checkout-status?session_id=${encodeURIComponent(sessionId)}`);
+          const data = await res.json().catch(() => ({}));
+
+          if (!res.ok || !data.verified) {
+            toast.message("Payment received, upgrade still syncing.", {
+              description: "Stripe finished checkout, but Premium has not been confirmed yet. Refresh in a moment.",
+            });
+            await queryClient.invalidateQueries({ queryKey: ["household"] });
+            return;
+          }
+
+          await queryClient.invalidateQueries({ queryKey: ["household"] });
+          setSuccessBanner(true);
+          setTimeout(() => setSuccessBanner(false), 5000);
+        } catch {
+          toast.error("Could not verify upgrade", {
+            description: "Please refresh the billing page in a moment.",
+          });
+        } finally {
+          setIsVerifyingCheckout(false);
+        }
+      }
+
+      if (searchParams.get("cancelled") === "true") {
+        setCancelledBanner(true);
+        router.replace("/settings/billing");
+        setTimeout(() => setCancelledBanner(false), 3000);
+      }
+    }
+
+    void reconcileCheckout();
+  }, [queryClient, router, searchParams]);
 
   async function handleCheckout() {
     setIsCheckingOut(true);
@@ -765,7 +802,7 @@ function BillingPageInner() {
     }
   }
 
-  if (isLoading) {
+  if (!mounted || isLoading) {
     return (
       <PageContainer>
         <div className="flex h-48 items-center justify-center">

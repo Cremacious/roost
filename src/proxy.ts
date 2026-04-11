@@ -10,7 +10,7 @@ const AUTH_PAGES = ["/login", "/signup", "/child-login"];
 
 // Prefixes that always pass through without session check
 // /admin handles its own auth via admin session cookie
-const SKIP_PREFIXES = ["/api/", "/_next", "/favicon.ico", "/brand/", "/images/", "/invite/", "/admin"];
+const SKIP_PREFIXES = ["/api/", "/_next", "/favicon.ico", "/site.webmanifest", "/brand/", "/images/", "/invite/", "/admin"];
 
 // Forward x-pathname as a REQUEST header so server components can read it
 // via headers(). Setting it on the response object would NOT make it
@@ -55,5 +55,5 @@ export async function proxy(request: NextRequest): Promise<NextResponse> {
 }
 
 export const config = {
-  matcher: ["/((?!_next/static|_next/image|.*\\.png$|.*\\.ico$|.*\\.svg$).*)"],
+  matcher: ["/((?!_next/static|_next/image|.*\\.png$|.*\\.ico$|.*\\.svg$|site\\.webmanifest$).*)"],
 };

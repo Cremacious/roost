@@ -821,16 +821,19 @@ Isolation notes:
 
 ### Launch Blockers (must fix in code before QA)
 
-**A. /forgot-password is a dead link**
-The login page links to `/forgot-password` (12px red link below the form). The route does
-not exist — it 404s. Must either implement a minimal page or remove the link before launch.
-Simplest fix: remove the link from `src/app/(auth)/login/page.tsx` for now; add proper
-password reset (Resend email flow) post-launch.
+**A. /forgot-password dead link — FIXED (2026-04-11)**
+Removed the "Forgot password?" `Link` from `src/app/(auth)/login/page.tsx`.
+The password label row is now a plain label. The `Link` import was kept (used by
+signup and child-login footer links).
+Post-launch: add a real password reset flow via Resend when email is needed.
 
-**B. OG image missing**
-`public/og-image.png` does not exist. Social shares will have no preview image.
-See CLAUDE.md "OG Image" section. Create manually in Figma (1200x630, red #EF4444 bg,
-Roost logo + "Home, sorted." tagline) and drop in `public/`.
+**B. OG image missing — FIXED (2026-04-11)**
+Created `src/app/opengraph-image.tsx` using `next/og` ImageResponse (edge runtime).
+Red #EF4444 background, "Roost" at 96px/900 weight, "Home, sorted." at 40px/700.
+Served at `/opengraph-image` automatically by Next.js App Router.
+Updated `src/app/layout.tsx` to remove explicit `images` arrays from the OG and
+Twitter metadata blocks — Next.js now auto-resolves the file-based image.
+No static binary file needed; image renders server-side on every share request.
 
 ### Priority 1: Stripe Lifecycle (revenue-critical, do this first)
 Use the Stripe CLI for every step. Without a confirmed webhook cycle, the app cannot
@@ -966,8 +969,8 @@ Notes:
 
 ### Phase 3: Prove the Critical Flows
 - [x] Expand tests for auth, billing, permissions, cron jobs, and household management
-- [ ] Fix /forgot-password dead link before launch
-- [ ] Fix missing OG image before launch
+- [x] Fix /forgot-password dead link before launch
+- [x] Fix missing OG image before launch
 - [ ] Run full regression in a production-like environment (4.3)
 - [ ] Verify Stripe and Azure integrations end to end (4.3 Priority 1 + 7)
 
@@ -989,8 +992,8 @@ At the start of each future Roost session:
 Recommended next task:
 - Automated testing is complete for all high-value paths. Move to Phase 4 (4.3 Manual QA).
   Immediate next steps in order:
-    1. Fix /forgot-password dead link (remove or stub the page — 10 min)
-    2. Create OG image (Figma, drop in public/ — 20 min)
+    1. [x] Fix /forgot-password dead link — DONE
+    2. [x] Create OG image — DONE (dynamic, src/app/opengraph-image.tsx)
     3. Stripe lifecycle: `stripe listen` + click through checkout with test card
     4. First Vercel preview deployment + env vars
     5. Full manual QA pass on deployed preview (4.3 checklist above)

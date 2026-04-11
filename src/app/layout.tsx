@@ -61,20 +61,13 @@ export const metadata: Metadata = {
     title: "Roost",
     description: "Home, sorted.",
     siteName: "Roost",
-    images: [
-      {
-        url: "/og-image.png",
-        width: 1200,
-        height: 630,
-        alt: "Roost — Home, sorted.",
-      },
-    ],
+    // images resolved automatically from src/app/opengraph-image.tsx
   },
   twitter: {
     card: "summary_large_image",
     title: "Roost",
     description: "Home, sorted.",
-    images: ["/og-image.png"],
+    // images resolved automatically from src/app/opengraph-image.tsx
   },
   appleWebApp: {
     capable: true,

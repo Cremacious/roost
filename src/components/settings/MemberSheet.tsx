@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
@@ -17,9 +17,6 @@ import {
   AlertDialogDescription,
 } from "@/components/ui/alert-dialog";
 import { Switch } from "@/components/ui/switch";
-import { useHousehold } from "@/lib/hooks/useHousehold";
-import PremiumGate from "@/components/shared/PremiumGate";
-
 // ---- Types ------------------------------------------------------------------
 
 export interface SheetMember {
@@ -36,12 +33,6 @@ export interface SheetMember {
 interface Permission {
   permission: string;
   enabled: boolean;
-}
-
-interface AllowanceData {
-  enabled: boolean;
-  weekly_amount: string;
-  threshold_percent: number;
 }
 
 // ---- Constants --------------------------------------------------------------
@@ -82,7 +73,6 @@ export default function MemberSheet({
   onRefetch: () => void;
 }) {
   const queryClient = useQueryClient();
-  const { isPremium } = useHousehold();
   const open = member !== null;
 
   const [roleConfirmOpen, setRoleConfirmOpen] = useState(false);
@@ -91,10 +81,6 @@ export default function MemberSheet({
   const [pinSheetOpen, setPinSheetOpen] = useState(false);
   const [newPin, setNewPin] = useState("");
   const [confirmPin, setConfirmPin] = useState("");
-  const [allowanceEnabled, setAllowanceEnabled] = useState(false);
-  const [weeklyAmount, setWeeklyAmount] = useState("");
-  const [threshold, setThreshold] = useState(80);
-  const [allowanceDirty, setAllowanceDirty] = useState(false);
 
   const permissionsKey = member ? ["member-permissions", member.id] : null;
 
@@ -108,28 +94,6 @@ export default function MemberSheet({
     enabled: !!member,
     staleTime: 30_000,
   });
-
-  const { data: allowanceDataResp } = useQuery<{ allowance: AllowanceData | null }>({
-    queryKey: member ? ["member-allowance", member.id] : ["member-allowance-none"],
-    queryFn: async () => {
-      const r = await fetch(`/api/household/members/${member!.id}/allowance`);
-      if (!r.ok) return { allowance: null };
-      return r.json();
-    },
-    enabled: !!member && member.role === "child",
-    staleTime: 30_000,
-  });
-
-  // Sync allowance form when data loads
-  useEffect(() => {
-    const a = allowanceDataResp?.allowance;
-    if (a) {
-      setAllowanceEnabled(a.enabled);
-      setWeeklyAmount(a.enabled ? parseFloat(a.weekly_amount).toFixed(2) : "");
-      setThreshold(a.threshold_percent);
-    }
-    setAllowanceDirty(false);
-  }, [allowanceDataResp]);
 
   const roleMutation = useMutation({
     mutationFn: async (role: string) => {
@@ -196,32 +160,6 @@ export default function MemberSheet({
     },
     onError: (err: Error) =>
       toast.error("Could not update PIN", { description: err.message }),
-  });
-
-  const allowanceMutation = useMutation({
-    mutationFn: async () => {
-      const r = await fetch(`/api/household/members/${member!.id}/allowance`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          enabled: allowanceEnabled,
-          weeklyAmount: allowanceEnabled ? parseFloat(weeklyAmount) || 0 : 0,
-          thresholdPercent: threshold,
-        }),
-      });
-      if (!r.ok) {
-        const d = await r.json().catch(() => ({}));
-        throw new Error(d.error ?? "Failed to save allowance");
-      }
-      return r.json();
-    },
-    onSuccess: () => {
-      toast.success("Allowance saved");
-      setAllowanceDirty(false);
-      queryClient.invalidateQueries({ queryKey: ["member-allowance", member!.id] });
-    },
-    onError: (err: Error) =>
-      toast.error("Could not save allowance", { description: err.message }),
   });
 
   const removeMutation = useMutation({
@@ -424,121 +362,22 @@ export default function MemberSheet({
               </div>
             )}
 
-            {/* Allowance */}
+            {/* Rewards info */}
             {isChild && (
-              <div className="space-y-2">
-                <p className="text-sm" style={{ color: "var(--roost-text-primary)", fontWeight: 700 }}>
-                  Weekly Allowance
+              <div
+                className="rounded-2xl p-4"
+                style={{
+                  backgroundColor: "var(--roost-surface)",
+                  border: "1.5px solid var(--roost-border)",
+                  borderBottom: "4px solid var(--roost-border-bottom)",
+                }}
+              >
+                <p className="mb-1 text-sm" style={{ color: "var(--roost-text-primary)", fontWeight: 700 }}>
+                  Rewards
                 </p>
-                {isPremium === false ? (
-                  <PremiumGate feature="allowances" trigger="inline" />
-                ) : (
-                <div
-                  className="space-y-4 rounded-2xl p-4"
-                  style={{
-                    backgroundColor: "var(--roost-surface)",
-                    border: "1.5px solid var(--roost-border)",
-                    borderBottom: "4px solid var(--roost-border-bottom)",
-                  }}
-                >
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm" style={{ color: "var(--roost-text-primary)", fontWeight: 700 }}>
-                        Enable allowance
-                      </p>
-                      <p className="text-xs" style={{ color: "var(--roost-text-muted)", fontWeight: 600 }}>
-                        {member.name.split(" ")[0]} earns this by completing chores.
-                      </p>
-                    </div>
-                    <Switch
-                      checked={allowanceEnabled}
-                      onCheckedChange={(v) => {
-                        setAllowanceEnabled(v);
-                        setAllowanceDirty(true);
-                      }}
-                    />
-                  </div>
-
-                  <div style={{ opacity: allowanceEnabled ? 1 : 0.5 }}>
-                    <label className="text-xs mb-1 block" style={{ color: "var(--roost-text-muted)", fontWeight: 700 }}>
-                      Weekly amount
-                    </label>
-                    <div className="relative">
-                      <span
-                        className="absolute left-3 top-1/2 -translate-y-1/2 text-sm"
-                        style={{ color: "var(--roost-text-muted)", fontWeight: 700 }}
-                      >
-                        $
-                      </span>
-                      <input
-                        type="number"
-                        min="0"
-                        step="0.01"
-                        disabled={!allowanceEnabled}
-                        value={weeklyAmount}
-                        onChange={(e) => {
-                          setWeeklyAmount(e.target.value);
-                          setAllowanceDirty(true);
-                        }}
-                        placeholder="5.00"
-                        className="flex h-11 w-full rounded-xl border bg-transparent pl-7 pr-4 text-sm focus:outline-none"
-                        style={{
-                          border: "1.5px solid var(--roost-border)",
-                          borderBottom: "3px solid var(--roost-border-bottom)",
-                          color: "var(--roost-text-primary)",
-                          fontWeight: 600,
-                        }}
-                      />
-                    </div>
-                  </div>
-
-                  <div style={{ opacity: allowanceEnabled ? 1 : 0.5 }}>
-                    <div className="flex items-center justify-between mb-1">
-                      <label className="text-xs" style={{ color: "var(--roost-text-muted)", fontWeight: 700 }}>
-                        Chore completion required
-                      </label>
-                      <span className="text-base" style={{ color: "var(--roost-text-primary)", fontWeight: 800 }}>
-                        {threshold}%
-                      </span>
-                    </div>
-                    <input
-                      type="range"
-                      min={50}
-                      max={100}
-                      step={10}
-                      disabled={!allowanceEnabled}
-                      value={threshold}
-                      onChange={(e) => {
-                        setThreshold(Number(e.target.value));
-                        setAllowanceDirty(true);
-                      }}
-                      className="w-full"
-                    />
-                    <p className="mt-1 text-xs" style={{ color: "var(--roost-text-muted)", fontWeight: 600 }}>
-                      Complete {threshold}% of chores to earn allowance
-                    </p>
-                  </div>
-
-                  {allowanceDirty && (
-                    <motion.button
-                      type="button"
-                      whileTap={{ y: 1 }}
-                      onClick={() => allowanceMutation.mutate()}
-                      disabled={allowanceMutation.isPending}
-                      className="flex h-11 w-full items-center justify-center rounded-xl text-sm text-white"
-                      style={{
-                        backgroundColor: "#F97316",
-                        border: "1.5px solid #F97316",
-                        borderBottom: "3px solid #C4581A",
-                        fontWeight: 800,
-                        opacity: allowanceMutation.isPending ? 0.7 : 1,
-                      }}
-                    >
-                      Save allowance settings
-                    </motion.button>
-                  )}
-                </div>
-                )}
+                <p className="text-xs" style={{ color: "var(--roost-text-secondary)", fontWeight: 600 }}>
+                  Set up rewards for {member.name.split(" ")[0]} on the Chores page. You can offer money, gifts, or activities based on any completion period.
+                </p>
               </div>
             )}
 

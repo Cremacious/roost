@@ -10,6 +10,7 @@ import {
   ChevronUp,
   ClipboardList,
   History,
+  Info,
   Lock,
   Pencil,
   PiggyBank,
@@ -21,7 +22,9 @@ import { isPast } from "date-fns";
 import { motion, AnimatePresence } from "framer-motion";
 import ChoreSheet, { type ChoreData } from "@/components/chores/ChoreSheet";
 import LeaderboardSheet from "@/components/chores/LeaderboardSheet";
+import RewardRuleSheet, { type RewardRule } from "@/components/chores/RewardRuleSheet";
 import { SECTION_COLORS } from "@/lib/constants/colors";
+import { Switch } from "@/components/ui/switch";
 import {
   Dialog,
   DialogContent,
@@ -116,6 +119,8 @@ export default function ChoresPage() {
   const [leaderboardOpen, setLeaderboardOpen] = useState(false);
   const [pendingCompleteId, setPendingCompleteId] = useState<string | null>(null);
   const [upgradeCode, setUpgradeCode] = useState<string | null>(null);
+  const [rewardSheetOpen, setRewardSheetOpen] = useState(false);
+  const [editingRule, setEditingRule] = useState<RewardRule | null>(null);
 
   // ---- Data ----------------------------------------------------------------
 
@@ -163,6 +168,17 @@ export default function ChoresPage() {
     staleTime: 60_000,
   });
 
+  const { data: rewardsData } = useQuery<{ rules: (RewardRule & { child_name: string; child_avatar: string | null; currentPeriod: { start: string; end: string; total: number; completed: number; completionRate: number; onTrack: boolean } })[] }>({
+    queryKey: ["rewards"],
+    queryFn: async () => {
+      const r = await fetch("/api/rewards");
+      if (!r.ok) throw new Error("Failed to load rewards");
+      return r.json();
+    },
+    staleTime: 30_000,
+    enabled: membersData?.members?.find((m) => m.userId === currentUserId)?.role === "admin",
+  });
+
   // ---- Mutations -----------------------------------------------------------
 
   const completeMutation = useMutation({
@@ -185,7 +201,7 @@ export default function ChoresPage() {
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ["chores"] });
-      queryClient.invalidateQueries({ queryKey: ["allowance-child"] });
+      queryClient.invalidateQueries({ queryKey: ["rewards-child"] });
     },
   });
 
@@ -210,7 +226,7 @@ export default function ChoresPage() {
     onSuccess: (_data, choreId) => {
       toast("Chore unmarked", { action: { label: "Undo", onClick: () => completeMutation.mutate(choreId) } });
       queryClient.invalidateQueries({ queryKey: ["chores"] });
-      queryClient.invalidateQueries({ queryKey: ["allowance-child"] });
+      queryClient.invalidateQueries({ queryKey: ["rewards-child"] });
     },
   });
 
@@ -219,9 +235,11 @@ export default function ChoresPage() {
   const allChores = choresData?.chores ?? [];
   const members = membersData?.members ?? [];
   const categories = categoriesData?.categories ?? [];
+  const rules = rewardsData?.rules ?? [];
   const currentMember = members.find((m) => m.userId === currentUserId);
   const isAdmin = currentMember?.role === "admin";
   const isPremium = membersData?.household?.subscriptionStatus === "premium";
+  const childMembers = members.filter((m) => m.role === "child");
 
   // Categories that actually have chores assigned (for filter pills)
   const usedCategoryIds = new Set(allChores.map((c) => c.category_id).filter(Boolean));
@@ -366,7 +384,7 @@ export default function ChoresPage() {
             {!isPremium && <Lock className="size-3 ml-0.5" style={{ color: "var(--roost-text-muted)" }} />}
           </motion.button>
 
-          {/* Allowances — hidden for children; icon only on mobile, text+icon on desktop */}
+          {/* Rewards — hidden for children; icon only on mobile, text+icon on desktop */}
           {currentMember?.role !== "child" && (
             <>
               <motion.button
@@ -379,7 +397,7 @@ export default function ChoresPage() {
                   border: "1.5px solid var(--roost-border)",
                   borderBottom: "3px solid #E5E7EB",
                 }}
-                aria-label="Allowances"
+                aria-label="Rewards"
               >
                 {!isPremium && <Lock className="size-3 mr-0.5" style={{ color: "var(--roost-text-muted)" }} />}
                 <PiggyBank className="size-4" style={{ color: COLOR }} />
@@ -398,7 +416,7 @@ export default function ChoresPage() {
                 }}
               >
                 <PiggyBank className="size-4" style={{ color: COLOR }} />
-                Allowances
+                Rewards
                 {!isPremium && <Lock className="size-3 ml-0.5" style={{ color: "var(--roost-text-muted)" }} />}
               </motion.button>
             </>
@@ -412,6 +430,330 @@ export default function ChoresPage() {
         <StatCard value={remaining} label="Remaining" borderColor="#C93B3B" />
         <StatCard value={`${myStreak}d`} label="Streak" color="#F59E0B" borderColor="#C93B3B" />
       </div>
+
+      {/* Rewards section — admin only */}
+      {isAdmin && (
+        <div className="mb-2">
+          {/* Section header */}
+          <div className="mb-3 flex items-center justify-between">
+            <div>
+              <div className="flex items-center gap-2">
+                <Trophy className="size-4.5" style={{ color: COLOR }} />
+                <span
+                  className="text-[17px]"
+                  style={{ color: "var(--roost-text-primary)", fontWeight: 800 }}
+                >
+                  Rewards
+                </span>
+              </div>
+              <p
+                className="mt-0.5 text-xs"
+                style={{ color: "var(--roost-text-muted)", fontWeight: 600 }}
+              >
+                Chore goals and prizes for your household
+              </p>
+            </div>
+            {isPremium && (
+              <motion.button
+                type="button"
+                whileTap={{ y: 1 }}
+                onClick={() => {
+                  setEditingRule(null);
+                  setRewardSheetOpen(true);
+                }}
+                className="flex h-9 items-center gap-1.5 rounded-xl px-3 text-xs"
+                style={{
+                  backgroundColor: `${COLOR}12`,
+                  border: `1.5px solid ${COLOR}30`,
+                  borderBottom: `3px solid ${COLOR}50`,
+                  color: COLOR,
+                  fontWeight: 700,
+                }}
+              >
+                <Plus className="size-3.5" />
+                Add rule
+              </motion.button>
+            )}
+          </div>
+
+          {!isPremium ? (
+            <PremiumGate feature="chores" trigger="inline" />
+          ) : rules.length === 0 ? (
+            /* Empty state */
+            <div
+              className="rounded-[12px] p-5 text-center"
+              style={{
+                backgroundColor: "var(--roost-surface)",
+                border: "0.5px solid var(--roost-border)",
+                borderBottom: `4px solid ${COLOR}`,
+              }}
+            >
+              <Trophy
+                className="mx-auto mb-2 size-8"
+                style={{ color: COLOR }}
+              />
+              <p
+                className="text-[15px]"
+                style={{ color: "var(--roost-text-primary)", fontWeight: 800 }}
+              >
+                No rewards set up yet
+              </p>
+              <p
+                className="mx-auto mt-1.5 max-w-70 text-xs leading-relaxed"
+                style={{ color: "var(--roost-text-muted)", fontWeight: 600 }}
+              >
+                Create a reward rule to motivate your kids. Set a weekly,
+                monthly, or custom chore goal - when they hit the threshold,
+                their reward unlocks automatically. Works for money, gifts,
+                activities, or anything you choose.
+              </p>
+              <motion.button
+                type="button"
+                whileTap={{ y: 2 }}
+                onClick={() => {
+                  setEditingRule(null);
+                  setRewardSheetOpen(true);
+                }}
+                className="mt-3.5 inline-flex items-center gap-1.5 rounded-xl px-5 text-sm text-white"
+                style={{
+                  backgroundColor: COLOR,
+                  border: `1.5px solid ${COLOR}`,
+                  borderBottom: "3px solid #B91C1C",
+                  fontWeight: 800,
+                  padding: "10px 20px",
+                }}
+              >
+                <Plus className="size-4" />
+                Add first reward
+              </motion.button>
+            </div>
+          ) : (
+            /* Rule cards */
+            <div className="space-y-2">
+              {rules.map((rule) => {
+                const { currentPeriod } = rule;
+                const periodLabel =
+                  rule.period_type === "week"
+                    ? "Weekly"
+                    : rule.period_type === "month"
+                    ? "Monthly"
+                    : rule.period_type === "year"
+                    ? "Yearly"
+                    : `Every ${rule.period_days ?? "?"} days`;
+
+                const rewardLabel =
+                  rule.reward_type === "money" && rule.reward_amount
+                    ? `$${parseFloat(String(rule.reward_amount)).toFixed(2)}`
+                    : rule.reward_description
+                    ? rule.reward_type === "gift"
+                      ? `Gift: ${rule.reward_description.slice(0, 24)}${rule.reward_description.length > 24 ? "..." : ""}`
+                      : rule.reward_type === "activity"
+                      ? `Activity: ${rule.reward_description.slice(0, 24)}${rule.reward_description.length > 24 ? "..." : ""}`
+                      : rule.reward_description.slice(0, 24) + (rule.reward_description.length > 24 ? "..." : "")
+                    : "Reward";
+
+                const periodPillColor =
+                  rule.period_type === "week"
+                    ? { bg: "#F59E0B18", border: "#F59E0B30", text: "#F59E0B" }
+                    : rule.period_type === "month"
+                    ? { bg: "#EF444418", border: "#EF444430", text: "#EF4444" }
+                    : rule.period_type === "year"
+                    ? { bg: "#3B82F618", border: "#3B82F630", text: "#3B82F6" }
+                    : { bg: "#A855F718", border: "#A855F730", text: "#A855F7" };
+
+                const rewardPillColor =
+                  rule.reward_type === "money"
+                    ? { bg: "#22C55E18", border: "#22C55E30", text: "#22C55E" }
+                    : rule.reward_type === "gift"
+                    ? { bg: "#A855F718", border: "#A855F730", text: "#A855F7" }
+                    : rule.reward_type === "activity"
+                    ? { bg: "#3B82F618", border: "#3B82F630", text: "#3B82F6" }
+                    : { bg: "var(--roost-surface)", border: "var(--roost-border)", text: "var(--roost-text-secondary)" };
+
+                return (
+                  <div
+                    key={rule.id}
+                    className="rounded-[12px] px-4 py-3.5"
+                    style={{
+                      backgroundColor: "var(--roost-surface)",
+                      border: "0.5px solid var(--roost-border)",
+                      borderBottom: `4px solid ${COLOR}`,
+                    }}
+                  >
+                    {/* Top row */}
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2">
+                          <div
+                            className="flex size-8 shrink-0 items-center justify-center rounded-full text-[10px] font-semibold text-white"
+                            style={{ background: rule.child_avatar ?? "#6366f1" }}
+                          >
+                            {(rule.child_name ?? "?")
+                              .split(" ")
+                              .slice(0, 2)
+                              .map((w: string) => w[0])
+                              .join("")
+                              .toUpperCase()}
+                          </div>
+                          <span
+                            className="text-sm"
+                            style={{
+                              color: "var(--roost-text-primary)",
+                              fontWeight: 800,
+                            }}
+                          >
+                            {rule.child_name ?? "Child"}
+                          </span>
+                        </div>
+                        <p
+                          className="mt-0.5 pl-10 text-xs"
+                          style={{
+                            color: "var(--roost-text-muted)",
+                            fontWeight: 700,
+                          }}
+                        >
+                          {rule.title}
+                        </p>
+                      </div>
+                      <div className="flex shrink-0 items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setEditingRule(rule);
+                            setRewardSheetOpen(true);
+                          }}
+                          className="flex h-8 w-8 items-center justify-center rounded-lg"
+                          style={{ color: "var(--roost-text-muted)" }}
+                        >
+                          <Pencil className="size-4" />
+                        </button>
+                        <Switch
+                          checked={rule.enabled}
+                          onCheckedChange={async (v) => {
+                            await fetch(`/api/rewards/${rule.id}`, {
+                              method: "PATCH",
+                              headers: { "Content-Type": "application/json" },
+                              body: JSON.stringify({ enabled: v }),
+                            });
+                            queryClient.invalidateQueries({ queryKey: ["rewards"] });
+                          }}
+                        />
+                      </div>
+                    </div>
+
+                    {/* Badges row */}
+                    <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                      <span
+                        className="rounded-full px-2 py-0.5 text-[10px]"
+                        style={{
+                          backgroundColor: periodPillColor.bg,
+                          border: `1px solid ${periodPillColor.border}`,
+                          color: periodPillColor.text,
+                          fontWeight: 700,
+                        }}
+                      >
+                        {periodLabel}
+                      </span>
+                      <span
+                        className="rounded-full px-2 py-0.5 text-[10px]"
+                        style={{
+                          backgroundColor: rewardPillColor.bg,
+                          border: `1px solid ${rewardPillColor.border}`,
+                          color: rewardPillColor.text,
+                          fontWeight: 700,
+                        }}
+                      >
+                        {rewardLabel}
+                      </span>
+                      <span
+                        className="rounded-full px-2 py-0.5 text-[10px]"
+                        style={{
+                          backgroundColor: "var(--roost-bg)",
+                          border: "1px solid var(--roost-border)",
+                          color: "var(--roost-text-muted)",
+                          fontWeight: 700,
+                        }}
+                      >
+                        {rule.threshold_percent}% required
+                      </span>
+                    </div>
+
+                    {/* Progress bar */}
+                    {currentPeriod && (
+                      <div className="mt-3">
+                        <div className="mb-1.5 flex items-center justify-between">
+                          <span
+                            className="text-[11px]"
+                            style={{
+                              color: "var(--roost-text-muted)",
+                              fontWeight: 600,
+                            }}
+                          >
+                            This period
+                          </span>
+                          <span
+                            className="text-[11px]"
+                            style={{
+                              color: "var(--roost-text-muted)",
+                              fontWeight: 600,
+                            }}
+                          >
+                            {currentPeriod.completed}/{currentPeriod.total} chores
+                          </span>
+                        </div>
+                        <div
+                          className="h-1.5 w-full overflow-hidden rounded-full"
+                          style={{ backgroundColor: "var(--roost-border)" }}
+                        >
+                          <div
+                            className="h-full rounded-full transition-all duration-500"
+                            style={{
+                              width: `${Math.min(currentPeriod.completionRate, 100)}%`,
+                              backgroundColor: COLOR,
+                            }}
+                          />
+                        </div>
+                        <p
+                          className="mt-1 text-[11px]"
+                          style={{
+                            color: currentPeriod.onTrack ? "#22C55E" : "var(--roost-text-muted)",
+                            fontWeight: 600,
+                          }}
+                        >
+                          {currentPeriod.onTrack
+                            ? "On track to earn reward"
+                            : `${currentPeriod.completionRate}% - need ${rule.threshold_percent}% to earn`}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+
+              {/* Info callout */}
+              <div className="flex items-start gap-1.5 pt-1">
+                <Info
+                  style={{
+                    width: 12,
+                    height: 12,
+                    color: "var(--roost-text-muted)",
+                    marginTop: 1,
+                    flexShrink: 0,
+                  }}
+                />
+                <p
+                  className="text-[11px] leading-relaxed"
+                  style={{ color: "var(--roost-text-muted)", fontWeight: 600 }}
+                >
+                  Roost evaluates rules automatically at the end of each period.
+                  Money rewards are logged as expenses. Other rewards notify you
+                  to arrange them.
+                </p>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* View toggle */}
       <div
@@ -674,6 +1016,12 @@ export default function ChoresPage() {
         onUpgradeRequired={(code) => { setSheetOpen(false); setUpgradeCode(code); }}
       />
       <LeaderboardSheet open={leaderboardOpen} onClose={() => setLeaderboardOpen(false)} />
+      <RewardRuleSheet
+        open={rewardSheetOpen}
+        onClose={() => { setRewardSheetOpen(false); setEditingRule(null); }}
+        rule={editingRule}
+        members={childMembers}
+      />
 
       {/* Upgrade prompt sheet */}
       {!!upgradeCode && (

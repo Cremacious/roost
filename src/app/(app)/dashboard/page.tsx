@@ -25,7 +25,7 @@ import { motion } from "framer-motion";
 import { SECTION_COLORS, type SectionKey } from "@/lib/constants/colors";
 import { PageContainer } from "@/components/layout/PageContainer";
 import SlabCard from "@/components/shared/SlabCard";
-import AllowanceWidget from "@/components/shared/AllowanceWidget";
+import RewardsWidget from "@/components/shared/RewardsWidget";
 import WelcomeModal from "@/components/shared/WelcomeModal";
 
 // ---- Types ------------------------------------------------------------------
@@ -522,8 +522,8 @@ export default function DashboardPage() {
           ))}
         </div>
 
-        {/* Allowance widget — child accounts only */}
-        {role === "child" && <AllowanceWidget />}
+        {/* Rewards widget — child accounts only */}
+        {role === "child" && <RewardsWidget />}
 
         {/* Recent Activity */}
         <div className="mb-4">

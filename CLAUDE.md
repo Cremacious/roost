@@ -508,7 +508,7 @@ src/db/schema/notes.ts
 src/db/schema/expenses.ts                      expenses, expense_splits
 src/db/schema/notifications.ts                 notification_queue
 src/db/schema/activity.ts                      household_activity table (id, household_id, user_id, type, entity_id, entity_type, description, created_at)
-src/db/schema/allowances.ts                    allowance_settings + allowance_payouts tables. Payouts have unique (household_id, user_id, week_start)
+src/db/schema/allowances.ts                    reward_rules + reward_payouts tables (new system). Old allowance_settings + allowance_payouts kept for migration safety, not used.
 src/db/schema/index.ts                         Re-exports all tables
 src/app/(auth)/login/page.tsx
 src/app/(auth)/signup/page.tsx                 Email/password + strength meter + confirm field
@@ -591,8 +591,8 @@ src/components/shared/SectionColorBadge.tsx    Inline color badge pill: bg color
 src/components/shared/MemberAvatar.tsx         Initials avatar, sizes sm/md/lg, color prop
 src/components/shared/DraggableSheet.tsx        shadcn Sheet (side="bottom") wrapper with colored handle pill + centered desktop layout; props: open, onOpenChange, children, featureColor?, desktopMaxWidth? (default 680); used for all content bottom sheets
 src/components/shared/PremiumGate.tsx          Unified premium gate: 3 trigger variants (sheet/inline/page), driven by PREMIUM_GATE_CONFIG keyed by feature slug
-src/lib/constants/premiumGateConfig.ts         PREMIUM_GATE_CONFIG: 13 feature entries (chores/grocery/expenses/calendar/tasks/notes/reminders/meals/allowances/guests/themes/stats/chore-categories), each with featureColor, featureHex, featureDarkHex, icon, title, subtitle, perks[], valueProp
-src/components/settings/MemberSheet.tsx        Admin member management: role picker, 12 permission toggles, child PIN change, allowance config, remove member
+src/lib/constants/premiumGateConfig.ts         PREMIUM_GATE_CONFIG: 13 feature entries (chores/grocery/expenses/calendar/tasks/notes/reminders/meals/allowances/guests/themes/stats/chore-categories), each with featureColor, featureHex, featureDarkHex, icon, title, subtitle, perks[], valueProp. "allowances" key used for the Rewards feature gate (key name kept stable, copy updated to reflect flexible rewards system).
+src/components/settings/MemberSheet.tsx        Admin member management: role picker, 12 permission toggles, child PIN change, rewards info callout (pointing to Chores page), remove member
 src/components/dev/DevTools.tsx                Dev-only floating toolbar: premium toggle switch, user info, household info
 src/lib/constants/freeTierLimits.ts            FREE_TIER_LIMITS: members(5), children(1), chores(5), tasks(10), calendarEventsPerMonth(20), notes(10), activeSingleReminders(5), mealBank(5), groceryLists(1)
 src/lib/utils/premiumGating.ts                 Server-side limit checkers: checkChoreLimit, checkTaskLimit, checkNoteLimit, checkCalendarEventLimit, checkReminderLimit, checkMealBankLimit, checkMemberLimit
@@ -662,13 +662,14 @@ src/components/shared/ReminderBanner.tsx      Dismissible banner below TopBar wh
 vercel.json                                   Cron schedule: /api/cron/reminders every 15 minutes
 src/components/layout/PageContainer.tsx        Content width constraint: max-w-4xl (896px) centered, full width mobile
 src/app/(app)/activity/page.tsx               Full activity feed: paginated list, 20 per page, Load more button
-src/app/api/allowances/route.ts               GET: payout history for household, optional ?userId filter
-src/app/api/allowances/child/route.ts         GET: allowance settings + payouts + current week progress for current user
-src/app/api/cron/allowances/route.ts          Vercel cron GET (Sunday 11pm UTC): evaluate chore completion, create expense entries
-src/components/shared/AllowanceWidget.tsx     Child-only widget: weekly progress bar, status message, last 4 weeks history; uses settings.evaluation_day for dynamic "evaluated on X" text
-src/components/allowances/AllowanceChildCard.tsx  Admin card per child: enable toggle, weekly amount input, threshold slider (50-100%), evaluation day pills, current week progress bar, save button (dirty state)
-src/app/(app)/chores/allowances/page.tsx      Allowances management page: admin + premium only (redirect otherwise), default eval day card (localStorage roost_default_eval_day), AllowanceChildCard per child, empty state if no children
-src/app/api/allowances/child-progress/route.ts  GET (admin only, ?userId=): current week chore progress for a specific child member
+src/app/api/rewards/route.ts                  GET (admin: all rules with progress per child; child: own rules) + POST (create rule); exports getPeriodBounds()
+src/app/api/rewards/[id]/route.ts             PATCH (update rule fields) + DELETE (hard delete if no payouts, else soft disable)
+src/app/api/rewards/child/route.ts            GET: rules with current period progress + last 12 payouts for current user
+src/app/api/rewards/payouts/[id]/route.ts     PATCH: acknowledge payout (child sets acknowledged=true, logs activity)
+src/app/api/cron/rewards/route.ts             Vercel cron GET (nightly 11pm UTC): evaluate completed periods, create payouts, create expense entries for money rewards
+src/components/chores/RewardRuleSheet.tsx     Create/edit reward rule sheet: child selector, name, period, threshold slider, reward type + detail; exports RewardRule + RewardMember types
+src/components/shared/RewardsWidget.tsx       Child-only dashboard widget: unacknowledged claim cards, active rule progress bars, payout history; query key ["rewards-child"]
+src/app/(app)/chores/allowances/page.tsx      Rewards management page (admin + premium): how-it-works explainer, per-rule cards with period/reward/threshold badges, progress bars, enable/disable toggle, empty states for no-children and no-rules; opens RewardRuleSheet
 src/components/shared/WelcomeModal.tsx        First-visit welcome dialog: shadcn Dialog, 3 tip rows (household/child/chores), red CTA dismisses + POSTs /api/user/dismiss-welcome; shown when has_seen_welcome=false
 src/lib/hooks/use-paginated-list.ts           usePaginatedList<T>(items, { pageSize }) — client-side slice pagination; auto-resets when items identity changes; returns visibleItems, hasMore, loadMore, reset, visibleCount, totalCount
 src/components/ui/show-more-button.tsx        ShowMoreButton — renders "Showing X of Y" + "+ Show N more" slab button; returns null when all items visible; accepts color prop for section tinting
@@ -1209,25 +1210,42 @@ Designer brief (send this when hiring):
 At the start of each new session fetch this file to restore context.
 Share GitHub file URLs, paste code, or describe what was built.
 Update this file after every major decision or completed phase.
-## Allowance System Rules
-- Allowance is premium only (enforced via household subscription_status)
-- allowance_settings: one row per child per household; admin configures via MemberSheet (Settings) or /chores/allowances
-- allowance_settings.evaluation_day: text column (monday-sunday), default "sunday"; controls which day the cron evaluates
-- allowance_payouts: one row per child per week, unique (household_id, user_id, week_start)
-- Cron runs Sunday 11pm UTC via /api/cron/allowances, secured with CRON_SECRET
-- /chores/allowances page: dedicated management page; admin + premium only; default eval day in localStorage (roost_default_eval_day)
-- Allowances button in chores header: hidden for child role, Lock icon for non-premium users, navigates to /chores/allowances for premium
-- Earned allowances create a real expense entry (paid_by = admin, split = child owes admin)
-  This means earned allowances appear in the settle-up flow automatically
-- Completion rate = (completions this week) / (total assigned chores) * 100
-  If no chores assigned, completion rate = 100 (full allowance always paid)
-- Children see AllowanceWidget on dashboard (only when allowance is enabled for them)
-- Allowance history is visible in the expenses page allowance section (admins/members only)
+## Rewards System Rules
+- Rewards are premium only (enforced via household subscription_status)
+- reward_rules table: one row per rule (admin creates, one per child+title combo, unique(household_id, user_id, title))
+  - reward_type: "money" | "gift" | "activity" | "other"
+  - period_type: "week" | "month" | "year" | "custom" (custom uses period_days)
+  - threshold_percent: 50-100, the completion % required to earn the reward
+  - starts_at: anchor date for custom periods
+- reward_payouts table: one row per child per period per rule, unique(household_id, user_id, rule_id, period_start)
+  - acknowledged: bool, child taps "Claim reward" to set true (PATCH /api/rewards/payouts/[id])
+- Cron runs nightly at 11pm UTC via /api/cron/rewards, secured with CRON_SECRET
+  The cron evaluates the just-completed period for each rule and creates payouts
+- vercel.json cron: /api/cron/rewards runs "0 23 * * *" (nightly, not just Sunday)
+- Admin manages rewards from two surfaces:
+  1. Inline Rewards section at the bottom of the Chores page (quick overview + add/edit)
+  2. Dedicated Rewards page at /chores/allowances (full-page management with explainer, per-rule progress, enable/disable toggle)
+  Both surfaces open RewardRuleSheet for create/edit.
+  "Rewards" button in the chores header navigates to /chores/allowances (or shows upgrade gate for free users)
+- RewardRuleSheet (src/components/chores/RewardRuleSheet.tsx): create/edit sheet; props: open, onClose, rule, members (child array)
+- RewardsWidget (src/components/shared/RewardsWidget.tsx): child-facing dashboard widget
+  - Query key: ["rewards-child"], fetches /api/rewards/child
+  - Shows unacknowledged earned payouts as green "Claim reward" cards
+  - Shows active rules with progress bars
+  - Shows recent payout history
+- getPeriodBounds() exported from src/app/api/rewards/route.ts: returns {start, end} for current period
+  Used by child route and cron. The cron uses separate getCompletedPeriodBounds() for the previous period.
+- Earned money rewards create a real expense entry (paid_by = admin, split = child owes admin)
+  This means earned money rewards appear in the settle-up flow automatically
+- Completion rate = (completions in period) / (total assigned chores) * 100
+  If no chores assigned, completion rate = 100 (reward always earned)
+- Children see RewardsWidget on dashboard (only when enabled rules exist for them, and only if premium)
 - Activity types: allowance_earned (green dot, maps to expenses), allowance_missed (amber dot)
-- vercel.json cron: /api/cron/allowances runs "0 23 * * 0" (Sunday 11pm UTC)
-- ["allowance-child"] query must be invalidated whenever a chore is completed or unchecked.
+- ["rewards-child"] query must be invalidated whenever a chore is completed or unchecked.
   Both completeMutation.onSettled and uncheckMutation.onSuccess in chores/page.tsx do this.
-  Without it, AllowanceWidget shows stale progress until a manual browser refresh.
+- MemberSheet settings section for child accounts shows an info callout pointing to the Chores page
+  instead of the old allowance form. Allowance config is no longer in MemberSheet.
+- Old tables (allowance_settings, allowance_payouts) remain in schema for migration safety but are unused
 
 ## Playwright E2E Testing Notes
 - Use `**/path` glob patterns for `waitForURL`, not bare `/path` strings, to handle baseURL prefixes

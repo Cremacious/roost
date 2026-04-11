@@ -2247,8 +2247,8 @@ export default function SettingsPage() {
                   fontWeight: 600,
                 }}
               >
-                Set up allowances for children in their member settings.
-                Allowances are evaluated every Sunday night.
+                Set up rewards for children on the Chores page.
+                Rewards are evaluated automatically based on the period you choose.
               </p>
             )}
             <SlabCard>

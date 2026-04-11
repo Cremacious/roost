@@ -1,6 +1,7 @@
 # Roost — Feature Registry
-> Last updated: 2026-04-11 (Suggestions tab: "Add to bank" button color changed to meals orange. Confirmation dialog added before adding to bank. New status "in_bank" keeps card visible after adding to bank with a BookmarkCheck badge. GET filter now includes both "suggested" and "in_bank". Status semantics: suggested/in_bank/accepted/rejected.)
-> Previous: 2026-04-10 (Bug fix: AllowanceWidget progress now updates immediately after a chore is completed or unchecked. completeMutation.onSettled and uncheckMutation.onSuccess in chores/page.tsx now both invalidate ["allowance-child"] query cache.)
+> Last updated: 2026-04-11 (Rewards management page fully rewritten at /chores/allowances. How-it-works explainer with numbered steps. Per-rule cards show period/reward/threshold badges, progress bar, enable/disable toggle, and edit button. Empty states for no-children and no-rules. Dead allowance files deleted: AllowanceChildCard.tsx, api/allowances/route.ts, api/allowances/child/route.ts, api/allowances/child-progress/route.ts. Chores header button label updated from Allowances to Rewards. premiumGateConfig allowances entry copy updated.)
+> Previous: 2026-04-11 (Allowance system reworked into flexible Rewards system. reward_rules + reward_payouts tables replace old allowance tables. Reward types: money/gift/activity/other. Period types: week/month/year/custom. Admin manages from Chores page Rewards section (no longer in MemberSheet). RewardsWidget replaces AllowanceWidget on child dashboard. Cron changed from Sunday-only to nightly. Payout acknowledgement via PATCH /api/rewards/payouts/[id].)
+> Previous: 2026-04-11 (Suggestions tab: "Add to bank" button color changed to meals orange. Confirmation dialog added before adding to bank. New status "in_bank" keeps card visible after adding to bank with a BookmarkCheck badge. GET filter now includes both "suggested" and "in_bank". Status semantics: suggested/in_bank/accepted/rejected.)
 > Previous: 2026-04-10 (Expenses gating model changed: page is now free for all users. Basic expense add and split bill are free. Premium features gated inline at click-time via PremiumGate sheet: receipt scanning, categories, recurring payments, budget, insights, export. API POST /api/expenses still enforces premium server-side.)
 > Previous: 2026-04-10 (Child account system fully operational. add-child route inserts into better-auth "user" table first (FK requirement), then app "users" table. Placeholder email child_${userId}@roost.internal satisfies the NOT NULL unique constraint. Any tooling that creates child accounts must do both inserts in this order.)
 > Previous: 2026-04-09 (Settings sidebar active section fixed: replaced IntersectionObserver with scroll-based "closest section above viewport midpoint" approach so Billing and Danger Zone sections always highlight correctly. Email notification toggle removed from Notifications section: chore_reminders_enabled column kept in DB schema but removed from UI and API response; Notifications section now shows info text only. ScrollToTop component added for mobile nav. Mobile Safari UX fixes: all inputs/textareas/selects/contenteditable elements have font-size 16px floor on mobile via globals.css to prevent iOS auto-zoom on focus; viewport maximumScale=1 added to layout.tsx; DraggableSheet adds onOpenAutoFocus preventDefault to stop keyboard popup before user sees form; RichTextEditor hardcodes autofocus: false in useEditor. DraggableSheet now centered on desktop via Tailwind sm: classes; full-width on mobile unaffected. All content bottom sheets migrated to DraggableSheet. Billing page current plan card updated: shows real usage data for free tier (chores/members/grocery lists/reminders with progress bars), premium tier shows Active badge and billing date. Themes made free: no premium gate on theme API or settings picker. Billing page redesigned with hero card, feature grid from PREMIUM_GATE_CONFIG, and bottom CTA. Price $4/month.)
@@ -179,16 +180,17 @@
 - Unlimited meal bank (free tier: 5 meal limit)
 - Smart meal suggestions based on your meal bank
 
-#### Allowances (Premium)
-- Dedicated /chores/allowances management page (admin only, redirect for free/child)
-- Per-child allowance cards: toggle on/off, weekly amount input, threshold slider (50-100%), evaluation day picker
-- Default evaluation day stored in localStorage (roost_default_eval_day)
-- Current week progress bar per child (completion rate vs threshold)
-- Allowances button in chores header: hidden for child role, Lock icon for non-premium, navigates to /chores/allowances for premium
-- Allowance settings also configurable in MemberSheet (Settings page)
-- Tied to chore completion percentage; evaluation_day column in allowance_settings
-- Child dashboard widget hidden for free households
-- Earned allowances appear in expenses settle-up flow
+#### Rewards (Premium)
+**Sell it as:** "Motivate kids with rewards they actually want."
+- Admin creates reward rules per child from the Chores page (Rewards section)
+- Reward types: Money (auto-creates expense entry in settle-up flow), Gift, Activity, Other
+- Flexible periods: Weekly, Monthly, Yearly, or custom N-day cycles
+- Threshold: admin sets the completion % required (50-100%) to earn the reward
+- Nightly cron evaluates completed periods and creates payout records automatically
+- Earned money rewards appear in the expenses settle-up flow automatically
+- Child sees RewardsWidget on dashboard: unacknowledged claims they can tap to acknowledge, active rule progress bars, recent payout history
+- Admin sees per-rule progress bars in the Rewards section on the Chores page
+- Admins can have multiple rules per child (different period types or reward types)
 
 #### Guest / Temporary Member (Premium)
 **Sell it as:** "Invite a temporary member."

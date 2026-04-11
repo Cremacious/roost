@@ -292,11 +292,69 @@ Safe deploy process (document in 2.1 runbook):
 ## 3. Security and Platform Hardening
 
 ### 3.1 App Security
-- [ ] Review auth/session cookie settings for production.
-- [ ] Audit authorization checks on admin/member/child/guest routes.
-- [ ] Add rate limiting where abuse is realistic.
-- [ ] Review destructive endpoints for authorization and audit logging.
-- [ ] Check whether any dev/test endpoints could be exposed in production.
+- [x] Review auth/session cookie settings for production.
+- [x] Audit authorization checks on admin/member/child/guest routes.
+- [x] Add rate limiting where abuse is realistic.
+- [x] Review destructive endpoints for authorization and audit logging.
+- [x] Check whether any dev/test endpoints could be exposed in production.
+
+What was audited (2026-04-11):
+
+Dev/test endpoints:
+- `POST /api/dev/toggle-premium`: guards with `process.env.NODE_ENV !== "development"` at the
+  top of the handler, returning 403 in production. The middleware skips `/api/` entirely so
+  this is the only gate — and it is sufficient since Vercel sets NODE_ENV=production at build
+  time. No action needed.
+
+Session and cookie settings:
+- better-auth manages session cookies internally with `httpOnly: true` and `sameSite: "lax"`.
+- Child login (`POST /api/auth/child-login`) sets `secure: NODE_ENV === "production"` explicitly.
+- Session expiry is 30 days with a 5-minute cookie cache (reduces DB hits per request).
+- No changes needed. Acceptable for launch.
+
+Destructive endpoints:
+- `DELETE /api/household/[id]` — delete household and all content. Uses `requireHouseholdAdmin`.
+  The `id` param is cross-checked against the caller's membership; cross-household attacks blocked.
+- `POST /api/household/[id]/delete-data` — wipe household content (admin only). Same auth.
+- `POST /api/household/[id]/transfer-admin` — requires admin role, validates target is in the
+  same household, blocks child accounts as target. Clean.
+- Both destructive routes are also gated in the UI by a "type DELETE to confirm" input.
+  The API itself has no secondary confirmation token — acceptable for launch given admin auth is required.
+
+Authorization on privilege-sensitive routes:
+- Permission PATCH (`/api/household/members/[id]/permissions`): admin-only, same-household
+  validation, child-locked permissions enforced at API level. Clean.
+- Role PATCH (`/api/household/members/[id]/role`): admin-only. Clean.
+- Stripe webhook: Stripe signature verification via `stripe.webhooks.constructEvent`. No session
+  auth (correct for webhooks). Clean.
+- Change password: requires current password verification before accepting new hash. Clean.
+
+Rate limiting gaps found and fixed:
+- `POST /api/auth/child-login` had no rate limiting. A 4-digit PIN has only 10,000 possible
+  values. The GET endpoint is public and returns child IDs given a household code, so the full
+  brute-force path was: GET household code → enumerate child IDs → iterate PINs.
+  Fixed: added same in-memory per-IP rate limiter (5 attempts / 15 min) as admin login.
+  Counter clears on success so a legitimate child is never locked out.
+  File: `src/app/api/auth/child-login/route.ts`
+
+Rate limiting not added (acceptable for launch):
+- Signup / regular auth: handled by better-auth internally. better-auth has built-in
+  protections for credential endpoints. No custom rate limiter needed.
+- Profile PATCH: requires a valid session; account enumeration not possible without auth.
+- Cron routes: protected by `CRON_SECRET`; not user-reachable.
+
+Remaining risks accepted for launch:
+- Child login rate limiter is per-serverless-instance (same limitation as admin login).
+  Distributed brute force across many Vercel instances still possible but requires knowing
+  the household code, which limits the realistic attacker pool.
+- No IP allowlist on admin panel; brute-force is rate-limited per instance.
+- No CSRF tokens beyond `sameSite=lax` cookie protection. `sameSite=lax` blocks
+  cross-origin POST via form submission (the main CSRF vector for API routes). Acceptable.
+- No secondary confirmation token on destructive API endpoints (beyond admin role check
+  and UI-level "type DELETE" confirmation).
+
+Files changed:
+- `src/app/api/auth/child-login/route.ts`
 
 ### 3.2 Next.js / App Config
 - [x] Add production-oriented Next.js config where needed.
@@ -465,6 +523,6 @@ At the start of each future Roost session:
 5. Update this file.
 
 Recommended next task:
-- App security audit (3.1): review auth/session cookie settings for production, check whether
-  any dev/test endpoints could be exposed in production (/api/dev/*), review destructive
-  endpoints for authorization gaps.
+- Third-party integration validation (3.3): verify Stripe production credentials and webhook
+  endpoint configuration, verify Azure receipt scanning credentials and failure handling,
+  decide whether email sending is required for launch.

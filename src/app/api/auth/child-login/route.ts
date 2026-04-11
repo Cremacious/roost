@@ -6,6 +6,43 @@ import { and, eq, isNull } from "drizzle-orm";
 import { verifyPassword } from "better-auth/crypto";
 import { serializeSignedCookie } from "better-call";
 
+// ---- In-memory rate limiter --------------------------------------------------
+// Same pattern as admin login: 5 attempts per IP per 15-minute window.
+// Per-instance only (Vercel serverless) — prevents trivial single-source brute force
+// of 4-digit child PINs. The attack surface requires knowing the household code first.
+
+const MAX_ATTEMPTS = 5;
+const WINDOW_MS = 15 * 60 * 1000;
+
+interface RateEntry { count: number; resetAt: number }
+const pinAttempts = new Map<string, RateEntry>();
+
+function getClientIp(request: NextRequest): string {
+  return (
+    request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ??
+    request.headers.get("x-real-ip") ??
+    "unknown"
+  );
+}
+
+function checkRateLimit(ip: string): { allowed: boolean; retryAfterSec: number } {
+  const now = Date.now();
+  const entry = pinAttempts.get(ip);
+  if (!entry || now > entry.resetAt) {
+    pinAttempts.set(ip, { count: 1, resetAt: now + WINDOW_MS });
+    return { allowed: true, retryAfterSec: 0 };
+  }
+  if (entry.count >= MAX_ATTEMPTS) {
+    return { allowed: false, retryAfterSec: Math.ceil((entry.resetAt - now) / 1000) };
+  }
+  entry.count++;
+  return { allowed: true, retryAfterSec: 0 };
+}
+
+function clearRateLimit(ip: string): void {
+  pinAttempts.delete(ip);
+}
+
 // ---- GET: List children in a household (public, no auth) --------------------
 
 export async function GET(request: NextRequest): Promise<Response> {
@@ -47,6 +84,15 @@ export async function GET(request: NextRequest): Promise<Response> {
 // ---- POST: Authenticate a child with childId + PIN --------------------------
 
 export async function POST(request: NextRequest): Promise<Response> {
+  const ip = getClientIp(request);
+  const { allowed, retryAfterSec } = checkRateLimit(ip);
+  if (!allowed) {
+    return Response.json(
+      { error: "Too many attempts. Try again later." },
+      { status: 429, headers: { "Retry-After": String(retryAfterSec) } }
+    );
+  }
+
   let body: { householdCode?: string; childId?: string; pin?: string };
 
   try {
@@ -101,6 +147,8 @@ export async function POST(request: NextRequest): Promise<Response> {
   if (!valid) {
     return Response.json({ error: "Invalid PIN" }, { status: 401 });
   }
+
+  clearRateLimit(ip);
 
   const ctx = await auth.$context;
   const session = await ctx.internalAdapter.createSession(childId);

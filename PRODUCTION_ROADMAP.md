@@ -398,9 +398,83 @@ Debug logging removed:
   The `console.error` on failure in the route handler is kept — error logging is appropriate.
 
 ### 3.3 Third-Party Integrations
-- [ ] Validate Stripe production credentials and webhook configuration.
-- [ ] Validate Azure receipt scanning credentials and failure handling.
-- [ ] Decide whether email sending is part of launch, and wire it fully if yes.
+- [x] Validate Stripe production credentials and webhook configuration.
+- [x] Validate Azure receipt scanning credentials and failure handling.
+- [x] Decide whether email sending is part of launch, and wire it fully if yes.
+
+What was audited (2026-04-11):
+
+#### Stripe
+
+Verified in code:
+- Webhook endpoint: `POST /api/stripe/webhook` — correct path for production registration.
+- Raw body: `request.text()` used before any parsing. No Pages Router `bodyParser: false` config
+  is needed in App Router; this is correct.
+- Signature verification: `stripe.webhooks.constructEvent(body, sig!, STRIPE_WEBHOOK_SECRET)`.
+  If `sig` is null or the secret is wrong/missing, constructEvent throws → caught → returns 400.
+  Not perfectly descriptive on missing secret, but safe (rejects the webhook).
+- All 5 required events handled: `checkout.session.completed`, `customer.subscription.updated`,
+  `customer.subscription.deleted`, `invoice.payment_succeeded`, `invoice.payment_failed`.
+- `householdId` is passed in both session-level metadata AND `subscription_data.metadata` so
+  `customer.subscription.updated` (which only sees subscription metadata) can find it.
+- `cancel_at_period_end` → `premium_expires_at` flow is correct.
+- Payment failure does NOT revoke premium; waits for `subscription.deleted` (correct).
+- `APP_URL` from `NEXT_PUBLIC_APP_URL` used for success/cancel/portal return URLs.
+- Admin-only gate on all Stripe mutation routes (checkout, cancel, reactivate, portal).
+- `STRIPE_SECRET_KEY` throws at module init if missing (hard fail, not silent).
+- Bug fixed: `STRIPE_PRICE_ID` was exported with `!` assertion but no runtime guard.
+  If missing, checkout would silently 500 with no JSON body. Added matching guard in
+  `src/lib/utils/stripe.ts` so both keys throw at module init if missing.
+- `invoice.payment_succeeded/failed` correctly reads the subscription via the Stripe 2024-12-18
+  API structure: `invoice.parent.subscription_details.subscription` (not the deprecated
+  top-level `invoice.subscription`).
+
+Requires manual dashboard verification (cannot be confirmed from code):
+1. Production webhook registered in Stripe dashboard at `https://yourdomain.com/api/stripe/webhook`.
+2. All 5 event types enabled on that webhook endpoint.
+3. Production signing secret (`whsec_...`) set as `STRIPE_WEBHOOK_SECRET` in Vercel.
+4. `STRIPE_PRICE_ID` matches an active monthly price in the live Stripe product catalog.
+5. Live mode keys (`sk_live_...`, not `sk_test_...`) used for `STRIPE_SECRET_KEY` in Vercel production.
+6. Stripe Customer Portal configured in the dashboard (Stripe > Billing > Customer Portal >
+   activate). Without this, `POST /api/stripe/portal` returns a Stripe API error.
+7. Stripe account KYC / business verification completed for live payment acceptance.
+
+#### Azure Document Intelligence
+
+Verified in code:
+- Credentials checked before use: `if (!endpoint || !key) throw new Error(...)` in
+  `src/lib/utils/azureReceipts.ts`. Missing credentials throw immediately.
+- Throw is caught in `src/app/api/expenses/scan/route.ts`; returns 422 with
+  `{ error: "Could not read receipt", code: "SCAN_FAILED" }`. No crash, clean error.
+- Premium check enforced before calling Azure (403 if not premium).
+- Child accounts blocked (403 before any Azure call).
+- Image size validated (10MB limit) before parsing.
+- Empty result (0 line items) returns HTTP 200 with `warning` field, not an error.
+  Client shows "Add items manually" state rather than error state. Correct.
+- No receipt data logged to Vercel function logs (debug console.logs removed in 3.2).
+
+Requires manual verification:
+1. Azure Document Intelligence resource exists and is reachable at the configured endpoint.
+2. F0 (free) tier selected for the resource (500 scans/month free).
+3. `AZURE_DOCUMENT_INTELLIGENCE_ENDPOINT` and `AZURE_DOCUMENT_INTELLIGENCE_KEY` set in Vercel.
+4. `prebuilt-receipt` model is available in the selected Azure region (available in all major regions).
+5. Verify at least one real-world receipt scan works in staging before launch (the ML model
+   handles most formats, but receipt layout variation can cause partial results).
+
+#### Email (Resend)
+
+Status: Not implemented. Zero lines of Resend code exist anywhere in the codebase.
+`RESEND_API_KEY` is commented out in `.env.example`.
+
+Verdict: Not a launch blocker. Invites are link-only — the invite URL is generated and
+displayed to the admin to share manually (copy/paste or OS share sheet). No email is sent
+at any point in the current flow. Launch without email is fully supported by the current UX.
+
+Post-launch, Resend would be useful for: sending invite links directly to an email address,
+account verification, and password reset. None of these block the first launch.
+
+Files changed:
+- `src/lib/utils/stripe.ts` — added `STRIPE_PRICE_ID` guard to match existing `STRIPE_SECRET_KEY` guard
 
 ## 4. Testing Roadmap
 
@@ -523,6 +597,6 @@ At the start of each future Roost session:
 5. Update this file.
 
 Recommended next task:
-- Third-party integration validation (3.3): verify Stripe production credentials and webhook
-  endpoint configuration, verify Azure receipt scanning credentials and failure handling,
-  decide whether email sending is required for launch.
+- Observability (2.4): add error tracking (Sentry or similar) for server and client failures,
+  structured logging for key routes (Stripe webhook, cron), and basic analytics for the
+  signup/upgrade funnel. These provide visibility on day one without blocking launch.

@@ -41,6 +41,7 @@ export default defineConfig({
       timeout: 60000,
     },
     // Desktop — unauthenticated (signup, login, onboarding, child PIN, invite, email change)
+    // Billing and permissions specs also live here — they manage their own auth via test.use().
     {
       name: "unauthenticated",
       use: { ...devices["Desktop Chrome"] },
@@ -50,6 +51,8 @@ export default defineConfig({
         "**/auth-child.spec.ts",
         "**/auth-invite.spec.ts",
         "**/auth-email-change.spec.ts",
+        "**/billing.spec.ts",
+        "**/permissions.spec.ts",
       ],
       timeout: 60000,
     },

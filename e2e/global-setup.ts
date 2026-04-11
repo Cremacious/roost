@@ -6,6 +6,10 @@ import * as path from "path";
 const AUTH_DIR = path.join(__dirname, ".auth");
 const FREE_ADMIN_STATE = path.join(AUTH_DIR, "free-admin.json");
 const PREMIUM_ADMIN_STATE = path.join(AUTH_DIR, "premium-admin.json");
+const MEMBER_STATE = path.join(AUTH_DIR, "member.json");
+const CHILD_STATE = path.join(AUTH_DIR, "child.json");
+
+const BASE = "http://localhost:3000";
 
 async function globalSetup(_config: FullConfig) {
   // Ensure the .auth directory exists
@@ -29,7 +33,7 @@ async function globalSetup(_config: FullConfig) {
   {
     const ctx = await browser.newContext();
     const page = await ctx.newPage();
-    await page.goto("http://localhost:3000/login");
+    await page.goto(`${BASE}/login`);
     await page.fill('input[type="email"]', "admin.free@roost.test");
     await page.fill('input[type="password"]', "RoostTest123!");
     await page.click('[data-testid="login-submit"]');
@@ -43,7 +47,7 @@ async function globalSetup(_config: FullConfig) {
   {
     const ctx = await browser.newContext();
     const page = await ctx.newPage();
-    await page.goto("http://localhost:3000/login");
+    await page.goto(`${BASE}/login`);
     await page.fill('input[type="email"]', "admin.premium@roost.test");
     await page.fill('input[type="password"]', "RoostTest123!");
     await page.click('[data-testid="login-submit"]');
@@ -51,6 +55,48 @@ async function globalSetup(_config: FullConfig) {
     await ctx.storageState({ path: PREMIUM_ADMIN_STATE });
     await ctx.close();
     console.log("  ✓ Saved auth state: premium-admin");
+  }
+
+  // --- Member auth state ---
+  {
+    const ctx = await browser.newContext();
+    const page = await ctx.newPage();
+    await page.goto(`${BASE}/login`);
+    await page.fill('input[type="email"]', "member@roost.test");
+    await page.fill('input[type="password"]', "RoostTest123!");
+    await page.click('[data-testid="login-submit"]');
+    await page.waitForURL("**/dashboard", { timeout: 30000 });
+    await ctx.storageState({ path: MEMBER_STATE });
+    await ctx.close();
+    console.log("  ✓ Saved auth state: member");
+  }
+
+  // --- Child auth state ---
+  // Child accounts use PIN login, not email/password. We call the child-login API
+  // directly: it sets a signed session cookie via Set-Cookie, which is captured into
+  // the context's cookie jar by page.request, then saved via storageState.
+  {
+    const ctx = await browser.newContext();
+    const page = await ctx.newPage();
+
+    // Step 1: discover the child's ID from the household code
+    const childrenRes = await page.request.get(
+      `${BASE}/api/auth/child-login?householdCode=RSTFRE`
+    );
+    const { children } = await childrenRes.json() as { children: { id: string; name: string }[] };
+    const child = children.find((c) => c.name === "Test Child");
+    if (!child) {
+      console.error("  ✗ Test Child not found in RSTFRE household — run npm run db:seed first");
+    } else {
+      // Step 2: authenticate as the child — response sets the session cookie
+      await page.request.post(`${BASE}/api/auth/child-login`, {
+        data: { householdCode: "RSTFRE", childId: child.id, pin: "1234" },
+      });
+      await ctx.storageState({ path: CHILD_STATE });
+      console.log("  ✓ Saved auth state: child");
+    }
+
+    await ctx.close();
   }
 
   await browser.close();

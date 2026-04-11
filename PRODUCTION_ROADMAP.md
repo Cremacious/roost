@@ -662,20 +662,64 @@ Notes:
   two full auth sessions is complex and the page-render test already covers the critical path.
 
 ### Billing
-- [ ] Stripe checkout creation
-- [ ] Stripe customer creation/reuse
-- [ ] Upgrade to premium
-- [ ] Cancel at period end
-- [ ] Reactivate subscription
-- [ ] Renewal handling
-- [ ] Payment failure handling
-- [ ] Webhook signature failure path
+- [x] Stripe checkout creation (app-side: auth gate + response shape; Stripe call conditional on keys)
+- [ ] Stripe customer creation/reuse (requires Stripe test mode with CLI — manual QA)
+- [ ] Upgrade to premium (requires completing Stripe Checkout in browser — manual QA)
+- [ ] Cancel at period end (requires active Stripe subscription — manual QA)
+- [ ] Reactivate subscription (requires active Stripe subscription — manual QA)
+- [ ] Renewal handling (requires Stripe test mode event — manual QA)
+- [ ] Payment failure handling (requires Stripe test mode event — manual QA)
+- [x] Webhook signature failure path (invalid sig → 400, missing sig → 400)
 
 ### Permissions
-- [ ] Admin vs member vs child vs guest route access
-- [ ] Premium-only feature access
-- [ ] Admin-only household actions
-- [ ] Child restrictions on expense features
+- [x] Admin vs member vs child route access (API-level, all layers)
+- [x] Premium-only feature access (API 403 for free tier; UI upgrade prompt visible)
+- [x] Admin-only household actions (member → 403 on add-child, invite)
+- [x] Child restrictions on expense features (child → 403 on GET/POST /api/expenses, scan)
+
+What was added (2026-04-11):
+
+`e2e/global-setup.ts`:
+- Added `member.json` auth state (email login as member@roost.test).
+- Added `child.json` auth state via child-login API: GET /api/auth/child-login?householdCode=RSTFRE
+  to discover child ID, then POST /api/auth/child-login with childId + PIN → Set-Cookie stores the
+  session in the context, saved via ctx.storageState(). No browser UI navigation needed.
+
+`e2e/billing.spec.ts` (new):
+- Unauthenticated requests to all 4 Stripe routes → 401 (checkout, cancel, reactivate, portal).
+- Member (non-admin) requests to all 4 Stripe routes → 403.
+- Webhook with no stripe-signature → 400; with invalid signature → 400.
+- Admin checkout session: if Stripe keys present → 200 with url containing "stripe.com";
+  if keys absent → 400/500 is accepted (auth gate was the assertion, not the Stripe call).
+- Billing page UI: free admin sees pricing content, not active plan management.
+  Premium admin sees plan management copy, not upgrade hero.
+
+`e2e/permissions.spec.ts` (new):
+- Layer 1 (auth): 10 core API routes → 401 when unauthenticated.
+- Layer 2 (premium gate): stats and chores/history → 403 for free household;
+  expenses POST → 403 for free; expenses GET → 200 (deliberately free).
+  Both premium routes return 200 for premium household.
+- Layer 3a (child): GET /api/expenses → 403; POST /api/expenses → 403;
+  POST /api/expenses/scan → 403. Chores and grocery → 200 (children can access these).
+- Layer 3b (member): add-child → 403; guest invite → 403; me endpoint → 200 with role=member.
+- Premium UI: stats and expenses pages show upgrade gates for free admin;
+  both render without upgrade gates for premium admin.
+
+`playwright.config.ts`:
+- billing.spec.ts and permissions.spec.ts added to the unauthenticated project testMatch.
+  Both specs manage their own storageState per describe block (same pattern as auth.spec.ts).
+
+Notes:
+- The "child.json" auth mechanism depends on the child-login POST setting a Set-Cookie
+  response header that Playwright's APIRequestContext captures. Confirmed: the route uses
+  serializeSignedCookie() and returns the cookie in the response header.
+- Full Stripe lifecycle tests (checkout completion, cancel, reactivate, renewal, payment failure)
+  require real Stripe events and are documented as manual QA in 4.3. Use the Stripe CLI:
+  `stripe listen --forward-to localhost:3000/api/stripe/webhook` and
+  `stripe trigger checkout.session.completed` to exercise these paths locally.
+- Guest role permission tests are not yet included — guest accounts require an active premium
+  household and invite link creation in the test. Tracked as future addition once guest flow
+  test infrastructure is stable.
 
 ### Cron Jobs
 - [ ] Reminders cron

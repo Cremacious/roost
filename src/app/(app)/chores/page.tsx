@@ -431,10 +431,11 @@ export default function ChoresPage() {
         <StatCard value={`${myStreak}d`} label="Streak" color="#F59E0B" borderColor="#C93B3B" />
       </div>
 
-      {/* Rewards section — premium admins only.
+      {/* Rewards section — only show when it is actionable:
+          premium admin + at least one child account.
           Free users should only see the premium gate in sheet form when they
           tap a locked action, not as a large inline card on the page. */}
-      {isAdmin && isPremium && (
+      {isAdmin && isPremium && childMembers.length > 0 && (
         <div className="mb-2">
           {/* Section header */}
           <div className="mb-3 flex items-center justify-between">

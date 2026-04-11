@@ -53,6 +53,7 @@ export default defineConfig({
         "**/auth-email-change.spec.ts",
         "**/billing.spec.ts",
         "**/permissions.spec.ts",
+        "**/household.spec.ts",
       ],
       timeout: 60000,
     },

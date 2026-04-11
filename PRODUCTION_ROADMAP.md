@@ -739,13 +739,50 @@ Notes:
 - [ ] Settle-all flows
 
 ### Household Management
-- [ ] Create household
-- [ ] Join household
-- [ ] Invite guest
-- [ ] Add child
-- [ ] Transfer admin
-- [ ] Remove member
-- [ ] Delete household data
+- [x] Create household (response shape, validation, auth gate)
+- [x] Join household (valid join, invalid code, already-member, multi-household premium gate)
+- [ ] Invite guest (requires premium + multi-context; tracked in auth-invite.spec.ts page-render test)
+- [x] Add child (201 + 4-digit PIN, name length validation)
+- [ ] Transfer admin (low risk path; covered by manual QA)
+- [x] Remove member (full flow: add child → get membership ID → remove; non-admin blocked)
+- [x] Delete household data (content cascade + household persists + non-admin blocked)
+- [x] Delete household entirely (admin deletes + membership gone → 404 on /me; non-admin blocked)
+- [x] Rename household (admin renames; non-admin blocked)
+
+What was added (2026-04-11):
+
+`e2e/global-setup.ts`:
+- Added `member.json` auth state (login as member@roost.test).
+- Added `child.json` auth state via POST /api/auth/child-login (sets session cookie via Set-Cookie).
+
+`e2e/household.spec.ts` (new):
+- Auth contracts: create/join/add-child all return 401 without session.
+- Create household: valid name → 200 with id/name/6-char code; empty name → 400; missing name → 400.
+- Join household: beforeAll creates a fresh joinable household; invalid code → 404; fresh user
+  joins with valid code → 200 with household name; join-host retrying own household → 400 "already
+  a member"; free-admin (already has household) joining another free household → 403 multi-household gate.
+- Add child: admin with household → 201 with { child: { id, name }, pin: /^\d{4}$/ }; name > 32
+  chars → 400; empty name → 400.
+- Remove member: beforeAll creates isolated admin + household + child; test removes child via
+  household_members.id (obtained from GET /api/household/members); non-existent ID → 404; seeded
+  member attempting DELETE → 403. Child membership ID discovered via members list after add-child.
+- Delete household data: creates chore → verifies it exists → POST delete-data → chore list empty →
+  GET /api/household/me still returns 200 (household row preserved). Member → 403.
+- Delete household entirely: admin deletes fresh household → GET /api/household/me returns 404
+  (all memberships deleted). Member → 403.
+- Rename household: admin renames → response contains new name. Member → 403.
+
+`playwright.config.ts`:
+- household.spec.ts added to unauthenticated project testMatch.
+
+Isolation notes:
+- All create/mutate/delete tests use fresh signup + fresh household created in the test or beforeAll.
+  Seeded households (Roost Free House, Roost Premium House) are never modified.
+- Transfer admin is not automated: it requires two admin-role sessions in the same household, which
+  adds complexity without covering a new failure mode (it's a PATCH that requires admin role — already
+  covered by the admin-only pattern). Manual QA step in 4.3.
+- Invite guest is partially covered in auth-invite.spec.ts (page renders correctly for unauthenticated
+  visitor; the join flow is manual QA). Full invite join requires a premium household + two contexts.
 
 ## 4.3 Manual QA Before Launch
 - [ ] Full onboarding on desktop
@@ -809,9 +846,13 @@ At the start of each future Roost session:
 5. Update this file.
 
 Recommended next task:
-- Phase 3 testing (4.2): the build is clean, security is hardened, env is documented,
-  logging is in place, and the runbook is written. The remaining launch gap is test coverage.
-  Priority order for tests: auth flows (signup/login/child PIN/invite), billing (Stripe webhook
-  paths), permissions (admin/member/child/guest route access), and cron job behavior.
-  Start with auth — it is the highest-risk flow and currently has zero automated coverage
-  for the email-sync fix shipped in 1.1.
+- Phase 3 testing (4.2) — remaining gaps: cron job smoke tests (curl-based, low setup cost),
+  expense export (CSV/PDF content verification), and settle-all flows. After those, the 4.2
+  automated test coverage is complete enough to move to 4.3 manual QA.
+  Current coverage summary:
+    Auth flows       — COVERED (signup, login, logout, child PIN, email change, invite page)
+    Billing          — COVERED (auth/role gates, webhook sig rejection, UI states)
+    Permissions      — COVERED (unauthenticated 401, premium 403, child finance block, member admin block)
+    Household ops    — COVERED (create, join, add child, remove member, delete data, full delete, rename)
+    Cron jobs        — NOT COVERED (use curl against running dev server; see RUNBOOK.md)
+    Expenses/export  — NOT COVERED (manual QA with Stripe test mode + receipt images)

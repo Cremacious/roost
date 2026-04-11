@@ -45,8 +45,15 @@ export const meal_suggestions = pgTable("meal_suggestions", {
   category: text("category").notNull().default("dinner"),
   prep_time: integer("prep_time"),
   ingredients: text("ingredients"), // JSON array of strings
-  status: text("status").notNull().default("pending"),
+  target_slot_date: date("target_slot_date"),
+  target_slot_type: text("target_slot_type").default("dinner"),
+  status: text("status").notNull().default("suggested"),
+  responded_by: text("responded_by"),
+  responded_at: timestamp("responded_at"),
+  accepted_meal_id: uuid("accepted_meal_id").references(() => meals.id),
+  accepted_slot_id: uuid("accepted_slot_id").references(() => meal_plan_slots.id),
   created_at: timestamp("created_at").defaultNow(),
+  updated_at: timestamp("updated_at").defaultNow(),
 });
 
 export const meal_suggestion_votes = pgTable(

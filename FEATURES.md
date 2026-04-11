@@ -66,6 +66,8 @@
 - Add meal ingredients to grocery list in one tap
 - Meal suggestions — any member (including kids) can suggest a meal
 - Household voting on suggestions
+- Suggested meals now include a target day + slot, ingredients, and optional notes
+- Admins can accept a suggestion directly onto the planner or reject it from the Suggestions tab
 
 #### Expenses (Free)
 - View the expenses page and expense list

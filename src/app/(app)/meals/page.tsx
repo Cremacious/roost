@@ -2,7 +2,6 @@
 
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useSession } from '@/lib/auth/client';
 import { useHousehold } from '@/lib/hooks/useHousehold';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -12,15 +11,14 @@ import {
   startOfWeek,
   isSameDay,
   isToday,
-  parseISO,
 } from 'date-fns';
 import {
   ChefHat,
+  CalendarDays,
   ChevronLeft,
   ChevronRight,
   Clock,
   Lightbulb,
-  Lock,
   Loader2,
   Plus,
   ShoppingCart,
@@ -71,6 +69,12 @@ interface SuggestionRow {
   meal_name: string;
   note: string | null;
   suggested_by: string;
+  status: string;
+  category: string;
+  prep_time: number | null;
+  ingredients: string | null;
+  target_slot_date: string | null;
+  target_slot_type: string | null;
   created_at: string | null;
   suggester_name: string | null;
   suggester_avatar: string | null;
@@ -138,10 +142,8 @@ function TabButton({
 
 export default function MealsPage() {
   const queryClient = useQueryClient();
-  const { data: sessionData } = useSession();
-  const userId = sessionData?.user?.id ?? '';
-  const { isPremium } = useHousehold();
-  const isAdmin = false; // will be refined via useHousehold if needed
+  const { isPremium, role } = useHousehold();
+  const isAdmin = role === 'admin';
 
   const [tab, setTab] = useState<Tab>('planner');
   const [weekStart, setWeekStart] = useState<Date>(() =>
@@ -310,33 +312,100 @@ export default function MealsPage() {
   const approveMutation = useMutation({
     mutationFn: async ({
       id,
-      addToBank,
+      slotDate,
+      slotType,
     }: {
       id: string;
-      addToBank: boolean;
+      slotDate: string | null;
+      slotType: string | null;
     }) => {
-      const r = await fetch(`/api/meals/suggestions/${id}/approve`, {
-        method: 'POST',
+      const r = await fetch(`/api/meals/${id}/accept`, {
+        method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ addToBank }),
+        body: JSON.stringify({ slot_date: slotDate, slot_type: slotType }),
       });
       if (!r.ok) {
         const d = await r.json().catch(() => ({}));
-        throw new Error(d.error ?? 'Failed to approve suggestion');
+        throw new Error(d.error ?? 'Failed to accept suggestion');
       }
       return r.json();
     },
-    onSuccess: () => {
+    onSuccess: (data: { slot?: { slot_date?: string; slot_type?: string } }) => {
       queryClient.invalidateQueries({ queryKey: ['suggestions'] });
       queryClient.invalidateQueries({ queryKey: ['meals'] });
+      queryClient.invalidateQueries({ queryKey: ['planner'] });
       setApproveConfirm(null);
-      toast.success('Added to meal bank', {
+      const day = data.slot?.slot_date
+        ? format(new Date(`${data.slot.slot_date}T00:00:00`), 'EEEE')
+        : 'the planner';
+      const slotLabel = data.slot?.slot_type
+        ? SLOT_LABELS[data.slot.slot_type] ?? data.slot.slot_type
+        : 'meal plan';
+      toast.success(`Added to ${day} ${slotLabel}`, {
         className: 'roost-toast roost-toast-success',
         descriptionClassName: 'roost-toast-description',
       });
     },
     onError: (err: Error) => {
       toast.error('Could not approve suggestion', {
+        description: err.message,
+        className: 'roost-toast roost-toast-error',
+        descriptionClassName: 'roost-toast-description',
+      });
+    },
+  });
+
+  const rejectMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const r = await fetch(`/api/meals/${id}/reject`, {
+        method: 'DELETE',
+      });
+      if (!r.ok) {
+        const d = await r.json().catch(() => ({}));
+        throw new Error(d.error ?? 'Failed to reject suggestion');
+      }
+      return r.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['suggestions'] });
+      setApproveConfirm(null);
+      toast.success('Suggestion rejected', {
+        className: 'roost-toast roost-toast-success',
+        descriptionClassName: 'roost-toast-description',
+      });
+    },
+    onError: (err: Error) => {
+      toast.error('Could not reject suggestion', {
+        description: err.message,
+        className: 'roost-toast roost-toast-error',
+        descriptionClassName: 'roost-toast-description',
+      });
+    },
+  });
+
+  const addSuggestionToBankMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const r = await fetch(`/api/meals/suggestions/${id}/approve`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ destination: 'bank' }),
+      });
+      if (!r.ok) {
+        const d = await r.json().catch(() => ({}));
+        throw new Error(d.error ?? 'Failed to add suggestion to meal bank');
+      }
+      return r.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['suggestions'] });
+      queryClient.invalidateQueries({ queryKey: ['meals'] });
+      toast.success('Added to meal bank', {
+        className: 'roost-toast roost-toast-success',
+        descriptionClassName: 'roost-toast-description',
+      });
+    },
+    onError: (err: Error) => {
+      toast.error('Could not add to meal bank', {
         description: err.message,
         className: 'roost-toast roost-toast-error',
         descriptionClassName: 'roost-toast-description',
@@ -1041,50 +1110,12 @@ export default function MealsPage() {
     if (suggestions.length === 0) {
       return (
         <>
-          {!isPremium && (
-            <div
-              className="flex items-center gap-2 rounded-xl px-4 py-3"
-              style={{
-                background: 'rgba(239,68,68,0.06)',
-                border: '1.5px solid rgba(239,68,68,0.15)',
-              }}
-            >
-              <Lock
-                className="size-3.5 shrink-0"
-                style={{ color: '#EF4444' }}
-              />
-              <p
-                className="flex-1 text-[13px]"
-                style={{
-                  color: 'var(--roost-text-secondary)',
-                  fontWeight: 600,
-                }}
-              >
-                Meal suggestions are a premium feature. Upgrade to let your
-                household vote on dinner.
-              </p>
-              <button
-                type="button"
-                onClick={() => setUpgradeCode('MEAL_SUGGESTIONS_PREMIUM')}
-                className="shrink-0 text-[13px]"
-                style={{ color: '#EF4444', fontWeight: 700 }}
-              >
-                Upgrade
-              </button>
-            </div>
-          )}
           <EmptyState
             icon={Lightbulb}
             title="No suggestions yet."
             body="Anyone in the household can suggest a meal. Even the kids get a vote."
             buttonLabel="Suggest a meal"
-            onButtonClick={() => {
-              if (!isPremium) {
-                setUpgradeCode('MEAL_SUGGESTIONS_PREMIUM');
-                return;
-              }
-              setSuggestionSheet(true);
-            }}
+            onButtonClick={() => setSuggestionSheet(true)}
             color={COLOR}
           />
         </>
@@ -1093,36 +1124,22 @@ export default function MealsPage() {
 
     return (
       <div className="space-y-3">
-        {!isPremium && (
-          <div
-            className="flex items-center gap-2 rounded-xl px-4 py-3"
-            style={{
-              background: 'rgba(239,68,68,0.06)',
-              border: '1.5px solid rgba(239,68,68,0.15)',
-            }}
-          >
-            <Lock className="size-3.5 shrink-0" style={{ color: '#EF4444' }} />
-            <p
-              className="flex-1 text-[13px]"
-              style={{ color: 'var(--roost-text-secondary)', fontWeight: 600 }}
-            >
-              Meal suggestions are a premium feature. Upgrade to let your
-              household vote on dinner.
-            </p>
-            <button
-              type="button"
-              onClick={() => setUpgradeCode('MEAL_SUGGESTIONS_PREMIUM')}
-              className="shrink-0 text-[13px]"
-              style={{ color: '#EF4444', fontWeight: 700 }}
-            >
-              Upgrade
-            </button>
-          </div>
-        )}
         {suggestions.map((s, i) => {
           const isTop = i === 0 && s.upvotes > 0;
           const userUpvoted = s.userVote === 'up';
           const userDownvoted = s.userVote === 'down';
+          const targetLabel =
+            s.target_slot_date && s.target_slot_type
+              ? `${format(new Date(`${s.target_slot_date}T00:00:00`), 'EEE, MMM d')} · ${SLOT_LABELS[s.target_slot_type] ?? s.target_slot_type}`
+              : null;
+          let ingredientPreview: string[] = [];
+          try {
+            ingredientPreview = s.ingredients
+              ? (JSON.parse(s.ingredients) as string[]).filter(Boolean).slice(0, 4)
+              : [];
+          } catch {
+            ingredientPreview = [];
+          }
 
           return (
             <motion.div
@@ -1184,6 +1201,18 @@ export default function MealsPage() {
                 )}
               </div>
 
+              {targetLabel && (
+                <div className="mt-2 flex items-center gap-1.5">
+                  <CalendarDays className="size-3.5" style={{ color: COLOR }} />
+                  <span
+                    className="text-xs"
+                    style={{ color: COLOR, fontWeight: 700 }}
+                  >
+                    {targetLabel}
+                  </span>
+                </div>
+              )}
+
               {/* Note */}
               {s.note && (
                 <p
@@ -1193,8 +1222,26 @@ export default function MealsPage() {
                     fontWeight: 600,
                   }}
                 >
-                  "{s.note}"
+                  &ldquo;{s.note}&rdquo;
                 </p>
+              )}
+
+              {ingredientPreview.length > 0 && (
+                <div className="mt-3 flex flex-wrap gap-1.5">
+                  {ingredientPreview.map((item) => (
+                    <span
+                      key={`${s.id}-${item}`}
+                      className="rounded-full px-2 py-1 text-[11px]"
+                      style={{
+                        backgroundColor: `${COLOR}12`,
+                        color: 'var(--roost-text-secondary)',
+                        fontWeight: 700,
+                      }}
+                    >
+                      {item}
+                    </span>
+                  ))}
+                </div>
               )}
 
               {/* Vote row */}
@@ -1245,22 +1292,57 @@ export default function MealsPage() {
 
                 <div className="flex-1" />
 
-                {/* Admin: approve */}
-                <motion.button
-                  type="button"
-                  whileTap={{ y: 1 }}
-                  onClick={() => setApproveConfirm(s)}
-                  className="flex h-9 items-center rounded-xl px-3 text-xs"
-                  style={{
-                    backgroundColor: '#22C55E12',
-                    border: '1.5px solid #22C55E25',
-                    borderBottom: '3px solid #16A34A40',
-                    color: '#22C55E',
-                    fontWeight: 700,
-                  }}
-                >
-                  Add to bank
-                </motion.button>
+                {isAdmin && (
+                  <>
+                    <motion.button
+                      type="button"
+                      whileTap={{ y: 1 }}
+                      onClick={() => addSuggestionToBankMutation.mutate(s.id)}
+                      disabled={addSuggestionToBankMutation.isPending}
+                      className="flex h-9 items-center rounded-xl px-3 text-xs disabled:opacity-50"
+                      style={{
+                        backgroundColor: '#22C55E12',
+                        border: '1.5px solid #22C55E25',
+                        borderBottom: '3px solid #16A34A40',
+                        color: '#22C55E',
+                        fontWeight: 700,
+                      }}
+                    >
+                      Add to bank
+                    </motion.button>
+                    <motion.button
+                      type="button"
+                      whileTap={{ y: 1 }}
+                      onClick={() => setApproveConfirm(s)}
+                      className="flex h-9 items-center rounded-xl px-3 text-xs"
+                      style={{
+                        backgroundColor: '#22C55E12',
+                        border: '1.5px solid #22C55E25',
+                        borderBottom: '3px solid #16A34A40',
+                        color: '#22C55E',
+                        fontWeight: 700,
+                      }}
+                    >
+                      Add to day
+                    </motion.button>
+                    <motion.button
+                      type="button"
+                      whileTap={{ y: 1 }}
+                      onClick={() => rejectMutation.mutate(s.id)}
+                      disabled={rejectMutation.isPending}
+                      className="flex h-9 items-center rounded-xl px-3 text-xs disabled:opacity-50"
+                      style={{
+                        backgroundColor: '#EF444412',
+                        border: '1.5px solid #EF444425',
+                        borderBottom: '3px solid #B91C1C40',
+                        color: '#EF4444',
+                        fontWeight: 700,
+                      }}
+                    >
+                      Reject
+                    </motion.button>
+                  </>
+                )}
               </div>
             </motion.div>
           );
@@ -1302,13 +1384,7 @@ export default function MealsPage() {
               <motion.button
                 type="button"
                 whileTap={{ y: 2 }}
-                onClick={() => {
-                  if (!isPremium) {
-                    setUpgradeCode('MEAL_SUGGESTIONS_PREMIUM');
-                    return;
-                  }
-                  setSuggestionSheet(true);
-                }}
+                onClick={() => setSuggestionSheet(true)}
                 className="flex h-10 w-10 items-center justify-center rounded-xl text-white"
                 style={{
                   backgroundColor: COLOR,
@@ -1316,11 +1392,7 @@ export default function MealsPage() {
                   borderBottom: `3px solid ${COLOR_DARK}`,
                 }}
               >
-                {isPremium ? (
-                  <Plus className="size-5" />
-                ) : (
-                  <Lock className="size-4" />
-                )}
+                <Plus className="size-5" />
               </motion.button>
             ) : undefined
           }
@@ -1358,7 +1430,7 @@ export default function MealsPage() {
               className="text-sm"
               style={{ color: 'var(--roost-text-muted)', fontWeight: 600 }}
             >
-              Vote for what you want to eat.
+              Suggest meals for a specific day, then let an admin add the winner to the plan.
             </p>
           </div>
         )}
@@ -1405,6 +1477,7 @@ export default function MealsPage() {
 
         <SuggestionSheet
           open={suggestionSheet}
+          weekStart={weekStartStr}
           onClose={() => setSuggestionSheet(false)}
           onUpgradeRequired={(code) => {
             setSuggestionSheet(false);
@@ -1549,7 +1622,7 @@ export default function MealsPage() {
               <DialogTitle
                 style={{ color: 'var(--roost-text-primary)', fontWeight: 900 }}
               >
-                Add to meal bank?
+                Add suggested meal to the planner?
               </DialogTitle>
             </DialogHeader>
             <p
@@ -1561,8 +1634,23 @@ export default function MealsPage() {
               >
                 {approveConfirm?.meal_name}
               </span>{' '}
-              will be added to your meal bank. You can add more details like
-              ingredients and prep time afterwards.
+              will be accepted and placed on{' '}
+              <span
+                style={{ fontWeight: 800, color: 'var(--roost-text-primary)' }}
+              >
+                {approveConfirm?.target_slot_date
+                  ? format(new Date(`${approveConfirm.target_slot_date}T00:00:00`), 'EEEE, MMM d')
+                  : 'the selected day'}
+              </span>{' '}
+              for{' '}
+              <span
+                style={{ fontWeight: 800, color: 'var(--roost-text-primary)' }}
+              >
+                {approveConfirm?.target_slot_type
+                  ? SLOT_LABELS[approveConfirm.target_slot_type] ?? approveConfirm.target_slot_type
+                  : 'dinner'}
+              </span>
+              . A meal-bank entry is created too, so the suggestion stays reusable.
             </p>
             <DialogFooter className="flex gap-2">
               <motion.button
@@ -1582,12 +1670,35 @@ export default function MealsPage() {
               </motion.button>
               <motion.button
                 type="button"
+                disabled={rejectMutation.isPending}
+                onClick={() =>
+                  approveConfirm && rejectMutation.mutate(approveConfirm.id)
+                }
+                whileTap={{ y: 1 }}
+                className="flex h-11 flex-1 items-center justify-center rounded-xl text-sm disabled:opacity-50"
+                style={{
+                  backgroundColor: 'transparent',
+                  border: '1.5px solid #EF444430',
+                  borderBottom: '3px solid #B91C1C30',
+                  color: '#EF4444',
+                  fontWeight: 800,
+                }}
+              >
+                {rejectMutation.isPending ? (
+                  <Loader2 className="size-4 animate-spin" />
+                ) : (
+                  'Reject'
+                )}
+              </motion.button>
+              <motion.button
+                type="button"
                 disabled={approveMutation.isPending}
                 onClick={() =>
                   approveConfirm &&
                   approveMutation.mutate({
                     id: approveConfirm.id,
-                    addToBank: true,
+                    slotDate: approveConfirm.target_slot_date,
+                    slotType: approveConfirm.target_slot_type,
                   })
                 }
                 whileTap={{ y: 1 }}
@@ -1602,7 +1713,7 @@ export default function MealsPage() {
                 {approveMutation.isPending ? (
                   <Loader2 className="size-4 animate-spin" />
                 ) : (
-                  'Add to bank'
+                  'Add to day'
                 )}
               </motion.button>
             </DialogFooter>

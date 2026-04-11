@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import { toast } from "sonner";
 import { Delete, Loader2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -177,10 +178,20 @@ export default function ChildLoginPage() {
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.18 }}
-          style={{ width: "100%", maxWidth: 360 }}
+          style={{ width: "100%", maxWidth: 360, display: "flex", flexDirection: "column", alignItems: "center" }}
         >
-          <h1 style={headingStyle}>Hey! What&apos;s your house code?</h1>
-          <p style={subStyle}>Ask a parent for the 6-letter code.</p>
+          {/* Logo */}
+          <Image
+            src="/brand/roost-icon.png"
+            alt="Roost"
+            width={56}
+            height={56}
+            style={{ borderRadius: 16, objectFit: "cover", marginBottom: 8 }}
+          />
+          <p style={{ fontWeight: 900, fontSize: 22, color: "#1A0505", marginBottom: 20 }}>Roost</p>
+
+          <h1 style={{ ...headingStyle, marginBottom: 6 }}>Hey! Enter your code.</h1>
+          <p style={{ ...subStyle, marginBottom: 28 }}>Your household code and your secret PIN.</p>
 
           <input
             type="text"
@@ -205,16 +216,18 @@ export default function ChildLoginPage() {
             style={{
               ...slabButtonStyle,
               opacity: householdCode.trim().length !== 6 ? 0.5 : 1,
-              marginTop: 16,
+              marginTop: 12,
             }}
           >
-            {codeLoading ? <Loader2 size={18} className="animate-spin" /> : "Continue"}
+            {codeLoading ? <Loader2 size={18} className="animate-spin" /> : "Let me in"}
           </motion.button>
 
-          <p style={footerLinkStyle}>
-            Adult account?{" "}
-            <a href="/login" style={linkStyle}>Sign in here</a>
-          </p>
+          <a
+            href="/login"
+            style={{ textAlign: "center", fontSize: 12, fontWeight: 700, color: "#9B6060", marginTop: 14, textDecoration: "none", display: "block" }}
+          >
+            Back to grown-up sign in
+          </a>
         </motion.div>
       </div>
     );
@@ -269,7 +282,7 @@ export default function ChildLoginPage() {
           <button
             type="button"
             onClick={handleWrongHouse}
-            style={{ ...footerLinkStyle, background: "none", border: "none", cursor: "pointer", padding: 0 }}
+            style={{ textAlign: "center", fontSize: 12, fontWeight: 700, color: "#9B6060", marginTop: 4, background: "none", border: "none", cursor: "pointer", padding: 0, display: "block", width: "100%" }}
           >
             Wrong house?
           </button>
@@ -302,8 +315,8 @@ export default function ChildLoginPage() {
           Enter your PIN{selectedChild ? `, ${selectedChild.name.split(" ")[0]}` : ""}.
         </h1>
 
-        {/* Dot indicators */}
-        <div style={{ display: "flex", justifyContent: "center", gap: 14, marginBottom: 28, marginTop: 16 }}>
+        {/* PIN dot indicators */}
+        <div style={{ display: "flex", justifyContent: "center", gap: 12, marginBottom: 28, marginTop: 16 }}>
           {Array.from({ length: 4 }).map((_, i) => (
             <motion.div
               key={i}
@@ -313,8 +326,8 @@ export default function ChildLoginPage() {
               }}
               transition={{ duration: shake ? 0.4 : 0.15 }}
               style={{
-                width: 14,
-                height: 14,
+                width: 18,
+                height: 18,
                 borderRadius: "50%",
                 backgroundColor: i < pin.length ? "#EF4444" : "#F5C5C5",
               }}
@@ -381,7 +394,7 @@ export default function ChildLoginPage() {
         <button
           type="button"
           onClick={children.length > 1 ? () => { setStep(2); setPin(""); } : handleWrongHouse}
-          style={{ ...footerLinkStyle, background: "none", border: "none", cursor: "pointer", padding: 0, display: "block", width: "100%" }}
+          style={{ textAlign: "center", fontSize: 12, fontWeight: 700, color: "#9B6060", marginTop: 4, background: "none", border: "none", cursor: "pointer", padding: 0, display: "block", width: "100%" }}
         >
           {children.length > 1 ? "Not you?" : "Wrong house?"}
         </button>
@@ -398,23 +411,24 @@ const pageStyle: React.CSSProperties = {
   display: "flex",
   alignItems: "center",
   justifyContent: "center",
-  padding: "32px 20px",
+  padding: "40px 24px",
   fontFamily: "var(--font-nunito)",
 };
 
 const headingStyle: React.CSSProperties = {
-  fontSize: 28,
+  fontSize: 26,
   fontWeight: 900,
   color: "#1A0505",
   textAlign: "center",
   marginBottom: 8,
   lineHeight: 1.15,
+  letterSpacing: "-0.5px",
 };
 
 const subStyle: React.CSSProperties = {
-  fontSize: 14,
+  fontSize: 13,
   fontWeight: 600,
-  color: "#5A2020",
+  color: "#7A3F3F",
   textAlign: "center",
   marginBottom: 28,
   lineHeight: 1.5,
@@ -423,16 +437,15 @@ const subStyle: React.CSSProperties = {
 const codeInputStyle: React.CSSProperties = {
   width: "100%",
   height: 64,
-  border: "1.5px solid #F5C5C5",
-  borderBottom: "3px solid #D4CFC9",
+  border: "2px solid #F5C5C5",
+  borderBottom: "4px solid #DBADB0",
   borderRadius: 14,
   backgroundColor: "white",
-  fontFamily: "monospace",
-  fontSize: 26,
-  letterSpacing: "0.35em",
+  fontSize: 22,
+  letterSpacing: "6px",
   textAlign: "center",
   color: "#1A0505",
-  fontWeight: 700,
+  fontWeight: 900,
   outline: "none",
   boxSizing: "border-box",
   display: "block",
@@ -445,9 +458,9 @@ const slabButtonStyle: React.CSSProperties = {
   color: "white",
   fontWeight: 800,
   fontSize: 16,
-  borderRadius: 14,
-  border: "1.5px solid #EF4444",
-  borderBottom: "3px solid #C93B3B",
+  borderRadius: 16,
+  border: "none",
+  borderBottom: "4px solid #C93B3B",
   cursor: "pointer",
   display: "flex",
   alignItems: "center",
@@ -467,19 +480,4 @@ const pinButtonStyle: React.CSSProperties = {
   display: "flex",
   alignItems: "center",
   justifyContent: "center",
-};
-
-const footerLinkStyle: React.CSSProperties = {
-  textAlign: "center",
-  fontSize: 13,
-  fontWeight: 600,
-  color: "#9B6060",
-  marginTop: 20,
-  display: "block",
-};
-
-const linkStyle: React.CSSProperties = {
-  fontWeight: 700,
-  color: "#EF4444",
-  textDecoration: "none",
 };

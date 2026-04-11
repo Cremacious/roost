@@ -6,7 +6,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { toast } from "sonner";
 import { signUp } from "@/lib/auth/client";
-import { CheckCircle2, CheckSquare, DollarSign, Eye, EyeOff, Loader2, ShoppingCart, XCircle } from "lucide-react";
+import { CalendarDays, CheckCircle2, CheckSquare, Coffee, DollarSign, Eye, EyeOff, Loader2, PiggyBank, ShoppingCart, XCircle } from "lucide-react";
 import { motion } from "framer-motion";
 
 // ---- Password strength ------------------------------------------------------
@@ -35,30 +35,55 @@ const STRENGTH_CONFIG: Record<Strength, { segments: number; label: string; color
 const FEATURES = [
   {
     icon: CheckSquare,
-    title: "Chores sorted",
-    desc: "Assign, track, and actually get them done.",
+    title: "Chores",
+    desc: "Assign them. Track them. Stop nagging.",
   },
   {
     icon: ShoppingCart,
-    title: "Groceries covered",
-    desc: "One list the whole house uses.",
+    title: "Groceries",
+    desc: "One list. No more 3 versions of the same milk.",
   },
   {
     icon: DollarSign,
-    title: "Bills split fairly",
-    desc: "No more awkward money conversations.",
+    title: "Expenses",
+    desc: "Split the bills. Keep the friends.",
+  },
+  {
+    icon: CalendarDays,
+    title: "Calendar",
+    desc: "Everyone's schedule. One place. No excuses.",
+  },
+  {
+    icon: Coffee,
+    title: "Meals",
+    desc: 'Plan the week. Skip the "what\'s for dinner" panic.',
+  },
+  {
+    icon: PiggyBank,
+    title: "Allowances",
+    desc: "Kids earn it. You approve it. Everyone learns.",
   },
 ];
 
 // ---- Styles -----------------------------------------------------------------
 
+const labelStyle: React.CSSProperties = {
+  display: "block",
+  fontSize: 11,
+  fontWeight: 800,
+  textTransform: "uppercase",
+  letterSpacing: "0.07em",
+  color: "#7A3F3F",
+  marginBottom: 6,
+};
+
 const inputStyle: React.CSSProperties = {
-  border: "1.5px solid #E5E7EB",
-  borderBottom: "3px solid #D1D5DB",
-  color: "#111827",
+  border: "1.5px solid #F5C5C5",
+  borderBottom: "3px solid #DBADB0",
+  color: "#1A0505",
   fontWeight: 600,
-  backgroundColor: "transparent",
-  borderRadius: 14,
+  backgroundColor: "white",
+  borderRadius: 12,
   width: "100%",
   height: 48,
   padding: "0 16px",
@@ -80,7 +105,6 @@ export default function SignupPage() {
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
-  // Check for pending invite token on mount
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const inviteToken = params.get("invite");
@@ -132,47 +156,53 @@ export default function SignupPage() {
     <div style={{ display: "flex", minHeight: "100vh", fontFamily: "var(--font-nunito)" }}>
       {/* Left panel — desktop only */}
       <div
-        className="hidden sm:flex"
+        className="hidden md:flex"
         style={{
           width: "40%",
           backgroundColor: "#EF4444",
           flexDirection: "column",
-          alignItems: "center",
           justifyContent: "center",
-          padding: 48,
+          alignItems: "flex-start",
+          padding: "40px 36px",
         }}
       >
-        <Image
-          src="/brand/roost-icon.png"
-          alt="Roost"
-          width={48}
-          height={48}
-          style={{ borderRadius: 14, objectFit: "cover" }}
-        />
-        <p style={{ fontWeight: 900, fontSize: 28, color: "white", marginTop: 12, marginBottom: 6 }}>Roost</p>
-        <p style={{ fontWeight: 700, fontSize: 16, color: "rgba(255,255,255,0.8)", marginBottom: 40 }}>
+        {/* Brand block */}
+        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
+          <Image
+            src="/brand/roost-icon.png"
+            alt="Roost"
+            width={42}
+            height={42}
+            className="rounded-xl"
+            style={{ objectFit: "cover" }}
+          />
+          <span style={{ fontWeight: 900, fontSize: 26, color: "white", letterSpacing: "-0.5px" }}>Roost</span>
+        </div>
+        <p style={{ fontWeight: 700, fontSize: 13, color: "rgba(255,255,255,0.7)", marginBottom: 36 }}>
           Home, sorted.
         </p>
-        <div style={{ width: "100%", maxWidth: 280 }}>
+
+        {/* Feature list */}
+        <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
           {FEATURES.map(({ icon: Icon, title, desc }) => (
-            <div key={title} style={{ display: "flex", gap: 12, marginBottom: 20 }}>
+            <div key={title} style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
               <div
                 style={{
-                  width: 32,
-                  height: 32,
+                  width: 28,
+                  height: 28,
                   borderRadius: "50%",
-                  backgroundColor: "rgba(255,255,255,0.2)",
+                  backgroundColor: "rgba(255,255,255,0.18)",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
                   flexShrink: 0,
                 }}
               >
-                <Icon size={15} color="white" />
+                <Icon size={13} color="white" />
               </div>
               <div>
-                <p style={{ fontWeight: 700, fontSize: 14, color: "white", marginBottom: 2 }}>{title}</p>
-                <p style={{ fontWeight: 600, fontSize: 13, color: "rgba(255,255,255,0.75)", lineHeight: 1.4 }}>{desc}</p>
+                <p style={{ fontWeight: 800, fontSize: 12, color: "white", marginBottom: 1 }}>{title}</p>
+                <p style={{ fontWeight: 600, fontSize: 11, color: "rgba(255,255,255,0.62)", lineHeight: 1.35 }}>{desc}</p>
               </div>
             </div>
           ))}
@@ -181,13 +211,13 @@ export default function SignupPage() {
 
       {/* Right panel — form */}
       <div
+        className="px-6 py-10 md:px-9"
         style={{
           flex: 1,
-          backgroundColor: "#F9FAFB",
+          backgroundColor: "#FFF5F5",
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          padding: "48px 24px",
           minHeight: "100vh",
         }}
       >
@@ -198,28 +228,35 @@ export default function SignupPage() {
           style={{ width: "100%", maxWidth: 400 }}
         >
           {/* Mobile-only logo */}
-          <div className="flex sm:hidden" style={{ flexDirection: "column", alignItems: "center", marginBottom: 28 }}>
+          <div className="flex md:hidden" style={{ alignItems: "center", gap: 10, marginBottom: 28 }}>
             <Image
               src="/brand/roost-icon.png"
               alt="Roost"
-              width={48}
-              height={48}
-              style={{ borderRadius: 14, objectFit: "cover" }}
+              width={40}
+              height={40}
+              style={{ borderRadius: 10, objectFit: "cover" }}
             />
-            <p style={{ fontWeight: 900, fontSize: 20, color: "#111827", marginTop: 8 }}>Roost</p>
+            <span style={{ fontWeight: 900, fontSize: 20, color: "#1A0505" }}>Roost</span>
           </div>
 
-          <h1 style={{ fontSize: 28, fontWeight: 900, color: "#111827", marginBottom: 4 }}>Create your account.</h1>
-          <p style={{ fontSize: 14, fontWeight: 600, color: "#374151", marginBottom: 28 }}>
+          {/* Step indicator */}
+          <div style={{ display: "flex", justifyContent: "center", gap: 6, marginBottom: 20 }}>
+            <div style={{ width: 28, height: 5, borderRadius: 3, backgroundColor: "#C93B3B" }} />
+            <div style={{ width: 28, height: 5, borderRadius: 3, backgroundColor: "#EF4444" }} />
+            <div style={{ width: 28, height: 5, borderRadius: 3, backgroundColor: "#F5C5C5" }} />
+          </div>
+
+          <h1 style={{ fontSize: 28, fontWeight: 900, color: "#1A0505", marginBottom: 4, letterSpacing: "-0.5px" }}>
+            Create your account.
+          </h1>
+          <p style={{ fontSize: 14, fontWeight: 600, color: "#7A3F3F", marginBottom: 28 }}>
             Let us get your household sorted.
           </p>
 
           <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 16 }}>
             {/* Name */}
             <div>
-              <label style={{ display: "block", fontSize: 13, fontWeight: 700, color: "#111827", marginBottom: 6 }}>
-                Your name
-              </label>
+              <label style={labelStyle}>Your name</label>
               <input
                 type="text"
                 autoComplete="name"
@@ -235,9 +272,7 @@ export default function SignupPage() {
 
             {/* Email */}
             <div>
-              <label style={{ display: "block", fontSize: 13, fontWeight: 700, color: "#111827", marginBottom: 6 }}>
-                Email
-              </label>
+              <label style={labelStyle}>Email</label>
               <input
                 type="email"
                 autoComplete="email"
@@ -253,9 +288,7 @@ export default function SignupPage() {
 
             {/* Password */}
             <div>
-              <label style={{ display: "block", fontSize: 13, fontWeight: 700, color: "#111827", marginBottom: 6 }}>
-                Password
-              </label>
+              <label style={labelStyle}>Password</label>
               <div style={{ position: "relative" }}>
                 <input
                   type={showPassword ? "text" : "password"}
@@ -269,7 +302,16 @@ export default function SignupPage() {
                   type="button"
                   onClick={() => setShowPassword((v) => !v)}
                   tabIndex={-1}
-                  style={{ position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)", color: "#6B7280", background: "none", border: "none", cursor: "pointer" }}
+                  style={{
+                    position: "absolute",
+                    right: 12,
+                    top: "50%",
+                    transform: "translateY(-50%)",
+                    color: "#9B6060",
+                    background: "none",
+                    border: "none",
+                    cursor: "pointer",
+                  }}
                 >
                   {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                 </button>
@@ -286,7 +328,7 @@ export default function SignupPage() {
                           height: 4,
                           flex: 1,
                           borderRadius: 2,
-                          backgroundColor: i < cfg.segments ? cfg.color : "#E5E7EB",
+                          backgroundColor: i < cfg.segments ? cfg.color : "#F5C5C5",
                         }}
                       />
                     ))}
@@ -301,9 +343,7 @@ export default function SignupPage() {
 
             {/* Confirm password */}
             <div>
-              <label style={{ display: "block", fontSize: 13, fontWeight: 700, color: "#111827", marginBottom: 6 }}>
-                Confirm password
-              </label>
+              <label style={labelStyle}>Confirm password</label>
               <div style={{ position: "relative" }}>
                 <input
                   type={showConfirm ? "text" : "password"}
@@ -333,7 +373,7 @@ export default function SignupPage() {
                     type="button"
                     onClick={() => setShowConfirm((v) => !v)}
                     tabIndex={-1}
-                    style={{ color: "#6B7280", background: "none", border: "none", cursor: "pointer" }}
+                    style={{ color: "#9B6060", background: "none", border: "none", cursor: "pointer" }}
                   >
                     {showConfirm ? <EyeOff size={16} /> : <Eye size={16} />}
                   </button>
@@ -356,9 +396,9 @@ export default function SignupPage() {
                 backgroundColor: "#EF4444",
                 color: "white",
                 fontWeight: 800,
-                fontSize: 15,
+                fontSize: 14,
                 borderRadius: 14,
-                border: "1.5px solid #EF4444",
+                border: "none",
                 borderBottom: "3px solid #C93B3B",
                 cursor: submitDisabled ? "not-allowed" : "pointer",
                 display: "flex",
@@ -376,7 +416,7 @@ export default function SignupPage() {
           <div style={{ textAlign: "center", marginTop: 24 }}>
             <Link
               href="/login"
-              style={{ fontSize: 14, fontWeight: 700, color: "#EF4444", textDecoration: "none" }}
+              style={{ fontSize: 13, fontWeight: 700, color: "#EF4444", textDecoration: "none" }}
             >
               Already have an account? Sign in
             </Link>

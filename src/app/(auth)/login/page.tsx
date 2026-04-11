@@ -6,34 +6,65 @@ import Link from "next/link";
 import Image from "next/image";
 import { toast } from "sonner";
 import { signIn } from "@/lib/auth/client";
-import { CheckSquare, DollarSign, Eye, EyeOff, Loader2, ShoppingCart } from "lucide-react";
+import { CalendarDays, CheckSquare, Coffee, DollarSign, Eye, EyeOff, Loader2, PiggyBank, ShoppingCart } from "lucide-react";
 import { motion } from "framer-motion";
 
 const FEATURES = [
   {
     icon: CheckSquare,
-    title: "Chores sorted",
-    desc: "Assign, track, and actually get them done.",
+    title: "Chores",
+    desc: "Assign them. Track them. Stop nagging.",
   },
   {
     icon: ShoppingCart,
-    title: "Groceries covered",
-    desc: "One list the whole house uses.",
+    title: "Groceries",
+    desc: "One list. No more 3 versions of the same milk.",
   },
   {
     icon: DollarSign,
-    title: "Bills split fairly",
-    desc: "No more awkward money conversations.",
+    title: "Expenses",
+    desc: "Split the bills. Keep the friends.",
+  },
+  {
+    icon: CalendarDays,
+    title: "Calendar",
+    desc: "Everyone's schedule. One place. No excuses.",
+  },
+  {
+    icon: Coffee,
+    title: "Meals",
+    desc: 'Plan the week. Skip the "what\'s for dinner" panic.',
+  },
+  {
+    icon: PiggyBank,
+    title: "Allowances",
+    desc: "Kids earn it. You approve it. Everyone learns.",
   },
 ];
 
+const labelStyle: React.CSSProperties = {
+  display: "block",
+  fontSize: 11,
+  fontWeight: 800,
+  textTransform: "uppercase",
+  letterSpacing: "0.07em",
+  color: "#7A3F3F",
+  marginBottom: 6,
+};
+
 const inputStyle: React.CSSProperties = {
-  border: "1.5px solid #E5E7EB",
-  borderBottom: "3px solid #D1D5DB",
-  color: "#111827",
+  border: "1.5px solid #F5C5C5",
+  borderBottom: "3px solid #DBADB0",
+  color: "#1A0505",
   fontWeight: 600,
-  backgroundColor: "transparent",
-  borderRadius: 14,
+  backgroundColor: "white",
+  borderRadius: 12,
+  width: "100%",
+  height: 48,
+  padding: "0 16px",
+  fontSize: 14,
+  outline: "none",
+  boxSizing: "border-box",
 };
 
 export default function LoginPage() {
@@ -43,7 +74,6 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  // Check for pending invite token on mount
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const inviteToken = params.get("invite");
@@ -76,50 +106,53 @@ export default function LoginPage() {
     <div style={{ display: "flex", minHeight: "100vh", fontFamily: "var(--font-nunito)" }}>
       {/* Left panel — desktop only */}
       <div
-        className="hidden sm:flex"
+        className="hidden md:flex"
         style={{
           width: "40%",
           backgroundColor: "#EF4444",
           flexDirection: "column",
-          alignItems: "center",
           justifyContent: "center",
-          padding: 48,
+          alignItems: "flex-start",
+          padding: "40px 36px",
         }}
       >
-        {/* Logo */}
-        <Image
-          src="/brand/roost-icon.png"
-          alt="Roost"
-          width={48}
-          height={48}
-          style={{ borderRadius: 14, objectFit: "cover" }}
-        />
-        <p style={{ fontWeight: 900, fontSize: 28, color: "white", marginTop: 12, marginBottom: 6 }}>Roost</p>
-        <p style={{ fontWeight: 700, fontSize: 16, color: "rgba(255,255,255,0.8)", marginBottom: 40 }}>
+        {/* Brand block */}
+        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
+          <Image
+            src="/brand/roost-icon.png"
+            alt="Roost"
+            width={42}
+            height={42}
+            className="rounded-xl"
+            style={{ objectFit: "cover" }}
+          />
+          <span style={{ fontWeight: 900, fontSize: 26, color: "white", letterSpacing: "-0.5px" }}>Roost</span>
+        </div>
+        <p style={{ fontWeight: 700, fontSize: 13, color: "rgba(255,255,255,0.7)", marginBottom: 36 }}>
           Home, sorted.
         </p>
 
-        {/* Feature highlights */}
-        <div style={{ width: "100%", maxWidth: 280 }}>
+        {/* Feature list */}
+        <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
           {FEATURES.map(({ icon: Icon, title, desc }) => (
-            <div key={title} style={{ display: "flex", gap: 12, marginBottom: 20 }}>
+            <div key={title} style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
               <div
                 style={{
-                  width: 32,
-                  height: 32,
+                  width: 28,
+                  height: 28,
                   borderRadius: "50%",
-                  backgroundColor: "rgba(255,255,255,0.2)",
+                  backgroundColor: "rgba(255,255,255,0.18)",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
                   flexShrink: 0,
                 }}
               >
-                <Icon size={15} color="white" />
+                <Icon size={13} color="white" />
               </div>
               <div>
-                <p style={{ fontWeight: 700, fontSize: 14, color: "white", marginBottom: 2 }}>{title}</p>
-                <p style={{ fontWeight: 600, fontSize: 13, color: "rgba(255,255,255,0.75)", lineHeight: 1.4 }}>{desc}</p>
+                <p style={{ fontWeight: 800, fontSize: 12, color: "white", marginBottom: 1 }}>{title}</p>
+                <p style={{ fontWeight: 600, fontSize: 11, color: "rgba(255,255,255,0.62)", lineHeight: 1.35 }}>{desc}</p>
               </div>
             </div>
           ))}
@@ -128,13 +161,13 @@ export default function LoginPage() {
 
       {/* Right panel — form */}
       <div
+        className="px-6 py-10 md:px-9"
         style={{
           flex: 1,
-          backgroundColor: "#F9FAFB",
+          backgroundColor: "#FFF5F5",
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          padding: "48px 24px",
           minHeight: "100vh",
         }}
       >
@@ -145,30 +178,28 @@ export default function LoginPage() {
           style={{ width: "100%", maxWidth: 400 }}
         >
           {/* Mobile-only logo */}
-          <div className="flex sm:hidden" style={{ flexDirection: "column", alignItems: "center", marginBottom: 28 }}>
+          <div className="flex md:hidden" style={{ alignItems: "center", gap: 10, marginBottom: 28 }}>
             <Image
               src="/brand/roost-icon.png"
               alt="Roost"
-              width={48}
-              height={48}
-              style={{ borderRadius: 14, objectFit: "cover" }}
+              width={40}
+              height={40}
+              style={{ borderRadius: 10, objectFit: "cover" }}
             />
-            <p style={{ fontWeight: 900, fontSize: 20, color: "#111827", marginTop: 8 }}>Roost</p>
+            <span style={{ fontWeight: 900, fontSize: 20, color: "#1A0505" }}>Roost</span>
           </div>
 
-          {/* Heading */}
-          <h1 style={{ fontSize: 28, fontWeight: 900, color: "#111827", marginBottom: 4 }}>Welcome back.</h1>
-          <p style={{ fontSize: 14, fontWeight: 600, color: "#374151", marginBottom: 28 }}>
+          <h1 style={{ fontSize: 28, fontWeight: 900, color: "#1A0505", marginBottom: 4, letterSpacing: "-0.5px" }}>
+            Welcome back.
+          </h1>
+          <p style={{ fontSize: 14, fontWeight: 600, color: "#7A3F3F", marginBottom: 28 }}>
             Your household is waiting.
           </p>
 
-          {/* Form */}
           <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 16 }}>
             {/* Email */}
             <div>
-              <label style={{ display: "block", fontSize: 13, fontWeight: 700, color: "#111827", marginBottom: 6 }}>
-                Email
-              </label>
+              <label style={labelStyle}>Email</label>
               <input
                 type="email"
                 autoComplete="email"
@@ -176,17 +207,20 @@ export default function LoginPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="you@example.com"
-                style={{ ...inputStyle, width: "100%", height: 48, padding: "0 16px", fontSize: 14, outline: "none", boxSizing: "border-box" }}
+                style={inputStyle}
               />
             </div>
 
             {/* Password */}
             <div>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
-                <label style={{ fontSize: 13, fontWeight: 700, color: "#111827" }}>Password</label>
-                <button type="button" style={{ fontSize: 13, fontWeight: 700, color: "#EF4444", background: "none", border: "none", cursor: "pointer" }}>
+                <label style={{ ...labelStyle, marginBottom: 0 }}>Password</label>
+                <Link
+                  href="/forgot-password"
+                  style={{ fontSize: 12, fontWeight: 700, color: "#EF4444", textDecoration: "none" }}
+                >
                   Forgot password?
-                </button>
+                </Link>
               </div>
               <div style={{ position: "relative" }}>
                 <input
@@ -196,13 +230,22 @@ export default function LoginPage() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="Your password"
-                  style={{ ...inputStyle, width: "100%", height: 48, padding: "0 44px 0 16px", fontSize: 14, outline: "none", boxSizing: "border-box" }}
+                  style={{ ...inputStyle, paddingRight: 44 }}
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword((v) => !v)}
                   tabIndex={-1}
-                  style={{ position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)", color: "#6B7280", background: "none", border: "none", cursor: "pointer" }}
+                  style={{
+                    position: "absolute",
+                    right: 12,
+                    top: "50%",
+                    transform: "translateY(-50%)",
+                    color: "#9B6060",
+                    background: "none",
+                    border: "none",
+                    cursor: "pointer",
+                  }}
                 >
                   {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                 </button>
@@ -221,9 +264,9 @@ export default function LoginPage() {
                 backgroundColor: "#EF4444",
                 color: "white",
                 fontWeight: 800,
-                fontSize: 15,
+                fontSize: 14,
                 borderRadius: 14,
-                border: "1.5px solid #EF4444",
+                border: "none",
                 borderBottom: "3px solid #C93B3B",
                 cursor: "pointer",
                 display: "flex",
@@ -239,22 +282,22 @@ export default function LoginPage() {
 
           {/* Divider */}
           <div style={{ display: "flex", alignItems: "center", gap: 12, margin: "20px 0" }}>
-            <div style={{ flex: 1, height: 1, backgroundColor: "#E5E7EB" }} />
-            <span style={{ fontSize: 13, fontWeight: 700, color: "#6B7280" }}>or</span>
-            <div style={{ flex: 1, height: 1, backgroundColor: "#E5E7EB" }} />
+            <div style={{ flex: 1, height: 1, backgroundColor: "#F5C5C5" }} />
+            <span style={{ fontSize: 13, fontWeight: 700, color: "#9B6060" }}>or</span>
+            <div style={{ flex: 1, height: 1, backgroundColor: "#F5C5C5" }} />
           </div>
 
           {/* Footer links */}
           <div style={{ textAlign: "center" }}>
             <Link
               href="/signup"
-              style={{ fontSize: 14, fontWeight: 700, color: "#EF4444", textDecoration: "none", display: "block", marginBottom: 16 }}
+              style={{ fontSize: 13, fontWeight: 700, color: "#EF4444", textDecoration: "none", display: "block" }}
             >
               New here? Create an account
             </Link>
             <Link
               href="/child-login"
-              style={{ fontSize: 13, fontWeight: 600, color: "#6B7280", textDecoration: "none", display: "block" }}
+              style={{ fontSize: 12, fontWeight: 600, color: "#9B6060", textDecoration: "none", display: "block", marginTop: 10 }}
             >
               Sign in as a child
             </Link>

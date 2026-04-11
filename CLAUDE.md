@@ -987,15 +987,29 @@ src/lib/constants/colors.ts                   Added "stats": "#6366F1" (indigo) 
 
 ## Auth Page Layout
 - Login and Signup: desktop = flex row split layout (40% red left panel, 60% form right panel)
-- Left panel: red background #EF4444, centered logo + wordmark + tagline + 3 feature highlights
-- Right panel: background #FFF5F5, centered form, max-width 400px
-- Mobile: left panel hidden (hidden sm:flex), right panel full width on #FFF5F5
-- Mobile-only logo block: flex sm:hidden at top of form
-- Inputs use border: 1.5px solid #F5C5C5, borderBottom: 3px solid #D4CFC9, borderRadius 14px
-- Submit button: background #EF4444, borderBottom: 3px solid #C93B3B, borderRadius 14px
+- Left panel: red background #EF4444, flex col, justifyContent center, alignItems flex-start, padding 40px 36px
+  - Brand block: next/image 42x42 rounded-xl + "Roost" wordmark (Nunito 900, 26px, white, tracking-tight) in a row
+  - Below brand: "Home, sorted." at 13px/700/rgba(255,255,255,0.7), marginBottom 36px
+  - 6 feature items: CheckSquare/ShoppingCart/DollarSign/CalendarDays/Coffee/PiggyBank icons
+    Each: 28px circle bg rgba(255,255,255,0.18), 13px icon white; title 12px/800/white; desc 11px/600/rgba(255,255,255,0.62)/lineHeight 1.35
+- Right panel: background #FFF5F5, centered form, max-width 400px, padding px-6 py-10 md:px-9
+- Mobile: left panel hidden (hidden md:flex), right panel full width on #FFF5F5
+- Mobile-only logo block: flex md:hidden, row layout (40px image borderRadius 10px + "Roost" Nunito 900) at top of form
+- Labels: 11px font-weight 800 uppercase letterSpacing 0.07em color #7A3F3F
+- Inputs: border 1.5px solid #F5C5C5, borderBottom 3px solid #DBADB0, borderRadius 12px, bg white
+- H1: color #1A0505, letterSpacing -0.5px; Sub: color #7A3F3F
+- Submit button: background #EF4444, border none, borderBottom 3px solid #C93B3B, borderRadius 14px
+- Login "Forgot password?" link: href /forgot-password, 12px/700/#EF4444
+- Signup step indicator: 3 pills (28px x 5px, borderRadius 3px, gap 6px, centered above H1)
+  Pill 1 done: #C93B3B, Pill 2 active: #EF4444, Pill 3 inactive: #F5C5C5 (static visual only)
 - Child login: no split layout, single centered column, max-width 360px, background #FFF5F5
-- Child login PIN dots: filled = #EF4444, empty = #F5C5C5
-- Child login PIN pad buttons: white bg, border 1.5px solid #F5C5C5, borderBottom 3px solid #D4CFC9
+  Logo: next/image 56x56 borderRadius 16, "Roost" wordmark 22px/900/#1A0505 below
+  H1 "Hey! Enter your code." 26px/900/#1A0505; Sub "Your household code and your secret PIN." 13px/600/#7A3F3F
+  Code input: height 64, border 2px solid #F5C5C5, borderBottom 4px solid #DBADB0, borderRadius 14, fontSize 22/900, letterSpacing 6px
+  "Let me in" button: height 56, border none, borderBottom 4px solid #C93B3B, borderRadius 16
+  Back link: "Back to grown-up sign in", 12px/700/#9B6060
+  PIN dots: 18px each, gap 12px; filled = #EF4444, empty = #F5C5C5
+  PIN pad buttons: white bg, border 1.5px solid #F5C5C5, borderBottom 3px solid #D4CFC9
 
 - HIDE_NAV_ROUTES = ['/onboarding']: AppShell hides Sidebar, TopBar, and BottomNav on these routes.
   Add routes here when a page has its own full-screen layout. AppShell also removes the main padding

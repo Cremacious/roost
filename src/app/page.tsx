@@ -1170,14 +1170,14 @@ export default function HomePage() {
           <Image
             src="/brand/roost-icon.png"
             alt="Roost"
-            width={32}
-            height={32}
-            style={{ borderRadius: 9, objectFit: 'cover' }}
+            width={44}
+            height={44}
+            style={{ borderRadius: 12, objectFit: 'cover' }}
           />
           <span
             style={{
               fontWeight: 900,
-              fontSize: 20,
+              fontSize: 30,
               color: 'white',
               letterSpacing: '-0.3px',
               fontFamily: ff,
@@ -1353,17 +1353,7 @@ export default function HomePage() {
             Sign in
           </Link>
         </div>
-        <p
-          style={{
-            fontSize: 12,
-            fontWeight: 700,
-            color: 'rgba(255,255,255,0.5)',
-            marginTop: 16,
-            fontFamily: ff,
-          }}
-        >
-          Free to get started. No credit card needed.
-        </p>
+     
       </section>
 
       {/* 4. PROBLEM */}
@@ -1835,7 +1825,7 @@ export default function HomePage() {
           <p
             style={{
               fontSize: 14,
-              fontWeight: 600,
+              fontWeight: 800,
               color: '#888',
               margin: 0,
               fontFamily: ff,

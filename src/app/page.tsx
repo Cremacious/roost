@@ -2,7 +2,10 @@ import type { Metadata } from 'next';
 import { Nunito } from 'next/font/google';
 import Image from 'next/image';
 import Link from 'next/link';
+import { redirect } from 'next/navigation';
+import { headers } from 'next/headers';
 import { Bell, GraduationCap, Home, Users } from 'lucide-react';
+import { auth } from '@/lib/auth';
 
 const nunito = Nunito({
   subsets: ['latin'],
@@ -1103,7 +1106,12 @@ function CellValue({ value }: { value: string }) {
 // Page
 // ---------------------------------------------------------------------------
 
-export default function HomePage() {
+export default async function HomePage() {
+  const session = await auth.api.getSession({ headers: await headers() });
+  if (session) {
+    redirect('/dashboard');
+  }
+
   const ff = nunito.style.fontFamily;
 
   return (

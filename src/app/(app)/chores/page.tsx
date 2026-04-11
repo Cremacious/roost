@@ -431,8 +431,10 @@ export default function ChoresPage() {
         <StatCard value={`${myStreak}d`} label="Streak" color="#F59E0B" borderColor="#C93B3B" />
       </div>
 
-      {/* Rewards section — admin only */}
-      {isAdmin && (
+      {/* Rewards section — premium admins only.
+          Free users should only see the premium gate in sheet form when they
+          tap a locked action, not as a large inline card on the page. */}
+      {isAdmin && isPremium && (
         <div className="mb-2">
           {/* Section header */}
           <div className="mb-3 flex items-center justify-between">
@@ -453,32 +455,28 @@ export default function ChoresPage() {
                 Chore goals and prizes for your household
               </p>
             </div>
-            {isPremium && (
-              <motion.button
-                type="button"
-                whileTap={{ y: 1 }}
-                onClick={() => {
-                  setEditingRule(null);
-                  setRewardSheetOpen(true);
-                }}
-                className="flex h-9 items-center gap-1.5 rounded-xl px-3 text-xs"
-                style={{
-                  backgroundColor: `${COLOR}12`,
-                  border: `1.5px solid ${COLOR}30`,
-                  borderBottom: `3px solid ${COLOR}50`,
-                  color: COLOR,
-                  fontWeight: 700,
-                }}
-              >
-                <Plus className="size-3.5" />
-                Add rule
-              </motion.button>
-            )}
+            <motion.button
+              type="button"
+              whileTap={{ y: 1 }}
+              onClick={() => {
+                setEditingRule(null);
+                setRewardSheetOpen(true);
+              }}
+              className="flex h-9 items-center gap-1.5 rounded-xl px-3 text-xs"
+              style={{
+                backgroundColor: `${COLOR}12`,
+                border: `1.5px solid ${COLOR}30`,
+                borderBottom: `3px solid ${COLOR}50`,
+                color: COLOR,
+                fontWeight: 700,
+              }}
+            >
+              <Plus className="size-3.5" />
+              Add rule
+            </motion.button>
           </div>
 
-          {!isPremium ? (
-            <PremiumGate feature="chores" trigger="inline" />
-          ) : rules.length === 0 ? (
+          {rules.length === 0 ? (
             /* Empty state */
             <div
               className="rounded-[12px] p-5 text-center"

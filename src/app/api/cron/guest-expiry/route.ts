@@ -8,8 +8,9 @@ import { logActivity } from "@/lib/utils/activity";
 // Removes guest members whose expires_at has passed.
 
 export async function GET(request: NextRequest): Promise<Response> {
-  const secret = request.headers.get("authorization")?.replace("Bearer ", "");
-  if (secret !== process.env.CRON_SECRET) {
+  const authHeader = request.headers.get("authorization");
+  const cronSecret = process.env.CRON_SECRET;
+  if (!cronSecret || authHeader !== `Bearer ${cronSecret}`) {
     return Response.json({ error: "Unauthorized" }, { status: 401 });
   }
 

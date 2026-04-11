@@ -6,8 +6,9 @@ import { and, eq, isNull, lt } from "drizzle-orm";
 // ---- GET: daily cron - remind payees of pending settlements over 7 days old -
 
 export async function GET(request: NextRequest): Promise<Response> {
-  const cronSecret = request.headers.get("authorization")?.replace("Bearer ", "");
-  if (cronSecret !== process.env.CRON_SECRET) {
+  const authHeader = request.headers.get("authorization");
+  const cronSecret = process.env.CRON_SECRET;
+  if (!cronSecret || authHeader !== `Bearer ${cronSecret}`) {
     return Response.json({ error: "Unauthorized" }, { status: 401 });
   }
 

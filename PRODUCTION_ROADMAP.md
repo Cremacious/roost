@@ -100,17 +100,47 @@ Remaining:
   handles incremental compilation and the result is production-valid.
 
 ### 1.4 Cron Security
-- [ ] Standardize cron authentication across all cron routes.
-- [ ] Remove support for passing cron secrets in query strings.
-- [ ] Ensure cron auth uses headers only.
-- [ ] Verify every scheduled Vercel cron endpoint still works after the auth cleanup.
+- [x] Standardize cron authentication across all cron routes.
+- [x] Remove support for passing cron secrets in query strings.
+- [x] Ensure cron auth uses headers only.
+- [x] Verify every scheduled Vercel cron endpoint still works after the auth cleanup.
 
 Why this matters:
 - Query-string secrets can leak into logs, history, and monitoring tools.
 
+What was audited and fixed (2026-04-11):
+
+All 8 cron route files were read. The canonical pattern applied to all fixed routes:
+  `const authHeader = request.headers.get("authorization");`
+  `const cronSecret = process.env.CRON_SECRET;`
+  `if (!cronSecret || authHeader !== \`Bearer ${cronSecret}\`) { return 401; }`
+The null-check on `cronSecret` prevents a misconfigured environment from accepting
+`Authorization: Bearer undefined` as valid.
+
+Routes already correct — no changes:
+- `reminders/route.ts` — `Authorization: Bearer` + null check ✅
+- `rewards/route.ts` — `Authorization: Bearer` + null check ✅
+- `recurring-expenses/route.ts` — `Authorization: Bearer` ✅
+
+Routes fixed:
+- `subscription/route.ts` — was `x-cron-secret` header → standardized
+- `settlement-reminders/route.ts` — was stripping `Bearer ` then comparing bare secret → standardized
+- `guest-expiry/route.ts` — was stripping `Bearer ` then comparing bare secret → standardized
+- `budget-reset/route.ts` — was `x-cron-secret` header **or** `?secret=` query string → standardized, query string removed
+
+Inconsistency noted:
+- `allowances/route.ts` exists with correct auth but is **not listed in vercel.json**.
+  This is the old allowance cron, superseded by `rewards/route.ts`. It is orphaned and
+  will never be invoked by Vercel. No schedule was added; the file was left in place.
+  Recommend deleting it in a future cleanup pass to avoid confusion.
+
+vercel.json: 7 scheduled crons, all paths verified to match existing route files. No changes needed.
+
 Files:
-- `vercel.json`
-- `src/app/api/cron/**`
+- `src/app/api/cron/subscription/route.ts`
+- `src/app/api/cron/settlement-reminders/route.ts`
+- `src/app/api/cron/guest-expiry/route.ts`
+- `src/app/api/cron/budget-reset/route.ts`
 
 ### 1.5 Admin Surface Hardening
 - [ ] Review whether the current env-based static admin login is acceptable for production.
@@ -282,7 +312,7 @@ Notes:
 - [x] Confirm clean build
 
 ### Phase 2: Lock Down Production Surfaces
-- [ ] Harden cron auth
+- [x] Harden cron auth
 - [ ] Harden admin auth
 - [ ] Add env example and deploy docs
 - [ ] Review config/security headers/logging
@@ -308,5 +338,5 @@ At the start of each future Roost session:
 5. Update this file.
 
 Recommended next task:
-- Harden cron auth: standardize all cron routes to use header-only CRON_SECRET validation,
-  remove any query-string secret support (1.4).
+- Admin surface hardening: review static env-credential admin login, add rate limiting
+  or brute-force protection, add admin activity logging (1.5).

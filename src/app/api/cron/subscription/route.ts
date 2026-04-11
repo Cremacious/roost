@@ -5,8 +5,9 @@ import { and, eq, isNotNull, lt } from "drizzle-orm";
 import { logActivity } from "@/lib/utils/activity";
 
 export async function GET(request: NextRequest): Promise<Response> {
-  const secret = request.headers.get("x-cron-secret");
-  if (secret !== process.env.CRON_SECRET) {
+  const authHeader = request.headers.get("authorization");
+  const cronSecret = process.env.CRON_SECRET;
+  if (!cronSecret || authHeader !== `Bearer ${cronSecret}`) {
     return Response.json({ error: "Unauthorized" }, { status: 401 });
   }
 

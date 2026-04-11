@@ -5,8 +5,9 @@ import { eq } from "drizzle-orm";
 import { format, startOfMonth } from "date-fns";
 
 export async function GET(request: NextRequest): Promise<Response> {
-  const secret = request.headers.get("x-cron-secret") ?? new URL(request.url).searchParams.get("secret");
-  if (secret !== process.env.CRON_SECRET) {
+  const authHeader = request.headers.get("authorization");
+  const cronSecret = process.env.CRON_SECRET;
+  if (!cronSecret || authHeader !== `Bearer ${cronSecret}`) {
     return Response.json({ error: "Unauthorized" }, { status: 401 });
   }
 

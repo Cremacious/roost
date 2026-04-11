@@ -143,17 +143,44 @@ Files:
 - `src/app/api/cron/budget-reset/route.ts`
 
 ### 1.5 Admin Surface Hardening
-- [ ] Review whether the current env-based static admin login is acceptable for production.
-- [ ] Add rate limiting or other brute-force protection for admin login.
-- [ ] Add admin activity logging for sign-ins and sensitive actions.
+- [x] Review whether the current env-based static admin login is acceptable for production.
+- [x] Add rate limiting or other brute-force protection for admin login.
+- [x] Add admin activity logging for sign-ins and sensitive actions.
 - [ ] Decide whether admin should be internal-only, IP-restricted, or replaced with stronger auth.
 
 Why this matters:
 - Static env credentials are easy to operate, but weak for a public production surface.
 
+What was added (2026-04-11):
+
+Rate limiting on `POST /api/admin/login`:
+- In-memory per-IP limiter: 5 attempts per 15-minute window.
+- On breach: 429 with `Retry-After` header, attempt logged via `console.warn`.
+- On success: counter cleared so a legitimate admin is never locked out of their own panel.
+- Limitation: per-instance only (Vercel serverless). A distributed brute-force across
+  many instances could still succeed, but this eliminates the trivial single-source attack.
+  For stronger protection, Vercel KV or an upstream WAF would be needed (post-launch).
+
+Admin activity logging (structured, via Vercel logs):
+- Failed login attempt: `console.warn` with email, IP, timestamp.
+- Successful login: `console.info` with email, IP, timestamp.
+- Rate-limit block: `console.warn` with IP, timestamp.
+- Sensitive actions (subscription overrides): already logged to household_activity via
+  `logActivity()` — that was in place before this pass.
+
+Remaining risks accepted for launch:
+- In-memory rate limit is per-instance; distributed brute force is still possible.
+- No dedicated admin audit log table — sign-in events live only in Vercel function logs.
+- Password comparison uses `===` (no constant-time compare), acceptable since the secret
+  is an env var, not user-supplied data from a DB column.
+- No IP allowlist or MFA. Admin URL is publicly reachable (no firewall).
+
+Verdict: Acceptable for launch given the admin panel is internal tooling with no
+customer-facing attack surface, credentials are strong env vars not committed to git,
+and brute-force is now rate-limited per instance.
+
 Files:
-- `src/lib/admin/auth.ts`
-- `src/app/api/admin/**`
+- `src/app/api/admin/login/route.ts`
 
 ## 2. Production Setup and Ops
 
@@ -313,7 +340,7 @@ Notes:
 
 ### Phase 2: Lock Down Production Surfaces
 - [x] Harden cron auth
-- [ ] Harden admin auth
+- [x] Harden admin auth
 - [ ] Add env example and deploy docs
 - [ ] Review config/security headers/logging
 
@@ -338,5 +365,5 @@ At the start of each future Roost session:
 5. Update this file.
 
 Recommended next task:
-- Admin surface hardening: review static env-credential admin login, add rate limiting
-  or brute-force protection, add admin activity logging (1.5).
+- Environment management: add `.env.example`, separate required from optional vars,
+  verify NEXT_PUBLIC_APP_URL wiring, confirm all secrets are in Vercel (2.2).

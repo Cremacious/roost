@@ -70,6 +70,88 @@ test.describe("Auth flows — public", () => {
   });
 });
 
+// Fresh user factory for password change tests — avoids mutating seeded accounts
+const freshPwUser = () => {
+  const ts = Date.now() + Math.floor(Math.random() * 10000);
+  return {
+    name: "PW Change Test",
+    email: `pw-change-${ts}@roost.test`,
+    password: "RoostTest123!",
+  };
+};
+
+// ---------------------------------------------------------------------------
+// Password change — auth gate and validation (API-level)
+// ---------------------------------------------------------------------------
+
+test.describe("Password change — unauthenticated", () => {
+  test("POST /api/user/change-password without session → 401", async ({
+    page,
+  }) => {
+    const res = await page.request.post("/api/user/change-password", {
+      data: { currentPassword: "anything", newPassword: "NewPass123!" },
+    });
+    expect(res.status()).toBe(401);
+  });
+});
+
+test.describe("Password change — validation", () => {
+  test("wrong current password → 400", async ({ page }) => {
+    await signUp(page, freshPwUser());
+    const res = await page.request.post("/api/user/change-password", {
+      data: { currentPassword: "WrongPass999!", newPassword: "NewPass123!" },
+    });
+    expect(res.status()).toBe(400);
+    const body = (await res.json()) as { error: string };
+    expect(body.error).toMatch(/incorrect/i);
+  });
+
+  test("weak new password → 400", async ({ page }) => {
+    await signUp(page, freshPwUser());
+    const res = await page.request.post("/api/user/change-password", {
+      data: { currentPassword: "RoostTest123!", newPassword: "tooweak" },
+    });
+    expect(res.status()).toBe(400);
+  });
+
+  test("missing fields → 400", async ({ page }) => {
+    await signUp(page, freshPwUser());
+    const res = await page.request.post("/api/user/change-password", {
+      data: { currentPassword: "RoostTest123!" },
+    });
+    expect(res.status()).toBe(400);
+  });
+});
+
+test.describe("Password change — happy path", () => {
+  test("valid change → 200 and new password works for sign-in", async ({
+    page,
+  }) => {
+    const user = freshPwUser();
+    const newPassword = "ChangedPass456@";
+
+    // Sign up and create household so dashboard is reachable after re-login
+    await signUp(page, user);
+    await createHousehold(page, "PW Test House");
+    await expect(page).toHaveURL(/\/dashboard/);
+
+    // Change password while authenticated
+    const changeRes = await page.request.post("/api/user/change-password", {
+      data: { currentPassword: user.password, newPassword },
+    });
+    expect(changeRes.ok()).toBeTruthy();
+    const body = (await changeRes.json()) as { success: boolean };
+    expect(body.success).toBe(true);
+
+    // Sign out and sign in with the new password
+    await signOut(page);
+    await expect(page).toHaveURL(/\/login/);
+
+    await signIn(page, { email: user.email, password: newPassword });
+    await expect(page).toHaveURL(/\/dashboard/);
+  });
+});
+
 // ---------------------------------------------------------------------------
 // Signed-in redirect behaviour
 // Uses the saved free-admin session (storageState set via project config).

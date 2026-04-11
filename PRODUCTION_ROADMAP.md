@@ -613,11 +613,20 @@ Files changed:
 - [x] Login flow
 - [x] Logout flow
 - [x] Child PIN login
-- [ ] Password change
+- [x] Password change
 - [x] Profile email change and re-login
 - [x] Invite accept/join flow (page render + invalid token; full multi-user join is manual QA)
 
 What was added (2026-04-11):
+
+`e2e/auth.spec.ts` (password change, added inline):
+- Unauthenticated POST /api/user/change-password → 401
+- Wrong current password → 400 with /incorrect/i error message
+- Weak new password → 400 (missing uppercase/number/symbol/length)
+- Missing fields → 400
+- Valid change → 200 with { success: true }; re-login with new password reaches dashboard
+No new file needed — added as three describe blocks at the end of auth.spec.ts.
+No playwright.config.ts change needed.
 
 Seed fix (`src/db/seed.ts`):
 - Child account now inserts into the better-auth `user` table FIRST (placeholder email
@@ -809,14 +818,120 @@ Isolation notes:
   visitor; the join flow is manual QA). Full invite join requires a premium household + two contexts.
 
 ## 4.3 Manual QA Before Launch
-- [ ] Full onboarding on desktop
-- [ ] Full onboarding on mobile
-- [ ] Admin dashboard access and lockout behavior
-- [ ] Billing purchase in Stripe test mode
-- [ ] Cron verification in preview or staging
-- [ ] Invite links from creation to acceptance
-- [ ] Receipt scan with real-world sample receipts
-- [ ] Core flows for chores, grocery, meals, reminders, notes, and tasks
+
+### Launch Blockers (must fix in code before QA)
+
+**A. /forgot-password is a dead link**
+The login page links to `/forgot-password` (12px red link below the form). The route does
+not exist — it 404s. Must either implement a minimal page or remove the link before launch.
+Simplest fix: remove the link from `src/app/(auth)/login/page.tsx` for now; add proper
+password reset (Resend email flow) post-launch.
+
+**B. OG image missing**
+`public/og-image.png` does not exist. Social shares will have no preview image.
+See CLAUDE.md "OG Image" section. Create manually in Figma (1200x630, red #EF4444 bg,
+Roost logo + "Home, sorted." tagline) and drop in `public/`.
+
+### Priority 1: Stripe Lifecycle (revenue-critical, do this first)
+Use the Stripe CLI for every step. Without a confirmed webhook cycle, the app cannot
+collect money reliably.
+
+```bash
+stripe listen --forward-to localhost:3000/api/stripe/webhook
+```
+
+Manual steps:
+- [ ] Click through checkout with test card 4242 4242 4242 4242
+      - Verify `checkout.session.completed` fires and household goes premium in DB
+      - Verify billing page shows "Active" plan immediately after return
+- [ ] Run `stripe trigger customer.subscription.updated` — verify no crash
+- [ ] Run `stripe trigger invoice.payment_succeeded` — verify no crash
+- [ ] Run `stripe trigger customer.subscription.deleted` — verify household returns to free
+- [ ] Test the cancellation flow in app: Settings > Billing > Cancel plan
+      - Verify `cancel_at_period_end` is set; billing page shows "Cancels on [date]"
+- [ ] Test the reactivation flow: Settings > Billing > Keep Premium
+      - Verify billing page returns to active state
+
+### Priority 2: First Vercel Deployment
+Without a real deployment, env vars, DB connectivity, and cron scheduling are unverified.
+
+- [ ] Set all required env vars in Vercel dashboard (reference .env.example and RUNBOOK.md)
+      Required: DATABASE_URL, BETTER_AUTH_SECRET, BETTER_AUTH_URL, NEXT_PUBLIC_APP_URL,
+      STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET, NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY,
+      AZURE_DOCUMENT_INTELLIGENCE_KEY, AZURE_DOCUMENT_INTELLIGENCE_ENDPOINT,
+      CRON_SECRET, RESEND_API_KEY, ADMIN_EMAIL, ADMIN_PASSWORD
+- [ ] Run `npm run db:push` against the production Neon database
+- [ ] Deploy to Vercel preview branch — verify app loads at preview URL
+- [ ] Verify Vercel cron jobs appear in the dashboard (Settings > Cron Jobs)
+- [ ] Trigger one cron manually from Vercel dashboard to confirm CRON_SECRET is wired:
+      `curl -H "Authorization: Bearer <CRON_SECRET>" <preview-url>/api/cron/reminders`
+- [ ] Verify Stripe webhook is registered for the preview/production URL in Stripe dashboard
+
+### Priority 3: Core Feature Regression (30 min on deployed preview)
+One full pass through every module as an admin, then as a member.
+
+As admin (free tier):
+- [ ] Sign up → create household → reach dashboard (onboarding full path)
+- [ ] Add a chore, complete it, view leaderboard
+- [ ] Add a grocery item, check it, clear checked
+- [ ] Create a calendar event, verify it appears in month view
+- [ ] Create a task, complete it
+- [ ] Create a note (plain text for free tier)
+- [ ] Create a reminder, verify banner appears after page reload
+- [ ] Plan a meal for the week
+- [ ] Invite a member via household code; have member join and verify they see the household
+- [ ] View expenses page (free tier upgrade prompt visible)
+
+As admin (premium, after Stripe checkout):
+- [ ] Add an expense, split equally, verify balance shows correctly
+- [ ] Upload a receipt photo, verify OCR parses items
+- [ ] Create a recurring expense template
+- [ ] View stats page — verify charts render with data
+- [ ] Create a rich text note, verify Tiptap editor loads
+
+As member (after joining household):
+- [ ] Verify member cannot add a child account (403 expected)
+- [ ] Verify member sees read-only household info
+- [ ] Complete a chore, verify points appear on leaderboard
+
+### Priority 4: Mobile Real-Device Check (iOS Safari is highest risk)
+Run on a physical iPhone or Safari in Xcode Simulator.
+
+- [ ] Sign up on mobile — verify no auto-zoom on input focus (font-size: 16px rule)
+- [ ] Open a chore sheet — verify keyboard does not appear before sheet animation completes
+- [ ] Swipe-to-dismiss a sheet — verify drag handle works
+- [ ] Bottom nav tabs all respond to taps (48px targets)
+- [ ] Grocery quick-add bar works, Enter key adds item
+- [ ] Complete a chore from mobile list view
+
+### Priority 5: Admin Panel
+- [ ] Login to /admin with ADMIN_EMAIL + ADMIN_PASSWORD
+- [ ] View users list with search
+- [ ] View households list
+- [ ] Set a test household to premium/free manually and verify the status changes in the app
+- [ ] Verify /admin/login lockout on bad credentials (no redirect to app)
+
+### Priority 6: Guest Invite Flow (premium household)
+- [ ] Admin generates guest invite link (Settings > Members > Invite Guest)
+- [ ] Open link in incognito — verify page renders with household name and guest badge
+- [ ] Create a new account through the invite flow
+- [ ] Verify the new user lands in the household as "Guest" role
+- [ ] Verify the guest sees correct permissions (cannot add child, cannot access expenses)
+- [ ] Verify expiry date shown in member list
+
+### Priority 7: Receipt Scanning End-to-End
+- [ ] Upload a real receipt photo as a premium user
+- [ ] Verify Azure OCR returns line items (or gracefully shows "empty" state)
+- [ ] Verify editable line items appear, assignment works, form pre-fills with total
+- [ ] Test with a blurry/bad-quality photo — verify error state, not crash
+
+### Optional Post-Launch Test Improvements
+These have lower ROI before launch. Add them in the first iteration after launch:
+- [ ] Settle-all flows (multi-user state, claim/confirm/dispute cycle)
+- [ ] CSV and PDF export verification (file download content check)
+- [ ] Guest role permission tests (requires premium + multi-context setup)
+- [ ] Transfer admin automation
+- [ ] Password reset via email (once Resend is wired for reset flow)
 
 ## 5. Feature Decisions To Make
 
@@ -850,9 +965,11 @@ Notes:
 - [x] Write README and production runbook (2.1)
 
 ### Phase 3: Prove the Critical Flows
-- [ ] Expand tests for auth, billing, permissions, and cron jobs
-- [ ] Run full regression in a production-like environment
-- [ ] Verify Stripe and Azure integrations end to end
+- [x] Expand tests for auth, billing, permissions, cron jobs, and household management
+- [ ] Fix /forgot-password dead link before launch
+- [ ] Fix missing OG image before launch
+- [ ] Run full regression in a production-like environment (4.3)
+- [ ] Verify Stripe and Azure integrations end to end (4.3 Priority 1 + 7)
 
 ### Phase 4: Launch Readiness
 - [ ] Final manual QA pass
@@ -870,15 +987,18 @@ At the start of each future Roost session:
 5. Update this file.
 
 Recommended next task:
-- Phase 3 testing (4.2) — remaining gaps: expense export (CSV/PDF content verification)
-  and settle-all flows (require multi-user state setup). After those, the 4.2 automated
-  test coverage is complete enough to move to 4.3 manual QA. Alternatively, skip
-  those edge cases and advance to 4.3 now — cron, auth, billing, permissions, and
-  household ops are the highest-value paths.
-  Current coverage summary:
-    Auth flows       — COVERED (signup, login, logout, child PIN, email change, invite page)
-    Billing          — COVERED (auth/role gates, webhook sig rejection, UI states)
-    Permissions      — COVERED (unauthenticated 401, premium 403, child finance block, member admin block)
-    Household ops    — COVERED (create, join, add child, remove member, delete data, full delete, rename)
-    Cron jobs        — COVERED (auth rejection + authorized execution + response shape for all 7 routes)
-    Expenses/export  — NOT COVERED (manual QA with Stripe test mode + receipt images)
+- Automated testing is complete for all high-value paths. Move to Phase 4 (4.3 Manual QA).
+  Immediate next steps in order:
+    1. Fix /forgot-password dead link (remove or stub the page — 10 min)
+    2. Create OG image (Figma, drop in public/ — 20 min)
+    3. Stripe lifecycle: `stripe listen` + click through checkout with test card
+    4. First Vercel preview deployment + env vars
+    5. Full manual QA pass on deployed preview (4.3 checklist above)
+
+  Automated test coverage summary (all 4.2 items complete):
+    Auth flows       — DONE (signup, login, logout, child PIN, password change, email change, invite page)
+    Billing          — DONE (auth gates, role gates, webhook sig validation, UI states)
+    Permissions      — DONE (unauthenticated 401, premium 403, child finance block, member admin block)
+    Household ops    — DONE (create, join, add child, remove member, delete data, full delete, rename)
+    Cron jobs        — DONE (auth rejection + authorized execution + response shape for all 7 routes)
+    Expenses/export  — DEFERRED to post-launch (settle-all, CSV/PDF — manual QA acceptable for launch)

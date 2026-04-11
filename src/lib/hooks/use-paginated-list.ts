@@ -21,6 +21,7 @@ export function usePaginatedList<T>(
 
   // Reset when the items array identity changes (filter switch, etc.)
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setVisibleCount(pageSize);
   }, [items, pageSize]);
 

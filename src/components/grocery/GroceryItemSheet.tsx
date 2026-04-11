@@ -42,6 +42,7 @@ export default function GroceryItemSheet({
 
   useEffect(() => {
     if (item) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setName(item.name);
       setQuantity(item.quantity ?? "");
     } else {

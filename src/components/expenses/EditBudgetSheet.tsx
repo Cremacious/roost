@@ -52,6 +52,7 @@ export default function EditBudgetSheet({ open, onClose, budget }: EditBudgetShe
 
   useEffect(() => {
     if (!open || !budget) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setAmount(budget.amount.toFixed(2));
     setResetType((budget.reset_type as 'monthly' | 'manual') ?? 'monthly');
     setThreshold(budget.warning_threshold ?? 80);

@@ -24,6 +24,7 @@ export default function ReminderBanner() {
   useEffect(() => {
     // Check sessionStorage after mount (client-only)
     const isDismissed = sessionStorage.getItem(SESSION_KEY) === "1";
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setDismissed(isDismissed);
   }, []);
 

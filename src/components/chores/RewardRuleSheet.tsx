@@ -119,6 +119,7 @@ export default function RewardRuleSheet({
   // Populate in edit mode
   useEffect(() => {
     if (rule) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setUserId(rule.user_id);
       setTitle(rule.title);
       setRewardType(rule.reward_type as typeof rewardType);

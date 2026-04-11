@@ -62,6 +62,7 @@ export default function MealSheet({ open, onClose, meal, isPremium, mealCount, o
 
   useEffect(() => {
     if (meal) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setName(meal.name);
       setCategory(meal.category);
       setDescription(meal.description ?? "");

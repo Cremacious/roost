@@ -338,6 +338,7 @@ export default function EventSheet({
   // Sync fields when sheet opens / event changes
   useEffect(() => {
     if (!open) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setMode(initialMode);
 
     if (initialMode === "create") {

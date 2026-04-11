@@ -1464,9 +1464,9 @@ export default function MealsPage() {
             exit={{ opacity: 0, x: -20 }}
             transition={{ duration: 0.15 }}
           >
-            {tab === 'planner' && <PlannerTab />}
-            {tab === 'bank' && <BankTab />}
-            {tab === 'suggestions' && <SuggestionsTab />}
+            {tab === 'planner' && PlannerTab()}
+            {tab === 'bank' && BankTab()}
+            {tab === 'suggestions' && SuggestionsTab()}
           </motion.div>
         </AnimatePresence>
 

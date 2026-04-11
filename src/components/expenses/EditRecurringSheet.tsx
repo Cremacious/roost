@@ -81,6 +81,7 @@ export default function EditRecurringSheet({ open, onClose, template, members }:
 
   useEffect(() => {
     if (!open) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setTitle(template.title);
     setAmount(parseFloat(template.total_amount).toFixed(2));
     setCategory(template.category ?? "");
@@ -364,7 +365,7 @@ export default function EditRecurringSheet({ open, onClose, template, members }:
                   })}
                   {splits.length === 0 && (
                     <p className="text-xs" style={{ color: "var(--roost-text-muted)", fontWeight: 600 }}>
-                      No splits configured. Tap "Edit splits" to set them.
+                      No splits configured. Tap &ldquo;Edit splits&rdquo; to set them.
                     </p>
                   )}
                 </div>

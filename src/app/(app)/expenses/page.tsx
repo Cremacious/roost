@@ -540,7 +540,7 @@ function BalanceHero({
       <div className="grid grid-cols-3 gap-3">
         <div className="flex flex-col justify-between text-center" style={{ minHeight: "3.5rem" }}>
           <p className="text-xs leading-tight" style={{ color: "var(--roost-text-muted)", fontWeight: 700, minHeight: "2rem" }}>
-            You're owed
+            You&apos;re owed
           </p>
           <p className="text-xl" style={{ color: myBalance > 0 ? COLOR : "var(--roost-text-muted)", fontWeight: 900 }}>
             ${Math.max(0, myBalance).toFixed(2)}

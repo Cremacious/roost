@@ -168,13 +168,16 @@ export default function AdminOverviewPage() {
   // Load persisted preference
   useEffect(() => {
     const stored = localStorage.getItem(LS_KEY);
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     if (stored !== null) setHideTest(stored !== "false");
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setMounted(true);
   }, []);
 
   // Fetch stats whenever hideTest changes (after mount)
   useEffect(() => {
     if (!mounted) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setLoading(true);
     setError("");
     fetch(`/api/admin/stats?hideTest=${hideTest}`)

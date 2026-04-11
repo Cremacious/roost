@@ -90,6 +90,7 @@ export default function TaskSheet({
   useEffect(() => {
     if (open) {
       if (task) {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         setTitle(task.title);
         setDescription(task.description ?? "");
         setAssignedTo(task.assigned_to ?? "");

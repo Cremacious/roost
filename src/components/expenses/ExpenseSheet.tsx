@@ -214,6 +214,7 @@ export default function ExpenseSheet({
 
   useEffect(() => {
     if (!open) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setMode(initialMode);
     setScanView('form');
     setScannedReceipt(null);

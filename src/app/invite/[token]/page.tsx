@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { Check, Clock, Loader2 } from "lucide-react";
@@ -166,7 +167,7 @@ export default function InvitePage() {
       >
         {/* Title */}
         <h1 style={{ fontSize: 24, fontWeight: 900, color: "#111827", marginBottom: 4 }}>
-          You've been invited!
+          You&apos;ve been invited!
         </h1>
         <p style={{ fontSize: 15, fontWeight: 600, color: "#374151", marginBottom: 20 }}>
           Join <strong>{info.household_name}</strong> on Roost
@@ -286,7 +287,7 @@ export default function InvitePage() {
 
       {/* Footer */}
       <p className="mt-5 text-center text-sm" style={{ color: "#6B7280", fontWeight: 600 }}>
-        Guest access expires {expiryFull}. After that, your account remains but you'll lose access to this household.
+        Guest access expires {expiryFull}. After that, your account remains but you&apos;ll lose access to this household.
       </p>
     </PageShell>
   );
@@ -335,7 +336,7 @@ function ErrorCard({ title, body }: { title: string; body: string }) {
     >
       <p style={{ fontSize: 18, fontWeight: 900, color: "#111827", marginBottom: 8 }}>{title}</p>
       <p style={{ fontSize: 14, fontWeight: 600, color: "#374151", marginBottom: 24 }}>{body}</p>
-      <a
+      <Link
         href="/"
         style={{
           display: "inline-flex",
@@ -354,7 +355,7 @@ function ErrorCard({ title, body }: { title: string; body: string }) {
         }}
       >
         Go to Roost
-      </a>
+      </Link>
     </motion.div>
   );
 }

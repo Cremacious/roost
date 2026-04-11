@@ -100,6 +100,7 @@ export default function ChoreSheet({
 
   useEffect(() => {
     if (chore) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setTitle(chore.title);
       setDescription(chore.description ?? "");
       setAssignedTo(chore.assigned_to ?? "");

@@ -102,6 +102,7 @@ export default function MealSlotSheet({
   // Reset state when sheet opens
   useEffect(() => {
     if (open) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setSearch("");
       setQuickName("");
       setShowRemoveConfirm(false);

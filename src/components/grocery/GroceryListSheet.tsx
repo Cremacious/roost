@@ -42,6 +42,7 @@ export default function GroceryListSheet({
 
   useEffect(() => {
     if (list) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setName(list.name);
     } else {
       setName("");

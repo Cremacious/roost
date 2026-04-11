@@ -13,6 +13,7 @@ import {
   isToday,
 } from 'date-fns';
 import {
+  BookmarkCheck,
   ChefHat,
   CalendarDays,
   ChevronLeft,
@@ -172,6 +173,9 @@ export default function MealsPage() {
   const [approveConfirm, setApproveConfirm] = useState<SuggestionRow | null>(
     null,
   );
+  const [confirmBankSuggestion, setConfirmBankSuggestion] = useState<
+    string | null
+  >(null);
 
   const weekStartStr = format(weekStart, 'yyyy-MM-dd');
   const weekEnd = addDays(weekStart, 6);
@@ -1175,6 +1179,22 @@ export default function MealsPage() {
                 {s.meal_name}
               </p>
 
+              {/* In meal bank badge */}
+              {s.status === 'in_bank' && (
+                <div className="mt-1.5 flex items-center gap-1">
+                  <BookmarkCheck
+                    className="size-4"
+                    style={{ color: COLOR }}
+                  />
+                  <span
+                    className="text-xs"
+                    style={{ color: COLOR, fontWeight: 600 }}
+                  >
+                    In meal bank
+                  </span>
+                </div>
+              )}
+
               {/* Suggested by */}
               <div className="mt-2 flex items-center gap-1.5">
                 <MemberAvatar
@@ -1297,14 +1317,14 @@ export default function MealsPage() {
                     <motion.button
                       type="button"
                       whileTap={{ y: 1 }}
-                      onClick={() => addSuggestionToBankMutation.mutate(s.id)}
-                      disabled={addSuggestionToBankMutation.isPending}
+                      onClick={() => setConfirmBankSuggestion(s.id)}
+                      disabled={addSuggestionToBankMutation.isPending || s.status === 'in_bank'}
                       className="flex h-9 items-center rounded-xl px-3 text-xs disabled:opacity-50"
                       style={{
-                        backgroundColor: '#22C55E12',
-                        border: '1.5px solid #22C55E25',
-                        borderBottom: '3px solid #16A34A40',
-                        color: '#22C55E',
+                        backgroundColor: '#F9731612',
+                        border: '1.5px solid #F9731625',
+                        borderBottom: '3px solid #C4581A40',
+                        color: '#F97316',
                         fontWeight: 700,
                       }}
                     >
@@ -1719,6 +1739,78 @@ export default function MealsPage() {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+
+        {/* Add to bank confirm dialog */}
+        {(() => {
+          const confirmSuggestion = suggestions.find(
+            (s) => s.id === confirmBankSuggestion,
+          );
+          return (
+            <Dialog
+              open={!!confirmBankSuggestion}
+              onOpenChange={(v) => !v && setConfirmBankSuggestion(null)}
+            >
+              <DialogContent
+                style={{ backgroundColor: 'var(--roost-surface)' }}
+              >
+                <DialogHeader>
+                  <DialogTitle
+                    style={{ color: 'var(--roost-text-primary)', fontWeight: 800 }}
+                  >
+                    Add to meal bank?
+                  </DialogTitle>
+                </DialogHeader>
+                <p className="text-sm" style={{ color: 'var(--roost-text-secondary)', fontWeight: 600 }}>
+                  <span style={{ fontWeight: 800, color: 'var(--roost-text-primary)' }}>
+                    &ldquo;{confirmSuggestion?.meal_name}&rdquo;
+                  </span>{' '}
+                  will be saved to your household&apos;s meal bank. The suggestion will stay open until it&apos;s added to a day or rejected.
+                </p>
+                <DialogFooter className="mt-2 flex gap-2">
+                  <motion.button
+                    type="button"
+                    onClick={() => setConfirmBankSuggestion(null)}
+                    whileTap={{ y: 1 }}
+                    className="flex h-11 flex-1 items-center justify-center rounded-xl text-sm"
+                    style={{
+                      backgroundColor: 'var(--roost-bg)',
+                      border: '1.5px solid var(--roost-border)',
+                      borderBottom: '3px solid var(--roost-border-bottom)',
+                      color: 'var(--roost-text-primary)',
+                      fontWeight: 700,
+                    }}
+                  >
+                    Cancel
+                  </motion.button>
+                  <motion.button
+                    type="button"
+                    disabled={addSuggestionToBankMutation.isPending}
+                    onClick={() => {
+                      if (confirmBankSuggestion) {
+                        addSuggestionToBankMutation.mutate(confirmBankSuggestion);
+                        setConfirmBankSuggestion(null);
+                      }
+                    }}
+                    whileTap={{ y: 1 }}
+                    className="flex h-11 flex-1 items-center justify-center rounded-xl text-sm text-white disabled:opacity-50"
+                    style={{
+                      backgroundColor: COLOR,
+                      border: `1.5px solid ${COLOR}`,
+                      borderBottom: `3px solid ${COLOR_DARK}`,
+                      fontWeight: 700,
+                    }}
+                  >
+                    {addSuggestionToBankMutation.isPending ? (
+                      <Loader2 className="size-4 animate-spin" />
+                    ) : (
+                      'Add to bank'
+                    )}
+                  </motion.button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+          );
+        })()}
       </PageContainer>
     </motion.div>
   );

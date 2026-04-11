@@ -633,16 +633,16 @@ src/components/expenses/SettleSheet.tsx       Settle-up confirmation: shows debt
 src/components/expenses/MockExpensesPreview.tsx  Static non-functional expenses preview used in PremiumGate blurred background
 src/app/api/household/me/route.ts             GET: current user's household + role + permissions (most recently joined)
 src/app/api/dev/toggle-premium/route.ts       POST: dev-only, toggles household subscription_status between free and premium
-src/db/schema/meals.ts                        meals, meal_plan_slots, meal_suggestions, meal_suggestion_votes; meal_suggestions now stores target_slot_date, target_slot_type, status(suggested/accepted/rejected), responded_by/at, accepted_meal_id, accepted_slot_id
+src/db/schema/meals.ts                        meals, meal_plan_slots, meal_suggestions, meal_suggestion_votes; meal_suggestions now stores target_slot_date, target_slot_type, status(suggested/in_bank/accepted/rejected), responded_by/at, accepted_meal_id, accepted_slot_id
 src/app/api/meals/route.ts                    GET (meal bank list, ordered by name) + POST (create meal, blockChild)
 src/app/api/meals/[id]/route.ts               PATCH (edit, creator or admin) + DELETE (soft delete)
 src/app/api/meals/[id]/add-to-grocery/route.ts  POST: push meal ingredients to default grocery list + activity log
 src/app/api/meals/planner/route.ts            GET (week slots, ?weekStart=YYYY-MM-DD, joins meals+users) + POST (upsert via onConflictDoUpdate)
 src/app/api/meals/planner/[id]/route.ts       DELETE: hard delete slot (creator or admin)
-src/app/api/meals/suggestions/route.ts        GET (suggested only, vote counts, userVote, target day/slot, sorted by upvotes) + POST (all roles including children, requires target day + slot)
+src/app/api/meals/suggestions/route.ts        GET (suggested + in_bank, vote counts, userVote, target day/slot, sorted by upvotes) + POST (all roles including children, requires target day + slot)
 src/app/api/meals/suggest/route.ts            POST alias for meal suggestions create flow
 src/app/api/meals/suggestions/[id]/vote/route.ts  POST: toggle up/down vote (same vote = remove)
-src/app/api/meals/suggestions/[id]/approve/route.ts  POST: admin only, sets status=accepted, creates meal bank entry, upserts planner slot using suggestion target day/slot
+src/app/api/meals/suggestions/[id]/approve/route.ts  POST: admin only, creates meal bank entry; destination="bank" sets status=in_bank (card stays visible); destination="planner" upserts slot + sets status=accepted (card removed)
 src/app/api/meals/[id]/accept/route.ts        PUT alias for accepting a meal suggestion into the planner
 src/app/api/meals/[id]/reject/route.ts        DELETE: admin only, marks a meal suggestion as rejected
 src/components/meals/MealSheet.tsx            Create/edit meal: name, category pills, description, prep time, dynamic ingredients list; onUpgradeRequired prop
@@ -847,10 +847,20 @@ src/lib/constants/colors.ts                   Added "stats": "#6366F1" (indigo) 
   Voting: optimistic UI, same vote = toggle off, up = orange, down = muted red
   Each suggestion stores a target day + target slot so approval can place it directly onto the planner
   Suggestion cards show target day/slot and ingredient chips when present
-  Admin sees "Add to day" and "Reject" actions; add opens confirmation Dialog
-  Accept confirm Dialog: shows meal name bold, target day/slot, and explains it will be placed on the planner and saved to the meal bank
+  Admin sees "Add to bank", "Add to day", and "Reject" actions
+  "Add to bank": orange slab button, opens confirm Dialog before saving to meal bank
+  Add to bank confirm Dialog: shows meal name in quotes, explains it stays open until placed on a day or rejected
+  "Add to bank" button is disabled (opacity 50) when suggestion status is already "in_bank"
+  "In meal bank" badge: BookmarkCheck icon (16px, orange) + "In meal bank" text shown below meal name when status="in_bank"
+  Accept confirm Dialog ("Add to day"): shows meal name bold, target day/slot, explains it will be placed on the planner and saved to the meal bank
   SuggestionSheet collects: meal name, target day, target slot, ingredients, note, prep time
   Accepting a suggestion invalidates ["suggestions"], ["meals"], and ["planner"] query keys
+  Suggestion status semantics:
+    "suggested"  = freshly submitted, not acted on
+    "in_bank"    = added to meal bank only; card stays visible, still voteable and placeable
+    "accepted"   = placed on the planner; removed from suggestions list
+    "rejected"   = rejected by admin; removed from suggestions list
+  GET /api/meals/suggestions filters WHERE status IN ("suggested", "in_bank")
 - Grocery integration: POST /api/meals/[id]/add-to-grocery inserts each ingredient
   as a grocery_item in the default grocery list
   Grocery add requires confirmation Dialog: shows meal name bold, ingredient preview (up to 5

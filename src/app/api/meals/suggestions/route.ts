@@ -43,7 +43,7 @@ export async function GET(request: NextRequest): Promise<Response> {
     .where(
       and(
         eq(meal_suggestions.household_id, householdId),
-        eq(meal_suggestions.status, "suggested")
+        inArray(meal_suggestions.status, ["suggested", "in_bank"])
       )
     )
     .orderBy(desc(meal_suggestions.created_at));

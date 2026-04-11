@@ -106,7 +106,7 @@ export async function POST(
   const [updated] = await db
     .update(meal_suggestions)
     .set({
-      status: "accepted",
+      status: destination === "bank" ? "in_bank" : "accepted",
       target_slot_date: destination === "planner" ? slotDate : suggestion.target_slot_date,
       target_slot_type: destination === "planner" ? slotType : suggestion.target_slot_type,
       responded_by: session.user.id,

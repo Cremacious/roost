@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { households } from "@/db/schema";
 import { and, eq, isNotNull, lt } from "drizzle-orm";
 import { logActivity } from "@/lib/utils/activity";
+import { log } from "@/lib/utils/logger";
 
 export async function GET(request: NextRequest): Promise<Response> {
   const authHeader = request.headers.get("authorization");
@@ -12,6 +13,8 @@ export async function GET(request: NextRequest): Promise<Response> {
   }
 
   const now = new Date();
+  const startedAt = Date.now();
+  log.info("cron/subscription.start", { at: now.toISOString() });
 
   // Find premium households whose expiry has passed
   const expired = await db
@@ -44,5 +47,6 @@ export async function GET(request: NextRequest): Promise<Response> {
     });
   }
 
+  log.info("cron/subscription.done", { expired: expired.length, durationMs: Date.now() - startedAt });
   return Response.json({ expired: expired.length });
 }

@@ -5,6 +5,7 @@ import { households, household_members } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { seedDefaultCategories } from "@/lib/utils/seedCategories";
 import { seedChoreCategories } from "@/lib/utils/seedChoreCategories";
+import { log } from "@/lib/utils/logger";
 
 function randomCode(): string {
   return Math.random().toString(36).substring(2, 8).toUpperCase();
@@ -76,5 +77,6 @@ export async function POST(request: NextRequest): Promise<Response> {
     // Non-fatal — categories will be auto-seeded on first GET /api/chore-categories
   }
 
+  log.info("analytics.household_created", { householdId: household.id, userId: session.user.id });
   return Response.json({ household: { id: household.id, name: household.name, code: household.code } });
 }

@@ -19,6 +19,7 @@ import { db } from "@/lib/db";
 import { households } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { logActivity } from "@/lib/utils/activity";
+import { log } from "@/lib/utils/logger";
 
 export async function POST(request: NextRequest): Promise<Response> {
   const body = await request.text();
@@ -32,15 +33,21 @@ export async function POST(request: NextRequest): Promise<Response> {
       process.env.STRIPE_WEBHOOK_SECRET!
     );
   } catch {
+    log.warn("stripe.webhook.sig_invalid", { at: new Date().toISOString() });
     return Response.json({ error: "Invalid signature" }, { status: 400 });
   }
+
+  log.info("stripe.webhook.received", { type: event.type, id: event.id });
 
   switch (event.type) {
     case "checkout.session.completed": {
       const checkoutSession = event.data.object as Stripe.Checkout.Session;
       const householdId = checkoutSession.metadata?.householdId;
 
-      if (!householdId || checkoutSession.mode !== "subscription") break;
+      if (!householdId || checkoutSession.mode !== "subscription") {
+        log.warn("stripe.webhook.no_household", { type: event.type, sessionId: checkoutSession.id });
+        break;
+      }
 
       const subscription = await stripe.subscriptions.retrieve(
         checkoutSession.subscription as string
@@ -71,6 +78,7 @@ export async function POST(request: NextRequest): Promise<Response> {
         type: "subscription_started",
         description: "Household upgraded to Premium",
       });
+      log.info("stripe.webhook.handled", { type: event.type, householdId, outcome: "subscription_started" });
       break;
     }
 
@@ -78,7 +86,10 @@ export async function POST(request: NextRequest): Promise<Response> {
       const sub = event.data.object as Stripe.Subscription;
       const householdId = sub.metadata?.householdId;
 
-      if (!householdId) break;
+      if (!householdId) {
+        log.warn("stripe.webhook.no_household", { type: event.type, subscriptionId: sub.id });
+        break;
+      }
 
       if (sub.cancel_at_period_end) {
         const periodEnd = sub.items.data[0]?.current_period_end;
@@ -99,6 +110,7 @@ export async function POST(request: NextRequest): Promise<Response> {
             ? `Premium will end on ${expiresAt.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}`
             : "Premium subscription is set to cancel",
         });
+        log.info("stripe.webhook.handled", { type: event.type, householdId, outcome: "cancelling", expiresAt: expiresAt?.toISOString() });
       } else {
         // User reactivated
         await db
@@ -115,6 +127,7 @@ export async function POST(request: NextRequest): Promise<Response> {
           type: "subscription_reactivated",
           description: "Premium subscription reactivated",
         });
+        log.info("stripe.webhook.handled", { type: event.type, householdId, outcome: "reactivated" });
       }
       break;
     }
@@ -123,7 +136,10 @@ export async function POST(request: NextRequest): Promise<Response> {
       const sub = event.data.object as Stripe.Subscription;
       const householdId = sub.metadata?.householdId;
 
-      if (!householdId) break;
+      if (!householdId) {
+        log.warn("stripe.webhook.no_household", { type: event.type, subscriptionId: sub.id });
+        break;
+      }
 
       await db
         .update(households)
@@ -142,6 +158,7 @@ export async function POST(request: NextRequest): Promise<Response> {
         type: "subscription_ended",
         description: "Premium subscription ended",
       });
+      log.info("stripe.webhook.handled", { type: event.type, householdId, outcome: "subscription_ended" });
       break;
     }
 
@@ -174,6 +191,7 @@ export async function POST(request: NextRequest): Promise<Response> {
         type: "subscription_renewed",
         description: "Premium renewed for another month",
       });
+      log.info("stripe.webhook.handled", { type: event.type, householdId, outcome: "renewed" });
       break;
     }
 
@@ -197,6 +215,7 @@ export async function POST(request: NextRequest): Promise<Response> {
         type: "payment_failed",
         description: "Premium payment failed. Please update payment method.",
       });
+      log.warn("stripe.webhook.payment_failed", { type: event.type, householdId });
       break;
     }
   }

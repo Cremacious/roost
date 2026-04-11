@@ -2,6 +2,7 @@ import { NextRequest } from "next/server";
 import { db } from "@/lib/db";
 import { expenses, expense_splits, users, notification_queue } from "@/db/schema";
 import { and, eq, isNull, lt } from "drizzle-orm";
+import { log } from "@/lib/utils/logger";
 
 // ---- GET: daily cron - remind payees of pending settlements over 7 days old -
 
@@ -12,6 +13,8 @@ export async function GET(request: NextRequest): Promise<Response> {
     return Response.json({ error: "Unauthorized" }, { status: 401 });
   }
 
+  const startedAt = Date.now();
+  log.info("cron/settlement-reminders.start", { at: new Date().toISOString() });
   const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
 
   // Find all pending splits where claimed more than 7 days ago
@@ -34,6 +37,7 @@ export async function GET(request: NextRequest): Promise<Response> {
     );
 
   if (pendingSplits.length === 0) {
+    log.info("cron/settlement-reminders.done", { reminded: 0, durationMs: Date.now() - startedAt });
     return Response.json({ reminded: 0 });
   }
 
@@ -79,5 +83,6 @@ export async function GET(request: NextRequest): Promise<Response> {
     reminded++;
   }
 
+  log.info("cron/settlement-reminders.done", { reminded, durationMs: Date.now() - startedAt });
   return Response.json({ reminded });
 }

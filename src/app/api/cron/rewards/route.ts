@@ -25,6 +25,7 @@ import {
   isBefore,
 } from "date-fns";
 import { logActivity } from "@/lib/utils/activity";
+import { log } from "@/lib/utils/logger";
 
 // ---- Helpers ----------------------------------------------------------------
 
@@ -93,6 +94,8 @@ export async function GET(request: NextRequest): Promise<Response> {
   }
 
   const now = new Date();
+  const startedAt = Date.now();
+  log.info("cron/rewards.start", { at: now.toISOString() });
 
   // Fetch all enabled rules with child name
   const activeRules = await db
@@ -283,6 +286,8 @@ export async function GET(request: NextRequest): Promise<Response> {
     });
   }
 
+  const earned = results.filter((r) => r.earned).length;
+  log.info("cron/rewards.done", { processed: results.length, earned, missed: results.length - earned, durationMs: Date.now() - startedAt });
   return Response.json({
     processed: results.length,
     payouts: results,

@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 import { household_members, households } from "@/db/schema";
 import { desc, eq } from "drizzle-orm";
 import { stripe, STRIPE_PRICE_ID, APP_URL } from "@/lib/utils/stripe";
+import { log } from "@/lib/utils/logger";
 
 export async function POST(request: NextRequest): Promise<Response> {
   let session;
@@ -88,5 +89,6 @@ export async function POST(request: NextRequest): Promise<Response> {
     allow_promotion_codes: true,
   });
 
+  log.info("analytics.checkout_started", { householdId: household.id, isNewCustomer: !household.stripe_customer_id });
   return Response.json({ url: checkoutSession.url });
 }

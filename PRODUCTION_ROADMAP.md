@@ -284,10 +284,102 @@ Safe deploy process (document in 2.1 runbook):
      already applied via db:push may need manual SQL to reverse if destructive.
 
 ### 2.4 Observability
-- [ ] Add error tracking for server and client failures.
-- [ ] Add structured logging for API routes, cron jobs, and Stripe webhooks.
-- [ ] Add alerting for failed cron runs and webhook errors.
-- [ ] Add basic analytics for signup, onboarding, conversion, and retention.
+- [x] Add structured logging for cron jobs, Stripe webhook, and high-value API routes.
+- [x] Add analytics event hooks for checkout start and household creation (onboarding).
+- [!] Error tracking provider (Sentry/Axiom): recommended but not installed — manual setup required.
+- [!] Alerting for failed cron runs: requires external provider setup.
+- [ ] Client-side error tracking (uncaught exceptions, React error boundaries).
+- [ ] Full analytics funnel (signup, upgrade, retention): recommended post-launch.
+
+Why structured logging matters:
+- Vercel function logs are ephemeral — without structure, failures are invisible until a user reports them.
+- Key failure modes now surface: bad Stripe signatures, missing householdId in webhook events,
+  Azure scan failures, slow cron runs (durationMs in every done log).
+
+What was implemented (2026-04-11):
+
+#### Structured logger utility
+- New file: `src/lib/utils/logger.ts`
+- Zero dependencies. Functions: `log.info(event, data?)`, `log.warn(event, data?)`, `log.error(event, data?, err?)`
+- Output format: `[event] key=value key=value` — searchable in Vercel log explorer.
+- No PII logged. User IDs and household IDs are internal references, not personal data.
+- Swap path: to adopt Sentry, Axiom, or another provider post-launch, update only this one file.
+
+#### Stripe webhook — structured logging added
+- Every received event logged: `[stripe.webhook.received] type=... id=...`
+- Signature failure logged: `[stripe.webhook.sig_invalid]` (previously silent 400)
+- Missing householdId logged: `[stripe.webhook.no_household]` (previously silent break — the bug
+  where Stripe sends an event but our metadata is missing was completely invisible before)
+- Per-event outcome logged: `[stripe.webhook.handled] outcome=...`
+- Payment failures logged at warn level: `[stripe.webhook.payment_failed]`
+- File: `src/app/api/stripe/webhook/route.ts`
+
+#### All 7 active cron routes — structured start/done logging added
+Each cron now logs:
+  - `[cron/[name].start] at=<ISO timestamp>` when it begins
+  - `[cron/[name].done] processed=N durationMs=N` when it finishes
+  - Errors logged with context (previously bare `console.error`)
+Files:
+  - `src/app/api/cron/reminders/route.ts`
+  - `src/app/api/cron/rewards/route.ts`
+  - `src/app/api/cron/subscription/route.ts`
+  - `src/app/api/cron/settlement-reminders/route.ts`
+  - `src/app/api/cron/guest-expiry/route.ts`
+  - `src/app/api/cron/budget-reset/route.ts`
+  - `src/app/api/cron/recurring-expenses/route.ts`
+Cron health check: search Vercel logs for `cron/` to see all recent runs in one view.
+
+#### Receipt scan — structured logging
+- Successful scan logs item count and empty flag: `[receipt.scan.done] itemCount=N empty=false`
+- Failures log at error level with household context: `[receipt.scan.failed]`
+- No receipt content or user data is logged.
+- File: `src/app/api/expenses/scan/route.ts`
+
+#### Analytics event hooks — minimal server-side logging
+Two high-signal funnel events now emit analytics logs:
+- `[analytics.checkout_started] householdId=... isNewCustomer=true/false`
+  at `POST /api/stripe/checkout` — marks intent to purchase
+- `[analytics.household_created] householdId=... userId=...`
+  at `POST /api/household/create` — marks onboarding completion
+- Premium conversion is already tracked in the Stripe webhook via `logActivity` (household_activity
+  table) as well as the `[stripe.webhook.handled] outcome=subscription_started` log.
+- These logs are immediately useful in Vercel's log explorer and forward cleanly to PostHog
+  or Segment post-launch without code changes (just update `logger.ts`).
+Files:
+  - `src/app/api/stripe/checkout/route.ts`
+  - `src/app/api/household/create/route.ts`
+
+#### What is NOT done (requires external provider or setup outside the repo)
+
+Error tracking (client + server):
+- No Sentry SDK installed. The app has no automatic uncaught exception capture.
+- Recommended post-launch: install `@sentry/nextjs`, run `npx @sentry/wizard@latest -i nextjs`
+  to generate `sentry.server.config.ts` and `sentry.client.config.ts`.
+- The logger.ts swap pattern means adding Sentry is a one-file change to the log.error() path.
+- Estimated effort: 1-2 hours of setup + verification.
+
+Alerting:
+- Vercel does not alert on log patterns by default.
+- Options post-launch: Vercel Log Drains → Datadog / Axiom → alert on `stripe.webhook.sig_invalid`
+  or `cron/*.done durationMs > 30000`.
+- Minimum viable alerting: set up a Vercel email alert for function errors (Vercel dashboard >
+  your project > Monitoring > Alerts). Free tier. 5-minute setup.
+
+Full analytics funnel:
+- Signup event: better-auth handles registration internally (no hook point without modifying
+  auth config or adding a databaseHook). Deferred — not a launch blocker.
+- Retention metrics (DAU/WAU/churn): require a time-series analytics tool (PostHog, Amplitude).
+  Deferred — not useful until there are enough users to measure.
+- Recommended post-launch analytics provider: PostHog (free up to 1M events/month, self-hostable).
+  Install `posthog-js` client and `posthog-node` server package.
+  Server events (checkout, household creation) already have the log structure to forward.
+
+#### Summary: what you get on day one without any additional setup
+- Every Stripe billing event visible and attributable to a household in Vercel logs
+- Every cron run timestamped with duration — silent failures become visible
+- Receipt scan failures surfaced with household context
+- Checkout starts and household creations logged for funnel analysis
+- All logs searchable in Vercel log explorer by event name
 
 ## 3. Security and Platform Hardening
 
@@ -574,7 +666,8 @@ Notes:
 - [x] Harden cron auth
 - [x] Harden admin auth
 - [x] Add env example and deploy docs
-- [ ] Review config/security headers/logging
+- [x] Review config/security headers/logging
+- [x] Add structured logging and observability hooks (2.4)
 
 ### Phase 3: Prove the Critical Flows
 - [ ] Expand tests for auth, billing, permissions, and cron jobs
@@ -597,6 +690,8 @@ At the start of each future Roost session:
 5. Update this file.
 
 Recommended next task:
-- Observability (2.4): add error tracking (Sentry or similar) for server and client failures,
-  structured logging for key routes (Stripe webhook, cron), and basic analytics for the
-  signup/upgrade funnel. These provide visibility on day one without blocking launch.
+- Documentation (2.1): write the production README and deployment runbook. The build, security,
+  env, and logging work is all done — the last ops gap is a written record of how to deploy,
+  roll back, and verify the app. This unblocks handing off ops to another person and is
+  required before Phase 3 testing begins.
+- Then: Phase 3 — expand test coverage for auth, billing, permissions, and cron jobs.

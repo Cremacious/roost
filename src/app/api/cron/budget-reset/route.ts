@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { expense_budgets } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { format, startOfMonth } from "date-fns";
+import { log } from "@/lib/utils/logger";
 
 export async function GET(request: NextRequest): Promise<Response> {
   const authHeader = request.headers.get("authorization");
@@ -11,7 +12,11 @@ export async function GET(request: NextRequest): Promise<Response> {
     return Response.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const periodStart = format(startOfMonth(new Date()), "yyyy-MM-dd");
+  const startedAt = Date.now();
+  const now = new Date();
+  log.info("cron/budget-reset.start", { at: now.toISOString() });
+
+  const periodStart = format(startOfMonth(now), "yyyy-MM-dd");
 
   const result = await db
     .update(expense_budgets)
@@ -22,5 +27,6 @@ export async function GET(request: NextRequest): Promise<Response> {
     .where(eq(expense_budgets.reset_type, "monthly"))
     .returning({ id: expense_budgets.id });
 
+  log.info("cron/budget-reset.done", { reset: result.length, durationMs: Date.now() - startedAt });
   return Response.json({ reset: result.length });
 }

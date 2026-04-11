@@ -5,6 +5,7 @@ import { households } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { getUserHousehold } from "@/app/api/chores/route";
 import { parseReceiptImage } from "@/lib/utils/azureReceipts";
+import { log } from "@/lib/utils/logger";
 
 // Max base64 length for a 10MB image (10 * 1024 * 1024 / 0.75 ≈ 13,981,013)
 const MAX_BASE64_LENGTH = 14_000_000;
@@ -56,15 +57,14 @@ export async function POST(request: NextRequest): Promise<Response> {
 
   try {
     const receipt = await parseReceiptImage(body.imageBase64);
+    const empty = receipt.lineItems.length === 0;
+    log.info("receipt.scan.done", { householdId: membership.householdId, itemCount: receipt.lineItems.length, empty });
     return Response.json({
       receipt,
-      warning:
-        receipt.lineItems.length === 0
-          ? "No items detected. You can add them manually."
-          : undefined,
+      warning: empty ? "No items detected. You can add them manually." : undefined,
     });
   } catch (err) {
-    console.error("[POST /api/expenses/scan] Vision API error:", err);
+    log.error("receipt.scan.failed", { householdId: membership.householdId }, err);
     return Response.json(
       { error: "Could not read receipt", code: "SCAN_FAILED" },
       { status: 422 }

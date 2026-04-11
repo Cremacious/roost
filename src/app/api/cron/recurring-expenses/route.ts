@@ -1,5 +1,6 @@
 import { NextRequest } from "next/server";
 import { db } from "@/lib/db";
+import { log } from "@/lib/utils/logger";
 import {
   recurring_expense_templates,
   expenses,
@@ -17,8 +18,12 @@ export async function GET(request: NextRequest): Promise<Response> {
     return Response.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const today = format(new Date(), "yyyy-MM-dd");
-  const threeDaysAgo = format(subDays(new Date(), 3), "yyyy-MM-dd");
+  const startedAt = Date.now();
+  const now = new Date();
+  log.info("cron/recurring-expenses.start", { at: now.toISOString() });
+
+  const today = format(now, "yyyy-MM-dd");
+  const threeDaysAgo = format(subDays(now, 3), "yyyy-MM-dd");
 
   // --- PART 1: Create drafts for due templates ---
 
@@ -167,5 +172,6 @@ export async function GET(request: NextRequest): Promise<Response> {
     reminded++;
   }
 
+  log.info("cron/recurring-expenses.done", { created, skipped, reminded, durationMs: Date.now() - startedAt });
   return Response.json({ created, skipped, reminded });
 }

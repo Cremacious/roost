@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { reminders, reminder_receipts, household_members } from "@/db/schema";
 import { and, eq, isNull, lte } from "drizzle-orm";
 import { calcNextRemindAt } from "@/app/api/reminders/route";
+import { log } from "@/lib/utils/logger";
 
 // ---- GET: Vercel cron job — runs every 15 minutes ---------------------------
 // Processes due reminders, creates receipts, advances recurring schedules
@@ -16,6 +17,8 @@ export async function GET(request: NextRequest): Promise<Response> {
   }
 
   const now = new Date();
+  const startedAt = Date.now();
+  log.info("cron/reminders.start", { at: now.toISOString() });
 
   // Find all due reminders (next_remind_at <= now, not deleted, not completed)
   const dueReminders = await db
@@ -86,5 +89,6 @@ export async function GET(request: NextRequest): Promise<Response> {
     processed++;
   }
 
+  log.info("cron/reminders.done", { processed, durationMs: Date.now() - startedAt });
   return Response.json({ processed });
 }

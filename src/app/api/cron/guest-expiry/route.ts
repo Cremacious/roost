@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { household_members, member_permissions, users } from "@/db/schema";
 import { and, eq, isNotNull, lt, sql } from "drizzle-orm";
 import { logActivity } from "@/lib/utils/activity";
+import { log } from "@/lib/utils/logger";
 
 // ---- GET: Vercel cron — runs daily at 2am UTC --------------------------------
 // Removes guest members whose expires_at has passed.
@@ -15,6 +16,8 @@ export async function GET(request: NextRequest): Promise<Response> {
   }
 
   const now = new Date();
+  const startedAt = Date.now();
+  log.info("cron/guest-expiry.start", { at: now.toISOString() });
 
   // Find all expired guest members
   const expired = await db
@@ -34,6 +37,7 @@ export async function GET(request: NextRequest): Promise<Response> {
     );
 
   if (expired.length === 0) {
+    log.info("cron/guest-expiry.done", { expired: 0, durationMs: Date.now() - startedAt });
     return Response.json({ expired: 0, timestamp: now.toISOString() });
   }
 
@@ -72,9 +76,10 @@ export async function GET(request: NextRequest): Promise<Response> {
 
       processed++;
     } catch (err) {
-      console.error("[cron/guest-expiry] Failed to process member:", member.id, err);
+      log.error("cron/guest-expiry.error", { memberId: member.id }, err);
     }
   }
 
+  log.info("cron/guest-expiry.done", { expired: processed, durationMs: Date.now() - startedAt });
   return Response.json({ expired: processed, timestamp: now.toISOString() });
 }

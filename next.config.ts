@@ -17,6 +17,14 @@ const securityHeaders = [
 ];
 
 const nextConfig: NextConfig = {
+  images: {
+    localPatterns: [
+      {
+        pathname: "/brand/roost-icon.png",
+        search: "?v=20260411",
+      },
+    ],
+  },
   async headers() {
     return [
       {

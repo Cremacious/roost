@@ -6,6 +6,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { toast } from "sonner";
 import { signUp } from "@/lib/auth/client";
+import { ROOST_ICON_SRC } from "@/lib/brand";
 import { CalendarDays, CheckCircle2, CheckSquare, Coffee, DollarSign, Eye, EyeOff, Loader2, PiggyBank, ShoppingCart, XCircle } from "lucide-react";
 import { motion } from "framer-motion";
 
@@ -169,7 +170,7 @@ export default function SignupPage() {
         {/* Brand block */}
         <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
           <Image
-            src="/brand/roost-icon.png"
+            src={ROOST_ICON_SRC}
             alt="Roost"
             width={42}
             height={42}
@@ -230,7 +231,7 @@ export default function SignupPage() {
           {/* Mobile-only logo */}
           <div className="flex md:hidden" style={{ alignItems: "center", gap: 10, marginBottom: 28 }}>
             <Image
-              src="/brand/roost-icon.png"
+              src={ROOST_ICON_SRC}
               alt="Roost"
               width={40}
               height={40}

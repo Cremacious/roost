@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { Delete, Loader2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import MemberAvatar from "@/components/shared/MemberAvatar";
+import { ROOST_ICON_SRC } from "@/lib/brand";
 
 // ---- Cookie helpers ---------------------------------------------------------
 
@@ -182,7 +183,7 @@ export default function ChildLoginPage() {
         >
           {/* Logo */}
           <Image
-            src="/brand/roost-icon.png"
+            src={ROOST_ICON_SRC}
             alt="Roost"
             width={56}
             height={56}

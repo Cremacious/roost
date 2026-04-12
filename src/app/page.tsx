@@ -6,6 +6,7 @@ import { redirect } from 'next/navigation';
 import { headers } from 'next/headers';
 import { Bell, GraduationCap, Home, Users } from 'lucide-react';
 import { auth } from '@/lib/auth';
+import { ROOST_ICON_SRC } from '@/lib/brand';
 
 const nunito = Nunito({
   subsets: ['latin'],
@@ -1113,10 +1114,100 @@ export default async function HomePage() {
   }
 
   const ff = nunito.style.fontFamily;
+  const brandBg = '#B91C1C';
+  const brandAccent = '#EF4444';
+  const brandTint = '#FFF1F2';
 
   return (
-    <main style={{ fontFamily: ff, margin: 0, padding: 0 }}>
+    <main
+      style={{
+        fontFamily: ff,
+        margin: 0,
+        padding: 0,
+        backgroundColor: brandBg,
+      }}
+    >
       <style>{`
+        .landing-nav {
+          background: ${brandBg};
+          min-height: 72px;
+          padding: 12px 40px;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 20px;
+          position: sticky;
+          top: 0;
+          z-index: 50;
+        }
+        .landing-brand {
+          display: flex;
+          align-items: center;
+          text-decoration: none;
+          min-width: 0;
+          flex-shrink: 1;
+        }
+        .landing-brand-mark {
+          font-weight: 900;
+          font-size: 30px;
+          color: white;
+          letter-spacing: -0.3px;
+          line-height: 1;
+          white-space: nowrap;
+        }
+        .landing-nav-actions {
+          display: flex;
+          align-items: center;
+          justify-content: flex-end;
+          gap: 20px;
+          flex-wrap: nowrap;
+          flex-shrink: 0;
+        }
+        .landing-nav-link {
+          font-size: 14px;
+          font-weight: 700;
+          color: rgba(255,255,255,0.86);
+          text-decoration: none;
+          white-space: nowrap;
+        }
+        .landing-nav-cta {
+          background: white;
+          color: ${brandBg};
+          font-weight: 800;
+          font-size: 13px;
+          padding: 8px 18px;
+          border-radius: 999px;
+          text-decoration: none;
+          box-shadow: 0 10px 24px rgba(127, 29, 29, 0.22);
+          white-space: nowrap;
+        }
+        .hero-actions, .cta-actions {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 12px;
+          justify-content: center;
+        }
+        .hero-primary, .cta-primary {
+          background: white;
+          color: ${brandBg};
+          font-weight: 800;
+          font-size: 15px;
+          padding: 12px 28px;
+          border-radius: 999px;
+          text-decoration: none;
+          border-bottom: 3px solid rgba(0,0,0,0.12);
+          box-shadow: 0 12px 28px rgba(127, 29, 29, 0.2);
+        }
+        .hero-secondary, .cta-secondary {
+          background: rgba(255,255,255,0.08);
+          color: white;
+          font-weight: 700;
+          font-size: 15px;
+          padding: 12px 28px;
+          border-radius: 999px;
+          text-decoration: none;
+          border: 2px solid rgba(252, 165, 165, 0.65);
+        }
         .feat-inner {
           max-width: 1100px;
           margin: 0 auto;
@@ -1132,12 +1223,51 @@ export default async function HomePage() {
         .feat-ui-left .feat-copy { order: 2; }
         .feat-ui-left .feat-ui { order: 1; }
         @media (max-width: 640px) {
+          .landing-nav {
+            padding: 12px 16px !important;
+            min-height: 0 !important;
+            gap: 16px !important;
+          }
+          .landing-brand {
+            max-width: none;
+            flex: 1 1 auto;
+          }
+          .landing-brand-mark {
+            font-size: 22px !important;
+            letter-spacing: -0.5px !important;
+          }
+          .landing-nav-actions {
+            gap: 12px !important;
+            flex: 0 0 auto;
+          }
+          .landing-nav-link {
+            font-size: 12px !important;
+          }
+          .landing-nav-cta {
+            font-size: 12px !important;
+            padding: 8px 12px !important;
+          }
           .nav-features { display: none !important; }
           .feat-inner { flex-direction: column; }
           .feat-copy { order: 1 !important; padding: 32px 20px 16px; width: 100%; box-sizing: border-box; }
           .feat-ui { order: 2 !important; padding: 16px 20px 32px; width: 100%; box-sizing: border-box; }
-          .hero-section { padding: 48px 20px 56px !important; }
+          .hero-section { padding: 40px 20px 52px !important; }
           .hero-h1 { font-size: 32px !important; letter-spacing: -0.8px !important; }
+          .hero-copy { font-size: 15px !important; max-width: 320px !important; margin-bottom: 24px !important; }
+          .hero-logo {
+            width: 180px !important;
+            height: 180px !important;
+            margin-bottom: 20px !important;
+          }
+          .hero-actions, .cta-actions {
+            flex-direction: column;
+            align-items: center;
+          }
+          .hero-primary, .hero-secondary, .cta-primary, .cta-secondary {
+            width: min(100%, 280px);
+            text-align: center;
+            box-sizing: border-box;
+          }
           .problem-section { padding: 48px 20px !important; }
           .comp-section { padding: 48px 16px !important; }
           .comp-grid { border-radius: 10px !important; }
@@ -1148,90 +1278,44 @@ export default async function HomePage() {
           .cta-section { padding: 52px 20px !important; }
           .footer-inner { flex-direction: column !important; align-items: center !important; text-align: center !important; gap: 12px !important; }
           .footer-links { gap: 12px !important; flex-wrap: wrap; justify-content: center; }
-          .teaser-bar { padding: 10px 16px !important; }
+          .teaser-bar {
+            padding: 10px 16px !important;
+            flex-direction: column !important;
+            gap: 6px !important;
+            text-align: center !important;
+          }
         }
       `}</style>
 
       {/* 1. NAV */}
-      <nav
-        style={{
-          backgroundColor: '#EF4444',
-          height: 64,
-          padding: '0 40px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          position: 'sticky',
-          top: 0,
-          zIndex: 50,
-        }}
-      >
+      <nav className="landing-nav">
         <Link
           href="/"
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 10,
-            textDecoration: 'none',
-          }}
+          className="landing-brand"
         >
-          <Image
-            src="/brand/roost-icon.png"
-            alt="Roost"
-            width={44}
-            height={44}
-            style={{ borderRadius: 12, objectFit: 'cover' }}
-          />
-          <span
-            style={{
-              fontWeight: 900,
-              fontSize: 30,
-              color: 'white',
-              letterSpacing: '-0.3px',
-              fontFamily: ff,
-            }}
-          >
+          <span className="landing-brand-mark" style={{ fontFamily: ff }}>
             Roost
           </span>
         </Link>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
+        <div className="landing-nav-actions">
           <a
             href="#features"
-            className="nav-features"
-            style={{
-              fontSize: 14,
-              fontWeight: 700,
-              color: 'rgba(255,255,255,0.85)',
-              textDecoration: 'none',
-              fontFamily: ff,
-            }}
+            className="nav-features landing-nav-link"
+            style={{ fontFamily: ff }}
           >
             Features
           </a>
           <Link
             href="/login"
-            style={{
-              fontSize: 14,
-              fontWeight: 700,
-              color: 'rgba(255,255,255,0.85)',
-              textDecoration: 'none',
-              fontFamily: ff,
-            }}
+            className="landing-nav-link"
+            style={{ fontFamily: ff }}
           >
             Sign in
           </Link>
           <Link
             href="/signup"
-            style={{
-              backgroundColor: 'white',
-              color: '#EF4444',
-              fontWeight: 800,
-              fontSize: 13,
-              padding: '7px 18px',
-              borderRadius: 99,
-              textDecoration: 'none',
-              fontFamily: ff,
-            }}
+            className="landing-nav-cta"
+            style={{ fontFamily: ff }}
           >
             Get started free
           </Link>
@@ -1242,7 +1326,7 @@ export default async function HomePage() {
       <div
         className="teaser-bar"
         style={{
-          backgroundColor: '#DC2626',
+          backgroundColor: brandAccent,
           padding: '10px 40px',
           display: 'flex',
           alignItems: 'center',
@@ -1279,16 +1363,17 @@ export default async function HomePage() {
       <section
         className="hero-section"
         style={{
-          backgroundColor: '#EF4444',
+          backgroundColor: brandBg,
           padding: '64px 40px 72px',
           textAlign: 'center',
         }}
       >
         <Image
-          src="/brand/roost-icon.png"
+          src={ROOST_ICON_SRC}
           alt="Roost"
           width={220}
           height={220}
+          className="hero-logo"
           style={{ display: 'block', margin: '0 auto 24px' }}
         />
         <h1
@@ -1307,6 +1392,7 @@ export default async function HomePage() {
           One app. Zero excuses.
         </h1>
         <p
+          className="hero-copy"
           style={{
             fontSize: 16,
             fontWeight: 600,
@@ -1320,43 +1406,18 @@ export default async function HomePage() {
           One app for chores, groceries, bills, meals, and everything in
           between.
         </p>
-        <div
-          style={{
-            display: 'flex',
-            flexWrap: 'wrap',
-            gap: 12,
-            justifyContent: 'center',
-          }}
-        >
+        <div className="hero-actions">
           <Link
             href="/signup"
-            style={{
-              backgroundColor: 'white',
-              color: '#EF4444',
-              fontWeight: 800,
-              fontSize: 15,
-              padding: '12px 28px',
-              borderRadius: 99,
-              textDecoration: 'none',
-              borderBottom: '3px solid rgba(0,0,0,0.12)',
-              fontFamily: ff,
-            }}
+            className="hero-primary"
+            style={{ fontFamily: ff }}
           >
             Create your household
           </Link>
           <Link
             href="/login"
-            style={{
-              backgroundColor: 'rgba(255,255,255,0.15)',
-              color: 'white',
-              fontWeight: 700,
-              fontSize: 15,
-              padding: '12px 28px',
-              borderRadius: 99,
-              textDecoration: 'none',
-              border: '2px solid rgba(255,255,255,0.35)',
-              fontFamily: ff,
-            }}
+            className="hero-secondary"
+            style={{ fontFamily: ff }}
           >
             Sign in
           </Link>
@@ -1367,7 +1428,7 @@ export default async function HomePage() {
       <section
         className="problem-section"
         style={{
-          backgroundColor: '#FFF5F5',
+          backgroundColor: brandTint,
           padding: '64px 40px',
           textAlign: 'center',
         }}
@@ -1376,7 +1437,7 @@ export default async function HomePage() {
           style={{
             fontSize: 11,
             fontWeight: 800,
-            color: '#EF4444',
+            color: brandAccent,
             letterSpacing: '1px',
             textTransform: 'uppercase',
             marginBottom: 12,
@@ -1799,7 +1860,7 @@ export default async function HomePage() {
       {/* 6. COMPARISON TABLE */}
       <section
         className="comp-section"
-        style={{ backgroundColor: '#FFF5F5', padding: '56px 40px' }}
+        style={{ backgroundColor: brandTint, padding: '56px 40px' }}
       >
         <div style={{ textAlign: 'center', marginBottom: 30 }}>
           <h2
@@ -1866,10 +1927,10 @@ export default async function HomePage() {
             <div
               className="comp-val"
               style={{
-                backgroundColor: '#EF4444',
+                backgroundColor: brandBg,
                 padding: '12px 8px',
                 textAlign: 'center',
-                borderBottom: '1px solid #C93B3B',
+                borderBottom: '1px solid #991B1B',
               }}
             >
               <span
@@ -1939,7 +2000,7 @@ export default async function HomePage() {
                 style={{
                   padding: '11px 8px',
                   textAlign: 'center',
-                  backgroundColor: '#fff5f5',
+                  backgroundColor: '#FFE4E6',
                   borderBottom: '1px solid rgba(239,68,68,0.1)',
                 }}
               >
@@ -2034,7 +2095,7 @@ export default async function HomePage() {
               style={{
                 borderRadius: 16,
                 border: '1.5px solid #e5e7eb',
-                borderBottom: '4px solid #EF4444',
+                borderBottom: `4px solid ${brandAccent}`,
                 padding: 20,
               }}
             >
@@ -2043,14 +2104,14 @@ export default async function HomePage() {
                   width: 40,
                   height: 40,
                   borderRadius: 10,
-                  backgroundColor: '#FFF5F5',
+                  backgroundColor: brandTint,
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
                   marginBottom: 12,
                 }}
               >
-                <Icon size={20} color="#EF4444" />
+                <Icon size={20} color={brandAccent} />
               </div>
               <div
                 style={{
@@ -2083,7 +2144,7 @@ export default async function HomePage() {
       <section
         className="cta-section"
         style={{
-          backgroundColor: '#EF4444',
+          backgroundColor: brandBg,
           padding: '72px 40px',
           textAlign: 'center',
         }}
@@ -2111,43 +2172,18 @@ export default async function HomePage() {
         >
           Free to get started, no credit card, no excuses.
         </p>
-        <div
-          style={{
-            display: 'flex',
-            flexWrap: 'wrap',
-            gap: 12,
-            justifyContent: 'center',
-          }}
-        >
+        <div className="cta-actions">
           <Link
             href="/signup"
-            style={{
-              backgroundColor: 'white',
-              color: '#EF4444',
-              fontWeight: 800,
-              fontSize: 15,
-              padding: '12px 28px',
-              borderRadius: 99,
-              textDecoration: 'none',
-              borderBottom: '3px solid rgba(0,0,0,0.12)',
-              fontFamily: ff,
-            }}
+            className="cta-primary"
+            style={{ fontFamily: ff }}
           >
             Create your household
           </Link>
           <Link
             href="/login"
-            style={{
-              backgroundColor: 'rgba(255,255,255,0.15)',
-              color: 'white',
-              fontWeight: 700,
-              fontSize: 15,
-              padding: '12px 28px',
-              borderRadius: 99,
-              textDecoration: 'none',
-              border: '2px solid rgba(255,255,255,0.35)',
-              fontFamily: ff,
-            }}
+            className="cta-secondary"
+            style={{ fontFamily: ff }}
           >
             Sign in
           </Link>
@@ -2157,7 +2193,7 @@ export default async function HomePage() {
       {/* 9. FOOTER */}
       <footer
         style={{
-          backgroundColor: '#EF4444',
+          backgroundColor: brandBg,
           padding: '28px 40px',
           borderTop: '1px solid rgba(255,255,255,0.2)',
         }}
@@ -2182,7 +2218,7 @@ export default async function HomePage() {
             }}
           >
             <Image
-              src="/brand/roost-icon.png"
+              src={ROOST_ICON_SRC}
               alt="Roost"
               width={28}
               height={28}

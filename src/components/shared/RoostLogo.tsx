@@ -4,6 +4,7 @@
 // Nothing else needs changing.
 
 import Image from "next/image";
+import { ROOST_ICON_SRC } from "@/lib/brand";
 
 const SIZE_CONFIG = {
   xs: { iconSize: 24, wordmarkSize: 0,  radius: 6,  gap: 0  },
@@ -38,7 +39,7 @@ export default function RoostLogo({
     <div style={{ display: "flex", alignItems: "center", gap, flexShrink: 0 }}>
       {/* Icon */}
       <Image
-        src="/brand/roost-icon.png"
+        src={ROOST_ICON_SRC}
         alt="Roost"
         width={iconSize}
         height={iconSize}

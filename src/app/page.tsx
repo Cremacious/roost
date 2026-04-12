@@ -1356,7 +1356,7 @@ export default async function HomePage() {
         </span>
       </div>
 
-      {/* 3. HERO */}
+      {/* 3.  HERO */}
       <section
         className="hero-section"
         style={{

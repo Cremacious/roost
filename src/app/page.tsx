@@ -1257,7 +1257,7 @@ export default async function HomePage() {
           .hero-logo {
             width: 180px !important;
             height: 180px !important;
-            margin-bottom: 20px !important;
+            margin-bottom: -8px !important;
           }
           .hero-actions, .cta-actions {
             flex-direction: column;
@@ -1289,10 +1289,7 @@ export default async function HomePage() {
 
       {/* 1. NAV */}
       <nav className="landing-nav">
-        <Link
-          href="/"
-          className="landing-brand"
-        >
+        <Link href="/" className="landing-brand">
           <span className="landing-brand-mark" style={{ fontFamily: ff }}>
             Roost
           </span>
@@ -1374,8 +1371,24 @@ export default async function HomePage() {
           width={220}
           height={220}
           className="hero-logo"
-          style={{ display: 'block', margin: '0 auto 24px' }}
+          style={{ display: 'block', margin: '0 auto -12px' }}
         />
+
+        <h1
+          className="hero-h1"
+          style={{
+            fontSize: 72,
+            fontWeight: 900,
+            color: 'white',
+            letterSpacing: '-1.5px',
+            lineHeight: 1,
+            maxWidth: 600,
+            margin: '0 auto 16px',
+            fontFamily: ff,
+          }}
+        >
+          Roost
+        </h1>
         <h1
           className="hero-h1"
           style={{

@@ -1,13 +1,22 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { toast } from "sonner";
 import { Delete, Loader2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import MemberAvatar from "@/components/shared/MemberAvatar";
-import { ROOST_ICON_SRC } from "@/lib/brand";
+import {
+  ROOST_BRAND_BG,
+  ROOST_BRAND_CARD_MUTED,
+  ROOST_BRAND_CARD_TEXT,
+  ROOST_BRAND_MUTED,
+  ROOST_BRAND_SOFT_BG,
+  ROOST_BRAND_SURFACE,
+  ROOST_BRAND_TEXT,
+  ROOST_ICON_SRC,
+} from "@/lib/brand";
 
 // ---- Cookie helpers ---------------------------------------------------------
 
@@ -59,15 +68,7 @@ export default function ChildLoginPage() {
   const [shake, setShake] = useState(false);
 
   // On mount: check for saved house code cookie and auto-advance
-  useEffect(() => {
-    const saved = getCookie(HOUSE_CODE_COOKIE);
-    if (saved) {
-      setHouseholdCode(saved);
-      fetchChildren(saved);
-    }
-  }, []);
-
-  async function fetchChildren(code: string) {
+  const fetchChildren = useCallback(async (code: string) => {
     setCodeLoading(true);
     try {
       const r = await fetch(`/api/auth/child-login?householdCode=${encodeURIComponent(code)}`);
@@ -105,7 +106,15 @@ export default function ChildLoginPage() {
     } finally {
       setCodeLoading(false);
     }
-  }
+  }, [step]);
+
+  useEffect(() => {
+    const saved = getCookie(HOUSE_CODE_COOKIE);
+    if (saved) {
+      setHouseholdCode(saved);
+      void fetchChildren(saved);
+    }
+  }, [fetchChildren]);
 
   function handleCodeSubmit() {
     const code = householdCode.trim().toUpperCase();
@@ -189,46 +198,48 @@ export default function ChildLoginPage() {
             height={56}
             style={{ borderRadius: 16, objectFit: "cover", marginBottom: 8 }}
           />
-          <p style={{ fontWeight: 900, fontSize: 22, color: "#1A0505", marginBottom: 20 }}>Roost</p>
+          <p style={{ fontWeight: 900, fontSize: 22, color: "white", marginBottom: 20 }}>Roost</p>
 
-          <h1 style={{ ...headingStyle, marginBottom: 6 }}>Hey! Enter your code.</h1>
-          <p style={{ ...subStyle, marginBottom: 28 }}>Your household code and your secret PIN.</p>
+          <div style={panelStyle}>
+            <h1 style={{ ...headingStyle, marginBottom: 6 }}>Hey! Enter your code.</h1>
+            <p style={{ ...subStyle, marginBottom: 28 }}>Your household code and your secret PIN.</p>
 
-          <input
-            type="text"
-            inputMode="text"
-            autoCapitalize="characters"
-            autoComplete="off"
-            autoCorrect="off"
-            spellCheck={false}
-            maxLength={6}
-            value={householdCode}
-            onChange={(e) => setHouseholdCode(e.target.value.toUpperCase())}
-            onKeyDown={(e) => e.key === "Enter" && householdCode.trim().length === 6 && handleCodeSubmit()}
-            placeholder="XXXXXX"
-            style={codeInputStyle}
-          />
+            <input
+              type="text"
+              inputMode="text"
+              autoCapitalize="characters"
+              autoComplete="off"
+              autoCorrect="off"
+              spellCheck={false}
+              maxLength={6}
+              value={householdCode}
+              onChange={(e) => setHouseholdCode(e.target.value.toUpperCase())}
+              onKeyDown={(e) => e.key === "Enter" && householdCode.trim().length === 6 && handleCodeSubmit()}
+              placeholder="XXXXXX"
+              style={codeInputStyle}
+            />
 
-          <motion.button
-            type="button"
-            whileTap={{ y: 2 }}
-            onClick={handleCodeSubmit}
-            disabled={householdCode.trim().length !== 6 || codeLoading}
-            style={{
-              ...slabButtonStyle,
-              opacity: householdCode.trim().length !== 6 ? 0.5 : 1,
-              marginTop: 12,
-            }}
-          >
-            {codeLoading ? <Loader2 size={18} className="animate-spin" /> : "Let me in"}
-          </motion.button>
+            <motion.button
+              type="button"
+              whileTap={{ y: 2 }}
+              onClick={handleCodeSubmit}
+              disabled={householdCode.trim().length !== 6 || codeLoading}
+              style={{
+                ...slabButtonStyle,
+                opacity: householdCode.trim().length !== 6 ? 0.5 : 1,
+                marginTop: 12,
+              }}
+            >
+              {codeLoading ? <Loader2 size={18} className="animate-spin" /> : "Let me in"}
+            </motion.button>
 
-          <a
-            href="/login"
-            style={{ textAlign: "center", fontSize: 12, fontWeight: 700, color: "#9B6060", marginTop: 14, textDecoration: "none", display: "block" }}
-          >
-            Back to grown-up sign in
-          </a>
+            <a
+              href="/login"
+              style={{ textAlign: "center", fontSize: 12, fontWeight: 700, color: ROOST_BRAND_MUTED, marginTop: 14, textDecoration: "none", display: "block" }}
+            >
+              Back to grown-up sign in
+            </a>
+          </div>
         </motion.div>
       </div>
     );
@@ -243,7 +254,7 @@ export default function ChildLoginPage() {
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.18 }}
-          style={{ width: "100%", maxWidth: 360 }}
+          style={{ width: "100%", maxWidth: 360, ...panelStyle }}
         >
           <h1 style={headingStyle}>Who are you?</h1>
           <p style={subStyle}>Tap your name to log in.</p>
@@ -262,7 +273,7 @@ export default function ChildLoginPage() {
                   padding: "16px 20px",
                   backgroundColor: "white",
                   border: "1.5px solid #F5C5C5",
-                  borderBottom: "4px solid #D4CFC9",
+                  borderBottom: "4px solid #DBADB0",
                   borderRadius: 18,
                   cursor: "pointer",
                   textAlign: "left",
@@ -270,10 +281,10 @@ export default function ChildLoginPage() {
               >
                 <MemberAvatar
                   name={child.name}
-                  avatarColor={child.avatar_color ?? "#EF4444"}
+                  avatarColor={child.avatar_color ?? ROOST_BRAND_BG}
                   size="lg"
                 />
-                <span style={{ fontSize: 20, fontWeight: 800, color: "#1A0505" }}>
+                <span style={{ fontSize: 20, fontWeight: 800, color: ROOST_BRAND_TEXT }}>
                   {child.name}
                 </span>
               </motion.button>
@@ -283,7 +294,7 @@ export default function ChildLoginPage() {
           <button
             type="button"
             onClick={handleWrongHouse}
-            style={{ textAlign: "center", fontSize: 12, fontWeight: 700, color: "#9B6060", marginTop: 4, background: "none", border: "none", cursor: "pointer", padding: 0, display: "block", width: "100%" }}
+            style={{ textAlign: "center", fontSize: 12, fontWeight: 700, color: ROOST_BRAND_MUTED, marginTop: 4, background: "none", border: "none", cursor: "pointer", padding: 0, display: "block", width: "100%" }}
           >
             Wrong house?
           </button>
@@ -300,13 +311,13 @@ export default function ChildLoginPage() {
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.18 }}
-        style={{ width: "100%", maxWidth: 360 }}
+        style={{ width: "100%", maxWidth: 360, ...panelStyle }}
       >
         {selectedChild && (
           <div style={{ display: "flex", flexDirection: "column", alignItems: "center", marginBottom: 20 }}>
             <MemberAvatar
               name={selectedChild.name}
-              avatarColor={selectedChild.avatar_color ?? "#EF4444"}
+              avatarColor={selectedChild.avatar_color ?? ROOST_BRAND_BG}
               size="lg"
             />
           </div>
@@ -330,7 +341,7 @@ export default function ChildLoginPage() {
                 width: 18,
                 height: 18,
                 borderRadius: "50%",
-                backgroundColor: i < pin.length ? "#EF4444" : "#F5C5C5",
+                backgroundColor: i < pin.length ? ROOST_BRAND_BG : "#F5C5C5",
               }}
             />
           ))}
@@ -387,7 +398,7 @@ export default function ChildLoginPage() {
               exit={{ opacity: 0 }}
               style={{ display: "flex", justifyContent: "center", marginBottom: 16 }}
             >
-              <Loader2 size={20} className="animate-spin" style={{ color: "#EF4444" }} />
+              <Loader2 size={20} className="animate-spin" style={{ color: ROOST_BRAND_BG }} />
             </motion.div>
           )}
         </AnimatePresence>
@@ -395,7 +406,7 @@ export default function ChildLoginPage() {
         <button
           type="button"
           onClick={children.length > 1 ? () => { setStep(2); setPin(""); } : handleWrongHouse}
-          style={{ textAlign: "center", fontSize: 12, fontWeight: 700, color: "#9B6060", marginTop: 4, background: "none", border: "none", cursor: "pointer", padding: 0, display: "block", width: "100%" }}
+          style={{ textAlign: "center", fontSize: 12, fontWeight: 700, color: ROOST_BRAND_MUTED, marginTop: 4, background: "none", border: "none", cursor: "pointer", padding: 0, display: "block", width: "100%" }}
         >
           {children.length > 1 ? "Not you?" : "Wrong house?"}
         </button>
@@ -408,7 +419,7 @@ export default function ChildLoginPage() {
 
 const pageStyle: React.CSSProperties = {
   minHeight: "100vh",
-  backgroundColor: "#FFF5F5",
+  backgroundColor: ROOST_BRAND_SOFT_BG,
   display: "flex",
   alignItems: "center",
   justifyContent: "center",
@@ -416,10 +427,19 @@ const pageStyle: React.CSSProperties = {
   fontFamily: "var(--font-nunito)",
 };
 
+const panelStyle: React.CSSProperties = {
+  width: "100%",
+  backgroundColor: ROOST_BRAND_SURFACE,
+  borderRadius: 28,
+  padding: "28px 24px",
+  boxShadow: "0 28px 70px rgba(69, 10, 10, 0.24)",
+  border: "1px solid rgba(127, 29, 29, 0.22)",
+};
+
 const headingStyle: React.CSSProperties = {
   fontSize: 26,
   fontWeight: 900,
-  color: "#1A0505",
+  color: ROOST_BRAND_CARD_TEXT,
   textAlign: "center",
   marginBottom: 8,
   lineHeight: 1.15,
@@ -429,7 +449,7 @@ const headingStyle: React.CSSProperties = {
 const subStyle: React.CSSProperties = {
   fontSize: 13,
   fontWeight: 600,
-  color: "#7A3F3F",
+  color: ROOST_BRAND_CARD_MUTED,
   textAlign: "center",
   marginBottom: 28,
   lineHeight: 1.5,
@@ -445,7 +465,7 @@ const codeInputStyle: React.CSSProperties = {
   fontSize: 22,
   letterSpacing: "6px",
   textAlign: "center",
-  color: "#1A0505",
+  color: ROOST_BRAND_TEXT,
   fontWeight: 900,
   outline: "none",
   boxSizing: "border-box",
@@ -455,13 +475,13 @@ const codeInputStyle: React.CSSProperties = {
 const slabButtonStyle: React.CSSProperties = {
   width: "100%",
   height: 56,
-  backgroundColor: "#EF4444",
-  color: "white",
+  backgroundColor: "white",
+  color: ROOST_BRAND_BG,
   fontWeight: 800,
   fontSize: 16,
   borderRadius: 16,
   border: "none",
-  borderBottom: "4px solid #C93B3B",
+  borderBottom: "4px solid #E7B7B7",
   cursor: "pointer",
   display: "flex",
   alignItems: "center",
@@ -472,11 +492,11 @@ const pinButtonStyle: React.CSSProperties = {
   height: 72,
   backgroundColor: "white",
   border: "1.5px solid #F5C5C5",
-  borderBottom: "3px solid #D4CFC9",
+  borderBottom: "3px solid #DBADB0",
   borderRadius: 14,
   fontSize: 24,
   fontWeight: 900,
-  color: "#1A0505",
+  color: ROOST_BRAND_TEXT,
   cursor: "pointer",
   display: "flex",
   alignItems: "center",

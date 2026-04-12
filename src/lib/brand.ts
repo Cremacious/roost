@@ -1,1 +1,9 @@
-export const ROOST_ICON_SRC = "/brand/roost-icon.png?v=20260411";
+export const ROOST_ICON_SRC = "/brand/roost-icon.png";
+export const ROOST_BRAND_BG = "#B91C1C";
+export const ROOST_BRAND_ACCENT = "#EF4444";
+export const ROOST_BRAND_SOFT_BG = "#FECACA";
+export const ROOST_BRAND_SURFACE = "#B91C1C";
+export const ROOST_BRAND_TEXT = "#1A0505";
+export const ROOST_BRAND_MUTED = "#7A3F3F";
+export const ROOST_BRAND_CARD_TEXT = "#FFF7F7";
+export const ROOST_BRAND_CARD_MUTED = "rgba(255, 235, 235, 0.84)";

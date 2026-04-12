@@ -21,7 +21,6 @@ const nextConfig: NextConfig = {
     localPatterns: [
       {
         pathname: "/brand/roost-icon.png",
-        search: "?v=20260411",
       },
     ],
   },

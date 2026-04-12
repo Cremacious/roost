@@ -6,7 +6,16 @@ import Link from "next/link";
 import Image from "next/image";
 import { toast } from "sonner";
 import { signIn } from "@/lib/auth/client";
-import { ROOST_ICON_SRC } from "@/lib/brand";
+import {
+  ROOST_BRAND_BG,
+  ROOST_BRAND_CARD_MUTED,
+  ROOST_BRAND_CARD_TEXT,
+  ROOST_BRAND_MUTED,
+  ROOST_BRAND_SOFT_BG,
+  ROOST_BRAND_SURFACE,
+  ROOST_BRAND_TEXT,
+  ROOST_ICON_SRC,
+} from "@/lib/brand";
 import { CalendarDays, CheckSquare, Coffee, DollarSign, Eye, EyeOff, Loader2, PiggyBank, ShoppingCart } from "lucide-react";
 import { motion } from "framer-motion";
 
@@ -49,14 +58,14 @@ const labelStyle: React.CSSProperties = {
   fontWeight: 800,
   textTransform: "uppercase",
   letterSpacing: "0.07em",
-  color: "#7A3F3F",
+  color: ROOST_BRAND_CARD_TEXT,
   marginBottom: 6,
 };
 
 const inputStyle: React.CSSProperties = {
   border: "1.5px solid #F5C5C5",
   borderBottom: "3px solid #DBADB0",
-  color: "#1A0505",
+  color: ROOST_BRAND_TEXT,
   fontWeight: 600,
   backgroundColor: "white",
   borderRadius: 12,
@@ -104,13 +113,20 @@ export default function LoginPage() {
   }
 
   return (
-    <div style={{ display: "flex", minHeight: "100vh", fontFamily: "var(--font-nunito)" }}>
+    <div
+      style={{
+        display: "flex",
+        minHeight: "100vh",
+        fontFamily: "var(--font-nunito)",
+        backgroundColor: ROOST_BRAND_SOFT_BG,
+      }}
+    >
       {/* Left panel — desktop only */}
       <div
         className="hidden md:flex"
         style={{
           width: "40%",
-          backgroundColor: "#EF4444",
+          backgroundColor: ROOST_BRAND_BG,
           flexDirection: "column",
           justifyContent: "center",
           alignItems: "flex-start",
@@ -165,7 +181,7 @@ export default function LoginPage() {
         className="px-6 py-10 md:px-9"
         style={{
           flex: 1,
-          backgroundColor: "#FFF5F5",
+          backgroundColor: ROOST_BRAND_SOFT_BG,
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
@@ -176,7 +192,15 @@ export default function LoginPage() {
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.18, ease: "easeOut" }}
-          style={{ width: "100%", maxWidth: 400 }}
+          style={{
+            width: "100%",
+            maxWidth: 420,
+            backgroundColor: ROOST_BRAND_SURFACE,
+            borderRadius: 28,
+            padding: "28px 24px",
+            boxShadow: "0 28px 70px rgba(69, 10, 10, 0.24)",
+            border: "1px solid rgba(127, 29, 29, 0.22)",
+          }}
         >
           {/* Mobile-only logo */}
           <div className="flex md:hidden" style={{ alignItems: "center", gap: 10, marginBottom: 28 }}>
@@ -187,13 +211,13 @@ export default function LoginPage() {
               height={40}
               style={{ borderRadius: 10, objectFit: "cover" }}
             />
-            <span style={{ fontWeight: 900, fontSize: 20, color: "#1A0505" }}>Roost</span>
+            <span style={{ fontWeight: 900, fontSize: 20, color: ROOST_BRAND_CARD_TEXT }}>Roost</span>
           </div>
 
-          <h1 style={{ fontSize: 28, fontWeight: 900, color: "#1A0505", marginBottom: 4, letterSpacing: "-0.5px" }}>
+          <h1 style={{ fontSize: 28, fontWeight: 900, color: ROOST_BRAND_CARD_TEXT, marginBottom: 4, letterSpacing: "-0.5px" }}>
             Welcome back.
           </h1>
-          <p style={{ fontSize: 14, fontWeight: 600, color: "#7A3F3F", marginBottom: 28 }}>
+          <p style={{ fontSize: 14, fontWeight: 600, color: ROOST_BRAND_CARD_MUTED, marginBottom: 28 }}>
             Your household is waiting.
           </p>
 
@@ -236,7 +260,7 @@ export default function LoginPage() {
                     right: 12,
                     top: "50%",
                     transform: "translateY(-50%)",
-                    color: "#9B6060",
+                    color: ROOST_BRAND_MUTED,
                     background: "none",
                     border: "none",
                     cursor: "pointer",
@@ -256,13 +280,13 @@ export default function LoginPage() {
               style={{
                 width: "100%",
                 height: 50,
-                backgroundColor: "#EF4444",
-                color: "white",
+                backgroundColor: "white",
+                color: ROOST_BRAND_BG,
                 fontWeight: 800,
                 fontSize: 14,
                 borderRadius: 14,
                 border: "none",
-                borderBottom: "3px solid #C93B3B",
+                borderBottom: "3px solid #E7B7B7",
                 cursor: "pointer",
                 display: "flex",
                 alignItems: "center",
@@ -277,22 +301,22 @@ export default function LoginPage() {
 
           {/* Divider */}
           <div style={{ display: "flex", alignItems: "center", gap: 12, margin: "20px 0" }}>
-            <div style={{ flex: 1, height: 1, backgroundColor: "#F5C5C5" }} />
-            <span style={{ fontSize: 13, fontWeight: 700, color: "#9B6060" }}>or</span>
-            <div style={{ flex: 1, height: 1, backgroundColor: "#F5C5C5" }} />
+            <div style={{ flex: 1, height: 1, backgroundColor: "rgba(255,255,255,0.22)" }} />
+            <span style={{ fontSize: 13, fontWeight: 700, color: ROOST_BRAND_CARD_MUTED }}>or</span>
+            <div style={{ flex: 1, height: 1, backgroundColor: "rgba(255,255,255,0.22)" }} />
           </div>
 
           {/* Footer links */}
           <div style={{ textAlign: "center" }}>
             <Link
               href="/signup"
-              style={{ fontSize: 13, fontWeight: 700, color: "#EF4444", textDecoration: "none", display: "block" }}
+              style={{ fontSize: 13, fontWeight: 700, color: "white", textDecoration: "none", display: "block" }}
             >
               New here? Create an account
             </Link>
             <Link
               href="/child-login"
-              style={{ fontSize: 12, fontWeight: 600, color: "#9B6060", textDecoration: "none", display: "block", marginTop: 10 }}
+              style={{ fontSize: 12, fontWeight: 600, color: ROOST_BRAND_CARD_MUTED, textDecoration: "none", display: "block", marginTop: 10 }}
             >
               Sign in as a child
             </Link>

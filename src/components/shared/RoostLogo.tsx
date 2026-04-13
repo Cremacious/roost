@@ -18,6 +18,7 @@ const VARIANT_CONFIG = {
   dark:  { wordmark: "var(--roost-text-primary)" },
   light: { wordmark: "#F5F0E8" },
   red:   { wordmark: "var(--roost-text-primary)" },
+  white: { wordmark: "#ffffff" },
 };
 
 interface RoostLogoProps {

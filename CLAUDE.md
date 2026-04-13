@@ -270,9 +270,10 @@ Tasks: one-off to-dos
   default = "Default" (clean neutral light: bg #F9FAFB, surface #FFFFFF, borders #E5E7EB)
   midnight = "Midnight" (soft dark gray: bg #111827, surface #1F2937, dark:true)
 - Red appears ONLY in: chores feature, brand/logo, destructive actions (delete, sign out),
-  auth page left panel, upgrade/billing CTAs, homepage hero. Nowhere else.
-- Sidebar active state: light gray fill (#F3F4F6) with dark text (#111827) on default.
-  No red in sidebar active state.
+  auth page left panel, upgrade/billing CTAs, homepage hero, sidebar background. Nowhere else.
+- Sidebar background: hardcoded #DC2626 (brand red). Does NOT use --roost-sidebar-bg CSS variable.
+  Sidebar active state: rgba(255,255,255,0.22) white fill on red background.
+  All sidebar text, icons, and dividers use white/rgba-white values — no CSS variables inside the sidebar.
 - ThemeProvider reads user's theme server-side, applies CSS variables on mount
 - ThemeProvider accepts string for initialTheme; any unknown key (forest/slate/sand/warm/etc.)
   resolves to DEFAULT_THEME ('default')
@@ -297,7 +298,9 @@ Tasks: one-off to-dos
 - Primary dark: #C93B3B
 - Brand red used for: chores section color, bottom nav Home/Chores active, primary CTA buttons,
   "See all" links, selected theme card border, destructive actions, auth page left panel,
-  upgrade/billing CTAs, homepage hero. NOT used for sidebar active state or shadcn --primary.
+  upgrade/billing CTAs, homepage hero, sidebar background (#DC2626). NOT used for shadcn --primary.
+- Sidebar uses #DC2626 (slightly darker red) as its background. Active nav state inside the sidebar
+  is rgba(255,255,255,0.22) — a white frost overlay, not a separate red accent.
 - Section colors unchanged (chores, grocery, calendar, expenses, meals, notes, reminders, tasks)
 - Date subheading on dashboard always uses #9B9590 hardcoded — never tinted by theme
 - TopBar: household name + weather chip + time only. No user avatars.

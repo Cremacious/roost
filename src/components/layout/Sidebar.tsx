@@ -91,13 +91,13 @@ export default function Sidebar() {
       <aside
         className="fixed left-0 top-0 bottom-0 z-40 hidden w-55 flex-col py-4 md:flex"
         style={{
-          backgroundColor: "var(--roost-sidebar-bg)",
-          borderRight: "1.5px solid var(--roost-sidebar-border)",
+          backgroundColor: "#DC2626",
+          borderRight: "1.5px solid rgba(255,255,255,0.1)",
         }}
       >
         {/* Logo */}
         <div className="px-4 pb-4 pt-2">
-          <RoostLogo size="md" />
+          <RoostLogo size="md" variant="white" />
         </div>
 
         {/* Nav */}
@@ -113,7 +113,7 @@ export default function Sidebar() {
                 className="flex h-10 items-center gap-3 rounded-xl px-3 transition-colors"
                 style={
                   isActive
-                    ? { backgroundColor: "var(--roost-sidebar-active-bg)" }
+                    ? { backgroundColor: "rgba(255,255,255,0.22)" }
                     : undefined
                 }
               >
@@ -121,16 +121,16 @@ export default function Sidebar() {
                   className="size-4 shrink-0"
                   style={{
                     color: isActive
-                      ? "var(--roost-sidebar-active-text)"
-                      : "var(--roost-sidebar-inactive-text)",
+                      ? "#ffffff"
+                      : "rgba(255,255,255,0.75)",
                   }}
                 />
                 <span
                   className="text-sm truncate"
                   style={{
                     color: isActive
-                      ? "var(--roost-sidebar-active-text)"
-                      : "var(--roost-sidebar-inactive-text)",
+                      ? "#ffffff"
+                      : "rgba(255,255,255,0.8)",
                     fontWeight: isActive ? 700 : 600,
                   }}
                 >
@@ -144,7 +144,7 @@ export default function Sidebar() {
         {/* Bottom: user block + sign out */}
         <div
           className="px-2 pt-3"
-          style={{ borderTop: "1.5px solid var(--roost-sidebar-divider)" }}
+          style={{ borderTop: "1.5px solid rgba(255,255,255,0.15)" }}
         >
           {/* Clickable user block — navigates to Settings */}
           <button
@@ -154,13 +154,13 @@ export default function Sidebar() {
             style={{
               padding: "10px 8px",
               borderRadius: 14,
-              background: pathname === "/settings" ? "var(--roost-sidebar-active-bg)" : "transparent",
+              background: pathname === "/settings" ? "rgba(255,255,255,0.22)" : "transparent",
               border: "none",
               cursor: "pointer",
             }}
             onMouseEnter={(e) => {
               if (pathname !== "/settings") {
-                (e.currentTarget as HTMLButtonElement).style.background = "var(--roost-bg)";
+                (e.currentTarget as HTMLButtonElement).style.background = "rgba(255,255,255,0.12)";
               }
             }}
             onMouseLeave={(e) => {
@@ -178,7 +178,7 @@ export default function Sidebar() {
               {userName && (
                 <p
                   className="truncate text-[13px]"
-                  style={{ color: "var(--roost-text-primary)", fontWeight: 800 }}
+                  style={{ color: "#ffffff", fontWeight: 800 }}
                 >
                   {userName}
                 </p>
@@ -186,7 +186,7 @@ export default function Sidebar() {
               {role && (
                 <p
                   className="truncate text-[11px] capitalize"
-                  style={{ color: "var(--roost-text-muted)", fontWeight: 600 }}
+                  style={{ color: "rgba(255,255,255,0.65)", fontWeight: 600 }}
                 >
                   {role}
                 </p>
@@ -198,8 +198,8 @@ export default function Sidebar() {
                 height: 15,
                 flexShrink: 0,
                 color: pathname === "/settings"
-                  ? "var(--roost-sidebar-active-text)"
-                  : "var(--roost-sidebar-inactive-text)",
+                  ? "#ffffff"
+                  : "rgba(255,255,255,0.75)",
               }}
             />
           </button>
@@ -214,12 +214,12 @@ export default function Sidebar() {
             className="mt-1 flex w-full items-center gap-2 rounded-[10px] px-2.5"
             style={{
               height: 34,
-              background: hoverSignOut ? "rgba(239,68,68,0.08)" : "transparent",
-              color: hoverSignOut ? "#EF4444" : "var(--roost-text-muted)",
+              background: hoverSignOut ? "rgba(239,68,68,0.08)" : "rgba(0,0,0,0.15)",
+              color: hoverSignOut ? "#EF4444" : "rgba(255,255,255,0.8)",
               fontWeight: 700,
               fontSize: 12,
               cursor: "pointer",
-              border: "none",
+              border: hoverSignOut ? "1px solid rgba(255,255,255,0.15)" : "1px solid rgba(255,255,255,0.15)",
             }}
           >
             <LogOut
@@ -227,7 +227,7 @@ export default function Sidebar() {
                 width: 13,
                 height: 13,
                 flexShrink: 0,
-                color: hoverSignOut ? "#EF4444" : "var(--roost-text-muted)",
+                color: hoverSignOut ? "#EF4444" : "rgba(255,255,255,0.8)",
               }}
             />
             Sign out

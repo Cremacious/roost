@@ -1,5 +1,6 @@
 # Roost — Feature Registry
-> Last updated: 2026-04-13 (Admin households search now matches on invite code in addition to household name. SQL uses OR with ILIKE on both h.name and h.code. Placeholder updated to "Search by name or code...".)
+> Last updated: 2026-04-13 (Promo code system built. Admin panel gains Promo Codes tab: create codes with duration/max redemptions/expiry, filter by status, pause/activate/deactivate. User Settings gains Promotions section above Billing with code input and active promo status card. requirePremium() fixed to check premium_expires_at with lazy cleanup.)
+> Previous: 2026-04-13 (Admin households search now matches on invite code in addition to household name. SQL uses OR with ILIKE on both h.name and h.code. Placeholder updated to "Search by name or code...".)
 > Previous: 2026-04-13 (Dashboard card grid redesign: tiles now use section-colored 3px slab border-bottom, 44x44 rounded-square icon badges with tinted section backgrounds, a 1px divider between icon and text, and darker icon stroke colors per section. Expenses "Premium feature" subtext renders in green. Grid breakpoint changed from sm: to md:.)
 > Previous: 2026-04-13 (Child login bug fixes round 2: removed stray avatar initial on PIN step (blended into background), added visible PIN feedback (white spinner + inline error message), fixed child accounts redirecting to /onboarding by setting onboarding_completed=true in add-child route + onboarding page guard for existing accounts.)
 > Previous: 2026-04-13 (Child login bug fixes: PIN keypad no longer snaps back to name picker due to useCallback/useEffect dependency cascade; "Wrong house?" text color fixed to white on red background.)
@@ -266,7 +267,19 @@ Protected by ADMIN_EMAIL + ADMIN_PASSWORD env vars. Own JWT session cookie (8 ho
 - Overview page: 6 stat cards (total users, households, premium, free, active 30d, new this week) + 2 Recharts area charts (signups over time, premium conversions over time)
 - Users page: search by name/email, filter All/Premium/Free, paginated table (50/page), expandable rows with User ID + Household ID + Stripe Customer ID (copyable)
 - Households page: search, filter, paginated table, expandable rows with all Stripe IDs + member emails, Set Premium / Set Free action buttons with confirmation dialog (optimistic UI update)
+- Promo Codes page: create codes (auto-generated or custom), set duration (30/60/90/180/365 days), optional max redemptions, optional code expiry date. Filter tabs (All/Active/Paused/Deactivated). Status actions: Pause, Activate, Deactivate, Reactivate. Copy code to clipboard. Monospace code display, strikethrough for deactivated codes.
 - Spanish localization
+
+#### Promo Code System
+Admin-created promo codes that grant time-limited premium access to households.
+- Admin creates codes in /admin/promo-codes with duration, max redemptions, and optional expiry
+- Users redeem codes in Settings > Promotions section
+- Code input auto-uppercases, validates server-side (status, expiry, max redemptions, duplicate household check)
+- Redemption sets household subscription_status='premium' + premium_expires_at (now + duration_days)
+- If household already has future expiry (another promo), new duration extends from that date
+- If household has active Stripe subscription, promo records but premium_expires_at stays null (Stripe takes precedence)
+- Active promo status shown in Settings with code name, Active badge, and expiry date
+- requirePremium() server-side now checks premium_expires_at with lazy cleanup (reverts expired premium to free)
 
 ---
 

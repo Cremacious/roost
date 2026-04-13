@@ -15,6 +15,7 @@ import {
   Plus,
   RefreshCw,
   Thermometer,
+  Tag,
   Trash2,
   UserPlus,
 } from 'lucide-react';
@@ -114,6 +115,7 @@ const NAV_SECTIONS = [
     label: 'Chore Categories',
     adminOnly: true,
   },
+  { id: 'section-promotions', label: 'Promotions' },
   { id: 'section-billing', label: 'Billing' },
   { id: 'section-danger', label: 'Danger Zone', adminOnly: true },
 ];
@@ -1164,6 +1166,59 @@ export default function SettingsPage() {
   const [deleteHouseConfirm, setDeleteHouseConfirm] = useState('');
   const [deleteHouseStep2, setDeleteHouseStep2] = useState(false);
   const [deletingHouse, setDeletingHouse] = useState(false);
+
+  // ---- Promo code state -----------------------------------------------------
+  const [promoInput, setPromoInput] = useState('');
+  const [promoRedeeming, setPromoRedeeming] = useState(false);
+
+  const { data: promoStatus } = useQuery<{
+    redemptions: {
+      id: string;
+      code: string;
+      durationDays: number;
+      redeemedAt: string;
+      premiumExpiresAt: string;
+    }[];
+  }>({
+    queryKey: ['promo-status'],
+    queryFn: async () => {
+      const r = await fetch('/api/promo-codes/status');
+      if (!r.ok) throw new Error('Failed');
+      return r.json();
+    },
+    staleTime: 60_000,
+  });
+
+  async function handleRedeemPromo() {
+    if (!promoInput.trim()) return;
+    setPromoRedeeming(true);
+    try {
+      const r = await fetch('/api/promo-codes/redeem', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code: promoInput.trim() }),
+      });
+      const data = await r.json();
+      if (!r.ok) {
+        toast.error('Could not redeem code', {
+          description: data.error || 'Something went wrong.',
+        });
+        return;
+      }
+      toast.success('Promo code redeemed', {
+        description: data.message,
+      });
+      setPromoInput('');
+      queryClient.invalidateQueries({ queryKey: ['promo-status'] });
+      queryClient.invalidateQueries({ queryKey: ['household'] });
+    } catch {
+      toast.error('Could not redeem code', {
+        description: 'Something went wrong. Try again.',
+      });
+    } finally {
+      setPromoRedeeming(false);
+    }
+  }
 
   // ---- Desktop nav ----------------------------------------------------------
   const [activeSection, setActiveSection] = useState('section-profile');
@@ -2472,7 +2527,163 @@ export default function SettingsPage() {
             </SettingsSection>
           )}
 
-          {/* ---- SECTION 8: BILLING ----------------------------------------- */}
+          {/* ---- SECTION: PROMOTIONS ---------------------------------------- */}
+          <SettingsSection
+            id="section-promotions"
+            title="Promotions"
+            subtitle="Have a promo code? Enter it below to unlock free premium."
+          >
+            <SlabCard>
+              <div className="p-4 space-y-4">
+                {/* Redeem input */}
+                <div className="flex gap-3">
+                  <input
+                    type="text"
+                    value={promoInput}
+                    onChange={(e) =>
+                      setPromoInput(
+                        e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '')
+                      )
+                    }
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        handleRedeemPromo();
+                      }
+                    }}
+                    placeholder="Enter promo code"
+                    maxLength={32}
+                    className="flex h-11 flex-1 rounded-xl px-3 text-sm"
+                    style={{
+                      backgroundColor: 'var(--roost-bg)',
+                      border: '1.5px solid var(--roost-border)',
+                      borderBottom: '3px solid var(--roost-border-bottom)',
+                      color: 'var(--roost-text-primary)',
+                      fontWeight: 700,
+                      fontFamily: 'monospace',
+                      letterSpacing: '0.08em',
+                      fontSize: '16px',
+                      outline: 'none',
+                    }}
+                  />
+                  <motion.button
+                    type="button"
+                    whileTap={{ y: 1 }}
+                    onClick={handleRedeemPromo}
+                    disabled={promoRedeeming || !promoInput.trim()}
+                    className="flex h-11 items-center justify-center rounded-xl px-5 text-sm text-white"
+                    style={{
+                      backgroundColor: '#6366F1',
+                      border: 'none',
+                      borderBottom: '3px solid #4338CA',
+                      fontWeight: 800,
+                      opacity:
+                        promoRedeeming || !promoInput.trim() ? 0.5 : 1,
+                      cursor:
+                        promoRedeeming || !promoInput.trim()
+                          ? 'not-allowed'
+                          : 'pointer',
+                    }}
+                  >
+                    {promoRedeeming ? (
+                      <Loader2 size={16} className="animate-spin" />
+                    ) : (
+                      'Redeem'
+                    )}
+                  </motion.button>
+                </div>
+
+                {/* Active promo status */}
+                {promoStatus?.redemptions &&
+                  promoStatus.redemptions.length > 0 && (
+                    <div className="space-y-3">
+                      {promoStatus.redemptions.map((r) => (
+                        <div
+                          key={r.id}
+                          className="flex items-center gap-3 rounded-xl p-3"
+                          style={{
+                            backgroundColor: 'var(--roost-bg)',
+                            border: '1.5px solid var(--roost-border)',
+                            borderBottom: '3px solid #4338CA',
+                          }}
+                        >
+                          <div
+                            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl"
+                            style={{
+                              backgroundColor: '#6366F120',
+                              border: '1px solid #6366F130',
+                            }}
+                          >
+                            <Tag
+                              size={18}
+                              color="#6366F1"
+                            />
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-2">
+                              <p
+                                className="text-sm"
+                                style={{
+                                  color: 'var(--roost-text-primary)',
+                                  fontWeight: 700,
+                                }}
+                              >
+                                Premium via promo code
+                              </p>
+                              <span
+                                className="rounded-md px-2 py-0.5 text-xs text-white"
+                                style={{
+                                  backgroundColor: '#22C55E',
+                                  fontWeight: 700,
+                                }}
+                              >
+                                Active
+                              </span>
+                            </div>
+                            <p
+                              className="text-xs mt-0.5"
+                              style={{
+                                color: 'var(--roost-text-muted)',
+                                fontWeight: 600,
+                              }}
+                            >
+                              Code: {r.code} · Expires{' '}
+                              {(() => {
+                                try {
+                                  return new Date(
+                                    r.premiumExpiresAt
+                                  ).toLocaleDateString('en-US', {
+                                    month: 'short',
+                                    day: 'numeric',
+                                    year: 'numeric',
+                                  });
+                                } catch {
+                                  return r.premiumExpiresAt;
+                                }
+                              })()}
+                            </p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                {/* Info note */}
+                <p
+                  className="text-xs"
+                  style={{
+                    color: 'var(--roost-text-muted)',
+                    fontWeight: 600,
+                  }}
+                >
+                  When your promotion expires, your household will return to
+                  the free plan unless you subscribe.
+                </p>
+              </div>
+            </SlabCard>
+          </SettingsSection>
+
+          {/* ---- SECTION: BILLING --------------------------------------------- */}
           <SettingsSection id="section-billing" title="Billing">
             <SlabCard>
               <div className="p-4">

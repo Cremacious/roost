@@ -581,6 +581,12 @@ src/app/(admin)/admin/login/page.tsx           Admin login: dark card, indigo (#
 src/app/(admin)/admin/page.tsx                 Admin overview: 6 StatCards + 2 Recharts AreaCharts (signups + conversions)
 src/app/(admin)/admin/users/page.tsx           Users table: search, filter pills, paginated, expandable rows with copyable IDs
 src/app/(admin)/admin/households/page.tsx      Households table: search by name or invite code, filter, Set Premium/Free button, ConfirmDialog, optimistic update, expandable rows
+src/app/(admin)/admin/promo-codes/page.tsx    Promo codes admin: create form (code/duration/max/expiry), filter tabs, table with status badges, copy code, pause/activate/deactivate actions
+src/db/schema/promoCodes.ts                   promo_codes + promo_redemptions tables
+src/app/api/admin/promo-codes/route.ts        GET (list all) + POST (create with auto-gen or custom code)
+src/app/api/admin/promo-codes/[id]/route.ts   PATCH: update status (active/paused/deactivated)
+src/app/api/promo-codes/redeem/route.ts       POST: validate + redeem code, set household premium, log activity
+src/app/api/promo-codes/status/route.ts       GET: active promo redemptions for current household
 src/lib/utils/time.ts                          relativeTime(date) -- returns "Just now", "Xm ago", "Xh ago", "Yesterday", "Xd ago"
 src/lib/hooks/useHousehold.ts                  Client hook: returns { household, role, permissions, isPremium, isLoading, error } via /api/household/me
 src/lib/hooks/useUserPreferences.ts            Client hook: returns { temperatureUnit, latitude, longitude, updatePreferences } via /api/user/preferences
@@ -1044,7 +1050,7 @@ src/lib/constants/colors.ts                   Added "stats": "#6366F1" (indigo) 
 - Danger zone actions require the user to type "DELETE" into a confirmation input before the destructive button enables. Never allow destructive household actions (delete all data, delete household) with a single click or simple OK dialog.
 - Child financial permissions (expenses.view, expenses.add) are always locked off regardless of admin checklist. The API enforces this: enabling child-locked permissions for a child role returns 400.
 - PIN is always hashed before storage (hashPassword from better-auth/crypto). Never store child PINs in plain text.
-- Settings page sections: Profile (avatar color, name, email, timezone, password change), Appearance (theme grid), Preferences (temperature unit, location, language), Household (rename, invite code, transfer admin), Members (all roles — admin sees interactive list with MemberSheet; non-admins see read-only list with name + role badge), Notifications (info text only: push notifications coming in iOS/Android apps, no toggles), Billing (plan status, upgrade), Danger Zone (admin only, delete data, delete household).
+- Settings page sections: Profile (avatar color, name, email, timezone, password change), Appearance (theme grid), Preferences (temperature unit, location, language), Household (rename, invite code, transfer admin), Members (all roles — admin sees interactive list with MemberSheet; non-admins see read-only list with name + role badge), Notifications (info text only: push notifications coming in iOS/Android apps, no toggles), Promotions (promo code redemption input + active promo status cards), Billing (plan status, upgrade), Danger Zone (admin only, delete data, delete household).
 - MemberSheet (admin only): role changes, 12 permission toggles, child PIN change (nested sheet), allowance config (child only), remove member. Child-locked permissions rendered as disabled switches.
 - The 12 member permissions: expenses.view, expenses.add, chores.add, chores.edit, grocery.add, grocery.create_list, calendar.add, calendar.edit, tasks.add, notes.add, meals.plan, meals.suggest
 - Add flow pattern per feature page:
@@ -1325,7 +1331,9 @@ Update this file after every major decision or completed phase.
 - e2e/.auth/*.json files contain session tokens — always in .gitignore, never commit. e2e/.auth/.gitkeep tracks the empty directory.
 - Empty-state tests (chores/grocery) only reliable on first run against a clean DB. Test data accumulates with shared accounts — this is an accepted tradeoff.
 
-Last updated: 2026-04-13 (Onboarding guard added. onboarding_completed: boolean added to both "user" (better-auth) and "users" (app) tables; db:push applied; existing users with a household backfilled. better-auth user.additionalFields configured so session.user.onboarding_completed is available in proxy.ts without a DB call. Household create and join routes set the flag on both tables via Promise.all. Onboarding page calls GET /api/auth/get-session?disableCookieCache=true after success to flush the 5-min cookie cache before navigating to /dashboard. proxy.ts: ONBOARDING_BYPASS=["/onboarding"] + guard block after auth check redirects un-onboarded users to /onboarding.)
+Last updated: 2026-04-13 (Promo code system built. Schema: promo_codes + promo_redemptions tables in src/db/schema/promoCodes.ts; db:push applied. requirePremium() in helpers.ts fixed to check premium_expires_at with lazy cleanup (reverts expired premium to free on check). Admin panel: Promo Codes tab added to nav in layout.tsx; full management page at /admin/promo-codes with create form, filter tabs, status actions. Admin API: GET+POST /api/admin/promo-codes, PATCH /api/admin/promo-codes/[id]. User API: POST /api/promo-codes/redeem (validates code, checks duplicates, extends existing promo expiry, respects active Stripe subs), GET /api/promo-codes/status. Settings page: Promotions section added above Billing with code input, redeem button, active promo status cards. NAV_SECTIONS gains section-promotions entry.)
+
+Previous: 2026-04-13 (Onboarding guard added. onboarding_completed: boolean added to both "user" (better-auth) and "users" (app) tables; db:push applied; existing users with a household backfilled. better-auth user.additionalFields configured so session.user.onboarding_completed is available in proxy.ts without a DB call. Household create and join routes set the flag on both tables via Promise.all. Onboarding page calls GET /api/auth/get-session?disableCookieCache=true after success to flush the 5-min cookie cache before navigating to /dashboard. proxy.ts: ONBOARDING_BYPASS=["/onboarding"] + guard block after auth check redirects un-onboarded users to /onboarding.)
 
 Previous: 2026-04-10 (Child auth bug fixes. add-child route now inserts into better-auth "user" table BEFORE inserting into app "users" table so createSession() FK constraint is satisfied. Placeholder email child_${userId}@roost.internal used for the "user" row. child-login POST: split combined !member || !member.pin check into two distinct 401 responses ("Invalid PIN" vs "No PIN set. Ask a parent to set one in Settings."). Debug console.log removed. Key Rules updated with dual-table child account requirement.)
 
@@ -1424,6 +1432,24 @@ Previous: 2026-04-08 (Custom categories + budgets + insights complete. Schema: e
 - /settings/billing: free users see upgrade card; premium users see features + manage/cancel; 
   cancelling users see amber warning + reactivate; success/cancelled URL params show dismissing banners
 - STRIPE_PRICE_ID env var: the monthly $4 price ID (price_...) from Stripe dashboard
+
+## Promo Code System
+- Admin creates promo codes in /admin/promo-codes with: custom or auto-generated code, duration (30/60/90/180/365 days), optional max redemptions, optional code expiry date
+- Users redeem codes in Settings > Promotions (above Billing section)
+- Schema: promo_codes (id, code, duration_days, status, max_redemptions, redemption_count, expires_at, created_at) + promo_redemptions (id, promo_code_id, household_id, user_id, redeemed_at, premium_expires_at)
+- Code status: 'active' | 'paused' | 'deactivated'; all transitions allowed (admin has full control)
+- Redemption validation: code exists + status active + not expired + not at max redemptions + household hasn't already used this code
+- On redeem: sets household subscription_status='premium', premium_expires_at = now + duration_days
+- If household already has a future premium_expires_at (another promo), extends from that date instead of now
+- If household has active Stripe subscription (stripe_subscription_id set, no expiry), promo records but premium_expires_at stays null (Stripe takes precedence)
+- requirePremium() server-side now checks premium_expires_at and does lazy cleanup (reverts expired premium to free)
+- Settings Promotions section: code input (auto-uppercase, monospace), Redeem button, active promo status cards with code/expiry/Active badge
+- Info note below input: "When your promotion expires, your household will return to the free plan unless you subscribe."
+- Admin API: GET/POST /api/admin/promo-codes, PATCH /api/admin/promo-codes/[id]
+- User API: POST /api/promo-codes/redeem, GET /api/promo-codes/status
+- Admin UI: indigo-accented create form, filter tabs (All/Active/Paused/Deactivated), table with copy button, status badges, action links
+- Deactivated codes show with strikethrough and 50% opacity in the admin table
+- Auto-generated codes: 8 chars from ABCDEFGHJKLMNPQRSTUVWXYZ23456789 (excludes ambiguous chars I/O/0/1)
 
 ## Bugs Found and Fixed (2026-04-13)
 - Child login PIN keypad immediately snapped back to the "Who are you?" picker after tapping a name.

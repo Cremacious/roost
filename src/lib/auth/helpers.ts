@@ -84,12 +84,33 @@ export async function requirePremium(
   const result = await requireHouseholdMember(request, householdId);
 
   const [household] = await db
-    .select({ subscription_status: households.subscription_status })
+    .select({
+      subscription_status: households.subscription_status,
+      premium_expires_at: households.premium_expires_at,
+    })
     .from(households)
     .where(eq(households.id, householdId))
     .limit(1);
 
   if (!household || household.subscription_status !== "premium") {
+    throw Response.json({ error: "Premium required" }, { status: 403 });
+  }
+
+  // Check time-based expiry (promo codes, cancelled Stripe subs)
+  if (
+    household.premium_expires_at &&
+    new Date(household.premium_expires_at) <= new Date()
+  ) {
+    // Lazy cleanup: revert expired premium back to free
+    await db
+      .update(households)
+      .set({
+        subscription_status: "free",
+        premium_expires_at: null,
+        updated_at: new Date(),
+      })
+      .where(eq(households.id, householdId));
+
     throw Response.json({ error: "Premium required" }, { status: 403 });
   }
 

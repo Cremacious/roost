@@ -214,12 +214,12 @@ export default function Sidebar() {
             className="mt-1 flex w-full items-center gap-2 rounded-[10px] px-2.5"
             style={{
               height: 34,
-              background: hoverSignOut ? "rgba(239,68,68,0.08)" : "rgba(0,0,0,0.15)",
-              color: hoverSignOut ? "#EF4444" : "rgba(255,255,255,0.8)",
+              background: hoverSignOut ? "rgba(0,0,0,0.25)" : "rgba(0,0,0,0.15)",
+              color: hoverSignOut ? "#ffffff" : "rgba(255,255,255,0.8)",
               fontWeight: 700,
               fontSize: 12,
               cursor: "pointer",
-              border: hoverSignOut ? "1px solid rgba(255,255,255,0.15)" : "1px solid rgba(255,255,255,0.15)",
+              border: hoverSignOut ? "1px solid rgba(255,255,255,0.25)" : "1px solid rgba(255,255,255,0.15)",
             }}
           >
             <LogOut
@@ -227,7 +227,7 @@ export default function Sidebar() {
                 width: 13,
                 height: 13,
                 flexShrink: 0,
-                color: hoverSignOut ? "#EF4444" : "rgba(255,255,255,0.8)",
+                color: hoverSignOut ? "#ffffff" : "rgba(255,255,255,0.8)",
               }}
             />
             Sign out

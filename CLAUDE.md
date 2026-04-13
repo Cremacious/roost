@@ -361,12 +361,16 @@ Tasks: one-off to-dos
     Page background (var(--roost-bg))
     Card/surface background (var(--roost-surface))
     Card border top/left/right (var(--roost-border))
-    Neutral card border-bottom (var(--roost-border-bottom)) -- for dashboard tiles + non-feature cards
+    Neutral card border-bottom (var(--roost-border-bottom)) -- for non-feature cards (NOT dashboard tiles)
     Text colors (var(--roost-text-*))
     Sidebar, topbar, dividers
   NEVER use var(--roost-border-bottom) on feature-specific interactive elements.
   NEVER let brand red (#EF4444) appear on non-chores/non-settings pages except sidebar active nav.
-  Dashboard tiles are neutral containers: border-bottom = var(--roost-border-bottom).
+  Dashboard tiles use section-colored slab borders (border-bottom: 3px solid SECTION_DARK_COLOR).
+  Each tile has a 44x44 rounded-square icon badge with tinted section bg, a 1px divider,
+  and feature name + subtext below. TILE_STYLES config in dashboard/page.tsx maps each section
+  to badgeBg, slabBorder, and iconStroke colors. Expenses "Premium feature" subtext renders
+  in green (#15803D) at fontWeight 500 instead of default muted gray.
   Dashboard "See all" and activity links: #EF4444 brand red.
   Calendar nav arrows: simple rounded-full, no slab style (NO borderBottom slab effect).
   Calendar month grid container: border: 1.5px solid #BAD3F7, borderBottom: 4px solid #1A5CB5.
@@ -404,7 +408,7 @@ Tasks: one-off to-dos
 - PageContainer component (src/components/layout/PageContainer.tsx): max-w-4xl (896px) centered
   on desktop, full width on mobile. All pages wrap their content in PageContainer.
   Exception: Calendar uses an inline div with max-w-5xl (1024px) for the 7-column grid.
-  Dashboard: tiles grid (2 cols mobile, 4 cols desktop) + activity feed stacked vertically.
+  Dashboard: tiles grid (grid-cols-2 mobile, md:grid-cols-4 desktop, gap-3) + activity feed stacked vertically.
   Activity feed on dashboard: max 5 items, "See all" links to /activity.
   Activity page (/activity): full feed with "Load more" pagination, 20 items per page.
   Notes: masonry grid columns-1 sm:columns-2 lg:columns-3 inside PageContainer.

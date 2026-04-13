@@ -24,7 +24,6 @@ import { formatDistanceToNow } from "date-fns";
 import { motion } from "framer-motion";
 import { SECTION_COLORS, type SectionKey } from "@/lib/constants/colors";
 import { PageContainer } from "@/components/layout/PageContainer";
-import SlabCard from "@/components/shared/SlabCard";
 import RewardsWidget from "@/components/shared/RewardsWidget";
 import WelcomeModal from "@/components/shared/WelcomeModal";
 
@@ -114,6 +113,20 @@ function mapActivity(item: ActivityAPIItem): ActivityItem {
   };
 }
 
+// ---- Card style config per section ------------------------------------------
+
+const TILE_STYLES: Record<SectionKey, { badgeBg: string; slabBorder: string; iconStroke: string }> = {
+  chores:    { badgeBg: "#FEF2F2", slabBorder: "#E24B4A", iconStroke: "#A32D2D" },
+  grocery:   { badgeBg: "#FFFBEB", slabBorder: "#BA7517", iconStroke: "#92400E" },
+  calendar:  { badgeBg: "#EFF6FF", slabBorder: "#185FA5", iconStroke: "#1E40AF" },
+  expenses:  { badgeBg: "#F0FDF4", slabBorder: "#3B6D11", iconStroke: "#166534" },
+  tasks:     { badgeBg: "#FDF2F8", slabBorder: "#993556", iconStroke: "#9D174D" },
+  notes:     { badgeBg: "#FAF5FF", slabBorder: "#534AB7", iconStroke: "#6D28D9" },
+  meals:     { badgeBg: "#FFFBEB", slabBorder: "#854F0B", iconStroke: "#9A3412" },
+  reminders: { badgeBg: "#F0FDFA", slabBorder: "#0F6E56", iconStroke: "#115E59" },
+  stats:     { badgeBg: "#F3F4F6", slabBorder: "#5F5E5A", iconStroke: "#4B5563" },
+};
+
 // ---- Constants --------------------------------------------------------------
 
 const TILES: Tile[] = [
@@ -138,9 +151,9 @@ function DashboardSkeleton() {
           <Skeleton className="h-8 w-48 rounded-xl" />
           <Skeleton className="h-4 w-64 rounded-lg" />
         </div>
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-          {Array.from({ length: 8 }).map((_, i) => (
-            <Skeleton key={i} className="h-24 rounded-2xl" />
+        <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+          {Array.from({ length: 9 }).map((_, i) => (
+            <Skeleton key={i} className="h-36 rounded-2xl" />
           ))}
         </div>
         <div className="space-y-2">
@@ -156,10 +169,11 @@ function DashboardSkeleton() {
 
 // ---- Sub-components ---------------------------------------------------------
 
-function TileCard({ tile, index }: { tile: Tile; index: number }) {
+function TileCard({ tile, index, isPremium }: { tile: Tile; index: number; isPremium: boolean }) {
   const router = useRouter();
-  const color = SECTION_COLORS[tile.key];
+  const styles = TILE_STYLES[tile.key];
   const Icon = tile.icon;
+  const isExpensesPremiumText = tile.key === "expenses" && !isPremium;
 
   return (
     <motion.button
@@ -169,36 +183,49 @@ function TileCard({ tile, index }: { tile: Tile; index: number }) {
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: Math.min(index * 0.04, 0.2), duration: 0.15 }}
       whileTap={{ y: 2 }}
-      className="relative flex min-h-24 w-full flex-col justify-between rounded-2xl p-4 text-left"
+      className="relative flex w-full flex-col rounded-2xl p-5 text-left"
       style={{
         backgroundColor: "var(--roost-surface)",
         border: "1.5px solid var(--roost-border)",
-        borderBottom: "4px solid var(--roost-border-bottom)",
+        borderBottom: `3px solid ${styles.slabBorder}`,
+        gap: 12,
       }}
     >
       {tile.count > 0 && (
         <span
           className="absolute right-3 top-3 flex h-5 min-w-5 items-center justify-center rounded-full px-1 text-[11px] text-white"
-          style={{ backgroundColor: color, fontWeight: 700 }}
+          style={{ backgroundColor: styles.slabBorder, fontWeight: 700 }}
         >
           {tile.count}
         </span>
       )}
       <div
-        className="flex h-9 w-9 items-center justify-center rounded-xl"
+        className="flex items-center justify-center"
         style={{
-          backgroundColor: color + "18",
-          border: `1px solid ${color}25`,
-          borderBottom: `2px solid ${color}35`,
+          width: 44,
+          height: 44,
+          borderRadius: 10,
+          backgroundColor: styles.badgeBg,
         }}
       >
-        <Icon className="size-4" style={{ color }} />
+        <Icon className="size-5" style={{ color: styles.iconStroke }} />
       </div>
-      <div>
-        <p className="text-sm leading-tight" style={{ color: "var(--roost-text-primary)", fontWeight: 700 }}>
+      <div
+        style={{
+          borderTop: "1px solid var(--roost-border)",
+          paddingTop: 12,
+        }}
+      >
+        <p className="text-[15px] leading-tight" style={{ color: "var(--roost-text-primary)", fontWeight: 600 }}>
           {tile.label}
         </p>
-        <p className="mt-0.5 text-xs" style={{ color: "var(--roost-text-muted)", fontWeight: 600 }}>
+        <p
+          className="mt-0.5 text-xs"
+          style={{
+            color: isExpensesPremiumText ? "#15803D" : "var(--roost-text-muted)",
+            fontWeight: isExpensesPremiumText ? 500 : 600,
+          }}
+        >
           {tile.statusText}
         </p>
       </div>
@@ -509,16 +536,16 @@ export default function DashboardPage() {
             >
               {getGreeting(userName)}
             </h1>
-            <p className="mt-0.5 text-[13px]" style={{ color: "#9B9590", fontWeight: 600 }}>
+            <p className="mt-0.5 text-[13px]" style={{ color: "#7A756F", fontWeight: 600 }}>
               {formatDate()}
             </p>
           </div>
         )}
 
         {/* Feature tiles grid */}
-        <div data-testid="dashboard-tiles" className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <div data-testid="dashboard-tiles" className="grid grid-cols-2 gap-3 md:grid-cols-4">
           {tiles.map((tile, i) => (
-            <TileCard key={tile.key} tile={tile} index={i} />
+            <TileCard key={tile.key} tile={tile} index={i} isPremium={isPremium} />
           ))}
         </div>
 

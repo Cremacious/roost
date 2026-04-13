@@ -256,13 +256,17 @@ export default function Sidebar() {
               type="button"
               onClick={() => setConfirmSignOut(false)}
               whileTap={{ y: 1 }}
-              className="flex h-11 flex-1 items-center justify-center rounded-xl text-sm"
+              className="flex flex-1 items-center justify-center"
               style={{
+                height: 52,
+                width: "100%",
+                borderRadius: 14,
+                fontSize: 16,
                 backgroundColor: "var(--roost-bg)",
                 border: "1.5px solid var(--roost-border)",
                 borderBottom: "3px solid var(--roost-border-bottom)",
                 color: "var(--roost-text-secondary)",
-                fontWeight: 700,
+                fontWeight: 800,
               }}
             >
               Cancel
@@ -272,8 +276,12 @@ export default function Sidebar() {
               onClick={handleSignOut}
               disabled={signingOut}
               whileTap={{ y: 1 }}
-              className="flex h-11 flex-1 items-center justify-center rounded-xl text-sm text-white disabled:opacity-50"
+              className="flex flex-1 items-center justify-center text-white disabled:opacity-50"
               style={{
+                height: 52,
+                width: "100%",
+                borderRadius: 14,
+                fontSize: 16,
                 backgroundColor: "#EF4444",
                 border: "1.5px solid #EF4444",
                 borderBottom: "3px solid #C93B3B",

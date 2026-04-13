@@ -237,7 +237,7 @@ export default function BottomNav({ hasIncompleteChores = false }: BottomNavProp
               type="button"
               onClick={() => setConfirmSignOut(false)}
               whileTap={{ y: 1 }}
-              className="flex h-11 flex-1 items-center justify-center rounded-xl text-sm"
+              className="flex h-11 flex-1 items-center justify-center rounded-xl text-sm py-2"
               style={{
                 backgroundColor: "var(--roost-bg)",
                 border: "1.5px solid var(--roost-border)",
@@ -253,7 +253,7 @@ export default function BottomNav({ hasIncompleteChores = false }: BottomNavProp
               onClick={handleSignOut}
               disabled={signingOut}
               whileTap={{ y: 1 }}
-              className="flex h-11 flex-1 items-center justify-center rounded-xl text-sm text-white disabled:opacity-50"
+              className="flex h-11 flex-1 items-center justify-center rounded-xl text-sm text-white disabled:opacity-50 py-2"
               style={{
                 backgroundColor: "#EF4444",
                 border: "1.5px solid #EF4444",

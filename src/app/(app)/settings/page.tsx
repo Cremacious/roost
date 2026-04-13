@@ -2573,9 +2573,9 @@ export default function SettingsPage() {
                     disabled={promoRedeeming || !promoInput.trim()}
                     className="flex h-11 items-center justify-center rounded-xl px-5 text-sm text-white"
                     style={{
-                      backgroundColor: '#6366F1',
-                      border: 'none',
-                      borderBottom: '3px solid #4338CA',
+                      backgroundColor: '#E24B4A',
+                      border: '1.5px solid #E24B4A',
+                      borderBottom: '3px solid rgba(0,0,0,0.2)',
                       fontWeight: 800,
                       opacity:
                         promoRedeeming || !promoInput.trim() ? 0.5 : 1,

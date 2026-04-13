@@ -549,7 +549,7 @@ export default function AdminHouseholdsPage() {
       <div style={{ display: "flex", alignItems: "center", gap: "12px", flexWrap: "wrap" }}>
         <input
           type="text"
-          placeholder="Search household name..."
+          placeholder="Search by name or code..."
           value={search}
           onChange={(e) => handleSearchChange(e.target.value)}
           style={inputStyle}

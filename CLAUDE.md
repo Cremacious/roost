@@ -574,13 +574,13 @@ src/app/api/admin/login/route.ts               POST (no auth): verify credential
 src/app/api/admin/logout/route.ts              POST: clear admin cookie, redirect to /admin/login
 src/app/api/admin/stats/route.ts               GET: 5 parallel sql queries — totalUsers, totalHouseholds, premium/free counts, signupsOverTime, conversionsOverTime (90 days)
 src/app/api/admin/users/route.ts               GET: paginated user list with search + filter, camelCase response
-src/app/api/admin/households/route.ts          GET: paginated household list with ARRAY_AGG member emails, search + filter, camelCase response
+src/app/api/admin/households/route.ts          GET: paginated household list with ARRAY_AGG member emails, search by name OR invite code, filter, camelCase response
 src/app/api/admin/households/[id]/route.ts     PATCH: set subscription_status premium/free, COALESCE subscription_upgraded_at, logActivity
 src/app/(admin)/layout.tsx                     Admin shell: reads x-pathname header, skips auth for /admin/login, dark nav
 src/app/(admin)/admin/login/page.tsx           Admin login: dark card, indigo (#6366F1) branding, POST to /api/admin/login
 src/app/(admin)/admin/page.tsx                 Admin overview: 6 StatCards + 2 Recharts AreaCharts (signups + conversions)
 src/app/(admin)/admin/users/page.tsx           Users table: search, filter pills, paginated, expandable rows with copyable IDs
-src/app/(admin)/admin/households/page.tsx      Households table: search, filter, Set Premium/Free button, ConfirmDialog, optimistic update, expandable rows
+src/app/(admin)/admin/households/page.tsx      Households table: search by name or invite code, filter, Set Premium/Free button, ConfirmDialog, optimistic update, expandable rows
 src/lib/utils/time.ts                          relativeTime(date) -- returns "Just now", "Xm ago", "Xh ago", "Yesterday", "Xd ago"
 src/lib/hooks/useHousehold.ts                  Client hook: returns { household, role, permissions, isPremium, isLoading, error } via /api/household/me
 src/lib/hooks/useUserPreferences.ts            Client hook: returns { temperatureUnit, latitude, longitude, updatePreferences } via /api/user/preferences

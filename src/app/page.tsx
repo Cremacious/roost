@@ -1371,7 +1371,7 @@ export default async function HomePage() {
           width={220}
           height={220}
           className="hero-logo"
-          style={{ display: 'block', margin: '0 auto -12px' }}
+          style={{ display: 'block', margin: '0 auto 12px' }}
         />
 
         <h1

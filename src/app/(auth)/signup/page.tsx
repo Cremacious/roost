@@ -178,9 +178,9 @@ export default function SignupPage() {
           width: "40%",
           backgroundColor: ROOST_BRAND_BG,
           flexDirection: "column",
-          justifyContent: "center",
+          justifyContent: "flex-start",
           alignItems: "flex-start",
-          padding: "40px 36px",
+          padding: "48px 40px",
         }}
       >
         {/* Brand block */}
@@ -188,25 +188,25 @@ export default function SignupPage() {
           <Image
             src={ROOST_ICON_SRC}
             alt="Roost"
-            width={42}
-            height={42}
+            width={52}
+            height={52}
             className="rounded-xl"
             style={{ objectFit: "cover" }}
           />
-          <span style={{ fontWeight: 900, fontSize: 26, color: "white", letterSpacing: "-0.5px" }}>Roost</span>
+          <span style={{ fontWeight: 900, fontSize: 34, color: "white", letterSpacing: "-1px" }}>Roost</span>
         </div>
-        <p style={{ fontWeight: 700, fontSize: 13, color: "rgba(255,255,255,0.7)", marginBottom: 36 }}>
+        <p style={{ fontWeight: 700, fontSize: 15, color: "rgba(255,255,255,0.7)", marginBottom: 40 }}>
           Homes run better with Roost.
         </p>
 
         {/* Feature list */}
-        <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 22 }}>
           {FEATURES.map(({ icon: Icon, title, desc }) => (
             <div key={title} style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
               <div
                 style={{
-                  width: 28,
-                  height: 28,
+                  width: 40,
+                  height: 40,
                   borderRadius: "50%",
                   backgroundColor: "rgba(255,255,255,0.18)",
                   display: "flex",
@@ -215,11 +215,11 @@ export default function SignupPage() {
                   flexShrink: 0,
                 }}
               >
-                <Icon size={13} color="white" />
+                <Icon size={18} color="white" />
               </div>
               <div>
-                <p style={{ fontWeight: 800, fontSize: 12, color: "white", marginBottom: 1 }}>{title}</p>
-                <p style={{ fontWeight: 600, fontSize: 11, color: "rgba(255,255,255,0.62)", lineHeight: 1.35 }}>{desc}</p>
+                <p style={{ fontWeight: 800, fontSize: 15, color: "white", marginBottom: 3 }}>{title}</p>
+                <p style={{ fontWeight: 600, fontSize: 13, color: "rgba(255,255,255,0.62)", lineHeight: 1.35 }}>{desc}</p>
               </div>
             </div>
           ))}

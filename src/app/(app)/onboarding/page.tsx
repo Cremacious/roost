@@ -1,11 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Check, Copy, Home, Loader2, Users } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import RoostLogo from "@/components/shared/RoostLogo";
+import { useHousehold } from "@/lib/hooks/useHousehold";
 
 type Choice = "create" | "join";
 
@@ -24,6 +25,15 @@ const inputStyle = {
 
 export default function OnboardingPage() {
   const router = useRouter();
+  const { role, isLoading: householdLoading } = useHousehold();
+
+  // Child accounts already belong to a household — skip onboarding entirely
+  useEffect(() => {
+    if (!householdLoading && role === "child") {
+      router.replace("/dashboard");
+    }
+  }, [householdLoading, role, router]);
+
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [choice, setChoice] = useState<Choice | null>(null);
   const [householdName, setHouseholdName] = useState("");

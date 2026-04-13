@@ -1421,6 +1421,30 @@ Previous: 2026-04-08 (Custom categories + budgets + insights complete. Schema: e
   cancelling users see amber warning + reactivate; success/cancelled URL params show dismissing banners
 - STRIPE_PRICE_ID env var: the monthly $4 price ID (price_...) from Stripe dashboard
 
+## Bugs Found and Fixed (2026-04-13)
+- Child login PIN keypad immediately snapped back to the "Who are you?" picker after tapping a name.
+  Root cause: `fetchChildren` was wrapped in `useCallback([step])` and a `useEffect([fetchChildren])`
+  re-ran whenever `step` changed. Tapping a child set `step=3`, which recreated `fetchChildren`,
+  which triggered the effect, which re-fetched children and called `setStep(2)` (multiple kids).
+  Fixed by removing `step` from `fetchChildren` deps (replaced with an `isFromCookie` parameter)
+  and pinning the cookie-restore effect to mount only (`[]` deps).
+- "Wrong house?" button on child login step 2 was invisible: used `ROOST_BRAND_MUTED` (#7A3F3F)
+  against `ROOST_BRAND_SURFACE` (#B91C1C) background. Changed to `rgba(255,255,255,0.8)`.
+- Stray child initial character visible above PIN heading on step 3. Root cause: MemberAvatar
+  used `ROOST_BRAND_BG` (#B91C1C) as fallback avatar color, identical to panel background
+  `ROOST_BRAND_SURFACE` (#B91C1C). The circle blended in, leaving the white initial floating.
+  Fixed by removing the MemberAvatar from step 3 entirely.
+- No visible feedback after entering PIN. Root cause: loading spinner used `color: ROOST_BRAND_BG`
+  (#B91C1C) on the same #B91C1C panel background (invisible). Error was only via toast at screen
+  edge. Fixed: spinner color changed to white, added inline `pinError` state rendered as white text
+  below the keypad on wrong PIN (replaces the toast).
+- Child accounts redirected to /onboarding instead of /dashboard after login. Root cause: the
+  add-child route did not set `onboarding_completed: true` on either the better-auth `user` or
+  app `users` table. The proxy's onboarding guard saw `onboarding_completed=false` and redirected.
+  Fixed in add-child route (both table inserts now set `onboarding_completed: true`). Added safety
+  guard on the onboarding page itself: if `role === "child"`, immediately redirect to /dashboard
+  (catches existing child accounts created before this fix).
+
 ## Bugs Found and Fixed (2026-04-08)
 - Chore history showed 0 completions despite chores being completed on the main page.
   Two root causes in `src/app/api/chores/history/route.ts`:

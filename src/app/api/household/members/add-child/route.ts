@@ -63,6 +63,7 @@ export async function POST(request: NextRequest): Promise<Response> {
       name,
       email: placeholderEmail,
       emailVerified: false,
+      onboarding_completed: true,
       createdAt: new Date(),
       updatedAt: new Date(),
     }).onConflictDoNothing();
@@ -74,6 +75,7 @@ export async function POST(request: NextRequest): Promise<Response> {
       email: null,
       is_child_account: true,
       child_of_household_id: householdId,
+      onboarding_completed: true, // children already belong to a household
       timezone: "America/New_York",
       language: "en",
       theme: "default",

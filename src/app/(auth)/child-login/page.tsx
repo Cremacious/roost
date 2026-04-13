@@ -11,7 +11,7 @@ import {
   ROOST_BRAND_BG,
   ROOST_BRAND_CARD_MUTED,
   ROOST_BRAND_CARD_TEXT,
-  ROOST_BRAND_MUTED,
+
   ROOST_BRAND_SOFT_BG,
   ROOST_BRAND_SURFACE,
   ROOST_BRAND_TEXT,
@@ -66,25 +66,27 @@ export default function ChildLoginPage() {
   const [codeLoading, setCodeLoading] = useState(false);
   const [loginLoading, setLoginLoading] = useState(false);
   const [shake, setShake] = useState(false);
+  const [pinError, setPinError] = useState('');
 
-  // On mount: check for saved house code cookie and auto-advance
+  // Fetch children for a given household code.
+  // isFromCookie distinguishes a manual submit (show toast) from a stale cookie (clear and restart).
   const fetchChildren = useCallback(
-    async (code: string) => {
+    async (code: string, isFromCookie = false) => {
       setCodeLoading(true);
       try {
         const r = await fetch(
           `/api/auth/child-login?householdCode=${encodeURIComponent(code)}`,
         );
         if (!r.ok) {
-          if (step === 1) {
-            toast.error('House code not found.', {
-              description: 'Check the code and try again.',
-            });
-          } else {
+          if (isFromCookie) {
             // Cookie was saved but code no longer valid — clear and restart
             deleteCookie(HOUSE_CODE_COOKIE);
             setHouseholdCode('');
             setStep(1);
+          } else {
+            toast.error('House code not found.', {
+              description: 'Check the code and try again.',
+            });
           }
           return;
         }
@@ -114,21 +116,23 @@ export default function ChildLoginPage() {
         setCodeLoading(false);
       }
     },
-    [step],
+    [],
   );
 
+  // On mount only: check for saved house code cookie and auto-advance
   useEffect(() => {
     const saved = getCookie(HOUSE_CODE_COOKIE);
     if (saved) {
       setHouseholdCode(saved);
-      void fetchChildren(saved);
+      void fetchChildren(saved, true);
     }
-  }, [fetchChildren]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   function handleCodeSubmit() {
     const code = householdCode.trim().toUpperCase();
     if (code.length !== 6) return;
-    fetchChildren(code);
+    fetchChildren(code, false);
   }
 
   function handlePickChild(child: ChildUser) {
@@ -152,6 +156,7 @@ export default function ChildLoginPage() {
       return;
     }
     if (pin.length >= 4) return;
+    setPinError('');
     const next = pin + key;
     setPin(next);
     if (next.length === 4) {
@@ -176,7 +181,7 @@ export default function ChildLoginPage() {
         setShake(true);
         setTimeout(() => setShake(false), 500);
         setPin('');
-        toast.error('Wrong PIN. Try again.');
+        setPinError('Wrong PIN. Try again.');
         return;
       }
       router.push('/dashboard');
@@ -358,7 +363,7 @@ export default function ChildLoginPage() {
               textAlign: 'center',
               fontSize: 12,
               fontWeight: 700,
-              color: ROOST_BRAND_MUTED,
+              color: 'rgba(255,255,255,0.8)',
               marginTop: 4,
               background: 'none',
               border: 'none',
@@ -385,23 +390,6 @@ export default function ChildLoginPage() {
         transition={{ duration: 0.18 }}
         style={{ width: '100%', maxWidth: 360, ...panelStyle }}
       >
-        {selectedChild && (
-          <div
-            style={{
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              marginBottom: 20,
-            }}
-          >
-            <MemberAvatar
-              name={selectedChild.name}
-              avatarColor={selectedChild.avatar_color ?? ROOST_BRAND_BG}
-              size="lg"
-            />
-          </div>
-        )}
-
         <h1 style={{ ...headingStyle, marginBottom: 4 }}>
           Enter your PIN
           {selectedChild ? `, ${selectedChild.name.split(' ')[0]}` : ''}.
@@ -513,9 +501,29 @@ export default function ChildLoginPage() {
               <Loader2
                 size={20}
                 className="animate-spin"
-                style={{ color: ROOST_BRAND_BG }}
+                style={{ color: '#ffffff' }}
               />
             </motion.div>
+          )}
+        </AnimatePresence>
+
+        <AnimatePresence>
+          {pinError && !loginLoading && (
+            <motion.p
+              initial={{ opacity: 0, y: -4 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -4 }}
+              transition={{ duration: 0.15 }}
+              style={{
+                textAlign: 'center',
+                fontSize: 13,
+                fontWeight: 700,
+                color: '#ffffff',
+                marginBottom: 12,
+              }}
+            >
+              {pinError}
+            </motion.p>
           )}
         </AnimatePresence>
 

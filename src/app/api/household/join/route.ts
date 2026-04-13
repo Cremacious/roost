@@ -1,7 +1,7 @@
 import { NextRequest } from "next/server";
 import { requireSession } from "@/lib/auth/helpers";
 import { db } from "@/lib/db";
-import { households, household_members } from "@/db/schema";
+import { households, household_members, user, users } from "@/db/schema";
 import { and, eq, ilike, isNull } from "drizzle-orm";
 import { checkMemberLimit } from "@/lib/utils/premiumGating";
 import { FREE_TIER_LIMITS } from "@/lib/constants/freeTierLimits";
@@ -83,6 +83,13 @@ export async function POST(request: NextRequest): Promise<Response> {
     user_id: session.user.id,
     role: "member",
   });
+
+  // Mark onboarding complete on both the better-auth user table (session-visible)
+  // and the app users table (app-visible).
+  await Promise.all([
+    db.update(user).set({ onboarding_completed: true }).where(eq(user.id, session.user.id)),
+    db.update(users).set({ onboarding_completed: true }).where(eq(users.id, session.user.id)),
+  ]);
 
   return Response.json({ household: { id: household.id, name: household.name } });
 }

@@ -17,6 +17,7 @@ export const users = pgTable("users", {
   is_child_account: boolean("is_child_account").notNull().default(false),
   child_of_household_id: text("child_of_household_id"),
   // Onboarding
+  onboarding_completed: boolean("onboarding_completed").notNull().default(false),
   has_seen_welcome: boolean("has_seen_welcome").notNull().default(false),
   created_at: timestamp("created_at").defaultNow(),
   updated_at: timestamp("updated_at").defaultNow(),

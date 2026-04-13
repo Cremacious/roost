@@ -488,7 +488,7 @@ src/components/shared/      Reused across features (SlabCard, QueryProvider, Emp
 src/components/grocery/     Grocery-specific components (GroceryItemSheet, GroceryListSheet)
 
 ## Files Built So Far
-src/proxy.ts                                   Route protection (Next.js 16 middleware)
+src/proxy.ts                                   Route protection (Next.js 16 middleware); includes onboarding guard (redirects un-onboarded users to /onboarding)
 src/lib/auth/index.ts                          better-auth server config
 src/lib/auth/client.ts                         better-auth client (signIn, signUp, signOut, useSession)
 src/lib/auth/helpers.ts                        requireSession, requireHouseholdMember, requireHouseholdAdmin, requirePremium, blockChild
@@ -498,7 +498,7 @@ src/lib/store/themeStore.ts                    Zustand store: { theme, setTheme 
 src/lib/db/index.ts                            Neon + Drizzle instance
 src/db/schema/auth.ts                          better-auth tables (user, session, account, verification)
 src/db/schema/households.ts
-src/db/schema/users.ts                         App user table; includes theme, latitude, longitude, temperature_unit, chore_reminders_enabled columns (chore_reminders_enabled unused in UI — column kept in schema); also has_seen_welcome (bool), is_child_account (bool), child_of_household_id (text)
+src/db/schema/users.ts                         App user table; includes theme, latitude, longitude, temperature_unit, chore_reminders_enabled columns (chore_reminders_enabled unused in UI — column kept in schema); also onboarding_completed (bool), has_seen_welcome (bool), is_child_account (bool), child_of_household_id (text)
 src/db/schema/members.ts                       household_members, member_permissions
 src/db/schema/chores.ts                        chores, chore_completions, chore_streaks
 src/db/schema/grocery.ts                       grocery_lists, grocery_items
@@ -981,7 +981,13 @@ src/lib/constants/colors.ts                   Added "stats": "#6366F1" (indigo) 
 - / is always public, never redirected, no auth check
 - /login, /signup, /child-login are public; if already signed in, redirect to /dashboard
 - All /(app)/* routes require auth; if not signed in, redirect to /login with callbackUrl
-- /onboarding requires auth, no household check
+- /onboarding requires auth; un-onboarded users are held here until they create or join a household
+- Onboarding guard: authenticated users with onboarding_completed=false are redirected to /onboarding from any app route
+  ONBOARDING_BYPASS=["/onboarding"] prevents the redirect loop
+  onboarding_completed is encoded in the session via better-auth user.additionalFields (no extra DB call in proxy)
+  Household create and join routes set onboarding_completed=true on both the "user" (better-auth) and "users" (app) tables
+  Onboarding page calls GET /api/auth/get-session?disableCookieCache=true after success to flush the 5-min cookie cache
+  Existing users with a household were backfilled to onboarding_completed=true at migration time
 - API routes (/api/*) bypass middleware entirely and handle their own auth (return 401/403, not redirect)
 - Public assets (/brand/*, /images/*, static files) bypass middleware via matcher config
 
@@ -1302,7 +1308,9 @@ Update this file after every major decision or completed phase.
 - e2e/.auth/*.json files contain session tokens — always in .gitignore, never commit. e2e/.auth/.gitkeep tracks the empty directory.
 - Empty-state tests (chores/grocery) only reliable on first run against a clean DB. Test data accumulates with shared accounts — this is an accepted tradeoff.
 
-Last updated: 2026-04-10 (Child auth bug fixes. add-child route now inserts into better-auth "user" table BEFORE inserting into app "users" table so createSession() FK constraint is satisfied. Placeholder email child_${userId}@roost.internal used for the "user" row. child-login POST: split combined !member || !member.pin check into two distinct 401 responses ("Invalid PIN" vs "No PIN set. Ask a parent to set one in Settings."). Debug console.log removed. Key Rules updated with dual-table child account requirement.)
+Last updated: 2026-04-13 (Onboarding guard added. onboarding_completed: boolean added to both "user" (better-auth) and "users" (app) tables; db:push applied; existing users with a household backfilled. better-auth user.additionalFields configured so session.user.onboarding_completed is available in proxy.ts without a DB call. Household create and join routes set the flag on both tables via Promise.all. Onboarding page calls GET /api/auth/get-session?disableCookieCache=true after success to flush the 5-min cookie cache before navigating to /dashboard. proxy.ts: ONBOARDING_BYPASS=["/onboarding"] + guard block after auth check redirects un-onboarded users to /onboarding.)
+
+Previous: 2026-04-10 (Child auth bug fixes. add-child route now inserts into better-auth "user" table BEFORE inserting into app "users" table so createSession() FK constraint is satisfied. Placeholder email child_${userId}@roost.internal used for the "user" row. child-login POST: split combined !member || !member.pin check into two distinct 401 responses ("Invalid PIN" vs "No PIN set. Ask a parent to set one in Settings."). Debug console.log removed. Key Rules updated with dual-table child account requirement.)
 
 Previous: 2026-04-09 (Child auth system built. Schema: users.ts gained is_child_account, child_of_household_id, has_seen_welcome. API: POST /api/household/members/add-child (admin only, generates 4-digit PIN, hashes it, creates child user + household_member); GET /api/auth/child-login (public, returns children list by householdCode); POST /api/auth/child-login rewritten to take {householdCode, childId, pin} — targets specific child; POST /api/user/dismiss-welcome sets has_seen_welcome=true. child-login page fully rewritten: 3-step flow — (1) house code input with cookie persistence (365-day), (2) name picker grid, (3) PIN pad with auto-submit + shake on wrong PIN. AddChildSheet: 2-step form/PIN-reveal. WelcomeModal: shadcn Dialog shown once on dashboard for new users. Settings Members section gains "Add Child Account" button + callout. FREE_TIER_LIMITS.children = 2. Run npm run db:push to sync schema.)
 

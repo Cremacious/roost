@@ -45,6 +45,8 @@ export default function OnboardingPage() {
     const data = await res.json();
     if (!res.ok) { toast.error(data.error ?? "Failed to create household"); setLoading(false); return; }
     setCreated(data.household as CreatedHousehold);
+    // Bypass the 5-min cookie cache so the proxy immediately sees onboarding_completed: true
+    await fetch("/api/auth/get-session?disableCookieCache=true");
     setStep(3);
     setLoading(false);
   }
@@ -61,6 +63,8 @@ export default function OnboardingPage() {
     const data = await res.json();
     if (!res.ok) { toast.error(data.error ?? "Failed to join household"); setLoading(false); return; }
     setJoined(data.household as JoinedHousehold);
+    // Bypass the 5-min cookie cache so the proxy immediately sees onboarding_completed: true
+    await fetch("/api/auth/get-session?disableCookieCache=true");
     setStep(3);
     setLoading(false);
   }

@@ -12,6 +12,9 @@ const AUTH_PAGES = ["/login", "/signup", "/child-login"];
 // /admin handles its own auth via admin session cookie
 const SKIP_PREFIXES = ["/api/", "/_next", "/favicon.ico", "/site.webmanifest", "/brand/", "/images/", "/invite/", "/admin"];
 
+// Routes that an authenticated but un-onboarded user may access
+const ONBOARDING_BYPASS = ["/onboarding"];
+
 // Forward x-pathname as a REQUEST header so server components can read it
 // via headers(). Setting it on the response object would NOT make it
 // available to server components (headers() reads request headers).
@@ -49,6 +52,15 @@ export async function proxy(request: NextRequest): Promise<NextResponse> {
     const loginUrl = new URL("/login", request.url);
     loginUrl.searchParams.set("callbackUrl", pathname);
     return NextResponse.redirect(loginUrl);
+  }
+
+  // Onboarding guard: authenticated users who haven't completed onboarding
+  // are held at /onboarding until they create or join a household.
+  if (
+    !session.user.onboarding_completed &&
+    !ONBOARDING_BYPASS.some((p) => pathname.startsWith(p))
+  ) {
+    return NextResponse.redirect(new URL("/onboarding", request.url));
   }
 
   return nextWithPathname(request, pathname);

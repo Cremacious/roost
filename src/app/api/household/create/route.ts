@@ -1,7 +1,7 @@
 import { NextRequest } from "next/server";
 import { requireSession } from "@/lib/auth/helpers";
 import { db } from "@/lib/db";
-import { households, household_members } from "@/db/schema";
+import { households, household_members, user, users } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { seedDefaultCategories } from "@/lib/utils/seedCategories";
 import { seedChoreCategories } from "@/lib/utils/seedChoreCategories";
@@ -76,6 +76,13 @@ export async function POST(request: NextRequest): Promise<Response> {
     console.error("[household/create] Failed to seed chore categories:", err);
     // Non-fatal — categories will be auto-seeded on first GET /api/chore-categories
   }
+
+  // Mark onboarding complete on both the better-auth user table (session-visible)
+  // and the app users table (app-visible).
+  await Promise.all([
+    db.update(user).set({ onboarding_completed: true }).where(eq(user.id, session.user.id)),
+    db.update(users).set({ onboarding_completed: true }).where(eq(users.id, session.user.id)),
+  ]);
 
   log.info("analytics.household_created", { householdId: household.id, userId: session.user.id });
   return Response.json({ household: { id: household.id, name: household.name, code: household.code } });

@@ -11,6 +11,17 @@ export const auth = betterAuth({
   emailAndPassword: {
     enabled: true,
   },
+  user: {
+    additionalFields: {
+      onboarding_completed: {
+        type: "boolean",
+        required: false,
+        defaultValue: false,
+        input: false,
+        fieldName: "onboarding_completed",
+      },
+    },
+  },
   session: {
     expiresIn: 60 * 60 * 24 * 30, // 30 days
     cookieCache: {

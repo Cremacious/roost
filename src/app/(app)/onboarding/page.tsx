@@ -15,11 +15,11 @@ interface JoinedHousehold  { id: string; name: string }
 const inputClass =
   "flex h-12 w-full rounded-xl border bg-transparent px-4 text-sm placeholder:italic focus:outline-none transition-colors";
 const inputStyle = {
-  border: "1.5px solid rgba(255,255,255,0.25)",
-  borderBottom: "3px solid rgba(0,0,0,0.2)",
-  color: "#ffffff",
-  fontWeight: 600,
-  background: "rgba(255,255,255,0.15)",
+  border: "1.5px solid rgba(255,255,255,0.9)",
+  borderBottom: "3px solid rgba(0,0,0,0.12)",
+  color: "#9B1212",
+  fontWeight: 700,
+  background: "#ffffff",
 };
 
 export default function OnboardingPage() {
@@ -209,7 +209,7 @@ export default function OnboardingPage() {
                     autoFocus
                     value={householdName}
                     onChange={(e) => setHouseholdName(e.target.value)}
-                    className={inputClass + " placeholder:text-white/45"}
+                    className={inputClass + " placeholder:text-red-400"}
                     style={inputStyle}
                   />
                 </div>
@@ -272,7 +272,7 @@ export default function OnboardingPage() {
                     autoFocus
                     value={joinCode}
                     onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
-                    className="flex h-12 w-full rounded-xl border bg-transparent px-4 text-center font-mono text-xl tracking-widest placeholder:text-sm placeholder:not-italic placeholder:tracking-normal placeholder:text-white/45 focus:outline-none"
+                    className="flex h-12 w-full rounded-xl border bg-transparent px-4 text-center font-mono text-xl tracking-widest placeholder:text-sm placeholder:not-italic placeholder:tracking-normal placeholder:text-red-400 focus:outline-none"
                     style={inputStyle}
                   />
                 </div>

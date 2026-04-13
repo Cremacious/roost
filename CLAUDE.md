@@ -1227,7 +1227,13 @@ Designer brief (send this when hiring):
 - ThemeProvider does NOT read from localStorage. Theme comes exclusively from the server-side initialTheme prop
   (read from users.theme in DB in RootLayout). New users without a users row get DEFAULT_THEME.
 - users.theme DB default is 'default' (not 'warm' or any removed theme). Unknown theme keys resolve to DEFAULT_THEME.
-- Onboarding CTA buttons always use #EF4444 brand red (never var(--roost-text-primary) which breaks on midnight)
+- Onboarding page background: #FFC8C8 (light pink). Content card: #C41E1E (dark red), borderRadius 24px.
+  All text on the card uses white/rgba-white (never CSS variables). Option cards are white (#ffffff) with
+  red-tinted icon boxes. Inputs use rgba-white border/background. Logo: icon-only (wordmark={false}).
+- Onboarding CTA buttons (Create/Join): #EF4444 bg, white text — unchanged from before.
+  "Go to dashboard" button: #ffffff bg, #C41E1E text (matches card-on-card white treatment).
+- RoostLogo wordmark prop: boolean, defaults to undefined (treated as true). Pass wordmark={false} to
+  render the icon only and suppress the "Roost" text span. Does not affect showWordmark behavior.
 
 ## Session Handoff
 At the start of each new session fetch this file to restore context.

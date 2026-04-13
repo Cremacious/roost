@@ -24,17 +24,19 @@ const VARIANT_CONFIG = {
 interface RoostLogoProps {
   size?: keyof typeof SIZE_CONFIG;
   showWordmark?: boolean;
+  wordmark?: boolean;
   variant?: keyof typeof VARIANT_CONFIG;
 }
 
 export default function RoostLogo({
   size = "md",
   showWordmark = true,
+  wordmark,
   variant = "dark",
 }: RoostLogoProps) {
   const { iconSize, wordmarkSize, radius, gap } = SIZE_CONFIG[size];
-  const { wordmark } = VARIANT_CONFIG[variant];
-  const showWord = size !== "xs" && showWordmark;
+  const { wordmark: wordmarkColor } = VARIANT_CONFIG[variant];
+  const showWord = size !== "xs" && showWordmark && wordmark !== false;
 
   return (
     <div style={{ display: "flex", alignItems: "center", gap, flexShrink: 0 }}>
@@ -54,7 +56,7 @@ export default function RoostLogo({
           style={{
             fontSize: wordmarkSize,
             fontWeight: 900,
-            color: wordmark,
+            color: wordmarkColor,
             lineHeight: 1,
             letterSpacing: "-0.02em",
           }}

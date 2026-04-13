@@ -15,10 +15,11 @@ interface JoinedHousehold  { id: string; name: string }
 const inputClass =
   "flex h-12 w-full rounded-xl border bg-transparent px-4 text-sm placeholder:italic focus:outline-none transition-colors";
 const inputStyle = {
-  border: "1.5px solid var(--roost-border)",
-  borderBottom: "3px solid var(--roost-border-bottom)",
-  color: "var(--roost-text-primary)",
+  border: "1.5px solid rgba(255,255,255,0.25)",
+  borderBottom: "3px solid rgba(0,0,0,0.2)",
+  color: "#ffffff",
   fontWeight: 600,
+  background: "rgba(255,255,255,0.15)",
 };
 
 export default function OnboardingPage() {
@@ -77,17 +78,18 @@ export default function OnboardingPage() {
   return (
     <div
       className="flex min-h-screen flex-col items-center justify-center p-4"
-      style={{ backgroundColor: "var(--roost-bg)" }}
+      style={{ backgroundColor: "#FFC8C8" }}
     >
       <motion.div
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.18, ease: "easeOut" }}
         className="w-full max-w-md space-y-8"
+        style={{ backgroundColor: "#C41E1E", borderRadius: "24px", padding: "32px 28px" }}
       >
         {/* Logo */}
         <div className="flex justify-center">
-          <RoostLogo size="xl" variant="dark" />
+          <RoostLogo size="xl" variant="white" wordmark={false} />
         </div>
 
         {/* Step indicator: slab pill segments */}
@@ -97,7 +99,7 @@ export default function OnboardingPage() {
               key={s}
               className="h-2 flex-1 rounded-full transition-all duration-300"
               style={{
-                backgroundColor: s <= step ? "var(--roost-text-primary)" : "var(--roost-border)",
+                backgroundColor: s <= step ? "#ffffff" : "rgba(255,255,255,0.3)",
                 borderBottom: s <= step ? "2px solid rgba(0,0,0,0.15)" : "2px solid transparent",
               }}
             />
@@ -116,10 +118,10 @@ export default function OnboardingPage() {
               className="space-y-6"
             >
               <div>
-                <h1 className="text-3xl" style={{ color: "var(--roost-text-primary)", fontWeight: 900 }}>
+                <h1 className="text-3xl" style={{ color: "#ffffff", fontWeight: 900 }}>
                   Welcome to Roost.
                 </h1>
-                <p className="mt-1 text-sm" style={{ color: "var(--roost-text-secondary)", fontWeight: 600 }}>
+                <p className="mt-1 text-sm" style={{ color: "rgba(255,255,255,0.75)", fontWeight: 600 }}>
                   Let&apos;s get your household set up.
                 </p>
               </div>
@@ -148,26 +150,26 @@ export default function OnboardingPage() {
                       whileTap={{ y: 2 }}
                       className="flex w-full items-start gap-4 rounded-2xl p-5 text-left"
                       style={{
-                        backgroundColor: "var(--roost-surface)",
-                        border: "1.5px solid var(--roost-border)",
-                        borderBottom: "4px solid var(--roost-border-bottom)",
+                        backgroundColor: "#ffffff",
+                        border: "1.5px solid rgba(255,255,255,0.9)",
+                        borderBottom: "4px solid rgba(0,0,0,0.12)",
                       }}
                     >
                       <div
                         className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl"
                         style={{
-                          backgroundColor: "var(--roost-border)",
+                          backgroundColor: "rgba(196,30,30,0.1)",
                           border: "1.5px solid var(--roost-border)",
-                          borderBottom: "3px solid var(--roost-border-bottom)",
+                          borderBottom: "3px solid rgba(196,30,30,0.15)",
                         }}
                       >
-                        <Icon className="size-5" style={{ color: "var(--roost-text-primary)" }} />
+                        <Icon className="size-5" style={{ color: "#C41E1E" }} />
                       </div>
                       <div>
-                        <p className="text-sm" style={{ color: "var(--roost-text-primary)", fontWeight: 700 }}>
+                        <p className="text-sm" style={{ color: "#9B1212", fontWeight: 700 }}>
                           {opt.title}
                         </p>
-                        <p className="mt-0.5 text-xs" style={{ color: "var(--roost-text-secondary)", fontWeight: 600 }}>
+                        <p className="mt-0.5 text-xs" style={{ color: "#b84040", fontWeight: 600 }}>
                           {opt.desc}
                         </p>
                       </div>
@@ -189,16 +191,16 @@ export default function OnboardingPage() {
               className="space-y-6"
             >
               <div>
-                <h1 className="text-3xl" style={{ color: "var(--roost-text-primary)", fontWeight: 900 }}>
+                <h1 className="text-3xl" style={{ color: "#ffffff", fontWeight: 900 }}>
                   Name your household.
                 </h1>
-                <p className="mt-1 text-sm" style={{ color: "var(--roost-text-secondary)", fontWeight: 600 }}>
+                <p className="mt-1 text-sm" style={{ color: "rgba(255,255,255,0.75)", fontWeight: 600 }}>
                   This is what your members will see.
                 </p>
               </div>
               <form onSubmit={handleCreate} className="space-y-4">
                 <div className="space-y-1.5">
-                  <label className="text-sm" style={{ color: "var(--roost-text-primary)", fontWeight: 700 }}>
+                  <label className="text-sm" style={{ color: "rgba(255,255,255,0.85)", fontWeight: 700 }}>
                     Household name
                   </label>
                   <input
@@ -207,7 +209,7 @@ export default function OnboardingPage() {
                     autoFocus
                     value={householdName}
                     onChange={(e) => setHouseholdName(e.target.value)}
-                    className={inputClass}
+                    className={inputClass + " placeholder:text-white/45"}
                     style={inputStyle}
                   />
                 </div>
@@ -230,7 +232,7 @@ export default function OnboardingPage() {
                 type="button"
                 onClick={() => setStep(1)}
                 className="text-sm underline underline-offset-4"
-                style={{ color: "var(--roost-text-muted)", fontWeight: 600 }}
+                style={{ color: "rgba(255,255,255,0.65)", fontWeight: 600 }}
               >
                 Back
               </button>
@@ -248,16 +250,16 @@ export default function OnboardingPage() {
               className="space-y-6"
             >
               <div>
-                <h1 className="text-3xl" style={{ color: "var(--roost-text-primary)", fontWeight: 900 }}>
+                <h1 className="text-3xl" style={{ color: "#ffffff", fontWeight: 900 }}>
                   Join a household.
                 </h1>
-                <p className="mt-1 text-sm" style={{ color: "var(--roost-text-secondary)", fontWeight: 600 }}>
+                <p className="mt-1 text-sm" style={{ color: "rgba(255,255,255,0.75)", fontWeight: 600 }}>
                   Ask your household admin for the 6-character code.
                 </p>
               </div>
               <form onSubmit={handleJoin} className="space-y-4">
                 <div className="space-y-1.5">
-                  <label className="text-sm" style={{ color: "var(--roost-text-primary)", fontWeight: 700 }}>
+                  <label className="text-sm" style={{ color: "rgba(255,255,255,0.85)", fontWeight: 700 }}>
                     Household code
                   </label>
                   <input
@@ -270,7 +272,7 @@ export default function OnboardingPage() {
                     autoFocus
                     value={joinCode}
                     onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
-                    className="flex h-12 w-full rounded-xl border bg-transparent px-4 text-center font-mono text-xl tracking-widest placeholder:text-sm placeholder:not-italic placeholder:tracking-normal focus:outline-none"
+                    className="flex h-12 w-full rounded-xl border bg-transparent px-4 text-center font-mono text-xl tracking-widest placeholder:text-sm placeholder:not-italic placeholder:tracking-normal placeholder:text-white/45 focus:outline-none"
                     style={inputStyle}
                   />
                 </div>
@@ -293,7 +295,7 @@ export default function OnboardingPage() {
                 type="button"
                 onClick={() => setStep(1)}
                 className="text-sm underline underline-offset-4"
-                style={{ color: "var(--roost-text-muted)", fontWeight: 600 }}
+                style={{ color: "rgba(255,255,255,0.65)", fontWeight: 600 }}
               >
                 Back
               </button>
@@ -317,17 +319,17 @@ export default function OnboardingPage() {
                   <Check className="size-5" style={{ color: "#22C55E" }} />
                 </div>
                 <div>
-                  <h1 className="text-2xl" style={{ color: "var(--roost-text-primary)", fontWeight: 900 }}>
+                  <h1 className="text-2xl" style={{ color: "#ffffff", fontWeight: 900 }}>
                     You&apos;re all set.
                   </h1>
                   {created && (
-                    <p className="text-sm" style={{ color: "var(--roost-text-secondary)", fontWeight: 600 }}>
-                      <span style={{ color: "var(--roost-text-primary)", fontWeight: 700 }}>{created.name}</span> is ready to go.
+                    <p className="text-sm" style={{ color: "rgba(255,255,255,0.75)", fontWeight: 600 }}>
+                      <span style={{ color: "#ffffff", fontWeight: 700 }}>{created.name}</span> is ready to go.
                     </p>
                   )}
                   {joined && (
-                    <p className="text-sm" style={{ color: "var(--roost-text-secondary)", fontWeight: 600 }}>
-                      You joined <span style={{ color: "var(--roost-text-primary)", fontWeight: 700 }}>{joined.name}</span>.
+                    <p className="text-sm" style={{ color: "rgba(255,255,255,0.75)", fontWeight: 600 }}>
+                      You joined <span style={{ color: "#ffffff", fontWeight: 700 }}>{joined.name}</span>.
                     </p>
                   )}
                 </div>
@@ -335,7 +337,7 @@ export default function OnboardingPage() {
 
               {created && (
                 <div className="space-y-2">
-                  <p className="text-sm" style={{ color: "var(--roost-text-secondary)", fontWeight: 600 }}>
+                  <p className="text-sm" style={{ color: "rgba(255,255,255,0.75)", fontWeight: 600 }}>
                     Share this code to invite people:
                   </p>
                   <div
@@ -372,7 +374,7 @@ export default function OnboardingPage() {
               )}
 
               {joined && (
-                <p className="text-sm" style={{ color: "var(--roost-text-secondary)", fontWeight: 600 }}>
+                <p className="text-sm" style={{ color: "rgba(255,255,255,0.75)", fontWeight: 600 }}>
                   You can now see shared chores, grocery lists, and more with your household.
                 </p>
               )}
@@ -381,11 +383,12 @@ export default function OnboardingPage() {
                 type="button"
                 onClick={() => router.push("/dashboard")}
                 whileTap={{ y: 2 }}
-                className="flex h-12 w-full items-center justify-center rounded-xl text-sm text-white"
+                className="flex h-12 w-full items-center justify-center rounded-xl text-sm"
                 style={{
-                  backgroundColor: "var(--roost-text-primary)",
-                  border: "1.5px solid var(--roost-text-primary)",
-                  borderBottom: "3px solid rgba(0,0,0,0.25)",
+                  backgroundColor: "#ffffff",
+                  color: "#C41E1E",
+                  border: "none",
+                  borderBottom: "3px solid rgba(0,0,0,0.15)",
                   fontWeight: 800,
                 }}
               >

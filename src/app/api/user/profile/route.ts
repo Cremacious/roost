@@ -117,25 +117,34 @@ export async function PATCH(request: NextRequest): Promise<Response> {
   let updated;
 
   if (normalizedEmail !== undefined) {
-    // Keep both tables in sync inside a transaction when email changes.
+    // The Neon HTTP driver does not support transactions, so we do a best-effort
+    // two-step update and roll back the auth table if the app table write fails.
+    const previousEmail = session.user.email?.trim().toLowerCase();
+
     try {
-      updated = await db.transaction(async (tx) => {
-        await tx
-          .update(authUserTable)
-          .set({ email: normalizedEmail, updatedAt: new Date() })
-          .where(eq(authUserTable.id, session.user.id));
+      await db
+        .update(authUserTable)
+        .set({ email: normalizedEmail, updatedAt: new Date() })
+        .where(eq(authUserTable.id, session.user.id));
 
-        const [row] = await tx
-          .update(users)
-          .set(appUpdates)
-          .where(eq(users.id, session.user.id))
-          .returning(returning);
+      const [row] = await db
+        .update(users)
+        .set(appUpdates)
+        .where(eq(users.id, session.user.id))
+        .returning(returning);
 
-        return row;
-      });
+      updated = row;
     } catch (err) {
-      // Unique constraint violation — another user claimed this email between
-      // our pre-check and the write (race condition).
+      if (previousEmail) {
+        await db
+          .update(authUserTable)
+          .set({ email: previousEmail, updatedAt: new Date() })
+          .where(eq(authUserTable.id, session.user.id))
+          .catch(() => undefined);
+      }
+
+      // Unique constraint violation: another user claimed this email between
+      // our pre-check and the write.
       if (err instanceof Error && err.message.includes("unique")) {
         return Response.json({ error: "Email already in use" }, { status: 409 });
       }

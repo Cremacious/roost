@@ -26,6 +26,7 @@ export default function MemberAvatar({
 }: MemberAvatarProps) {
   return (
     <div
+      suppressHydrationWarning
       className={`flex shrink-0 items-center justify-center rounded-full font-semibold text-white ${SIZES[size]}`}
       style={{ background: avatarColor ?? "#6366f1" }}
       title={name}

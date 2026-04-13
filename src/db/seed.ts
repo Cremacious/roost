@@ -219,6 +219,23 @@ async function ensureMembership(
   console.log(`  ✓ ${memberName} → ${householdName} (${role})`);
 }
 
+async function markOnboarded(userId: string, name: string): Promise<void> {
+  const now = new Date();
+
+  await Promise.all([
+    db
+      .update(authUser)
+      .set({ onboarding_completed: true, updatedAt: now })
+      .where(eq(authUser.id, userId)),
+    db
+      .update(users)
+      .set({ onboarding_completed: true, updated_at: now })
+      .where(eq(users.id, userId)),
+  ]);
+
+  console.log(`  Marked onboarded: ${name}`);
+}
+
 // ---------------------------------------------------------------------------
 // Main
 // ---------------------------------------------------------------------------
@@ -310,6 +327,12 @@ async function seed() {
   await ensureMembership(freeHouseholdId, memberId, "member", SEED_ACCOUNTS.member.name, "Roost Free House");
   await ensureMembership(freeHouseholdId, childId, "child", SEED_CHILD.name, "Roost Free House", SEED_CHILD.pin);
   await ensureMembership(premiumHouseholdId, premiumAdminId, "admin", SEED_ACCOUNTS.premiumAdmin.name, "Roost Premium House");
+
+  console.log("\nOnboarding:");
+  await markOnboarded(freeAdminId, SEED_ACCOUNTS.freeAdmin.name);
+  await markOnboarded(premiumAdminId, SEED_ACCOUNTS.premiumAdmin.name);
+  await markOnboarded(memberId, SEED_ACCOUNTS.member.name);
+  await markOnboarded(childId, SEED_CHILD.name);
 
   console.log("\nSeed complete.");
 }

@@ -2056,7 +2056,7 @@ export default function SettingsPage() {
                         onClick={saveHouseholdName}
                         className="h-11 shrink-0 rounded-xl px-4 text-sm text-white"
                         style={{
-                          backgroundColor: 'var(--roost-text-primary)',
+                          backgroundColor: '#C0160C',
                           border: '1.5px solid var(--roost-border)',
                           borderBottom: '3px solid rgba(0,0,0,0.2)',
                           fontWeight: 700,
@@ -2176,7 +2176,7 @@ export default function SettingsPage() {
                     onClick={() => router.push('/settings/billing')}
                     className="h-9 rounded-xl px-3 text-sm text-white"
                     style={{
-                      backgroundColor: 'var(--roost-text-primary)',
+                      backgroundColor: '#C0160C',
                       border: '1.5px solid var(--roost-border)',
                       borderBottom: '3px solid rgba(0,0,0,0.2)',
                       fontWeight: 700,
@@ -2278,11 +2278,11 @@ export default function SettingsPage() {
                     style={{
                       backgroundColor:
                         m.role === 'admin'
-                          ? 'var(--roost-text-primary)'
+                          ? '#C0160C'
                           : 'var(--roost-border)',
                       color:
                         m.role === 'admin'
-                          ? 'var(--roost-surface)'
+                          ? '#ffffff'
                           : 'var(--roost-text-secondary)',
                       fontWeight: 700,
                     }}
@@ -2523,7 +2523,7 @@ export default function SettingsPage() {
                       onClick={() => router.push('/settings/billing')}
                       className="flex h-11 w-full items-center justify-center rounded-xl text-sm text-white"
                       style={{
-                        backgroundColor: 'var(--roost-text-primary)',
+                        backgroundColor: '#C0160C',
                         border: '1.5px solid var(--roost-border)',
                         borderBottom: '3px solid rgba(0,0,0,0.2)',
                         fontWeight: 800,

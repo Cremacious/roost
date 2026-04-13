@@ -1530,7 +1530,7 @@ export default function SettingsPage() {
                     className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl text-xl text-white"
                     style={{
                       backgroundColor:
-                        selectedColor ?? 'var(--roost-text-primary)',
+                        selectedColor ?? '#2563EB',
                       border: '1.5px solid var(--roost-border)',
                       borderBottom: '3px solid var(--roost-border-bottom)',
                       fontWeight: 800,

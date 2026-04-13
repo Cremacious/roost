@@ -304,6 +304,10 @@ Tasks: one-off to-dos
 - Section colors unchanged (chores, grocery, calendar, expenses, meals, notes, reminders, tasks)
 - Date subheading on dashboard always uses #9B9590 hardcoded — never tinted by theme
 - TopBar: household name + weather chip + time only. No user avatars.
+  Mobile (<md): background #C0160C (red), RoostLogo variant="white", weather chip rgba(255,255,255,0.18) bg + white text, time white.
+  Desktop (md+): background var(--roost-topbar-bg), household name, weather chip and time use CSS variable colors.
+  Weather chip and time are split into mobile/desktop JSX variants (md:hidden / hidden md:block) because inline styles cannot be overridden by Tailwind responsive classes.
+  Header bg uses Tailwind responsive classes: bg-[#C0160C] md:bg-(--roost-topbar-bg) (Tailwind v4 CSS variable syntax).
 - Sidebar: brand red active state (all items). User name + role + MemberAvatar at bottom.
   No user avatar in TopBar. Sidebar reads user session + role via useSession() + useHousehold() directly.
 - BottomNav: Home active = #EF4444, Chores active = #EF4444, Grocery = #F59E0B, Calendar = #3B82F6

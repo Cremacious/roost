@@ -77,7 +77,7 @@ export default function Sidebar() {
   });
 
   const userName = sessionData?.user?.name ?? "";
-  const avatarColor = profileData?.user?.avatar_color ?? null;
+  const avatarColor = profileData?.user?.avatar_color ?? "#2563EB";
 
   async function handleSignOut() {
     setSigningOut(true);

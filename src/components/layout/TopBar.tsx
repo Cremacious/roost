@@ -140,16 +140,15 @@ export default function TopBar() {
 
   return (
     <header
-      className="fixed left-0 right-0 top-0 z-30 flex h-14 items-center justify-between border-b px-4 md:left-55"
+      className="fixed left-0 right-0 top-0 z-30 flex h-14 items-center justify-between border-b px-4 md:left-55 bg-[#C0160C] md:bg-(--roost-topbar-bg)"
       style={{
-        backgroundColor: "var(--roost-topbar-bg)",
         borderBottomColor: "var(--roost-topbar-border)",
       }}
     >
       {/* Left: logo on mobile, household name on md+ */}
       <div className="flex items-center gap-2.5 min-w-0">
         <div className="md:hidden">
-          <RoostLogo size="sm" />
+          <RoostLogo size="sm" variant="white" />
         </div>
         <span
           className="hidden text-base truncate max-w-48 md:block"
@@ -161,29 +160,52 @@ export default function TopBar() {
 
       {/* Right: weather chip + time */}
       <div className="flex items-center gap-3">
-        {/* Weather chip */}
-        {weatherLoading ? (
-          <Skeleton className="h-7 w-20 rounded-full" />
-        ) : weather ? (
-          <div
-            className="flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[13px]"
-            style={{
-              backgroundColor: "var(--roost-weather-bg)",
-              color: "var(--roost-weather-color)",
-              fontWeight: 700,
-            }}
-          >
-            {getWeatherIcon(weather.weathercode)}
-            <span>
-              {Math.round(weather.temperature)}{unitLabel}
-            </span>
-          </div>
-        ) : null}
+        {/* Weather chip — mobile (white on red) */}
+        <div className="md:hidden">
+          {weatherLoading ? (
+            <Skeleton className="h-7 w-20 rounded-full opacity-40" />
+          ) : weather ? (
+            <div
+              className="flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[13px]"
+              style={{
+                backgroundColor: "rgba(255,255,255,0.18)",
+                color: "#ffffff",
+                fontWeight: 700,
+              }}
+            >
+              {getWeatherIcon(weather.weathercode)}
+              <span>
+                {Math.round(weather.temperature)}{unitLabel}
+              </span>
+            </div>
+          ) : null}
+        </div>
+
+        {/* Weather chip — desktop (themed) */}
+        <div className="hidden md:block">
+          {weatherLoading ? (
+            <Skeleton className="h-7 w-20 rounded-full" />
+          ) : weather ? (
+            <div
+              className="flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[13px]"
+              style={{
+                backgroundColor: "var(--roost-weather-bg)",
+                color: "var(--roost-weather-color)",
+                fontWeight: 700,
+              }}
+            >
+              {getWeatherIcon(weather.weathercode)}
+              <span>
+                {Math.round(weather.temperature)}{unitLabel}
+              </span>
+            </div>
+          ) : null}
+        </div>
 
         {/* Time */}
         <span
-          className="hidden tabular-nums sm:block text-[13px]"
-          style={{ color: "var(--roost-text-muted)", fontWeight: 700 }}
+          className="hidden tabular-nums sm:block text-[13px] text-white md:text-(--roost-text-muted)"
+          style={{ fontWeight: 700 }}
         >
           {time}
         </span>

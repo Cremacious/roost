@@ -33,7 +33,12 @@ export async function GET(request: NextRequest): Promise<Response> {
     return Response.json({ error: "User not found" }, { status: 404 });
   }
 
-  return Response.json({ user });
+  return Response.json({
+    user: {
+      ...user,
+      avatar_color: user.avatar_color ?? "#2563EB",
+    },
+  });
 }
 
 // ---- PATCH ------------------------------------------------------------------

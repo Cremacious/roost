@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Copy, Loader2, UserPlus } from "lucide-react";
+import { Copy, Eye, EyeOff, Loader2, UserPlus } from "lucide-react";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
 import DraggableSheet from "@/components/shared/DraggableSheet";
@@ -14,19 +14,26 @@ interface Props {
 export default function AddChildSheet({ open, onClose }: Props) {
   const queryClient = useQueryClient();
 
-  const [step, setStep] = useState<"form" | "pin">("form");
+  const [step, setStep] = useState<"form" | "success">("form");
   const [name, setName] = useState("");
+  const [pin, setPin] = useState("");
+  const [showPin, setShowPin] = useState(false);
   const [saving, setSaving] = useState(false);
   const [createdName, setCreatedName] = useState("");
   const [createdPin, setCreatedPin] = useState("");
   const [copied, setCopied] = useState(false);
 
+  const trimmedName = name.trim();
+  const pinValid = /^\d{4}$/.test(pin);
+  const canSubmit = trimmedName.length > 0 && pinValid && !saving;
+
   function handleClose() {
     onClose();
-    // Reset after close animation
     setTimeout(() => {
       setStep("form");
       setName("");
+      setPin("");
+      setShowPin(false);
       setSaving(false);
       setCreatedName("");
       setCreatedPin("");
@@ -34,15 +41,19 @@ export default function AddChildSheet({ open, onClose }: Props) {
     }, 300);
   }
 
+  function handlePinChange(value: string) {
+    const digits = value.replace(/\D/g, "").slice(0, 4);
+    setPin(digits);
+  }
+
   async function handleSubmit() {
-    const trimmed = name.trim();
-    if (!trimmed || trimmed.length > 32) return;
+    if (!canSubmit) return;
     setSaving(true);
     try {
       const r = await fetch("/api/household/members/add-child", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: trimmed }),
+        body: JSON.stringify({ name: trimmedName, pin }),
       });
       if (!r.ok) {
         const body = await r.json().catch(() => ({})) as { error?: string };
@@ -54,7 +65,7 @@ export default function AddChildSheet({ open, onClose }: Props) {
       const data = await r.json() as { child: { name: string }; pin: string };
       setCreatedName(data.child.name);
       setCreatedPin(data.pin);
-      setStep("pin");
+      setStep("success");
       queryClient.invalidateQueries({ queryKey: ["members"] });
     } catch {
       toast.error("Something went wrong.", {
@@ -72,12 +83,33 @@ export default function AddChildSheet({ open, onClose }: Props) {
     });
   }
 
+  const inputStyle = {
+    width: "100%",
+    height: 48,
+    border: "1.5px solid var(--roost-border)",
+    borderBottom: "3px solid var(--roost-border-bottom)",
+    borderRadius: 12,
+    backgroundColor: "var(--roost-surface)",
+    color: "var(--roost-text-primary)",
+    fontSize: 15,
+    fontWeight: 700,
+    padding: "0 14px",
+    outline: "none",
+    boxSizing: "border-box" as const,
+    display: "block",
+  };
+
+  const labelStyle = {
+    color: "#374151",
+    fontWeight: 700,
+    fontSize: 11,
+    textTransform: "uppercase" as const,
+    letterSpacing: "0.07em",
+  };
+
   return (
     <DraggableSheet open={open} onOpenChange={(v) => !v && handleClose()} featureColor="#EF4444">
-      <div
-        className="overflow-y-auto px-4 pb-8"
-        style={{ maxHeight: "calc(92dvh - 60px)" }}
-      >
+      <div className="px-4 pb-8">
         {step === "form" ? (
           <>
             <p
@@ -92,13 +124,11 @@ export default function AddChildSheet({ open, onClose }: Props) {
               style={{ color: "var(--roost-text-secondary)", fontWeight: 600, lineHeight: 1.5 }}
             >
               Child accounts log in with a 4-digit PIN on the child login screen.
-              No email address needed. Pin can be edited under Member Settings.
+              No email address needed.
             </p>
 
-            <label
-              className="mb-1 block text-sm"
-              style={{ color: "#374151", fontWeight: 700 }}
-            >
+            {/* Name field */}
+            <label className="mb-1 block text-sm" style={labelStyle}>
               Child&apos;s name
             </label>
             <input
@@ -107,40 +137,74 @@ export default function AddChildSheet({ open, onClose }: Props) {
               placeholder="e.g. Emma"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && !saving && name.trim().length > 0 && handleSubmit()}
-              style={{
-                width: "100%",
-                height: 48,
-                border: "1.5px solid var(--roost-border)",
-                borderBottom: "3px solid var(--roost-border-bottom)",
-                borderRadius: 12,
-                backgroundColor: "var(--roost-surface)",
-                color: "var(--roost-text-primary)",
-                fontSize: 15,
-                fontWeight: 700,
-                padding: "0 14px",
-                outline: "none",
-                boxSizing: "border-box",
-                display: "block",
-                marginBottom: 20,
-              }}
+              style={{ ...inputStyle, marginBottom: 20 }}
             />
 
+            {/* PIN field */}
+            <label className="mb-1 block text-sm" style={labelStyle}>
+              Choose a 4-digit PIN
+            </label>
+            <div style={{ position: "relative", marginBottom: 6 }}>
+              <input
+                type={showPin ? "text" : "password"}
+                inputMode="numeric"
+                maxLength={4}
+                placeholder="0000"
+                value={pin}
+                onChange={(e) => handlePinChange(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && canSubmit && handleSubmit()}
+                style={{
+                  ...inputStyle,
+                  letterSpacing: "0.25em",
+                  fontFamily: "monospace",
+                  fontSize: 22,
+                  fontWeight: 900,
+                  paddingRight: 48,
+                }}
+              />
+              <button
+                type="button"
+                onClick={() => setShowPin(!showPin)}
+                style={{
+                  position: "absolute",
+                  right: 12,
+                  top: "50%",
+                  transform: "translateY(-50%)",
+                  background: "none",
+                  border: "none",
+                  cursor: "pointer",
+                  padding: 4,
+                  color: "var(--roost-text-muted)",
+                  display: "flex",
+                  alignItems: "center",
+                }}
+              >
+                {showPin ? <EyeOff size={18} /> : <Eye size={18} />}
+              </button>
+            </div>
+            <p
+              className="mb-5 text-xs"
+              style={{ color: "var(--roost-text-muted)", fontWeight: 600 }}
+            >
+              Your child will use this PIN to log in
+            </p>
+
+            {/* Submit button */}
             <button
               type="button"
               onClick={handleSubmit}
-              disabled={saving || name.trim().length === 0}
+              disabled={!canSubmit}
               style={{
                 width: "100%",
                 height: 52,
-                backgroundColor: name.trim().length === 0 ? "var(--roost-border)" : "#EF4444",
-                color: name.trim().length === 0 ? "var(--roost-text-muted)" : "white",
+                backgroundColor: canSubmit ? "#EF4444" : "var(--roost-border)",
+                color: canSubmit ? "white" : "var(--roost-text-muted)",
                 fontWeight: 800,
                 fontSize: 15,
                 borderRadius: 14,
                 border: "1.5px solid transparent",
-                borderBottom: `3px solid ${name.trim().length === 0 ? "var(--roost-border-bottom)" : "#C93B3B"}`,
-                cursor: name.trim().length === 0 ? "not-allowed" : "pointer",
+                borderBottom: `3px solid ${canSubmit ? "#C93B3B" : "var(--roost-border-bottom)"}`,
+                cursor: canSubmit ? "pointer" : "not-allowed",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
@@ -223,19 +287,19 @@ export default function AddChildSheet({ open, onClose }: Props) {
             <div
               className="mb-5 rounded-xl px-4 py-3"
               style={{
-                backgroundColor: "#FFFBEB",
-                border: "1px solid #F59E0B",
+                backgroundColor: "var(--roost-bg)",
+                border: "1.5px solid var(--roost-border)",
               }}
             >
               <p
                 style={{
                   fontSize: 12,
                   fontWeight: 700,
-                  color: "#92400E",
+                  color: "var(--roost-text-secondary)",
                   lineHeight: 1.5,
                 }}
               >
-                Save this PIN now. It won&apos;t be shown again. You can change it later in member settings.
+                You can change this PIN later in Settings. Click {createdName} under Members, then use the Change PIN option.
               </p>
             </div>
 

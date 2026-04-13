@@ -1,5 +1,6 @@
 # Roost — Feature Registry
-> Last updated: 2026-04-13 (Settings page: Household name Save button, Upgrade button, Upgrade to Premium button, and Admin role badge all changed from var(--roost-text-primary)/black to #C0160C red. Text kept white. No layout or logic changes.)
+> Last updated: 2026-04-13 (Add Child Account flow: parent now sets a custom 4-digit PIN with show/hide toggle instead of system auto-generating one. API validates pin is exactly 4 digits. Success screen shows personalized note about changing PIN later in Settings.)
+> Previous: 2026-04-13 (Settings page: Household name Save button, Upgrade button, Upgrade to Premium button, and Admin role badge all changed from var(--roost-text-primary)/black to #C0160C red. Text kept white. No layout or logic changes.)
 > Previous: 2026-04-13 (Mobile top bar restyled to red (#C0160C) matching desktop sidebar. Logo switched to variant="white" on mobile. Weather chip on mobile uses rgba(255,255,255,0.18) bg with white text. Time uses white text on mobile, themed color on desktop. Weather chip and time are split into mobile/desktop variants to allow independent inline styles. No layout or logic changes.)
 > Previous: 2026-04-13 (Onboarding page restyled to match auth aesthetic. Background #FFC8C8, card #C41E1E, all text/labels/subheadings updated to white/rgba-white. Option cards white with red-tinted icon boxes. Inputs use rgba-white border and background. RoostLogo gains wordmark={false} prop to render icon-only. No logic, layout, or step flow changes.)
 > Previous: 2026-04-13 (Sidebar redesigned to red. Background changed from --roost-sidebar-bg CSS variable to #DC2626 (brand red). All nav item, footer, divider, and sign out button colors updated to white/rgba equivalents for legibility on red. RoostLogo variant="white" used in sidebar so wordmark renders in white. No layout, spacing, or logic changes.)
@@ -60,7 +61,7 @@
 #### Auth & Household
 - Adult signup and login (email/password)
 - Child PIN login at /child-login: household code entry (cookie-persisted), name picker, 4-digit PIN pad with shake on wrong PIN
-- Add child accounts from Settings: admin-only, generates random 4-digit PIN shown once, no email needed
+- Add child accounts from Settings: admin-only, parent sets a custom 4-digit PIN with show/hide toggle, no email needed
 - Create or join household via invite code
 - Household invite code sharing
 - Member roles: Child, Member, Admin

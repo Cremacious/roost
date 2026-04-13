@@ -537,7 +537,7 @@ src/app/api/household/members/[id]/role/route.ts  PATCH: change member role; chi
 src/app/api/household/members/[id]/permissions/route.ts  GET + PATCH: 12 permission toggles; child-locked perms cannot be enabled for child role
 src/app/api/household/members/[id]/pin/route.ts  PATCH (admin only): set/change child PIN, hashed before storage
 src/app/api/household/members/[id]/allowance/route.ts  GET + PATCH (admin only): allowance settings per child member
-src/app/api/household/members/add-child/route.ts  POST (admin only): create child user (no email, is_child_account=true), generate + hash 4-digit PIN, return plain PIN once
+src/app/api/household/members/add-child/route.ts  POST (admin only): accepts { name, pin }, validates pin is exactly 4 digits, create child user (no email, is_child_account=true), hash provided PIN, return child + pin
 src/app/api/user/theme/route.ts                PATCH: update users.theme for current user
 src/app/api/chores/route.ts                    GET (list with joins) + POST (create); exports getUserHousehold + calcNextDueAt
 src/app/api/chores/[id]/route.ts               PATCH (update) + DELETE (soft delete)
@@ -629,7 +629,7 @@ src/app/api/invite/[token]/route.ts           GET (public): check invite validit
 src/app/api/cron/guest-expiry/route.ts        Daily 2am UTC: hard-delete expired guest household_members rows + member_permissions; logs guest_expired activity
 src/app/invite/[token]/page.tsx               Public invite landing page: loading/valid/not_found/expired/error states; shows household name, amber guest badge, 5 capability bullets; logged-in join button or signup+login links
 src/components/settings/InviteGuestSheet.tsx  Admin-only guest invite sheet: optional email, preset pills (1d/3d/1w/2w/30d), custom date, live preview, generate link, copy + share; amber color scheme
-src/components/settings/AddChildSheet.tsx     Admin-only sheet: name input (step A) + PIN reveal with copy button + amber warning (step B); calls POST /api/household/members/add-child; invalidates ["members"] query
+src/components/settings/AddChildSheet.tsx     Admin-only sheet: name input + custom 4-digit PIN input with show/hide toggle (step A) + success view with PIN display and copy button (step B); calls POST /api/household/members/add-child with { name, pin }; invalidates ["members"] query
 src/app/(app)/expenses/page.tsx               Expenses module: inline upgrade pitch for free users (no blurred preview), balance summary, debt cards, settle flow
 src/app/api/expenses/route.ts                 GET (expenses + splits + debt simplification + myBalance + isPremium) + POST (premium, splits validation)
 src/app/api/expenses/[id]/route.ts            PATCH (title/category only, paid_by or admin) + DELETE (soft delete)

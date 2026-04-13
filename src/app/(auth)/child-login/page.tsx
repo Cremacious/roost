@@ -533,7 +533,7 @@ export default function ChildLoginPage() {
             textAlign: 'center',
             fontSize: 12,
             fontWeight: 700,
-            color: ROOST_BRAND_MUTED,
+            color: '#FFFFFF',
             marginTop: 4,
             background: 'none',
             border: 'none',

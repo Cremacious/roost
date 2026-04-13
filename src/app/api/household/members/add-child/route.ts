@@ -25,7 +25,7 @@ export async function POST(request: NextRequest): Promise<Response> {
 
   const { householdId } = membership;
 
-  let body: { name?: string };
+  let body: { name?: string; pin?: string };
   try {
     body = await request.json();
   } catch {
@@ -40,9 +40,15 @@ export async function POST(request: NextRequest): Promise<Response> {
     );
   }
 
+  const rawPin = body.pin;
+  if (!rawPin || !/^\d{4}$/.test(rawPin)) {
+    return Response.json(
+      { error: "PIN must be exactly 4 digits" },
+      { status: 400 }
+    );
+  }
+
   try {
-    // Generate random 4-digit PIN (1000-9999)
-    const rawPin = String(Math.floor(Math.random() * 9000) + 1000);
     const hashedPin = await hashPassword(rawPin);
 
     // Generate unique user ID

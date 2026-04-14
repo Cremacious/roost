@@ -3,11 +3,19 @@ import { requireSession } from "@/lib/auth/helpers";
 import { db } from "@/lib/db";
 import { household_members, households } from "@/db/schema";
 import { desc, eq } from "drizzle-orm";
-import { stripe, STRIPE_PRICE_ID } from "@/lib/utils/stripe";
+import { isStripeConfigured } from "@/lib/env";
+import { getStripe, getStripePrice } from "@/lib/utils/stripe";
 import { logActivity } from "@/lib/utils/activity";
 import { log } from "@/lib/utils/logger";
 
 export async function GET(request: NextRequest): Promise<Response> {
+  if (!isStripeConfigured()) {
+    return Response.json({ error: "Billing is not configured" }, { status: 503 });
+  }
+
+  const stripe = getStripe();
+  const stripePriceId = getStripePrice();
+
   let session;
   try {
     session = await requireSession(request);
@@ -76,10 +84,10 @@ export async function GET(request: NextRequest): Promise<Response> {
   await db
     .update(households)
     .set({
-      subscription_status: "premium",
-      stripe_subscription_id: subscription.id,
-      stripe_price_id: STRIPE_PRICE_ID,
-      premium_expires_at: null,
+        subscription_status: "premium",
+        stripe_subscription_id: subscription.id,
+        stripe_price_id: stripePriceId,
+        premium_expires_at: null,
       subscription_upgraded_at: existing?.subscription_upgraded_at ?? new Date(),
       updated_at: new Date(),
     })

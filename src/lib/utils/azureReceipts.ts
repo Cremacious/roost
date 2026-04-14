@@ -2,6 +2,7 @@ import {
   DocumentAnalysisClient,
   AzureKeyCredential,
 } from "@azure/ai-form-recognizer";
+import { getAzureDocumentIntelligenceConfig } from "@/lib/env";
 
 export interface ParsedReceipt {
   merchant?: string;
@@ -13,12 +14,7 @@ export interface ParsedReceipt {
 }
 
 export async function parseReceiptImage(imageBase64: string): Promise<ParsedReceipt> {
-  const endpoint = process.env.AZURE_DOCUMENT_INTELLIGENCE_ENDPOINT;
-  const key = process.env.AZURE_DOCUMENT_INTELLIGENCE_KEY;
-
-  if (!endpoint || !key) {
-    throw new Error("Azure Document Intelligence credentials not configured");
-  }
+  const { endpoint, key } = getAzureDocumentIntelligenceConfig();
 
   const client = new DocumentAnalysisClient(endpoint, new AzureKeyCredential(key));
 

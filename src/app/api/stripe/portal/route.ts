@@ -3,9 +3,17 @@ import { requireSession } from "@/lib/auth/helpers";
 import { db } from "@/lib/db";
 import { household_members, households } from "@/db/schema";
 import { desc, eq } from "drizzle-orm";
-import { stripe, APP_URL } from "@/lib/utils/stripe";
+import { isStripeConfigured } from "@/lib/env";
+import { getStripe, getStripeAppUrl } from "@/lib/utils/stripe";
 
 export async function POST(request: NextRequest): Promise<Response> {
+  if (!isStripeConfigured()) {
+    return Response.json({ error: "Billing is not configured" }, { status: 503 });
+  }
+
+  const stripe = getStripe();
+  const appUrl = getStripeAppUrl();
+
   let session;
   try {
     session = await requireSession(request);
@@ -49,7 +57,7 @@ export async function POST(request: NextRequest): Promise<Response> {
 
   const portalSession = await stripe.billingPortal.sessions.create({
     customer: household.stripe_customer_id,
-    return_url: `${APP_URL}/settings/billing`,
+    return_url: `${appUrl}/settings/billing`,
   });
 
   return Response.json({ url: portalSession.url });

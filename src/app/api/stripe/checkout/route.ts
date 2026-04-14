@@ -3,10 +3,19 @@ import { requireSession } from "@/lib/auth/helpers";
 import { db } from "@/lib/db";
 import { household_members, households } from "@/db/schema";
 import { desc, eq } from "drizzle-orm";
-import { stripe, STRIPE_PRICE_ID, APP_URL } from "@/lib/utils/stripe";
+import { isStripeConfigured } from "@/lib/env";
+import { getStripe, getStripeAppUrl, getStripePrice } from "@/lib/utils/stripe";
 import { log } from "@/lib/utils/logger";
 
 export async function POST(request: NextRequest): Promise<Response> {
+  if (!isStripeConfigured()) {
+    return Response.json({ error: "Billing is not configured" }, { status: 503 });
+  }
+
+  const stripe = getStripe();
+  const stripePriceId = getStripePrice();
+  const appUrl = getStripeAppUrl();
+
   let session;
   try {
     session = await requireSession(request);
@@ -71,12 +80,12 @@ export async function POST(request: NextRequest): Promise<Response> {
     payment_method_types: ["card"],
     line_items: [
       {
-        price: STRIPE_PRICE_ID,
+        price: stripePriceId,
         quantity: 1,
       },
     ],
-    success_url: `${APP_URL}/settings/billing?success=true&session_id={CHECKOUT_SESSION_ID}`,
-    cancel_url: `${APP_URL}/settings/billing?cancelled=true`,
+    success_url: `${appUrl}/settings/billing?success=true&session_id={CHECKOUT_SESSION_ID}`,
+    cancel_url: `${appUrl}/settings/billing?cancelled=true`,
     metadata: {
       householdId: household.id,
       userId: session.user.id,

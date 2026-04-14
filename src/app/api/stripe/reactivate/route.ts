@@ -3,9 +3,16 @@ import { requireSession } from "@/lib/auth/helpers";
 import { db } from "@/lib/db";
 import { household_members, households } from "@/db/schema";
 import { desc, eq } from "drizzle-orm";
-import { stripe } from "@/lib/utils/stripe";
+import { isStripeConfigured } from "@/lib/env";
+import { getStripe } from "@/lib/utils/stripe";
 
 export async function POST(request: NextRequest): Promise<Response> {
+  if (!isStripeConfigured()) {
+    return Response.json({ error: "Billing is not configured" }, { status: 503 });
+  }
+
+  const stripe = getStripe();
+
   let session;
   try {
     session = await requireSession(request);

@@ -14,7 +14,12 @@
 
 import { NextRequest } from "next/server";
 import Stripe from "stripe";
-import { stripe, STRIPE_PRICE_ID } from "@/lib/utils/stripe";
+import { isStripeWebhookConfigured } from "@/lib/env";
+import {
+  getStripe,
+  getStripePrice,
+} from "@/lib/utils/stripe";
+import { getStripeWebhookSecret } from "@/lib/env";
 import { db } from "@/lib/db";
 import { households } from "@/db/schema";
 import { eq } from "drizzle-orm";
@@ -22,6 +27,13 @@ import { logActivity } from "@/lib/utils/activity";
 import { log } from "@/lib/utils/logger";
 
 export async function POST(request: NextRequest): Promise<Response> {
+  if (!isStripeWebhookConfigured()) {
+    return Response.json({ error: "Stripe webhook is not configured" }, { status: 503 });
+  }
+
+  const stripe = getStripe();
+  const stripePriceId = getStripePrice();
+
   const body = await request.text();
   const sig = request.headers.get("stripe-signature");
 
@@ -30,7 +42,7 @@ export async function POST(request: NextRequest): Promise<Response> {
     event = stripe.webhooks.constructEvent(
       body,
       sig!,
-      process.env.STRIPE_WEBHOOK_SECRET!
+      getStripeWebhookSecret()
     );
   } catch {
     log.warn("stripe.webhook.sig_invalid", { at: new Date().toISOString() });
@@ -65,7 +77,7 @@ export async function POST(request: NextRequest): Promise<Response> {
         .set({
           subscription_status: "premium",
           stripe_subscription_id: subscription.id,
-          stripe_price_id: STRIPE_PRICE_ID,
+          stripe_price_id: stripePriceId,
           premium_expires_at: null,
           subscription_upgraded_at: existing?.subscription_upgraded_at ?? new Date(),
           updated_at: new Date(),

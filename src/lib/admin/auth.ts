@@ -1,5 +1,10 @@
 import { createHash, timingSafeEqual } from "node:crypto";
 import { SignJWT, jwtVerify } from "jose";
+import {
+  getAdminEmail,
+  getAdminPassword,
+  getAdminSessionSecret,
+} from "@/lib/env";
 
 export const ADMIN_SESSION_COOKIE = "roost_admin_session";
 export const SESSION_DURATION = 60 * 60 * 8; // 8 hours
@@ -17,9 +22,7 @@ function normalizeAdminEmail(email: string): string {
 }
 
 async function getSecret(): Promise<Uint8Array> {
-  const secret = process.env.ADMIN_SESSION_SECRET;
-  if (!secret) throw new Error("ADMIN_SESSION_SECRET not set");
-  return new TextEncoder().encode(secret);
+  return new TextEncoder().encode(getAdminSessionSecret());
 }
 
 export async function createAdminSession(): Promise<string> {
@@ -40,8 +43,8 @@ export async function verifyAdminSession(token: string): Promise<boolean> {
 }
 
 export function checkAdminCredentials(email: string, password: string): boolean {
-  const adminEmail = process.env.ADMIN_EMAIL;
-  const adminPassword = process.env.ADMIN_PASSWORD;
+  const adminEmail = getAdminEmail();
+  const adminPassword = getAdminPassword();
   if (!adminEmail || !adminPassword) return false;
 
   return (

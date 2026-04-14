@@ -8,6 +8,7 @@ import { parseReceiptImage } from "@/lib/utils/azureReceipts";
 import { log } from "@/lib/utils/logger";
 import { consumeRateLimit } from "@/lib/security/rateLimit";
 import { hashValue } from "@/lib/security/request";
+import { isAzureReceiptScanningConfigured } from "@/lib/env";
 
 // Max base64 length for a 10MB image (10 * 1024 * 1024 / 0.75 ≈ 13,981,013)
 const MAX_BASE64_LENGTH = 14_000_000;
@@ -53,6 +54,13 @@ export async function POST(request: NextRequest): Promise<Response> {
 
   if (!body.imageBase64) {
     return Response.json({ error: "Image is required" }, { status: 400 });
+  }
+
+  if (!isAzureReceiptScanningConfigured()) {
+    return Response.json(
+      { error: "Receipt scanning is not configured" },
+      { status: 503 }
+    );
   }
 
   if (body.imageBase64.length > MAX_BASE64_LENGTH) {

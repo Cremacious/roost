@@ -8,7 +8,12 @@ import { users } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { headers } from "next/headers";
 import { DEFAULT_THEME } from "@/lib/constants/themes";
+import { getAppUrl, getMetadataBaseUrl, validateServerEnv } from "@/lib/env";
 import "./globals.css";
+
+validateServerEnv();
+
+const appUrl = getAppUrl();
 
 const nunito = Nunito({
   subsets: ["latin"],
@@ -22,7 +27,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"),
+  metadataBase: getMetadataBaseUrl(),
   title: {
     default: "Roost",
     template: "%s | Roost",
@@ -57,7 +62,7 @@ export const metadata: Metadata = {
   openGraph: {
     type: "website",
     locale: "en_US",
-    url: process.env.NEXT_PUBLIC_APP_URL,
+    url: appUrl,
     title: "Roost",
     description: "Homes run better with Roost.",
     siteName: "Roost",

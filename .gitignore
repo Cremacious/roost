@@ -44,5 +44,6 @@ next-env.d.ts
 e2e/.auth/*.json
 
 # Playwright test artifacts
+.playwright/
 playwright-report/
 test-results/

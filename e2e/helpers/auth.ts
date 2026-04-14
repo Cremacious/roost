@@ -1,4 +1,4 @@
-import { Page } from "@playwright/test";
+import { expect, Page } from "@playwright/test";
 
 // ---------------------------------------------------------------------------
 // Fixed seed account credentials
@@ -36,6 +36,15 @@ export const PREMIUM_HOUSEHOLD_CODE = "RSTPRM";
 // Helpers
 // ---------------------------------------------------------------------------
 
+async function dismissWelcomeDialog(page: Page) {
+  const gotItButton = page.getByRole("button", { name: "Got it, let's go" });
+
+  if (await gotItButton.isVisible().catch(() => false)) {
+    await gotItButton.click({ force: true });
+    await expect(gotItButton).not.toBeVisible({ timeout: 5000 });
+  }
+}
+
 /**
  * Signs up a brand-new account (used only for tests that exercise the signup
  * flow itself — e.g. onboarding.spec.ts). Uses pressSequentially for the name
@@ -72,9 +81,17 @@ export async function signIn(
   user: { email: string; password: string } = FREE_ADMIN
 ) {
   await page.goto("/login");
-  await page.fill('input[type="email"]', user.email);
-  await page.fill('input[type="password"]', user.password);
-  await page.click('[data-testid="login-submit"]');
+  const emailInput = page.locator('input[type="email"]');
+  const passwordInput = page.locator('input[type="password"]');
+
+  await emailInput.click();
+  await emailInput.fill("");
+  await emailInput.pressSequentially(user.email, { delay: 20 });
+  await passwordInput.click();
+  await passwordInput.fill("");
+  await passwordInput.pressSequentially(user.password, { delay: 20 });
+  await page.getByRole("button", { name: /^Sign in$/ }).click();
+  await page.waitForLoadState("networkidle", { timeout: 30000 }).catch(() => {});
   await page.waitForURL("**/dashboard", { timeout: 30000 });
 }
 
@@ -97,14 +114,12 @@ export async function createHousehold(page: Page, name = HOUSEHOLD_NAME) {
 }
 
 export async function signOut(page: Page) {
-  const signOutBtn = page.locator('[data-testid="sign-out-btn"]');
-  if (await signOutBtn.isVisible()) {
-    await signOutBtn.click();
-    await page.click("text=Sign out", { timeout: 3000 });
-  } else {
-    await page.click("text=More");
-    await page.click("text=Sign out");
-    await page.click("text=Sign out", { timeout: 3000 });
-  }
-  await page.waitForURL("/login");
+  await page.context().clearCookies();
+  await page.goto("/login");
+  await page.evaluate(() => {
+    window.localStorage.clear();
+    window.sessionStorage.clear();
+  });
+  await page.reload();
+  await page.waitForURL("**/login", { timeout: 15000 });
 }

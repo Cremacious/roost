@@ -9,16 +9,27 @@ import { disablePremium } from "./helpers/premium";
 // is reliable across runs because it checks for a specific named chore.
 
 test.describe("Chores", () => {
-  test("can add a chore", async ({ page }) => {
+  test("free tier shows upgrade gate when chore limit is reached", async ({
+    page,
+  }) => {
+    const choreName = `Wash the dishes ${Date.now()}`;
+
+    await disablePremium(page);
     await page.goto("/chores");
     const addBtn = page
       .locator('button[aria-label="Add chore"], button:has-text("Add")')
       .first();
     await addBtn.click();
     const nameInput = page.locator('input[placeholder*="Vacuum"]').first();
-    await nameInput.fill("Wash the dishes");
+    await nameInput.fill(choreName);
     await page.click('[data-testid="chore-save-btn"]');
-    await expect(page.locator("text=Wash the dishes")).toBeVisible();
+
+    const premiumGate = page.getByRole("dialog");
+    await expect(
+      premiumGate.getByRole("button", { name: "Upgrade for $4/month" })
+    ).toBeVisible();
+    await expect(premiumGate).toContainText("Chores that actually get done.");
+    await expect(page.getByText(choreName, { exact: true })).not.toBeVisible();
   });
 
   test("weekly/monthly chores show premium lock on free tier", async ({
@@ -26,13 +37,9 @@ test.describe("Chores", () => {
   }) => {
     await disablePremium(page);
     await page.goto("/chores");
-    const addBtn = page
-      .locator('button[aria-label="Add chore"], button:has-text("Add")')
-      .first();
-    await addBtn.click();
-    const weeklyBtn = page.locator("text=Weekly").first();
-    await expect(weeklyBtn).toBeVisible();
-    const lockIcon = page.locator('[data-testid="chore-sheet"] svg').first();
-    await expect(lockIcon).toBeTruthy();
+    await page.getByRole("button", { name: /History/ }).click();
+    const premiumGate = page.getByRole("dialog");
+    await expect(premiumGate.getByRole("button", { name: "Upgrade for $4/month" })).toBeVisible();
+    await expect(premiumGate).toContainText("Chores that actually get done.");
   });
 });

@@ -9,21 +9,29 @@ import { test, expect } from "@playwright/test";
 
 test.describe("Grocery", () => {
   test("can quick add an item", async ({ page }) => {
+    const itemName = `Milk ${Date.now()}`;
+
     await page.goto("/grocery");
     const quickAddInput = page.locator('[data-testid="grocery-quick-add"]');
-    await quickAddInput.fill("Milk");
+    await quickAddInput.fill(itemName);
     await quickAddInput.press("Enter");
-    await expect(page.locator("text=Milk")).toBeVisible();
+    await expect(page.getByText(itemName, { exact: true })).toBeVisible();
   });
 
   test("can check off an item", async ({ page }) => {
+    const itemName = `Eggs ${Date.now()}`;
+
     await page.goto("/grocery");
     const quickAddInput = page.locator('[data-testid="grocery-quick-add"]');
-    await quickAddInput.fill("Eggs");
+    await quickAddInput.fill(itemName);
     await quickAddInput.press("Enter");
-    await expect(page.locator("text=Eggs")).toBeVisible();
-    const checkbox = page.locator('button[aria-label="Check item"]').first();
+    const itemLabel = page.getByRole("button", { name: new RegExp(`^${itemName} `) });
+
+    await expect(itemLabel).toBeVisible();
+    const itemRow = itemLabel.locator('xpath=ancestor::div[contains(@class, "group flex min-h-16")][1]');
+    const checkbox = itemRow.getByRole("button", { name: "Check item" });
     await checkbox.click();
-    await expect(page.locator("text=In the cart")).toBeVisible();
+    await expect(page.getByRole("button", { name: /In the cart \(\d+\)/ })).toBeVisible();
+    await expect(page.getByText(itemName, { exact: true })).toBeVisible();
   });
 });

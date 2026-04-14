@@ -1,4 +1,5 @@
 import { test, expect } from "@playwright/test";
+import { FREE_ADMIN, signIn, signOut } from "./helpers/auth";
 
 // storageState is set by the 'premium' / 'mobile-premium' projects in
 // playwright.config.ts — the seeded premium-admin session is reused.
@@ -9,35 +10,27 @@ import { test, expect } from "@playwright/test";
 // test.use() for tests that specifically exercise the free-tier gate.
 
 test.describe("Premium — free tier gates", () => {
-  // Override to free-admin for this block
-  test.use({ storageState: "e2e/.auth/free-admin.json" });
+  test.beforeEach(async ({ page }) => {
+    await page.goto("/dashboard");
+    if (!page.url().includes("/login")) {
+      await signOut(page);
+    }
+    await signIn(page, FREE_ADMIN);
+  });
 
-  test("expenses page shows upgrade prompt for free users", async ({ page }) => {
+  test("expenses recurring tab shows upgrade prompt for free users", async ({ page }) => {
     await page.goto("/expenses");
-    await expect(
-      page
-        .locator("text=Upgrade to Premium")
-        .or(page.locator("text=Upgrade for $3/month"))
-        .first()
-    ).toBeVisible();
+    await page.getByRole("button", { name: /^Recurring$/ }).first().click();
+    const premiumGate = page.getByRole("dialog");
+    await expect(premiumGate.getByRole("button", { name: "Upgrade for $4/month" })).toBeVisible();
+    await expect(premiumGate).toContainText("Unlock the full picture.");
   });
 
   test("dashboard tiles are visible on free tier", async ({ page }) => {
     await page.goto("/dashboard");
-    await expect(
-      page
-        .locator('[data-testid="dashboard-tiles"]')
-        .locator("button, a")
-        .filter({ hasText: "Chores" })
-        .first()
-    ).toBeVisible();
-    await expect(
-      page
-        .locator('[data-testid="dashboard-tiles"]')
-        .locator("button, a")
-        .filter({ hasText: "Grocery" })
-        .first()
-    ).toBeVisible();
+    const dashboardTiles = page.locator('[data-testid="dashboard-tiles"]');
+    await expect(dashboardTiles).toContainText("Chores");
+    await expect(dashboardTiles).toContainText("Grocery");
   });
 });
 
@@ -47,6 +40,6 @@ test.describe("Premium — full module access", () => {
   test("expenses page shows full module for premium users", async ({ page }) => {
     await page.goto("/expenses");
     // Premium users see the expense tracking UI, not the upgrade prompt
-    await expect(page.locator("text=All square.")).toBeVisible();
+    await expect(page.locator("body")).toContainText("All square.");
   });
 });

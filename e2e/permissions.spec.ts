@@ -20,6 +20,17 @@
 
 import { test, expect } from "@playwright/test";
 
+function statsRange() {
+  const end = new Date();
+  const start = new Date(end);
+  start.setDate(end.getDate() - 30);
+
+  return {
+    start: start.toISOString().slice(0, 10),
+    end: end.toISOString().slice(0, 10),
+  };
+}
+
 // ---------------------------------------------------------------------------
 // Layer 1 — Auth: unauthenticated → 401
 // ---------------------------------------------------------------------------
@@ -56,7 +67,8 @@ test.describe("Premium gate — free admin on premium-only routes", () => {
   test.use({ storageState: "e2e/.auth/free-admin.json" });
 
   test("GET /api/stats → 403 for free household", async ({ page }) => {
-    const res = await page.request.get("/api/stats");
+    const { start, end } = statsRange();
+    const res = await page.request.get(`/api/stats?start=${start}&end=${end}`);
     expect(res.status()).toBe(403);
   });
 
@@ -99,7 +111,8 @@ test.describe("Premium gate — premium admin can access premium routes", () => 
   test.use({ storageState: "e2e/.auth/premium-admin.json" });
 
   test("GET /api/stats → 200 for premium household", async ({ page }) => {
-    const res = await page.request.get("/api/stats");
+    const { start, end } = statsRange();
+    const res = await page.request.get(`/api/stats?start=${start}&end=${end}`);
     expect(res.status()).toBe(200);
   });
 
@@ -202,7 +215,7 @@ test.describe("Premium UI access — premium admin sees full modules", () => {
   test("expenses page shows full module for premium admin", async ({ page }) => {
     await page.goto("/expenses");
     await page.waitForLoadState("networkidle");
-    await expect(page.locator("text=All square.")).toBeVisible();
+    await expect(page.locator("body")).toContainText("All square.");
   });
 });
 
@@ -212,21 +225,22 @@ test.describe("Premium UI gate — free admin sees upgrade prompts", () => {
   test("expenses page shows upgrade prompt for free admin", async ({ page }) => {
     await page.goto("/expenses");
     await page.waitForLoadState("networkidle");
+    await page.getByRole("button", { name: /^Recurring$/ }).click();
+    const premiumGate = page.getByRole("dialog");
     await expect(
-      page
-        .locator("text=Upgrade to Premium")
-        .or(page.locator("text=Upgrade for $4"))
-        .or(page.locator("text=Premium"))
-        .first()
+      premiumGate.getByRole("button", { name: "Upgrade for $4/month" })
     ).toBeVisible();
+    await expect(premiumGate).toContainText("Unlock the full picture.");
   });
 
   test("stats page shows upgrade gate for free admin", async ({ page }) => {
     await page.goto("/stats");
     await page.waitForLoadState("networkidle");
-    // Stats is premium-only — free users see a full-page PremiumGate
     await expect(
-      page.locator("text=Upgrade to Premium").or(page.locator("text=Premium")).first()
+      page.getByRole("button", { name: "Upgrade for $4/month" })
     ).toBeVisible();
+    await expect(page.locator("body")).toContainText(
+      "See how your household runs."
+    );
   });
 });

@@ -38,7 +38,6 @@ function freshUser(label: string) {
 
 // Stable paths for storageState files written by beforeAll blocks
 const JOIN_HOST_STATE = "e2e/.auth/hh-join-host.json";
-const REMOVE_HOST_STATE = "e2e/.auth/hh-remove-host.json";
 
 // ---------------------------------------------------------------------------
 // Auth contracts — unauthenticated calls
@@ -63,7 +62,7 @@ test.describe("Household API — auth contracts", () => {
     page,
   }) => {
     const res = await page.request.post("/api/household/members/add-child", {
-      data: { name: "Nobody" },
+      data: { name: "Nobody", pin: "1234" },
     });
     expect(res.status()).toBe(401);
   });
@@ -197,7 +196,7 @@ test.describe("Add child account", () => {
     await createHousehold(page, "Child Test House");
 
     const res = await page.request.post("/api/household/members/add-child", {
-      data: { name: "Little One" },
+      data: { name: "Little One", pin: "1234" },
     });
     expect(res.status()).toBe(201);
     const body = (await res.json()) as {
@@ -215,7 +214,7 @@ test.describe("Add child account", () => {
     await createHousehold(page, "Child Validation House");
 
     const res = await page.request.post("/api/household/members/add-child", {
-      data: { name: "A".repeat(33) },
+      data: { name: "A".repeat(33), pin: "1234" },
     });
     expect(res.status()).toBe(400);
   });
@@ -225,7 +224,27 @@ test.describe("Add child account", () => {
     await createHousehold(page, "Child Empty Name House");
 
     const res = await page.request.post("/api/household/members/add-child", {
-      data: { name: "" },
+      data: { name: "", pin: "1234" },
+    });
+    expect(res.status()).toBe(400);
+  });
+
+  test("missing PIN → 400", async ({ page }) => {
+    await signUp(page, freshUser("add-child-nopin"));
+    await createHousehold(page, "Child Missing Pin House");
+
+    const res = await page.request.post("/api/household/members/add-child", {
+      data: { name: "Little One" },
+    });
+    expect(res.status()).toBe(400);
+  });
+
+  test("invalid PIN → 400", async ({ page }) => {
+    await signUp(page, freshUser("add-child-badpin"));
+    await createHousehold(page, "Child Invalid Pin House");
+
+    const res = await page.request.post("/api/household/members/add-child", {
+      data: { name: "Little One", pin: "12" },
     });
     expect(res.status()).toBe(400);
   });
@@ -239,25 +258,28 @@ test.describe("Remove member", () => {
   // Fresh admin + household so we can safely add and remove members
   // without affecting the seeded Test Child in Roost Free House.
   let childMembershipId = ""; // household_members.id (not user ID) of the added child
+  let hostPage: import("@playwright/test").Page;
+  let hostContext: import("@playwright/test").BrowserContext;
 
   test.beforeAll(async ({ browser }) => {
-    const ctx = await browser.newContext();
-    const page = await ctx.newPage();
-    await signUp(page, freshUser("remove-host"));
-    await page.request.post(
+    hostContext = await browser.newContext();
+    hostPage = await hostContext.newPage();
+    await signUp(hostPage, freshUser("remove-host"));
+    await hostPage.request.post(
       "http://localhost:3000/api/household/create",
       { data: { name: "Remove Test House" } }
     );
 
     // Add a child to get a removable member
-    const addRes = await page.request.post(
+    const addRes = await hostPage.request.post(
       "http://localhost:3000/api/household/members/add-child",
-      { data: { name: "Removable Child" } }
+      { data: { name: "Removable Child", pin: "1234" } }
     );
+    expect(addRes.ok()).toBeTruthy();
     const { child } = (await addRes.json()) as { child: { id: string } };
 
     // Get the child's household_members.id via the members list
-    const membersRes = await page.request.get(
+    const membersRes = await hostPage.request.get(
       "http://localhost:3000/api/household/members"
     );
     const { members } = (await membersRes.json()) as {
@@ -266,15 +288,14 @@ test.describe("Remove member", () => {
     const childMember = members.find((m) => m.userId === child.id);
     if (!childMember) throw new Error("Child member not found in members list");
     childMembershipId = childMember.id;
-
-    await ctx.storageState({ path: REMOVE_HOST_STATE });
-    await ctx.close();
   });
 
-  test.use({ storageState: REMOVE_HOST_STATE });
+  test.afterAll(async () => {
+    await hostContext.close();
+  });
 
-  test("admin removes a non-admin member → success", async ({ page }) => {
-    const res = await page.request.delete(
+  test("admin removes a non-admin member → success", async () => {
+    const res = await hostPage.request.delete(
       `/api/household/members/${childMembershipId}`
     );
     expect(res.ok()).toBeTruthy();
@@ -282,10 +303,10 @@ test.describe("Remove member", () => {
     expect(body.success).toBe(true);
   });
 
-  test("removing non-existent member → 404", async ({ page }) => {
+  test("removing non-existent member → 404", async () => {
     // Use a plausible but non-existent UUID
     const fakeId = "00000000-0000-0000-0000-000000000000";
-    const res = await page.request.delete(
+    const res = await hostPage.request.delete(
       `/api/household/members/${fakeId}`
     );
     expect(res.status()).toBe(404);

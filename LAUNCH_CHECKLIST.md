@@ -1,12 +1,5 @@
 # Roost Launch Checklist
 
-Fix Playwright selector brittleness.
-Fix the sign-out helper/dialog interaction.
-Recheck premium test assumptions.
-Rerun Playwright.
-Fix the ESLint test-results glob issue.
-Move to CI.
-Continue the remaining launch checklist items.
 
 Status key: `todo`, `in_progress`, `blocked`, `done`
 
@@ -25,42 +18,46 @@ This file is the current handoff point for continuing launch-readiness work on a
 - `npm run test -- --runInBand` still passes after the fixes.
 - `npm run build` still passes after the fixes.
 - The earlier app-shell hydration mismatch is no longer showing up as the active Playwright blocker after the rerun.
+- Playwright selector brittleness in grocery, premium, chores, household, and permissions coverage was fixed.
+- The sign-out helper was stabilized so auth state resets no longer get stuck behind the account dialog overlay.
+- Premium-flow assertions were updated to match the current free-tier and premium-tier product behavior.
+- `npm run test:e2e` now passes locally in a clean rerun.
+- The ESLint `test-results` glob issue was fixed by ignoring Playwright artifact directories.
+- A GitHub Actions CI workflow now runs install, lint, unit tests, and build on every PR/push, and runs Playwright when `DATABASE_URL` is available in repo secrets.
+- Root App Router fallbacks were added with `src/app/error.tsx`, `src/app/global-error.tsx`, and `src/app/not-found.tsx`.
 
 ### Active blockers now
 
-- `npm run test:e2e` still fails, but now on more specific downstream issues:
-- Brittle Playwright selectors in grocery and premium tests:
-- `e2e/grocery.spec.ts` uses broad text selectors like `text=Milk` and `text=Eggs` that now match multiple visible elements.
-- `e2e/premium.spec.ts` uses broad text selectors like `text=All square.` that now match multiple visible elements.
-- Sign-out interaction issue in `e2e/helpers/auth.ts`:
-- The helper clicks the sign-out button, then the next click is intercepted by the dialog overlay.
-- At least one premium-flow expectation may now be stale:
-- `e2e/premium.spec.ts` expected an upgrade prompt and did not find it.
-- `npm run lint` currently errors because ESLint tries to scan a missing `test-results` directory. This looks like a config/glob problem rather than an app-runtime problem.
+- No current local test blocker is known after the latest reruns.
+- The next launch-critical work has shifted to security hardening and operational readiness:
+- Add and test a Content Security Policy that is compatible with auth, Stripe, Tiptap, and charts.
+- Harden admin authentication beyond env credentials plus per-instance throttling.
+- Stop logging PII in auth flows.
+- Add abuse protection to OCR and other expensive routes.
+- Let the new CI workflow run remotely at least once and verify the secret-backed Playwright job on GitHub.
 
 ### Suggested next order
 
-1. Fix Playwright selector brittleness first.
-2. Fix the sign-out helper/dialog interaction in `e2e/helpers/auth.ts`.
-3. Recheck premium test assumptions and seeded state for `e2e/premium.spec.ts`.
-4. Rerun `npm run test:e2e` to identify the next true blocker after the test fixes.
-5. Fix the ESLint glob/config issue related to `test-results`.
-6. Once E2E is materially stable, move to CI setup so build/test verification is reproducible off this machine.
-7. After CI, continue the launch checklist items in order: error boundaries, security hardening, monitoring/env validation, then SEO/accessibility polish.
+1. Let CI run on GitHub and confirm the verify job is green plus the Playwright job is enabled with repo secrets.
+2. Add Content Security Policy with end-to-end testing against auth, Stripe redirects, Tiptap, and Recharts.
+3. Harden admin authentication and remove PII from auth logging.
+4. Add abuse protection to OCR and other expensive endpoints.
+5. Add monitoring plus fail-fast env validation.
+6. Finish SEO/accessibility polish.
 
 ## 0. Current Gate
 
 | Status | Item | Why it matters | Done when |
 |---|---|---|---|
-| `in_progress` | Clean verification run | We cannot call the app production-ready until build and test pass in a clean environment. | `npm run build` passes, key tests pass, and the result is repeatable. |
+| `in_progress` | Clean verification run | We cannot call the app production-ready until build and test pass in a clean environment. | `npm run build` passes, key tests pass, and the result is repeatable locally and in CI. |
 
 ## 1. Release Blockers
 
 | Status | Priority | Item | Notes | Done when |
 |---|---|---|---|---|
 | `done` | P1 | Fix clean production build | Verified: `npm run build` succeeds outside the sandbox. Initial failure appears to have been local file-lock behavior, not a source-level build error. | Production build succeeds locally in a clean output state and in CI. |
-| `blocked` | P1 | Fix clean E2E run | Seeded-user onboarding mismatch and Neon driver transaction failure are fixed. Current blockers are now mainly Playwright selector brittleness, sign-out dialog interaction issues, and at least one stale premium-flow expectation. | Playwright runs successfully in a clean environment for core user flows. |
-| `todo` | P1 | Add App Router error boundaries | Missing `error.tsx`, `global-error.tsx`, `not-found.tsx`, and likely `global-not-found.tsx`. | Runtime errors and unknown routes show controlled fallback UI. |
+| `done` | P1 | Fix clean E2E run | Full local rerun is green after stabilizing selectors, auth teardown, premium expectations, and related stale assumptions across the suite. | Playwright runs successfully in a clean environment for core user flows. |
+| `done` | P1 | Add App Router error boundaries | Added `src/app/error.tsx`, `src/app/global-error.tsx`, and `src/app/not-found.tsx`. Current Next docs indicate root `app/not-found.tsx` already covers unmatched URLs, so `global-not-found.tsx` is not required here unless routing proves otherwise. | Runtime errors and unknown routes show controlled fallback UI. |
 | `todo` | P1 | Add Content Security Policy | CSP is intentionally omitted today. | A tested CSP is present and does not break auth, Stripe, Tiptap, or charts. |
 | `todo` | P1 | Harden admin authentication | Admin auth currently relies on env credentials and weak per-instance throttling. | Admin path has durable rate limiting and stronger authentication or tighter exposure controls. |
 | `todo` | P1 | Stop logging PII in auth flows | Admin login logs email addresses on success/failure. | Auth logs contain no emails or other PII. |
@@ -70,7 +67,7 @@ This file is the current handoff point for continuing launch-readiness work on a
 
 | Status | Priority | Item | Notes | Done when |
 |---|---|---|---|---|
-| `todo` | P1 | Add CI pipeline | No repo CI was present during audit. | Every PR runs install, lint, unit tests, and build in a clean environment. |
+| `in_progress` | P1 | Add CI pipeline | `.github/workflows/ci.yml` now runs install, lint, unit tests, and build on PRs/pushes. Playwright is wired as a second job that runs when `DATABASE_URL` is present in GitHub secrets. This still needs one successful remote run to fully clear. | Every PR runs install, lint, unit tests, and build in a clean environment. |
 | `todo` | P1 | Add error reporting and monitoring | Current logging is console-only. | Server and client errors are captured in a monitoring tool with alerting. |
 | `todo` | P2 | Validate required env vars | Several critical secrets exist but startup validation is not enforced. | Missing required production env vars fail fast with clear errors. |
 | `todo` | P2 | Verify cron and webhook ops | Stripe and cron auth exist, but launch needs an operational check. | Webhooks and scheduled jobs are testable, observable, and documented. |
@@ -88,15 +85,14 @@ This file is the current handoff point for continuing launch-readiness work on a
 ## 4. Work Order
 
 1. Clean verification run
-2. Fix newly exposed E2E and test-flow failures
-3. Error boundaries
-4. Security hardening
-5. Monitoring and env validation
-6. SEO and accessibility polish
+2. Confirm CI runs remotely
+3. Security hardening
+4. Monitoring and env validation
+5. SEO and accessibility polish
 
 ## 5. Immediate Next Step
 
-We are starting with `Clean verification run`.
+We are finishing `Clean verification run` and moving into `Security hardening`.
 
 Purpose:
 - Prove whether the current `build` and `test:e2e` failures are true app issues or local Windows artifact locking issues.
@@ -108,11 +104,12 @@ Checks:
 
 Result so far:
 - `npm run build` passes in a clean unrestricted run
-- `npm run test:e2e` fails for real downstream issues, not just a file lock
+- `npm run test:e2e` passes after fixing selectors, auth teardown, premium assumptions, and related stale tests
 - Seeded-user onboarding mismatch is resolved
 - Neon HTTP driver transaction failure is resolved
-- Current failing points are now mainly Playwright selector ambiguity, sign-out helper/dialog interaction, and at least one stale premium-flow expectation
+- App Router fallback UI exists for not-found and runtime error states
+- CI now exists in `.github/workflows/ci.yml`, pending first remote confirmation
 
 Next:
-- Resolve the newly exposed E2E and test-flow failures
-- Then move immediately to CI so the clean build result is reproducible outside this machine
+- Confirm the GitHub Actions workflow is green on GitHub
+- Then move directly into CSP, admin auth hardening, PII log cleanup, and abuse protection

@@ -86,7 +86,7 @@ const tooltipStyle: React.CSSProperties = {
 function ChartCard({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div
-      className="rounded-2xl p-4"
+      className="min-w-0 rounded-2xl p-4"
       style={{
         backgroundColor: "var(--roost-surface)",
         border: "1.5px solid var(--roost-border)",

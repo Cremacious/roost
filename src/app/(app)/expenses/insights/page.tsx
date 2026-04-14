@@ -81,7 +81,7 @@ function InsightSkeleton() {
 function SummaryCard({ label, value, sub }: { label: string; value: string; sub?: string }) {
   return (
     <div
-      className="rounded-2xl p-4"
+      className="min-w-0 rounded-2xl p-4"
       style={{
         backgroundColor: "var(--roost-surface)",
         border: "1.5px solid var(--roost-border)",
@@ -264,7 +264,7 @@ export default function InsightsPage() {
             {/* Chart 1: Spending by category (Donut) */}
             {byCategory.length > 0 && (
               <div
-                className="rounded-2xl p-4"
+                className="min-w-0 rounded-2xl p-4"
                 style={{
                   backgroundColor: "var(--roost-surface)",
                   border: "1.5px solid var(--roost-border)",
@@ -274,7 +274,7 @@ export default function InsightsPage() {
                 <p className="mb-4 text-sm" style={{ color: "var(--roost-text-primary)", fontWeight: 800 }}>
                   Where your money goes
                 </p>
-                <div style={{ height: 220 }}>
+                <div style={{ height: 220, minWidth: 0 }}>
                   <ResponsiveContainer width="100%" height="100%">
                     <PieChart>
                       <Pie
@@ -330,7 +330,7 @@ export default function InsightsPage() {
             {/* Chart 2: Spending over time (Line) */}
             {overTime.length >= 2 && (
               <div
-                className="rounded-2xl p-4"
+                className="min-w-0 rounded-2xl p-4"
                 style={{
                   backgroundColor: "var(--roost-surface)",
                   border: "1.5px solid var(--roost-border)",
@@ -340,7 +340,7 @@ export default function InsightsPage() {
                 <p className="mb-4 text-sm" style={{ color: "var(--roost-text-primary)", fontWeight: 800 }}>
                   Spending over time
                 </p>
-                <div style={{ height: 180 }}>
+                <div style={{ height: 180, minWidth: 0 }}>
                   <ResponsiveContainer width="100%" height="100%">
                     <LineChart data={overTime} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
                       <CartesianGrid strokeDasharray="3 3" stroke="var(--roost-border)" />
@@ -384,7 +384,7 @@ export default function InsightsPage() {
             {/* Chart 3: By member (Horizontal bar) */}
             {byMember.length > 1 && (
               <div
-                className="rounded-2xl p-4"
+                className="min-w-0 rounded-2xl p-4"
                 style={{
                   backgroundColor: "var(--roost-surface)",
                   border: "1.5px solid var(--roost-border)",
@@ -394,7 +394,7 @@ export default function InsightsPage() {
                 <p className="mb-4 text-sm" style={{ color: "var(--roost-text-primary)", fontWeight: 800 }}>
                   By member
                 </p>
-                <div style={{ height: Math.max(120, byMember.length * 52) }}>
+                <div style={{ height: Math.max(120, byMember.length * 52), minWidth: 0 }}>
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart
                       layout="vertical"

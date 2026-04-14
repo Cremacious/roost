@@ -141,7 +141,9 @@ export default function LoginPage() {
             width={52}
             height={52}
             className="rounded-xl"
-            style={{ objectFit: "cover" }}
+            priority
+            sizes="52px"
+            style={{ objectFit: "cover", width: 52, height: "auto" }}
           />
           <span style={{ fontWeight: 900, fontSize: 34, color: "white", letterSpacing: "-1px" }}>Roost</span>
         </div>
@@ -209,7 +211,9 @@ export default function LoginPage() {
               alt="Roost"
               width={40}
               height={40}
-              style={{ borderRadius: 10, objectFit: "cover" }}
+              priority
+              sizes="40px"
+              style={{ borderRadius: 10, objectFit: "cover", width: 40, height: "auto" }}
             />
             <span style={{ fontWeight: 900, fontSize: 20, color: ROOST_BRAND_CARD_TEXT }}>Roost</span>
           </div>

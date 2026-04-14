@@ -1259,10 +1259,10 @@ export default async function HomePage() {
           .hero-h1 { font-size: 32px !important; letter-spacing: -0.8px !important; }
           .hero-copy { font-size: 15px !important; max-width: 320px !important; margin-bottom: 24px !important; }
           .hero-logo {
-            width: 180px !important;
-            height: 180px !important;
-            margin-bottom: -8px !important;
-          }
+              width: 180px !important;
+              height: auto !important;
+              margin-bottom: -8px !important;
+            }
           .hero-actions, .cta-actions {
             flex-direction: column;
             align-items: center;
@@ -1375,7 +1375,9 @@ export default async function HomePage() {
           width={220}
           height={220}
           className="hero-logo"
-          style={{ display: 'block', margin: '0 auto 12px' }}
+          priority
+          sizes="(max-width: 768px) 180px, 220px"
+          style={{ display: 'block', margin: '0 auto 12px', width: 220, height: 'auto' }}
         />
 
         <h1
@@ -2239,7 +2241,8 @@ export default async function HomePage() {
               alt="Roost"
               width={28}
               height={28}
-              style={{ borderRadius: 8, objectFit: 'cover' }}
+              sizes="28px"
+              style={{ borderRadius: 8, objectFit: 'cover', width: 28, height: 'auto' }}
             />
             <span
               style={{

@@ -230,7 +230,9 @@ export default function ChildLoginPage() {
               alt="Roost"
               width={56}
               height={56}
-              style={{ borderRadius: 16, objectFit: 'cover', marginBottom: 8 }}
+              priority
+              sizes="56px"
+              style={{ borderRadius: 16, objectFit: 'cover', marginBottom: 8, width: 56, height: 'auto' }}
               />
               </div>
             <h1 style={{ ...headingStyle, marginBottom: 6 }}>

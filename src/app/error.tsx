@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect } from "react";
 import { AlertTriangle, Home, RotateCcw } from "lucide-react";
+import { reportClientError } from "@/lib/observability/client";
 
 export default function Error({
   error,
@@ -13,6 +14,12 @@ export default function Error({
 }) {
   useEffect(() => {
     console.error(error);
+    reportClientError({
+      source: "app.error_boundary",
+      error,
+      digest: error.digest,
+      pathname: window.location.pathname + window.location.search,
+    });
   }, [error]);
 
   return (

@@ -151,6 +151,11 @@ export function getAzureDocumentIntelligenceConfig(): {
   };
 }
 
+export function getObservabilityWebhookUrl(): string | undefined {
+  const value = readEnv("OBSERVABILITY_WEBHOOK_URL");
+  return value ? ensureValidUrl("OBSERVABILITY_WEBHOOK_URL", value) : undefined;
+}
+
 export function validateServerEnv(): void {
   if (validated) return;
   validated = true;

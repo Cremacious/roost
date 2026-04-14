@@ -2,6 +2,8 @@ import type { Metadata, Viewport } from "next";
 import { Nunito, Geist_Mono } from "next/font/google";
 import { Toaster } from "@/components/ui/sonner";
 import ThemeProvider from "@/components/providers/ThemeProvider";
+import ObservabilityProvider from "@/components/providers/ObservabilityProvider";
+import WebVitals from "@/components/providers/WebVitals";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { users } from "@/db/schema";
@@ -119,6 +121,8 @@ export default async function RootLayout({
       className={`${nunito.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
+        <ObservabilityProvider />
+        <WebVitals />
         <ThemeProvider initialTheme={initialTheme}>
           {children}
         </ThemeProvider>

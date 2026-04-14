@@ -6,6 +6,7 @@ import Link from "next/link";
 import { Nunito, Geist_Mono } from "next/font/google";
 import { useEffect } from "react";
 import { Bird, Home, RotateCcw } from "lucide-react";
+import { reportClientError } from "@/lib/observability/client";
 
 const nunito = Nunito({
   subsets: ["latin"],
@@ -27,6 +28,12 @@ export default function GlobalError({
 }) {
   useEffect(() => {
     console.error(error);
+    reportClientError({
+      source: "app.global_error_boundary",
+      error,
+      digest: error.digest,
+      pathname: window.location.pathname + window.location.search,
+    });
   }, [error]);
 
   return (

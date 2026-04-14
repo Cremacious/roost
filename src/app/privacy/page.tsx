@@ -1,10 +1,14 @@
 import type { Metadata } from "next";
 import LegalPageShell from "@/components/marketing/LegalPageShell";
+import { getAppUrl } from "@/lib/env";
 
 export const metadata: Metadata = {
   title: "Privacy Policy",
   description:
     "How Roost collects, uses, stores, and protects information for households using the app.",
+  alternates: {
+    canonical: `${getAppUrl()}/privacy`,
+  },
 };
 
 const sections = [

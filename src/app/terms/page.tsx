@@ -1,10 +1,14 @@
 import type { Metadata } from "next";
 import LegalPageShell from "@/components/marketing/LegalPageShell";
+import { getAppUrl } from "@/lib/env";
 
 export const metadata: Metadata = {
   title: "Terms of Service",
   description:
     "The terms that apply when you access or use the Roost app and related services.",
+  alternates: {
+    canonical: `${getAppUrl()}/terms`,
+  },
 };
 
 const sections = [

@@ -7,6 +7,7 @@ import { headers } from 'next/headers';
 import { Bell, GraduationCap, Home, Users } from 'lucide-react';
 import { auth } from '@/lib/auth';
 import { ROOST_ICON_SRC } from '@/lib/brand';
+import { getAppUrl } from '@/lib/env';
 
 const nunito = Nunito({
   subsets: ['latin'],
@@ -18,6 +19,9 @@ export const metadata: Metadata = {
   title: 'Roost - Homes run better with Roost.',
   description:
     'The household app for families and roommates. Chores, groceries, bills, meals, reminders, and a shared calendar. One app.',
+  alternates: {
+    canonical: getAppUrl(),
+  },
 };
 
 // ---------------------------------------------------------------------------

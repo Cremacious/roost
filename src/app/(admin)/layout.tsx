@@ -1,9 +1,25 @@
+import type { Metadata } from "next";
 import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { verifyAdminSession, ADMIN_SESSION_COOKIE } from "@/lib/admin/auth";
 import Link from "next/link";
 
-export const metadata = { title: "Roost Admin" };
+export const metadata: Metadata = {
+  title: "Roost Admin",
+  robots: {
+    index: false,
+    follow: false,
+    nocache: true,
+    googleBot: {
+      index: false,
+      follow: false,
+      noimageindex: true,
+      "max-video-preview": -1,
+      "max-image-preview": "large",
+      "max-snippet": -1,
+    },
+  },
+};
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   // Detect current path via middleware-set header to skip auth on login page

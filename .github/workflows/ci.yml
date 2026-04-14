@@ -19,8 +19,8 @@ jobs:
       CI: true
       DATABASE_URL: ${{ secrets.DATABASE_URL != '' && secrets.DATABASE_URL || 'postgres://postgres:postgres@127.0.0.1:5432/roost?sslmode=require' }}
       BETTER_AUTH_SECRET: ${{ secrets.BETTER_AUTH_SECRET != '' && secrets.BETTER_AUTH_SECRET || 'ci-better-auth-secret-please-change-me-123456' }}
-      BETTER_AUTH_URL: http://127.0.0.1:3000
-      NEXT_PUBLIC_APP_URL: http://127.0.0.1:3000
+      BETTER_AUTH_URL: http://localhost:3000
+      NEXT_PUBLIC_APP_URL: http://localhost:3000
       STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY != '' && secrets.STRIPE_SECRET_KEY || 'sk_test_ci_placeholder' }}
       STRIPE_PRICE_ID: ${{ secrets.STRIPE_PRICE_ID != '' && secrets.STRIPE_PRICE_ID || 'price_ci_placeholder' }}
       STRIPE_WEBHOOK_SECRET: ${{ secrets.STRIPE_WEBHOOK_SECRET != '' && secrets.STRIPE_WEBHOOK_SECRET || 'whsec_ci_placeholder' }}
@@ -79,8 +79,8 @@ jobs:
       CI: true
       DATABASE_URL: ${{ secrets.DATABASE_URL }}
       BETTER_AUTH_SECRET: ${{ secrets.BETTER_AUTH_SECRET != '' && secrets.BETTER_AUTH_SECRET || 'ci-better-auth-secret-please-change-me-123456' }}
-      BETTER_AUTH_URL: http://127.0.0.1:3000
-      NEXT_PUBLIC_APP_URL: http://127.0.0.1:3000
+      BETTER_AUTH_URL: http://localhost:3000
+      NEXT_PUBLIC_APP_URL: http://localhost:3000
       STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY != '' && secrets.STRIPE_SECRET_KEY || 'sk_test_ci_placeholder' }}
       STRIPE_PRICE_ID: ${{ secrets.STRIPE_PRICE_ID != '' && secrets.STRIPE_PRICE_ID || 'price_ci_placeholder' }}
       STRIPE_WEBHOOK_SECRET: ${{ secrets.STRIPE_WEBHOOK_SECRET != '' && secrets.STRIPE_WEBHOOK_SECRET || 'whsec_ci_placeholder' }}

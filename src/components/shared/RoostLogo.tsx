@@ -46,7 +46,7 @@ export default function RoostLogo({
         alt="Roost"
         width={iconSize}
         height={iconSize}
-        style={{ borderRadius: radius, flexShrink: 0 }}
+        style={{ width: iconSize, height: "auto", borderRadius: radius, flexShrink: 0 }}
         priority
       />
 

@@ -1,11 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { CheckCircle2, Home, Users, ListChecks } from "lucide-react";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogTitle,
 } from "@/components/ui/dialog";
 
@@ -61,6 +62,9 @@ export default function WelcomeModal({ onDismiss }: Props) {
         }}
       >
         <DialogTitle className="sr-only">Welcome to Roost</DialogTitle>
+        <DialogDescription className="sr-only">
+          A quick overview of how to get started with your household in Roost.
+        </DialogDescription>
 
         {/* Header */}
         <div

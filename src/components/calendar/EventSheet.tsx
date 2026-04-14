@@ -8,6 +8,7 @@ import DraggableSheet from "@/components/shared/DraggableSheet";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogFooter,
@@ -634,14 +635,14 @@ export default function EventSheet({
                 {event.isRecurring ? "Delete recurring event?" : "Delete event?"}
               </DialogTitle>
             </DialogHeader>
-            <p className="text-sm" style={{ color: "var(--roost-text-secondary)", fontWeight: 600 }}>
+            <DialogDescription className="text-sm" style={{ color: "var(--roost-text-secondary)", fontWeight: 600 }}>
               {event.title}
               {event.isRecurring && (
                 <span className="block mt-1" style={{ color: "var(--roost-text-muted)" }}>
                   All occurrences of this event will be removed.
                 </span>
               )}
-            </p>
+            </DialogDescription>
             <DialogFooter className="mt-2 gap-2">
               <button type="button" onClick={() => setDeleteDialogOpen(false)}
                 className="flex h-11 flex-1 items-center justify-center rounded-xl text-sm"

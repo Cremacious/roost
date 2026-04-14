@@ -37,6 +37,7 @@ import PremiumGate from "@/components/shared/PremiumGate";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogFooter,
@@ -1677,10 +1678,10 @@ function RecurringTabView({
               Stop this recurring expense?
             </DialogTitle>
           </DialogHeader>
-          <p className="text-sm" style={{ color: "var(--roost-text-secondary)", fontWeight: 600 }}>
+          <DialogDescription className="text-sm" style={{ color: "var(--roost-text-secondary)", fontWeight: 600 }}>
             Past expenses won&apos;t be deleted. No new drafts will be created for{" "}
             <strong>{templateToDelete?.title}</strong>.
-          </p>
+          </DialogDescription>
           <DialogFooter className="mt-2 gap-2">
             <button
               type="button"

@@ -8,6 +8,7 @@ import DraggableSheet from '@/components/shared/DraggableSheet';
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogFooter,
@@ -827,9 +828,9 @@ export default function ExpenseSheet({
                 Remove recurrence?
               </DialogTitle>
             </DialogHeader>
-            <p className="text-sm" style={{ color: 'var(--roost-text-secondary)', fontWeight: 600 }}>
+            <DialogDescription className="text-sm" style={{ color: 'var(--roost-text-secondary)', fontWeight: 600 }}>
               This expense will no longer repeat. Past expenses are kept.
-            </p>
+            </DialogDescription>
             <DialogFooter className="mt-2 gap-2">
               <button
                 type="button"
@@ -862,12 +863,12 @@ export default function ExpenseSheet({
                 Delete expense?
               </DialogTitle>
             </DialogHeader>
-            <p
+            <DialogDescription
               className="text-sm"
               style={{ color: 'var(--roost-text-secondary)', fontWeight: 600 }}
             >
               {expense.title} — ${parseFloat(expense.total_amount).toFixed(2)}
-            </p>
+            </DialogDescription>
             <DialogFooter className="mt-2 gap-2">
               <button
                 type="button"

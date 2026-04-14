@@ -37,6 +37,7 @@ import { relativeTime } from '@/lib/utils/time';
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogFooter,
@@ -1543,6 +1544,9 @@ export default function MealsPage() {
                       Add ingredients to grocery list?
                     </DialogTitle>
                   </DialogHeader>
+                  <DialogDescription className="sr-only">
+                    Review the ingredients that will be added to your grocery list.
+                  </DialogDescription>
                   <div className="space-y-2">
                     <p
                       className="text-sm"
@@ -1645,7 +1649,7 @@ export default function MealsPage() {
                 Add suggested meal to the planner?
               </DialogTitle>
             </DialogHeader>
-            <p
+            <DialogDescription
               className="text-sm"
               style={{ color: 'var(--roost-text-secondary)', fontWeight: 600 }}
             >
@@ -1671,7 +1675,7 @@ export default function MealsPage() {
                   : 'dinner'}
               </span>
               . A meal-bank entry is created too, so the suggestion stays reusable.
-            </p>
+            </DialogDescription>
             <DialogFooter className="flex gap-2">
               <motion.button
                 type="button"
@@ -1760,12 +1764,12 @@ export default function MealsPage() {
                     Add to meal bank?
                   </DialogTitle>
                 </DialogHeader>
-                <p className="text-sm" style={{ color: 'var(--roost-text-secondary)', fontWeight: 600 }}>
+                <DialogDescription className="text-sm" style={{ color: 'var(--roost-text-secondary)', fontWeight: 600 }}>
                   <span style={{ fontWeight: 800, color: 'var(--roost-text-primary)' }}>
                     &ldquo;{confirmSuggestion?.meal_name}&rdquo;
                   </span>{' '}
                   will be saved to your household&apos;s meal bank. The suggestion will stay open until it&apos;s added to a day or rejected.
-                </p>
+                </DialogDescription>
                 <DialogFooter className="mt-2 flex gap-2">
                   <motion.button
                     type="button"

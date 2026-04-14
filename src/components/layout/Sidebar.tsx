@@ -16,6 +16,7 @@ import { DEFAULT_THEME } from "@/lib/constants/themes";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogFooter,
@@ -251,12 +252,12 @@ export default function Sidebar() {
               Sign out?
             </DialogTitle>
           </DialogHeader>
-          <p
+          <DialogDescription
             className="text-sm"
             style={{ color: "var(--roost-text-secondary)", fontWeight: 600 }}
           >
             You will need to sign back in to access your household.
-          </p>
+          </DialogDescription>
           <DialogFooter className="mt-2 flex gap-2">
             <motion.button
               type="button"

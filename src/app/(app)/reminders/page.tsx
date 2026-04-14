@@ -38,6 +38,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogFooter,
@@ -448,6 +449,11 @@ function ReminderRow({
               {isRecurring ? 'Done for now?' : 'Mark as done?'}
             </DialogTitle>
           </DialogHeader>
+          <DialogDescription className="sr-only">
+            {isRecurring
+              ? 'Confirm that this recurring reminder should be marked done for now.'
+              : 'Confirm that this reminder should be marked done.'}
+          </DialogDescription>
           {isRecurring ? (
             <div className="space-y-2">
               <p
@@ -1070,12 +1076,12 @@ export default function RemindersPage() {
                 Delete reminder?
               </DialogTitle>
             </DialogHeader>
-            <p
+            <DialogDescription
               className="text-sm"
               style={{ color: 'var(--roost-text-secondary)', fontWeight: 600 }}
             >
               {reminderToDelete?.title}
-            </p>
+            </DialogDescription>
             <DialogFooter className="mt-2 gap-2">
               <button
                 type="button"

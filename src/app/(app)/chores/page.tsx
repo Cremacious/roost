@@ -28,6 +28,7 @@ import { Switch } from "@/components/ui/switch";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogFooter,
@@ -965,9 +966,9 @@ export default function ChoresPage() {
               Mark chore complete?
             </DialogTitle>
           </DialogHeader>
-          <p className="text-sm" style={{ color: "var(--roost-text-secondary)", fontWeight: 600 }}>
+          <DialogDescription className="text-sm" style={{ color: "var(--roost-text-secondary)", fontWeight: 600 }}>
             {allChores.find((c) => c.id === pendingCompleteId)?.title}
-          </p>
+          </DialogDescription>
           <DialogFooter className="mt-2 gap-2">
             <button
               type="button"

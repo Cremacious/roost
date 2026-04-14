@@ -8,6 +8,7 @@ import DraggableSheet from "@/components/shared/DraggableSheet";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogFooter,
@@ -438,12 +439,12 @@ export default function ChoreSheet({
               Delete chore?
             </DialogTitle>
           </DialogHeader>
-          <p
+          <DialogDescription
             className="text-sm"
             style={{ color: "var(--roost-text-secondary)", fontWeight: 600 }}
           >
             This will remove the chore for everyone in the household. It cannot be undone.
-          </p>
+          </DialogDescription>
           <DialogFooter className="mt-2 flex gap-2">
             <motion.button
               type="button"

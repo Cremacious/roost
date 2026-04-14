@@ -25,6 +25,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogFooter,
@@ -923,9 +924,9 @@ export default function TasksPage() {
               Mark as complete?
             </DialogTitle>
           </DialogHeader>
-          <p className="text-sm" style={{ color: "var(--roost-text-secondary)", fontWeight: 600 }}>
+          <DialogDescription className="text-sm" style={{ color: "var(--roost-text-secondary)", fontWeight: 600 }}>
             {allTasks.find((t) => t.id === pendingCompleteId)?.title}
-          </p>
+          </DialogDescription>
           <DialogFooter className="mt-2 gap-2">
             <button
               type="button"
@@ -971,9 +972,9 @@ export default function TasksPage() {
               Delete task?
             </DialogTitle>
           </DialogHeader>
-          <p className="text-sm" style={{ color: "var(--roost-text-secondary)", fontWeight: 600 }}>
+          <DialogDescription className="text-sm" style={{ color: "var(--roost-text-secondary)", fontWeight: 600 }}>
             {allTasks.find((t) => t.id === pendingDeleteId)?.title}
-          </p>
+          </DialogDescription>
           <DialogFooter className="mt-2 gap-2">
             <button
               type="button"

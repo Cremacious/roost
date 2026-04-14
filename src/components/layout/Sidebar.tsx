@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { motion } from "framer-motion";
@@ -59,6 +59,7 @@ export default function Sidebar() {
   const router = useRouter();
   const { data: sessionData } = useSession();
   const { role } = useHousehold();
+  const [mounted, setMounted] = useState(false);
 
   const [confirmSignOut, setConfirmSignOut] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
@@ -78,6 +79,12 @@ export default function Sidebar() {
 
   const userName = sessionData?.user?.name ?? "";
   const avatarColor = profileData?.user?.avatar_color ?? "#2563EB";
+  const displayUserName = mounted ? userName : "";
+  const displayRole = mounted ? role : undefined;
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   async function handleSignOut() {
     setSigningOut(true);
@@ -170,25 +177,27 @@ export default function Sidebar() {
             }}
           >
             <MemberAvatar
-              name={userName || "?"}
+              name={displayUserName || "?"}
               avatarColor={avatarColor}
               size="sm"
             />
             <div className="min-w-0 flex-1 text-left">
-              {userName && (
+              {displayUserName && (
                 <p
                   className="truncate text-[13px]"
                   style={{ color: "#ffffff", fontWeight: 800 }}
+                  suppressHydrationWarning
                 >
-                  {userName}
+                  {displayUserName}
                 </p>
               )}
-              {role && (
+              {displayRole && (
                 <p
                   className="truncate text-[11px] capitalize"
                   style={{ color: "rgba(255,255,255,0.65)", fontWeight: 600 }}
+                  suppressHydrationWarning
                 >
-                  {role}
+                  {displayRole}
                 </p>
               )}
             </div>

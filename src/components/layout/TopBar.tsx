@@ -47,7 +47,8 @@ function formatTime(date: Date): string {
 // ---- Component --------------------------------------------------------------
 
 export default function TopBar() {
-  const [time, setTime] = useState<string>(() => formatTime(new Date()));
+  const [mounted, setMounted] = useState(false);
+  const [time, setTime] = useState<string>("");
   const locationRequested = useRef(false);
   const queryClient = useQueryClient();
 
@@ -56,7 +57,9 @@ export default function TopBar() {
   // ---- Clock ------------------------------------------------------------------
 
   useEffect(() => {
+    setMounted(true);
     const tick = () => setTime(formatTime(new Date()));
+    tick();
     const id = setInterval(tick, 60_000);
     const ms = (60 - new Date().getSeconds()) * 1000;
     const align = setTimeout(() => { tick(); setInterval(tick, 60_000); }, ms);
@@ -162,7 +165,9 @@ export default function TopBar() {
       <div className="flex items-center gap-3">
         {/* Weather chip — mobile (white on red) */}
         <div className="md:hidden">
-          {weatherLoading ? (
+          {!mounted ? (
+            <Skeleton className="h-7 w-20 rounded-full opacity-40" />
+          ) : weatherLoading ? (
             <Skeleton className="h-7 w-20 rounded-full opacity-40" />
           ) : weather ? (
             <div
@@ -183,7 +188,9 @@ export default function TopBar() {
 
         {/* Weather chip — desktop (themed) */}
         <div className="hidden md:block">
-          {weatherLoading ? (
+          {!mounted ? (
+            <Skeleton className="h-7 w-20 rounded-full" />
+          ) : weatherLoading ? (
             <Skeleton className="h-7 w-20 rounded-full" />
           ) : weather ? (
             <div
@@ -206,8 +213,9 @@ export default function TopBar() {
         <span
           className="hidden tabular-nums sm:block text-[13px] text-white md:text-(--roost-text-muted)"
           style={{ fontWeight: 700 }}
+          suppressHydrationWarning
         >
-          {time}
+          {mounted ? time : ""}
         </span>
       </div>
     </header>

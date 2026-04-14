@@ -378,7 +378,6 @@ export default function DashboardPage() {
       return r.json();
     },
     staleTime: 10_000,
-    refetchInterval: 10_000,
     retry: 2,
   });
 
@@ -391,7 +390,6 @@ export default function DashboardPage() {
       return { myBalance: d.myBalance ?? 0 };
     },
     staleTime: 10_000,
-    refetchInterval: 10_000,
     retry: 1,
     enabled: isPremium,
   });
@@ -404,7 +402,6 @@ export default function DashboardPage() {
       return r.json();
     },
     staleTime: 60_000,
-    refetchInterval: 60_000,
     retry: 1,
   });
 
@@ -422,7 +419,6 @@ export default function DashboardPage() {
       return r.json();
     },
     staleTime: 10_000,
-    refetchInterval: 10_000,
     retry: 1,
   });
 
@@ -441,7 +437,6 @@ export default function DashboardPage() {
       return r.json();
     },
     staleTime: 10_000,
-    refetchInterval: 10_000,
     retry: 2,
   });
 

@@ -36,7 +36,6 @@ export default function ReminderBanner() {
       return r.json();
     },
     staleTime: 60_000,
-    refetchInterval: 60_000,
     retry: 1,
   });
 

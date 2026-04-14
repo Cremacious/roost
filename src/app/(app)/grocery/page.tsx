@@ -432,7 +432,6 @@ export default function GroceryPage() {
       return r.json();
     },
     staleTime: 10_000,
-    refetchInterval: 10_000,
   });
 
   const lists = listsQuery.data?.lists ?? [];
@@ -481,7 +480,6 @@ export default function GroceryPage() {
     },
     enabled: !!activeListId,
     staleTime: 10_000,
-    refetchInterval: 10_000,
   });
 
   const items = itemsQuery.data?.items ?? [];

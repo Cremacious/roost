@@ -193,7 +193,6 @@ export default function MealsPage() {
       return r.json();
     },
     staleTime: 10_000,
-    refetchInterval: 10_000,
     retry: 2,
   });
 
@@ -216,7 +215,6 @@ export default function MealsPage() {
       return r.json();
     },
     staleTime: 10_000,
-    refetchInterval: 10_000,
     retry: 2,
     enabled: tab === 'suggestions',
   });

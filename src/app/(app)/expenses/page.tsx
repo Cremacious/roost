@@ -607,7 +607,6 @@ export default function ExpensesPage() {
       return r.json();
     },
     staleTime: 10_000,
-    refetchInterval: 10_000,
     retry: 2,
   });
 

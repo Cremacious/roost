@@ -172,7 +172,6 @@ export default function CalendarPage() {
       return r.json();
     },
     staleTime: 10_000,
-    refetchInterval: 10_000,
     retry: 2,
   });
 
@@ -185,7 +184,6 @@ export default function CalendarPage() {
       return r.json();
     },
     staleTime: 10_000,
-    refetchInterval: 10_000,
     retry: 2,
     enabled: view === "agenda",
   });
@@ -198,7 +196,6 @@ export default function CalendarPage() {
       return r.json();
     },
     staleTime: 10_000,
-    refetchInterval: 10_000,
     retry: 2,
     enabled: view === "agenda",
   });

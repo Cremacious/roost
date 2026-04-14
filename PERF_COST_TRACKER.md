@@ -11,7 +11,7 @@ Status legend:
 ## Current focus
 
 - `[x]` 1. Remove global polling defaults
-- `[ ]` 2. Reduce or eliminate aggressive page-level polling
+- `[x]` 2. Reduce or eliminate aggressive page-level polling
 - `[ ]` 3. Stop doing theme/session DB work in the root layout on every request
 - `[ ]` 4. Audit oversized API responses and add slimmer summary endpoints
 - `[ ]` 5. Review and add indexes for hot household/date-scoped queries
@@ -53,6 +53,17 @@ Work log:
 Goal:
 - Replace most `10s` polling with mutation-driven invalidation, focus refetches,
   or slower intervals where freshness matters.
+
+Work log:
+- `2026-04-14`: Removed explicit `10s` polling from dashboard, calendar,
+  chores, expenses, grocery, meals, notes, reminders, and tasks.
+- `2026-04-14`: Removed the `reminders-due` `60s` polling loop from the shared
+  reminder banner so due reminders no longer refresh in the background on every
+  open tab.
+- `2026-04-14`: Confirmed the only remaining explicit `refetchInterval` is the
+  `5 minute` weather refresh in `TopBar`, which is deferred to item 8 because
+  it is an external fetch rather than app data polling.
+- `2026-04-14`: Verified with targeted `eslint` and a full `npm run build`.
 
 ### 3. Stop doing theme/session DB work in the root layout on every request
 

@@ -55,6 +55,7 @@ Open `.env.local` and fill in at minimum:
 ```
 DATABASE_URL=           # Neon connection string
 BETTER_AUTH_SECRET=     # openssl rand -base64 32
+BETTER_AUTH_URL=        # http://localhost:3000 for local dev
 NEXT_PUBLIC_APP_URL=    # http://localhost:3000 for local dev
 CRON_SECRET=            # openssl rand -base64 32 (any value works locally)
 ADMIN_EMAIL=            # any email, e.g. admin@localhost
@@ -186,7 +187,7 @@ See [`.env.example`](.env.example) for the full annotated list with required/opt
 classification.
 
 **Required for the app to work:**
-`DATABASE_URL`, `BETTER_AUTH_SECRET`, `NEXT_PUBLIC_APP_URL`, `CRON_SECRET`,
+`DATABASE_URL`, `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL`, `NEXT_PUBLIC_APP_URL`, `CRON_SECRET`,
 `ADMIN_EMAIL`, `ADMIN_PASSWORD`, `ADMIN_SESSION_SECRET`
 
 **Required for billing:**
@@ -194,6 +195,9 @@ classification.
 
 **Required for receipt scanning:**
 `AZURE_DOCUMENT_INTELLIGENCE_ENDPOINT`, `AZURE_DOCUMENT_INTELLIGENCE_KEY`
+
+**Optional for observability forwarding:**
+`OBSERVABILITY_WEBHOOK_URL`, `NEXT_PUBLIC_OBSERVABILITY_ENABLED`
 
 ---
 

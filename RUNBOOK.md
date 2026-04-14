@@ -29,11 +29,13 @@ Work through these in order. Each section has detail below.
 [ ] All required env vars set in Vercel (Section 2)
 [ ] Schema pushed to production database (Section 3)
 [ ] Vercel project connected to git repo and first deploy complete
+[ ] BETTER_AUTH_URL set to the real production domain
 [ ] NEXT_PUBLIC_APP_URL set to the real production domain (not localhost)
 [ ] Stripe product and price created, STRIPE_PRICE_ID confirmed (Section 4)
 [ ] Stripe webhook registered with production URL (Section 4)
 [ ] Stripe Customer Portal activated in Stripe dashboard (Section 4)
 [ ] Cron jobs visible in Vercel dashboard (Section 5)
+[ ] Observability forwarding configured or consciously left disabled (Section 2)
 [ ] Smoke test passed (Section 6)
 [ ] Admin panel login verified at /admin
 ```
@@ -52,6 +54,7 @@ Set each variable for the **Production** environment. Do not rely on `.env.local
 |---|---|
 | `DATABASE_URL` | Neon dashboard > your project > Connection Details > Connection string |
 | `BETTER_AUTH_SECRET` | `openssl rand -base64 32` |
+| `BETTER_AUTH_URL` | Your production domain, e.g. `https://roost.app` — no trailing slash |
 | `NEXT_PUBLIC_APP_URL` | Your production domain, e.g. `https://roost.app` — no trailing slash |
 | `CRON_SECRET` | `openssl rand -base64 32` |
 | `ADMIN_EMAIL` | Any email, used only for admin panel login |
@@ -73,11 +76,12 @@ Set each variable for the **Production** environment. Do not rely on `.env.local
 | `AZURE_DOCUMENT_INTELLIGENCE_ENDPOINT` | Azure Portal > your Document Intelligence resource > Keys and Endpoint |
 | `AZURE_DOCUMENT_INTELLIGENCE_KEY` | Same page, Key 1 |
 
-### Recommended
+### Optional / recommended
 
 | Variable | Notes |
 |---|---|
-| `BETTER_AUTH_URL` | Set to `NEXT_PUBLIC_APP_URL`. Helps better-auth resolve redirects correctly on non-Vercel hosts. |
+| `OBSERVABILITY_WEBHOOK_URL` | Optional HTTPS endpoint for forwarding structured client/server events to your monitoring tool. |
+| `NEXT_PUBLIC_OBSERVABILITY_ENABLED` | `true` to emit page views, client errors, and web vitals from browsers. Defaults to `true` in production. |
 
 ### Not needed in production
 
@@ -87,11 +91,12 @@ Set each variable for the **Production** environment. Do not rely on `.env.local
 
 ### Silent breakage risks
 
-These variables have localhost fallbacks and will not crash the build if missing,
-but the app will behave incorrectly in production:
+These variables can produce valid builds but incorrect production behavior if misconfigured:
 
-- `NEXT_PUBLIC_APP_URL` — missing means invite links, Stripe redirects, and auth callbacks
+- `BETTER_AUTH_URL` — wrong value can break auth redirects and callback resolution.
+- `NEXT_PUBLIC_APP_URL` — wrong value means invite links, Stripe redirects, and auth callbacks
   all point to `http://localhost:3000`. Users see broken flows with no error.
+- `OBSERVABILITY_WEBHOOK_URL` — a bad URL will not break the app, but monitoring forwards will silently fail.
 
 ---
 
@@ -267,6 +272,13 @@ Each cron emits a `.start` log when it begins and a `.done` log with result coun
 duration when it finishes. If a cron is running but processing 0 items, that is normal
 when there is nothing due.
 
+For the recurring expenses cron, a successful run logs:
+
+```
+[cron/recurring-expenses.start]
+[cron/recurring-expenses.done] created=... skipped=... reminded=... durationMs=...
+```
+
 If a cron route is never logged, check:
 1. `CRON_SECRET` is set in Vercel environment variables
 2. The route exists (match path in `vercel.json` to actual file in `src/app/api/cron/`)
@@ -313,6 +325,11 @@ Run these checks after every production deploy. They cover the critical paths.
 - [ ] Overview page shows stats (may be 0 for a fresh deploy)
 - [ ] Users page loads
 - [ ] Households page loads
+
+### Observability
+- [ ] Visit `/` and one authenticated page, then check logs for `[obs.event] type=page_view`
+- [ ] Force a handled client error in the browser console and confirm an `[obs.event] type=client_error` log
+- [ ] If `OBSERVABILITY_WEBHOOK_URL` is configured, verify the destination receives forwarded events
 
 ### Crons (check logs, not manual trigger)
 - [ ] Wait for reminders cron (runs every 15 min) — verify `.start` and `.done` logs appear in Vercel
@@ -410,10 +427,12 @@ Use this when something is broken in production and you need to triage quickly.
 | Symptom | Likely cause | First action |
 |---|---|---|
 | All users cannot log in | `BETTER_AUTH_SECRET` changed or DB unreachable | Check Neon status, verify env vars |
+| Logins redirect incorrectly | `BETTER_AUTH_URL` or `NEXT_PUBLIC_APP_URL` wrong | Verify both match the production domain |
 | Stripe webhooks failing | Wrong `STRIPE_WEBHOOK_SECRET` or route error | Check logs for `stripe.webhook.sig_invalid` |
 | Premium not activating after payment | Webhook not registered or householdId missing | Check Stripe dashboard webhook delivery logs |
 | Cron jobs not running | `CRON_SECRET` missing or wrong | Check Vercel cron tab, trigger manually |
 | Receipt scanning failing | Azure credentials wrong or quota exceeded | Check logs for `receipt.scan.failed`, verify Azure portal |
+| Monitoring is silent | `NEXT_PUBLIC_OBSERVABILITY_ENABLED` false or webhook misconfigured | Check `[obs.event]` logs and webhook URL |
 | App renders but shows errors | Code bug in last deploy | Roll back via Vercel (Section 8, Option A) |
 | DB connection errors everywhere | Neon connection pool exhausted | Check Neon monitoring, reduce serverless concurrency |
 
@@ -474,3 +493,4 @@ For any outage affecting billing or data:
 - Stripe test cards: `4242 4242 4242 4242` (success), `4000 0000 0000 0002` (decline)
 - Azure quota: Azure Portal > your Document Intelligence resource > Metrics > Transactions
 - Structured log prefixes: `[cron/`, `[stripe.webhook.`, `[receipt.scan.`, `[analytics.`, `[admin-login]`
+- Observability event logs: `[obs.event]`, `[obs.request_error]`, `[obs.webhook.failed]`

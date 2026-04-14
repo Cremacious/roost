@@ -4,11 +4,6 @@ import { Toaster } from "@/components/ui/sonner";
 import ThemeProvider from "@/components/providers/ThemeProvider";
 import ObservabilityProvider from "@/components/providers/ObservabilityProvider";
 import WebVitals from "@/components/providers/WebVitals";
-import { auth } from "@/lib/auth";
-import { db } from "@/lib/db";
-import { users } from "@/db/schema";
-import { eq } from "drizzle-orm";
-import { headers } from "next/headers";
 import { DEFAULT_THEME } from "@/lib/constants/themes";
 import { getAppUrl, getMetadataBaseUrl, validateServerEnv } from "@/lib/env";
 import "./globals.css";
@@ -50,9 +45,7 @@ export const metadata: Metadata = {
       { url: "/favicon-16x16.png", sizes: "16x16", type: "image/png" },
       { url: "/favicon-32x32.png", sizes: "32x32", type: "image/png" },
     ],
-    apple: [
-      { url: "/apple-touch-icon.png", sizes: "180x180" },
-    ],
+    apple: [{ url: "/apple-touch-icon.png", sizes: "180x180" }],
     other: [
       {
         rel: "mask-icon",
@@ -68,13 +61,11 @@ export const metadata: Metadata = {
     title: "Roost",
     description: "Homes run better with Roost.",
     siteName: "Roost",
-    // images resolved automatically from src/app/opengraph-image.tsx
   },
   twitter: {
     card: "summary_large_image",
     title: "Roost",
     description: "Homes run better with Roost.",
-    // images resolved automatically from src/app/opengraph-image.tsx
   },
   appleWebApp: {
     capable: true,
@@ -92,29 +83,11 @@ export const viewport: Viewport = {
   maximumScale: 1,
 };
 
-export default async function RootLayout({
+export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  let initialTheme: string = DEFAULT_THEME;
-
-  try {
-    const session = await auth.api.getSession({ headers: await headers() });
-    if (session?.user?.id) {
-      const [user] = await db
-        .select({ theme: users.theme })
-        .from(users)
-        .where(eq(users.id, session.user.id))
-        .limit(1);
-      if (user?.theme) {
-        initialTheme = user.theme;
-      }
-    }
-  } catch {
-    // No session or DB error — use default theme
-  }
-
   return (
     <html
       lang="en"
@@ -124,7 +97,7 @@ export default async function RootLayout({
       <body className="min-h-full flex flex-col">
         <ObservabilityProvider />
         <WebVitals />
-        <ThemeProvider initialTheme={initialTheme}>
+        <ThemeProvider initialTheme={DEFAULT_THEME}>
           {children}
         </ThemeProvider>
         <Toaster
@@ -132,28 +105,28 @@ export default async function RootLayout({
           richColors={false}
           toastOptions={{
             style: {
-              background: 'var(--roost-surface)',
-              border: '1.5px solid var(--roost-border)',
-              borderBottom: '4px solid var(--roost-border-bottom)',
-              borderRadius: '16px',
-              color: 'var(--roost-text-primary)',
-              fontFamily: 'var(--font-nunito)',
-              fontWeight: '700',
-              fontSize: '14px',
-              padding: '14px 16px',
-              boxShadow: 'none',
+              background: "var(--roost-surface)",
+              border: "1.5px solid var(--roost-border)",
+              borderBottom: "4px solid var(--roost-border-bottom)",
+              borderRadius: "16px",
+              color: "var(--roost-text-primary)",
+              fontFamily: "var(--font-nunito)",
+              fontWeight: "700",
+              fontSize: "14px",
+              padding: "14px 16px",
+              boxShadow: "none",
             },
             classNames: {
-              toast: 'roost-toast',
-              title: 'roost-toast-title',
-              description: 'roost-toast-description',
-              actionButton: 'roost-toast-action',
-              cancelButton: 'roost-toast-cancel',
-              closeButton: 'roost-toast-close',
-              success: 'roost-toast-success',
-              error: 'roost-toast-error',
-              warning: 'roost-toast-warning',
-              info: 'roost-toast-info',
+              toast: "roost-toast",
+              title: "roost-toast-title",
+              description: "roost-toast-description",
+              actionButton: "roost-toast-action",
+              cancelButton: "roost-toast-cancel",
+              closeButton: "roost-toast-close",
+              success: "roost-toast-success",
+              error: "roost-toast-error",
+              warning: "roost-toast-warning",
+              info: "roost-toast-info",
             },
           }}
         />

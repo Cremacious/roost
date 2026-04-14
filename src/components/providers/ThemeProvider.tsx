@@ -6,6 +6,7 @@ import { THEMES, DEFAULT_THEME, type ThemeKey } from "@/lib/constants/themes";
 import { useThemeStore } from "@/lib/store/themeStore";
 
 const VALID_THEME_KEYS = new Set<string>(['default', 'midnight']);
+const THEME_STORAGE_KEY = "roost-theme";
 
 function resolveThemeKey(key: string): ThemeKey {
   return VALID_THEME_KEYS.has(key) ? (key as ThemeKey) : DEFAULT_THEME;
@@ -82,6 +83,7 @@ export function useTheme() {
   const setTheme = async (key: ThemeKey) => {
     applyTheme(key);
     setThemeStore(key);
+    localStorage.setItem(THEME_STORAGE_KEY, key);
     try {
       const res = await fetch("/api/user/theme", {
         method: "PATCH",
@@ -110,9 +112,15 @@ export default function ThemeProvider({ children, initialTheme }: ThemeProviderP
   const setThemeStore = useThemeStore((s) => s.setTheme);
 
   useEffect(() => {
-    const resolved = resolveThemeKey(initialTheme ?? DEFAULT_THEME);
+    const storedTheme = typeof window !== "undefined"
+      ? window.localStorage.getItem(THEME_STORAGE_KEY)
+      : null;
+    const resolved = resolveThemeKey(storedTheme ?? initialTheme ?? DEFAULT_THEME);
     setThemeStore(resolved);
     applyTheme(resolved);
+    if (storedTheme !== resolved) {
+      window.localStorage.setItem(THEME_STORAGE_KEY, resolved);
+    }
   }, [initialTheme, setThemeStore]);
 
   return <>{children}</>;

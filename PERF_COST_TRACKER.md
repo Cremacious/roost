@@ -12,7 +12,7 @@ Status legend:
 
 - `[x]` 1. Remove global polling defaults
 - `[x]` 2. Reduce or eliminate aggressive page-level polling
-- `[ ]` 3. Stop doing theme/session DB work in the root layout on every request
+- `[x]` 3. Stop doing theme/session DB work in the root layout on every request
 - `[ ]` 4. Audit oversized API responses and add slimmer summary endpoints
 - `[ ]` 5. Review and add indexes for hot household/date-scoped queries
 - `[ ]` 6. Add retention/cleanup for operational tables
@@ -69,6 +69,17 @@ Work log:
 
 Goal:
 - Move expensive auth/theme reads out of the global layout path where possible.
+
+Work log:
+- `2026-04-14`: Removed the root layout's per-request `auth.api.getSession()`
+  and user theme DB query from `src/app/layout.tsx`.
+- `2026-04-14`: Kept auth protection intact by relying on the existing route
+  enforcement in `src/proxy.ts`, which still redirects unauthenticated users
+  away from protected app routes.
+- `2026-04-14`: Updated `ThemeProvider` to persist the selected theme in
+  `localStorage` and restore it client-side on future visits, while keeping the
+  existing `/api/user/theme` write on theme changes.
+- `2026-04-14`: Verified with targeted `eslint` and a full `npm run build`.
 
 ### 4. Audit oversized API responses and add slimmer summary endpoints
 

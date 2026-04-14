@@ -5,6 +5,8 @@ import { households, household_members, users } from "@/db/schema";
 import { and, eq, isNull } from "drizzle-orm";
 import { verifyPassword } from "better-auth/crypto";
 import { serializeSignedCookie } from "better-call";
+import { consumeRateLimit, resetRateLimit } from "@/lib/security/rateLimit";
+import { getClientIp, hashValue } from "@/lib/security/request";
 
 // ---- In-memory rate limiter --------------------------------------------------
 // Same pattern as admin login: 5 attempts per IP per 15-minute window.
@@ -14,34 +16,6 @@ import { serializeSignedCookie } from "better-call";
 const MAX_ATTEMPTS = 5;
 const WINDOW_MS = 15 * 60 * 1000;
 
-interface RateEntry { count: number; resetAt: number }
-const pinAttempts = new Map<string, RateEntry>();
-
-function getClientIp(request: NextRequest): string {
-  return (
-    request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ??
-    request.headers.get("x-real-ip") ??
-    "unknown"
-  );
-}
-
-function checkRateLimit(ip: string): { allowed: boolean; retryAfterSec: number } {
-  const now = Date.now();
-  const entry = pinAttempts.get(ip);
-  if (!entry || now > entry.resetAt) {
-    pinAttempts.set(ip, { count: 1, resetAt: now + WINDOW_MS });
-    return { allowed: true, retryAfterSec: 0 };
-  }
-  if (entry.count >= MAX_ATTEMPTS) {
-    return { allowed: false, retryAfterSec: Math.ceil((entry.resetAt - now) / 1000) };
-  }
-  entry.count++;
-  return { allowed: true, retryAfterSec: 0 };
-}
-
-function clearRateLimit(ip: string): void {
-  pinAttempts.delete(ip);
-}
 
 // ---- GET: List children in a household (public, no auth) --------------------
 
@@ -85,7 +59,13 @@ export async function GET(request: NextRequest): Promise<Response> {
 
 export async function POST(request: NextRequest): Promise<Response> {
   const ip = getClientIp(request);
-  const { allowed, retryAfterSec } = checkRateLimit(ip);
+  const rateLimitKey = hashValue(`child-login:${ip}`);
+  const { allowed, retryAfterSec } = await consumeRateLimit({
+    scope: "child-login",
+    key: rateLimitKey,
+    limit: MAX_ATTEMPTS,
+    windowMs: WINDOW_MS,
+  });
   if (!allowed) {
     return Response.json(
       { error: "Too many attempts. Try again later." },
@@ -148,7 +128,7 @@ export async function POST(request: NextRequest): Promise<Response> {
     return Response.json({ error: "Invalid PIN" }, { status: 401 });
   }
 
-  clearRateLimit(ip);
+  await resetRateLimit("child-login", rateLimitKey);
 
   const ctx = await auth.$context;
   const session = await ctx.internalAdapter.createSession(childId);

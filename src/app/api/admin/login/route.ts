@@ -3,60 +3,43 @@ import {
   checkAdminCredentials,
   createAdminSession,
   ADMIN_SESSION_COOKIE,
-  SESSION_DURATION,
+  adminSessionCookieAttributes,
 } from "@/lib/admin/auth";
-
-// ---- In-memory rate limiter --------------------------------------------------
-// Limits per source IP: 5 attempts per 15-minute window.
-// Note: this is per serverless function instance (Vercel). It prevents trivial
-// brute force but does not protect against distributed attacks across instances.
-// For stronger protection, use Vercel KV or an upstream WAF.
+import { consumeRateLimit, resetRateLimit } from "@/lib/security/rateLimit";
+import {
+  getClientIp,
+  hashValue,
+  isAdminIpAllowed,
+  isSameOriginRequest,
+} from "@/lib/security/request";
+import { log } from "@/lib/utils/logger";
 
 const MAX_ATTEMPTS = 5;
 const WINDOW_MS = 15 * 60 * 1000; // 15 minutes
-
-interface RateEntry { count: number; resetAt: number }
-const loginAttempts = new Map<string, RateEntry>();
-
-function getClientIp(request: NextRequest): string {
-  return (
-    request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ??
-    request.headers.get("x-real-ip") ??
-    "unknown"
-  );
-}
-
-function checkRateLimit(ip: string): { allowed: boolean; retryAfterSec: number } {
-  const now = Date.now();
-  const entry = loginAttempts.get(ip);
-
-  if (!entry || now > entry.resetAt) {
-    loginAttempts.set(ip, { count: 1, resetAt: now + WINDOW_MS });
-    return { allowed: true, retryAfterSec: 0 };
-  }
-
-  if (entry.count >= MAX_ATTEMPTS) {
-    return { allowed: false, retryAfterSec: Math.ceil((entry.resetAt - now) / 1000) };
-  }
-
-  entry.count++;
-  return { allowed: true, retryAfterSec: 0 };
-}
-
-function clearRateLimit(ip: string): void {
-  loginAttempts.delete(ip);
-}
 
 // ---- POST: admin login -------------------------------------------------------
 
 export async function POST(request: NextRequest): Promise<Response> {
   const ip = getClientIp(request);
-  const now = new Date().toISOString();
+  const sourceKey = hashValue(`admin-login:${ip}`);
+
+  if (!isAdminIpAllowed(request)) {
+    return new Response("Not Found", { status: 404 });
+  }
+
+  if (!isSameOriginRequest(request)) {
+    return Response.json({ error: "Forbidden" }, { status: 403 });
+  }
 
   // Rate limit check
-  const { allowed, retryAfterSec } = checkRateLimit(ip);
+  const { allowed, retryAfterSec } = await consumeRateLimit({
+    scope: "admin-login",
+    key: sourceKey,
+    limit: MAX_ATTEMPTS,
+    windowMs: WINDOW_MS,
+  });
   if (!allowed) {
-    console.warn(`[admin-login] rate-limited ip=${ip} at=${now}`);
+    log.warn("admin.login.rate_limited", { sourceKey, retryAfterSec });
     return Response.json(
       { error: "Too many login attempts. Try again later." },
       {
@@ -79,13 +62,13 @@ export async function POST(request: NextRequest): Promise<Response> {
   }
 
   if (!checkAdminCredentials(email, password)) {
-    console.warn(`[admin-login] failed attempt email=${email} ip=${ip} at=${now}`);
+    log.warn("admin.login.failed", { sourceKey });
     return Response.json({ error: "Invalid credentials" }, { status: 401 });
   }
 
   // Successful login: clear rate limit counter and issue session
-  clearRateLimit(ip);
-  console.info(`[admin-login] success email=${email} ip=${ip} at=${now}`);
+  await resetRateLimit("admin-login", sourceKey);
+  log.info("admin.login.succeeded", { sourceKey });
 
   const token = await createAdminSession();
   const isProduction = process.env.NODE_ENV === "production";
@@ -93,17 +76,14 @@ export async function POST(request: NextRequest): Promise<Response> {
   const response = Response.json({ success: true });
   const cookieValue = [
     `${ADMIN_SESSION_COOKIE}=${token}`,
-    `Max-Age=${SESSION_DURATION}`,
-    `Path=/`,
-    `HttpOnly`,
-    `SameSite=Lax`,
-    isProduction ? "Secure" : "",
+    ...adminSessionCookieAttributes(isProduction),
   ]
     .filter(Boolean)
     .join("; ");
 
   const headers = new Headers(response.headers);
   headers.set("Set-Cookie", cookieValue);
+  headers.set("Cache-Control", "no-store");
 
   return new Response(response.body, { status: 200, headers });
 }

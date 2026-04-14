@@ -1,6 +1,19 @@
+import { isAdminIpAllowed, isSafeMethod, isSameOriginRequest } from "@/lib/security/request";
 import { ADMIN_SESSION_COOKIE, verifyAdminSession } from "./auth";
 
+function getBlockedAdminResponse(): Response {
+  return new Response("Not Found", { status: 404 });
+}
+
 export async function requireAdminSession(request: Request): Promise<Response | null> {
+  if (!isAdminIpAllowed(request)) {
+    return getBlockedAdminResponse();
+  }
+
+  if (!isSafeMethod(request.method) && !isSameOriginRequest(request)) {
+    return Response.json({ error: "Forbidden" }, { status: 403 });
+  }
+
   const cookieHeader = request.headers.get("cookie") ?? "";
 
   // Parse cookies manually (no DOM dependency needed here)

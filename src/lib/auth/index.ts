@@ -2,7 +2,7 @@ import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "@better-auth/drizzle-adapter";
 import { db } from "@/lib/db";
 import { users } from "@/db/schema";
-import { eq } from "drizzle-orm";
+import { log } from "@/lib/utils/logger";
 
 export const auth = betterAuth({
   database: drizzleAdapter(db, {
@@ -42,7 +42,7 @@ export const auth = betterAuth({
               language: "en",
             }).onConflictDoNothing();
           } catch (err) {
-            console.error("[auth hook] Failed to mirror user into users table:", err);
+            log.error("auth.user_mirror.failed", undefined, err);
           }
         },
       },

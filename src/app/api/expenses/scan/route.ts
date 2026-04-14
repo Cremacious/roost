@@ -6,9 +6,13 @@ import { eq } from "drizzle-orm";
 import { getUserHousehold } from "@/app/api/chores/route";
 import { parseReceiptImage } from "@/lib/utils/azureReceipts";
 import { log } from "@/lib/utils/logger";
+import { consumeRateLimit } from "@/lib/security/rateLimit";
+import { hashValue } from "@/lib/security/request";
 
 // Max base64 length for a 10MB image (10 * 1024 * 1024 / 0.75 ≈ 13,981,013)
 const MAX_BASE64_LENGTH = 14_000_000;
+const RECEIPT_SCAN_LIMIT = 10;
+const RECEIPT_SCAN_WINDOW_MS = 15 * 60 * 1000;
 
 export async function POST(request: NextRequest): Promise<Response> {
   let session;
@@ -53,6 +57,22 @@ export async function POST(request: NextRequest): Promise<Response> {
 
   if (body.imageBase64.length > MAX_BASE64_LENGTH) {
     return Response.json({ error: "Image must be under 10MB" }, { status: 400 });
+  }
+
+  const rateLimitKey = hashValue(`receipt-scan:${membership.householdId}:${session.user.id}`);
+  const { allowed, retryAfterSec } = await consumeRateLimit({
+    scope: "receipt-scan",
+    key: rateLimitKey,
+    limit: RECEIPT_SCAN_LIMIT,
+    windowMs: RECEIPT_SCAN_WINDOW_MS,
+  });
+
+  if (!allowed) {
+    log.warn("receipt.scan.rate_limited", { householdId: membership.householdId, retryAfterSec });
+    return Response.json(
+      { error: "Too many receipt scans. Try again shortly." },
+      { status: 429, headers: { "Retry-After": String(retryAfterSec) } }
+    );
   }
 
   try {

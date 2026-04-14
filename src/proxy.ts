@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { getSession } from "@/lib/auth/helpers";
+import { isAdminIpAllowed } from "@/lib/security/request";
 
 // Always public — never redirect
 const ALWAYS_PUBLIC = ["/", "/privacy", "/terms"];
@@ -26,6 +27,9 @@ function nextWithPathname(request: NextRequest, pathname: string) {
 
 export async function proxy(request: NextRequest): Promise<NextResponse> {
   const { pathname } = request.nextUrl;
+  if ((pathname.startsWith("/admin") || pathname.startsWith("/api/admin")) && !isAdminIpAllowed(request)) {
+    return new NextResponse("Not Found", { status: 404 });
+  }
 
   // Always public — homepage is never redirected
   if (ALWAYS_PUBLIC.includes(pathname)) {

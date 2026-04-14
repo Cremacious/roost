@@ -18,7 +18,6 @@ import {
 } from "lucide-react";
 import EmptyState from "@/components/shared/EmptyState";
 import ErrorState from "@/components/shared/ErrorState";
-import { useHousehold } from "@/lib/hooks/useHousehold";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatDistanceToNow } from "date-fns";
 import { motion } from "framer-motion";
@@ -29,29 +28,24 @@ import WelcomeModal from "@/components/shared/WelcomeModal";
 
 // ---- Types ------------------------------------------------------------------
 
-interface MembersResponse {
-  household: { id: string; name: string; subscriptionStatus: string };
-  members: { userId: string; name: string; avatarColor: string | null }[];
-}
-
-interface ExpensesSummaryResponse {
-  myBalance: number;
-}
-
 interface ActivityAPIItem {
   id: string;
   type: string;
   description: string;
-  user_id: string;
   user_name: string;
-  user_avatar: string | null;
   created_at: string;
 }
 
-interface ActivityResponse {
+interface DashboardSummaryResponse {
+  household: { id: string; name: string } | null;
+  role: string | null;
+  isPremium: boolean;
+  hasSeenWelcome: boolean;
+  myBalance: number;
+  dueReminderCount: number;
+  tonightMealName: string | null;
   activity: ActivityAPIItem[];
-  total: number;
-  hasMore: boolean;
+  activityHasMore: boolean;
 }
 
 interface ActivityItem {
@@ -348,112 +342,41 @@ export default function DashboardPage() {
   const router = useRouter();
   const { data: sessionData } = useSession();
   const userName = sessionData?.user?.name ?? "";
-  const { isPremium, role } = useHousehold();
   const [welcomeDismissed, setWelcomeDismissed] = useState(false);
 
-  const { data: profileData } = useQuery<{ user: { has_seen_welcome: boolean } }>({
-    queryKey: ["user-profile"],
-    queryFn: async () => {
-      const r = await fetch("/api/user/profile");
-      if (!r.ok) return { user: { has_seen_welcome: true } };
-      return r.json();
-    },
-    staleTime: Infinity,
-    retry: 1,
-  });
-
   const {
-    data: membersData,
-    isLoading: membersLoading,
-    isError: membersError,
-    refetch: refetchMembers,
-  } = useQuery<MembersResponse>({
-    queryKey: ["household-members"],
+    data: dashboardSummary,
+    isLoading,
+    isError,
+    refetch,
+  } = useQuery<DashboardSummaryResponse>({
+    queryKey: ["dashboard-summary"],
     queryFn: async () => {
-      const r = await fetch("/api/household/members");
+      const r = await fetch("/api/dashboard/summary");
       if (!r.ok) {
         const d = await r.json().catch(() => ({}));
-        throw new Error(d.error ?? "Failed to load members");
+        throw new Error(d.error ?? "Failed to load dashboard");
       }
-      return r.json();
-    },
-    staleTime: 10_000,
-    retry: 2,
-  });
-
-  const { data: expensesSummary } = useQuery<ExpensesSummaryResponse>({
-    queryKey: ["expenses-summary"],
-    queryFn: async () => {
-      const r = await fetch("/api/expenses");
-      if (!r.ok) return { myBalance: 0 };
-      const d = await r.json();
-      return { myBalance: d.myBalance ?? 0 };
-    },
-    staleTime: 10_000,
-    retry: 1,
-    enabled: isPremium,
-  });
-
-  const { data: remindersDueData } = useQuery<{ due: { id: string; title: string }[] }>({
-    queryKey: ["reminders-due"],
-    queryFn: async () => {
-      const r = await fetch("/api/reminders/due");
-      if (!r.ok) return { due: [] };
       return r.json();
     },
     staleTime: 60_000,
     retry: 1,
   });
 
-  const { data: mealsTonightData } = useQuery<{ slots: { slot_type: string; meal_name: string | null; custom_meal_name: string | null }[] }>({
-    queryKey: ["planner-tonight"],
-    queryFn: async () => {
-      const today = new Date();
-      const dow = today.getDay();
-      const diff = (dow === 0 ? -6 : 1 - dow);
-      const monday = new Date(today);
-      monday.setDate(today.getDate() + diff);
-      const weekStart = monday.toISOString().slice(0, 10);
-      const r = await fetch(`/api/meals/planner?weekStart=${weekStart}`);
-      if (!r.ok) return { slots: [] };
-      return r.json();
-    },
-    staleTime: 10_000,
-    retry: 1,
-  });
+  if (isLoading) return <DashboardSkeleton />;
 
-  const {
-    data: activityData,
-    isError: activityError,
-    refetch: refetchActivity,
-  } = useQuery<ActivityResponse>({
-    queryKey: ["household-activity"],
-    queryFn: async () => {
-      const r = await fetch("/api/household/activity?limit=5");
-      if (!r.ok) {
-        const d = await r.json().catch(() => ({}));
-        throw new Error(d.error ?? "Failed to load activity");
-      }
-      return r.json();
-    },
-    staleTime: 10_000,
-    retry: 2,
-  });
-
-  if (membersLoading) return <DashboardSkeleton />;
-
-  if (membersError) {
+  if (isError) {
     return (
       <div className="py-4 pb-24 md:py-6" style={{ backgroundColor: "var(--roost-bg)" }}>
         <PageContainer>
-          <ErrorState onRetry={refetchMembers} />
+          <ErrorState onRetry={refetch} />
         </PageContainer>
       </div>
     );
   }
 
   // Guard: user has no household yet
-  if (membersData && !membersData.household) {
+  if (!dashboardSummary?.household) {
     return (
       <div className="py-4 pb-24 md:py-6" style={{ backgroundColor: "var(--roost-bg)" }}>
         <PageContainer>
@@ -470,30 +393,36 @@ export default function DashboardPage() {
     );
   }
 
-  const activityItems = (activityData?.activity ?? []).map(mapActivity);
+  const {
+    activity,
+    activityHasMore,
+    dueReminderCount,
+    hasSeenWelcome,
+    isPremium,
+    myBalance,
+    role,
+    tonightMealName,
+  } = dashboardSummary;
+
+  const activityItems = activity.map(mapActivity);
 
   function expensesStatusText(): string {
     if (!isPremium) return "Premium feature";
-    const bal = expensesSummary?.myBalance ?? 0;
+    const bal = myBalance;
     if (bal > 0.01) return `Owed $${bal.toFixed(2)}`;
     if (bal < -0.01) return `You owe $${Math.abs(bal).toFixed(2)}`;
     return "All settled";
   }
 
   function remindersStatusText(): string {
-    const dueCount = remindersDueData?.due?.length ?? 0;
-    if (dueCount === 0) return "Nothing due today";
-    if (dueCount === 1) return "1 due today";
-    return `${dueCount} due today`;
+    if (dueReminderCount === 0) return "Nothing due today";
+    if (dueReminderCount === 1) return "1 due today";
+    return `${dueReminderCount} due today`;
   }
 
   function mealsStatusText(): string {
-    const tonightSlot = (mealsTonightData?.slots ?? []).find(
-      (s) => s.slot_type === "dinner"
-    );
-    if (tonightSlot) {
-      const name = tonightSlot.meal_name ?? tonightSlot.custom_meal_name;
-      if (name) return `Tonight: ${name}`;
+    if (tonightMealName) {
+      return `Tonight: ${tonightMealName}`;
     }
     return "Nothing planned tonight";
   }
@@ -507,8 +436,7 @@ export default function DashboardPage() {
 
   const showWelcome =
     !welcomeDismissed &&
-    profileData !== undefined &&
-    profileData.user.has_seen_welcome === false;
+    hasSeenWelcome === false;
 
   return (
     <motion.div
@@ -549,16 +477,11 @@ export default function DashboardPage() {
 
         {/* Recent Activity */}
         <div className="mb-4">
-          {activityError
-            ? <ErrorState onRetry={refetchActivity} />
-            : (
-              <ActivityFeed
-                items={activityItems}
-                hasMore={activityData?.hasMore ?? false}
-                onSeeAll={() => router.push("/activity")}
-              />
-            )
-          }
+          <ActivityFeed
+            items={activityItems}
+            hasMore={activityHasMore}
+            onSeeAll={() => router.push("/activity")}
+          />
         </div>
       </PageContainer>
     </motion.div>

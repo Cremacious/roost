@@ -1,34 +1,25 @@
 import { NextRequest } from "next/server";
-import { requireSession } from "@/lib/auth/helpers";
+import { requireCurrentMembership } from "@/lib/auth/helpers";
 import { db } from "@/lib/db";
 import { household_members, households, user, users } from "@/db/schema";
-import { desc, eq } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 
 export async function GET(request: NextRequest): Promise<Response> {
-  let session;
+  let authContext;
   try {
-    session = await requireSession(request);
+    authContext = await requireCurrentMembership(request);
   } catch (res) {
     return res as Response;
   }
 
-  // Keep this aligned with /api/household/me and the shared household helper:
-  // use the most recently joined household when a user has multiple memberships.
-  const [membership] = await db
-    .select({ householdId: household_members.household_id })
-    .from(household_members)
-    .where(eq(household_members.user_id, session.user.id))
-    .orderBy(desc(household_members.joined_at))
-    .limit(1);
-
-  if (!membership) {
-    return Response.json({ error: "No household found" }, { status: 404 });
-  }
+  const {
+    membership: { householdId },
+  } = authContext;
 
   const [household] = await db
     .select()
     .from(households)
-    .where(eq(households.id, membership.householdId))
+    .where(eq(households.id, householdId))
     .limit(1);
 
   if (!household) {

@@ -1,21 +1,30 @@
-import { date, integer, pgTable, text, timestamp, unique, uuid } from "drizzle-orm/pg-core";
+import { date, index, integer, pgTable, text, timestamp, unique, uuid } from "drizzle-orm/pg-core";
 import { households } from "./households";
 
-export const meals = pgTable("meals", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  household_id: uuid("household_id")
-    .references(() => households.id)
-    .notNull(),
-  name: text("name").notNull(),
-  description: text("description"),
-  category: text("category").notNull().default("dinner"),
-  ingredients: text("ingredients"), // JSON array of strings
-  prep_time: integer("prep_time"),
-  created_by: text("created_by").notNull(),
-  created_at: timestamp("created_at").defaultNow(),
-  updated_at: timestamp("updated_at").defaultNow(),
-  deleted_at: timestamp("deleted_at"),
-});
+export const meals = pgTable(
+  "meals",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    household_id: uuid("household_id")
+      .references(() => households.id)
+      .notNull(),
+    name: text("name").notNull(),
+    description: text("description"),
+    category: text("category").notNull().default("dinner"),
+    ingredients: text("ingredients"), // JSON array of strings
+    prep_time: integer("prep_time"),
+    created_by: text("created_by").notNull(),
+    created_at: timestamp("created_at").defaultNow(),
+    updated_at: timestamp("updated_at").defaultNow(),
+    deleted_at: timestamp("deleted_at"),
+  },
+  (t) => ({
+    householdCreatedIdx: index("meals_household_created_idx").on(
+      t.household_id,
+      t.created_at
+    ),
+  })
+);
 
 export const meal_plan_slots = pgTable(
   "meal_plan_slots",
@@ -31,7 +40,13 @@ export const meal_plan_slots = pgTable(
     assigned_by: text("assigned_by").notNull(),
     created_at: timestamp("created_at").defaultNow(),
   },
-  (t) => [unique().on(t.household_id, t.slot_date, t.slot_type)]
+  (t) => ({
+    householdSlotDateIdx: index("meal_plan_slots_household_slot_date_idx").on(
+      t.household_id,
+      t.slot_date
+    ),
+    householdSlotUnique: unique().on(t.household_id, t.slot_date, t.slot_type),
+  })
 );
 
 export const meal_suggestions = pgTable("meal_suggestions", {

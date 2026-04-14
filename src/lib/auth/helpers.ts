@@ -1,7 +1,7 @@
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { household_members, households } from "@/db/schema";
-import { and, eq } from "drizzle-orm";
+import { and, desc, eq } from "drizzle-orm";
 import type { HouseholdMember } from "@/db/schema";
 
 type SessionUser = typeof auth.$Infer.Session.user;
@@ -16,12 +16,28 @@ export interface AuthSessionWithMember extends AuthSession {
   member: HouseholdMember;
 }
 
+export interface CurrentMembership {
+  householdId: string;
+  role: HouseholdMember["role"];
+  expiresAt: Date | null;
+  joinedAt: Date | null;
+}
+
+const sessionCache = new WeakMap<Request, Promise<AuthSession | null>>();
+const membershipCache = new WeakMap<Request, Promise<CurrentMembership | null>>();
+
 export async function getSession(
   request: Request
 ): Promise<AuthSession | null> {
-  const session = await auth.api.getSession({ headers: request.headers });
-  if (!session) return null;
-  return session;
+  let cached = sessionCache.get(request);
+  if (!cached) {
+    cached = auth.api.getSession({ headers: request.headers }).then(
+      (session) => session ?? null
+    );
+    sessionCache.set(request, cached);
+  }
+
+  return cached;
 }
 
 export async function requireSession(request: Request): Promise<AuthSession> {
@@ -30,6 +46,59 @@ export async function requireSession(request: Request): Promise<AuthSession> {
     throw new Response("Unauthorized", { status: 401 });
   }
   return session;
+}
+
+export async function getCurrentMembership(
+  request: Request
+): Promise<CurrentMembership | null> {
+  let cached = membershipCache.get(request);
+  if (!cached) {
+    cached = (async () => {
+      const session = await getSession(request);
+      if (!session) return null;
+
+      const [membership] = await db
+        .select({
+          householdId: household_members.household_id,
+          role: household_members.role,
+          expiresAt: household_members.expires_at,
+          joinedAt: household_members.joined_at,
+        })
+        .from(household_members)
+        .where(eq(household_members.user_id, session.user.id))
+        .orderBy(desc(household_members.joined_at))
+        .limit(1);
+
+      if (!membership) return null;
+
+      if (
+        membership.role === "guest" &&
+        membership.expiresAt &&
+        membership.expiresAt < new Date()
+      ) {
+        return null;
+      }
+
+      return membership;
+    })();
+
+    membershipCache.set(request, cached);
+  }
+
+  return cached;
+}
+
+export async function requireCurrentMembership(
+  request: Request
+): Promise<AuthSession & { membership: CurrentMembership }> {
+  const session = await requireSession(request);
+  const membership = await getCurrentMembership(request);
+
+  if (!membership) {
+    throw Response.json({ error: "No household found" }, { status: 404 });
+  }
+
+  return { ...session, membership };
 }
 
 export async function requireHouseholdMember(

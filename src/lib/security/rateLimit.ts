@@ -15,6 +15,7 @@ interface RateLimitResult {
 }
 
 let ensureRateLimitTablePromise: Promise<void> | null = null;
+let lastRateLimitCleanupAt = 0;
 
 async function ensureRateLimitTable(): Promise<void> {
   if (!ensureRateLimitTablePromise) {
@@ -41,6 +42,7 @@ export async function consumeRateLimit({
   windowMs,
 }: ConsumeRateLimitOptions): Promise<RateLimitResult> {
   await ensureRateLimitTable();
+  void maybeCleanupExpiredRateLimits();
 
   const result = await db.execute(sql`
     INSERT INTO "request_rate_limits" ("scope", "key", "count", "reset_at", "created_at", "updated_at")
@@ -86,4 +88,28 @@ export async function resetRateLimit(scope: string, key: string): Promise<void> 
     DELETE FROM "request_rate_limits"
     WHERE "scope" = ${scope} AND "key" = ${key}
   `);
+}
+
+export async function cleanupExpiredRateLimits(): Promise<number> {
+  await ensureRateLimitTable();
+
+  const result = await db.execute(sql`
+    DELETE FROM "request_rate_limits"
+    WHERE "reset_at" < NOW()
+    RETURNING "scope"
+  `);
+
+  return result.rows.length;
+}
+
+async function maybeCleanupExpiredRateLimits(): Promise<void> {
+  const now = Date.now();
+  if (now - lastRateLimitCleanupAt < 10 * 60_000) return;
+  lastRateLimitCleanupAt = now;
+
+  try {
+    await cleanupExpiredRateLimits();
+  } catch {
+    // Cleanup is best-effort; rate limiting should keep working even if prune fails.
+  }
 }

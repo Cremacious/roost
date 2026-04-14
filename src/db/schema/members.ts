@@ -1,4 +1,4 @@
-import { boolean, pgTable, text, timestamp, unique, uuid } from "drizzle-orm/pg-core";
+import { boolean, index, pgTable, text, timestamp, unique, uuid } from "drizzle-orm/pg-core";
 import { households } from "./households";
 
 export const household_members = pgTable(
@@ -14,7 +14,13 @@ export const household_members = pgTable(
     expires_at: timestamp("expires_at"),
     joined_at: timestamp("joined_at").defaultNow(),
   },
-  (t) => [unique().on(t.household_id, t.user_id)]
+  (t) => ({
+    householdUserUnique: unique().on(t.household_id, t.user_id),
+    userJoinedIdx: index("household_members_user_joined_idx").on(
+      t.user_id,
+      t.joined_at
+    ),
+  })
 );
 
 export const member_permissions = pgTable(
@@ -28,7 +34,17 @@ export const member_permissions = pgTable(
     permission: text("permission").notNull(),
     enabled: boolean("enabled").notNull().default(true),
   },
-  (t) => [unique().on(t.household_id, t.user_id, t.permission)]
+  (t) => ({
+    householdUserPermissionUnique: unique().on(
+      t.household_id,
+      t.user_id,
+      t.permission
+    ),
+    userPermissionIdx: index("member_permissions_user_permission_idx").on(
+      t.user_id,
+      t.permission
+    ),
+  })
 );
 
 export type HouseholdMember = typeof household_members.$inferSelect;

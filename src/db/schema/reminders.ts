@@ -1,29 +1,42 @@
-import { boolean, pgTable, text, timestamp, unique, uuid } from "drizzle-orm/pg-core";
+import { boolean, index, pgTable, text, timestamp, unique, uuid } from "drizzle-orm/pg-core";
 import { households } from "./households";
 
-export const reminders = pgTable("reminders", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  household_id: uuid("household_id")
-    .references(() => households.id)
-    .notNull(),
-  created_by: text("created_by").notNull(),
-  title: text("title").notNull(),
-  note: text("note"),
-  remind_at: timestamp("remind_at").notNull(),
-  frequency: text("frequency").notNull().default("once"),
-  custom_days: text("custom_days"), // JSON array of day numbers (0=Sun..6=Sat)
-  notify_type: text("notify_type").notNull().default("self"), // self | specific | household
-  notify_user_ids: text("notify_user_ids"), // JSON array of user ids for 'specific'
-  completed: boolean("completed").notNull().default(false),
-  completed_at: timestamp("completed_at"),
-  completed_by: text("completed_by"),
-  last_sent_at: timestamp("last_sent_at"),
-  next_remind_at: timestamp("next_remind_at"),
-  snoozed_until: timestamp("snoozed_until"), // set on recurring complete, cleared on undo
-  deleted_at: timestamp("deleted_at"),
-  created_at: timestamp("created_at").defaultNow(),
-  updated_at: timestamp("updated_at").defaultNow(),
-});
+export const reminders = pgTable(
+  "reminders",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    household_id: uuid("household_id")
+      .references(() => households.id)
+      .notNull(),
+    created_by: text("created_by").notNull(),
+    title: text("title").notNull(),
+    note: text("note"),
+    remind_at: timestamp("remind_at").notNull(),
+    frequency: text("frequency").notNull().default("once"),
+    custom_days: text("custom_days"), // JSON array of day numbers (0=Sun..6=Sat)
+    notify_type: text("notify_type").notNull().default("self"), // self | specific | household
+    notify_user_ids: text("notify_user_ids"), // JSON array of user ids for 'specific'
+    completed: boolean("completed").notNull().default(false),
+    completed_at: timestamp("completed_at"),
+    completed_by: text("completed_by"),
+    last_sent_at: timestamp("last_sent_at"),
+    next_remind_at: timestamp("next_remind_at"),
+    snoozed_until: timestamp("snoozed_until"), // set on recurring complete, cleared on undo
+    deleted_at: timestamp("deleted_at"),
+    created_at: timestamp("created_at").defaultNow(),
+    updated_at: timestamp("updated_at").defaultNow(),
+  },
+  (t) => ({
+    householdNextReminderIdx: index("reminders_household_next_remind_idx").on(
+      t.household_id,
+      t.next_remind_at
+    ),
+    householdCompletedIdx: index("reminders_household_completed_idx").on(
+      t.household_id,
+      t.completed
+    ),
+  })
+);
 
 export const reminder_receipts = pgTable(
   "reminder_receipts",

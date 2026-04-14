@@ -79,19 +79,17 @@ export default function TopBar() {
     navigator.geolocation.getCurrentPosition(
       async (position) => {
         const { latitude: lat, longitude: lon } = position.coords;
-
-        await fetch("/api/user/preferences", {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ latitude: lat, longitude: lon }),
-        }).catch(() => {});
-
         const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
         const unit = tz.startsWith("America/") ? "fahrenheit" : "celsius";
+
         await fetch("/api/user/preferences", {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ temperature_unit: unit }),
+          body: JSON.stringify({
+            latitude: lat,
+            longitude: lon,
+            temperature_unit: unit,
+          }),
         }).catch(() => {});
 
         queryClient.invalidateQueries({ queryKey: ["user-preferences"] });
@@ -133,7 +131,7 @@ export default function TopBar() {
     queryKey: ["weather", effectiveLat, effectiveLon, temperatureUnit],
     queryFn: () => fetch(weatherUrl).then((r) => r.json()),
     staleTime: 5 * 60_000,
-    refetchInterval: 5 * 60_000,
+    refetchOnWindowFocus: false,
     retry: false,
   });
 

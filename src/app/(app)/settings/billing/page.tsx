@@ -286,6 +286,13 @@ interface UsageItem {
   color: string;
 }
 
+interface BillingUsageResponse {
+  choresCount: number;
+  membersCount: number;
+  groceryListsCount: number;
+  remindersCount: number;
+}
+
 function UsageRow({ item }: { item: UsageItem }) {
   const pct = item.limit > 0 ? Math.min(Math.round((item.used / item.limit) * 100), 100) : 0;
   return (
@@ -577,7 +584,6 @@ function BillingPageInner() {
   const [isReactivating, setIsReactivating] = useState(false);
   const [isCheckingOut, setIsCheckingOut] = useState(false);
   const [isPortalLoading, setIsPortalLoading] = useState(false);
-  const [isVerifyingCheckout, setIsVerifyingCheckout] = useState(false);
   const [successBanner, setSuccessBanner] = useState(false);
   const [cancelledBanner, setCancelledBanner] = useState(false);
   const [mounted, setMounted] = useState(false);
@@ -586,44 +592,18 @@ function BillingPageInner() {
 
   // ---- Usage data queries (for free-tier plan card) --------------------------
 
-  const { data: choresData } = useQuery({
-    queryKey: ["chores"],
+  const { data: usageData } = useQuery<BillingUsageResponse>({
+    queryKey: ["billing-usage"],
     queryFn: async () => {
-      const r = await fetch("/api/chores");
-      if (!r.ok) return { chores: [] };
-      return r.json();
-    },
-    staleTime: 30_000,
-    enabled: !isLoading,
-  });
-
-  const { data: membersData } = useQuery({
-    queryKey: ["household-members"],
-    queryFn: async () => {
-      const r = await fetch("/api/household/members");
-      if (!r.ok) return { members: [] };
-      return r.json();
-    },
-    staleTime: 30_000,
-    enabled: !isLoading,
-  });
-
-  const { data: groceryListsData } = useQuery({
-    queryKey: ["grocery-lists"],
-    queryFn: async () => {
-      const r = await fetch("/api/grocery/lists");
-      if (!r.ok) return { lists: [] };
-      return r.json();
-    },
-    staleTime: 30_000,
-    enabled: !isLoading,
-  });
-
-  const { data: remindersData } = useQuery({
-    queryKey: ["reminders"],
-    queryFn: async () => {
-      const r = await fetch("/api/reminders");
-      if (!r.ok) return { reminders: [] };
+      const r = await fetch("/api/settings/billing/usage");
+      if (!r.ok) {
+        return {
+          choresCount: 0,
+          membersCount: 0,
+          groceryListsCount: 0,
+          remindersCount: 0,
+        };
+      }
       return r.json();
     },
     staleTime: 30_000,
@@ -633,26 +613,25 @@ function BillingPageInner() {
   const usageItems: UsageItem[] = [
     {
       label: "Chores",
-      used: choresData?.chores?.length ?? 0,
+      used: usageData?.choresCount ?? 0,
       limit: 5,
       color: "#EF4444",
     },
     {
       label: "Members",
-      used: membersData?.members?.length ?? 0,
+      used: usageData?.membersCount ?? 0,
       limit: 5,
       color: "#3B82F6",
     },
     {
       label: "Grocery lists",
-      used: groceryListsData?.lists?.length ?? 0,
+      used: usageData?.groceryListsCount ?? 0,
       limit: 1,
       color: "#F59E0B",
     },
     {
       label: "Reminders",
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      used: remindersData?.reminders?.filter((r: any) => !r.completed)?.length ?? 0,
+      used: usageData?.remindersCount ?? 0,
       limit: 5,
       color: "#06B6D4",
     },
@@ -675,7 +654,6 @@ function BillingPageInner() {
           return;
         }
 
-        setIsVerifyingCheckout(true);
         try {
           const res = await fetch(`/api/stripe/checkout-status?session_id=${encodeURIComponent(sessionId)}`);
           const data = await res.json().catch(() => ({}));
@@ -695,8 +673,6 @@ function BillingPageInner() {
           toast.error("Could not verify upgrade", {
             description: "Please refresh the billing page in a moment.",
           });
-        } finally {
-          setIsVerifyingCheckout(false);
         }
       }
 

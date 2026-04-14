@@ -1,4 +1,4 @@
-import { integer, pgTable, primaryKey, text, timestamp } from "drizzle-orm/pg-core";
+import { index, integer, pgTable, primaryKey, text, timestamp } from "drizzle-orm/pg-core";
 
 export const requestRateLimits = pgTable(
   "request_rate_limits",
@@ -12,5 +12,6 @@ export const requestRateLimits = pgTable(
   },
   (table) => ({
     pk: primaryKey({ columns: [table.scope, table.key] }),
+    resetAtIdx: index("request_rate_limits_reset_at_idx").on(table.reset_at),
   })
 );

@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import RoostLogo from "@/components/shared/RoostLogo";
 import { useUserPreferences } from "@/lib/hooks/useUserPreferences";
+import { useIsClient } from "@/lib/hooks/useIsClient";
 import { Skeleton } from "@/components/ui/skeleton";
 
 // ---- Types ------------------------------------------------------------------
@@ -47,7 +48,7 @@ function formatTime(date: Date): string {
 // ---- Component --------------------------------------------------------------
 
 export default function TopBar() {
-  const [mounted, setMounted] = useState(false);
+  const isClient = useIsClient();
   const [time, setTime] = useState<string>("");
   const locationRequested = useRef(false);
   const queryClient = useQueryClient();
@@ -57,7 +58,6 @@ export default function TopBar() {
   // ---- Clock ------------------------------------------------------------------
 
   useEffect(() => {
-    setMounted(true);
     const tick = () => setTime(formatTime(new Date()));
     tick();
     const id = setInterval(tick, 60_000);
@@ -165,7 +165,7 @@ export default function TopBar() {
       <div className="flex items-center gap-3">
         {/* Weather chip — mobile (white on red) */}
         <div className="md:hidden">
-          {!mounted ? (
+          {!isClient ? (
             <Skeleton className="h-7 w-20 rounded-full opacity-40" />
           ) : weatherLoading ? (
             <Skeleton className="h-7 w-20 rounded-full opacity-40" />
@@ -188,7 +188,7 @@ export default function TopBar() {
 
         {/* Weather chip — desktop (themed) */}
         <div className="hidden md:block">
-          {!mounted ? (
+          {!isClient ? (
             <Skeleton className="h-7 w-20 rounded-full" />
           ) : weatherLoading ? (
             <Skeleton className="h-7 w-20 rounded-full" />
@@ -215,7 +215,7 @@ export default function TopBar() {
           style={{ fontWeight: 700 }}
           suppressHydrationWarning
         >
-          {mounted ? time : ""}
+          {isClient ? time : ""}
         </span>
       </div>
     </header>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { motion } from "framer-motion";
@@ -8,6 +8,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useSession } from "@/lib/auth/client";
 import { signOut } from "@/lib/auth/client";
 import { useHousehold } from "@/lib/hooks/useHousehold";
+import { useIsClient } from "@/lib/hooks/useIsClient";
 import RoostLogo from "@/components/shared/RoostLogo";
 import MemberAvatar from "@/components/shared/MemberAvatar";
 import { applyTheme } from "@/components/providers/ThemeProvider";
@@ -59,7 +60,7 @@ export default function Sidebar() {
   const router = useRouter();
   const { data: sessionData } = useSession();
   const { role } = useHousehold();
-  const [mounted, setMounted] = useState(false);
+  const isClient = useIsClient();
 
   const [confirmSignOut, setConfirmSignOut] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
@@ -79,12 +80,8 @@ export default function Sidebar() {
 
   const userName = sessionData?.user?.name ?? "";
   const avatarColor = profileData?.user?.avatar_color ?? "#2563EB";
-  const displayUserName = mounted ? userName : "";
-  const displayRole = mounted ? role : undefined;
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
+  const displayUserName = isClient ? userName : "";
+  const displayRole = isClient ? role : undefined;
 
   async function handleSignOut() {
     setSigningOut(true);

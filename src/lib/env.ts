@@ -7,10 +7,13 @@ const PRODUCTION_REQUIRED_ENV_VARS = [
   "BETTER_AUTH_SECRET",
   "BETTER_AUTH_URL",
   "NEXT_PUBLIC_APP_URL",
+  "CRON_SECRET",
+] as const;
+
+const PRODUCTION_REQUIRED_ADMIN_ENV_VARS = [
   "ADMIN_EMAIL",
   "ADMIN_PASSWORD",
   "ADMIN_SESSION_SECRET",
-  "CRON_SECRET",
 ] as const;
 
 let validated = false;
@@ -86,6 +89,10 @@ export function getAdminEmail(): string | undefined {
 
 export function getAdminPassword(): string | undefined {
   return readEnv("ADMIN_PASSWORD");
+}
+
+export function isAdminConfigured(): boolean {
+  return PRODUCTION_REQUIRED_ADMIN_ENV_VARS.every((name) => Boolean(readEnv(name)));
 }
 
 export function getCronSecret(): string | undefined {
@@ -199,4 +206,16 @@ export function validateServerEnv(): void {
     receiptScanningConfigured,
     adminIpRestricted,
   });
+}
+
+export function validateAdminEnv(): void {
+  const missing = PRODUCTION_REQUIRED_ADMIN_ENV_VARS.filter(
+    (name) => !readEnv(name)
+  );
+
+  if (missing.length > 0) {
+    throw new Error(
+      `[env] Missing required admin environment variables: ${missing.join(", ")}`
+    );
+  }
 }

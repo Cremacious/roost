@@ -12,6 +12,7 @@ import {
   isAdminIpAllowed,
   isSameOriginRequest,
 } from "@/lib/security/request";
+import { validateAdminEnv } from "@/lib/env";
 import { log } from "@/lib/utils/logger";
 
 const MAX_ATTEMPTS = 5;
@@ -20,6 +21,15 @@ const WINDOW_MS = 15 * 60 * 1000; // 15 minutes
 // ---- POST: admin login -------------------------------------------------------
 
 export async function POST(request: NextRequest): Promise<Response> {
+  try {
+    validateAdminEnv();
+  } catch {
+    return Response.json(
+      { error: "Admin access is not configured" },
+      { status: 503 }
+    );
+  }
+
   const ip = getClientIp(request);
   const sourceKey = hashValue(`admin-login:${ip}`);
 

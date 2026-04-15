@@ -4,6 +4,7 @@ import {
   getAdminEmail,
   getAdminPassword,
   getAdminSessionSecret,
+  validateAdminEnv,
 } from "@/lib/env";
 
 export const ADMIN_SESSION_COOKIE = "roost_admin_session";
@@ -22,6 +23,7 @@ function normalizeAdminEmail(email: string): string {
 }
 
 async function getSecret(): Promise<Uint8Array> {
+  validateAdminEnv();
   return new TextEncoder().encode(getAdminSessionSecret());
 }
 
@@ -43,6 +45,7 @@ export async function verifyAdminSession(token: string): Promise<boolean> {
 }
 
 export function checkAdminCredentials(email: string, password: string): boolean {
+  validateAdminEnv();
   const adminEmail = getAdminEmail();
   const adminPassword = getAdminPassword();
   if (!adminEmail || !adminPassword) return false;

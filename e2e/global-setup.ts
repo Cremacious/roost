@@ -1,7 +1,8 @@
-import { chromium, FullConfig } from "@playwright/test";
+import { chromium } from "@playwright/test";
 import { execSync } from "child_process";
 import * as fs from "fs";
 import * as path from "path";
+import { cleanupPlaywrightTestData } from "./helpers/cleanup";
 
 const AUTH_DIR = path.join(__dirname, ".auth");
 const FREE_ADMIN_STATE = path.join(AUTH_DIR, "free-admin.json");
@@ -11,7 +12,10 @@ const CHILD_STATE = path.join(AUTH_DIR, "child.json");
 
 const BASE = "http://localhost:3000";
 
-async function globalSetup(_config: FullConfig) {
+async function globalSetup() {
+  console.log("\nCleaning prior Playwright-created test data...");
+  await cleanupPlaywrightTestData();
+
   // Ensure the .auth directory exists
   if (!fs.existsSync(AUTH_DIR)) {
     fs.mkdirSync(AUTH_DIR, { recursive: true });

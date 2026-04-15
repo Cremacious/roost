@@ -130,7 +130,7 @@ export function GoogleAuthButton({ disabled = false, mode }: GoogleAuthButtonPro
             <GoogleGlyph />
           </span>
           <span style={{ color: ROOST_BRAND_BG }}>
-            {mode === "signup" ? "Create account with Google" : "Continue with Google"}
+            {mode === "signup" ? "Create with Google" : "Continue with Google"}
           </span>
           <span style={{ color: ROOST_BRAND_CARD_TEXT, opacity: 0.42 }}>in one tap</span>
         </>

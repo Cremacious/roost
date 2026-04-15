@@ -1017,7 +1017,7 @@ src/lib/constants/colors.ts                   Added "stats": "#6366F1" (indigo) 
     Each: 28px circle bg rgba(255,255,255,0.18), 13px icon white; title 12px/800/white; desc 11px/600/rgba(255,255,255,0.62)/lineHeight 1.35
 - Right panel: background #FFF5F5, centered form, max-width 400px, padding px-6 py-10 md:px-9
 - Mobile: left panel hidden (hidden md:flex), right panel full width on #FFF5F5
-- Mobile-only logo block: flex md:hidden, row layout (40px image borderRadius 10px + "Roost" Nunito 900) at top of form
+- Mobile-only logo block: flex md:hidden, vertically stacked column (64px image borderRadius 16 above "Roost" 28px/900 wordmark, gap 8, centered) at top of form
 - Labels: 11px font-weight 800 uppercase letterSpacing 0.07em color #7A3F3F
 - Inputs: border 1.5px solid #F5C5C5, borderBottom 3px solid #DBADB0, borderRadius 12px, bg white
 - H1: color #1A0505, letterSpacing -0.5px; Sub: color #7A3F3F

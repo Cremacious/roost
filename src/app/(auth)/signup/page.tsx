@@ -253,25 +253,20 @@ export default function SignupPage() {
           }}
         >
           {/* Mobile-only logo */}
-          <div className="flex md:hidden" style={{ alignItems: "center", gap: 10, marginBottom: 28 }}>
+          <div className="flex md:hidden" style={{ flexDirection: "column", alignItems: "center", gap: 8, marginBottom: 24 }}>
             <Image
               src={ROOST_ICON_SRC}
               alt="Roost"
-              width={40}
-              height={40}
+              width={64}
+              height={64}
               priority
-              sizes="40px"
-              style={{ borderRadius: 10, objectFit: "cover", width: 40, height: "auto" }}
+              sizes="64px"
+              style={{ borderRadius: 16, objectFit: "cover", width: 64, height: "auto" }}
             />
-            <span style={{ fontWeight: 900, fontSize: 20, color: ROOST_BRAND_CARD_TEXT }}>Roost</span>
+            <span style={{ fontWeight: 900, fontSize: 28, color: ROOST_BRAND_CARD_TEXT, letterSpacing: "-0.5px", lineHeight: 1 }}>Roost</span>
           </div>
 
-          {/* Step indicator */}
-          <div style={{ display: "flex", justifyContent: "center", gap: 6, marginBottom: 20 }}>
-            <div style={{ width: 28, height: 5, borderRadius: 3, backgroundColor: "#991B1B" }} />
-            <div style={{ width: 28, height: 5, borderRadius: 3, backgroundColor: ROOST_BRAND_BG }} />
-            <div style={{ width: 28, height: 5, borderRadius: 3, backgroundColor: "rgba(255,255,255,0.24)" }} />
-          </div>
+      
 
           <h1 style={{ fontSize: 28, fontWeight: 900, color: ROOST_BRAND_CARD_TEXT, marginBottom: 4, letterSpacing: "-0.5px" }}>
             Create your account.

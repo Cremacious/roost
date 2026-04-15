@@ -1252,14 +1252,7 @@ export default async function HomePage() {
           .feat-inner { flex-direction: column; }
           .feat-copy { order: 1 !important; padding: 32px 20px 16px; width: 100%; box-sizing: border-box; }
           .feat-ui { order: 2 !important; padding: 16px 20px 32px; width: 100%; box-sizing: border-box; }
-          .hero-section { padding: 40px 20px 52px !important; }
-          .hero-h1 { font-size: 32px !important; letter-spacing: -0.8px !important; }
-          .hero-copy { font-size: 15px !important; max-width: 320px !important; margin-bottom: 24px !important; }
-          .hero-logo {
-              width: 180px !important;
-              height: auto !important;
-              margin-bottom: -8px !important;
-            }
+          .hero-copy { max-width: 320px !important; margin-bottom: 24px !important; }
           .hero-actions, .cta-actions {
             flex-direction: column;
             align-items: center;
@@ -1359,29 +1352,22 @@ export default async function HomePage() {
 
       {/* 3.  HERO */}
       <section
-        className="hero-section"
-        style={{
-          backgroundColor: brandBg,
-          padding: '64px 40px 72px',
-          textAlign: 'center',
-        }}
+        className="hero-section px-6 pt-10 pb-13 md:px-10 md:pt-16 md:pb-18 text-center"
+        style={{ backgroundColor: brandBg }}
       >
         <Image
           src={ROOST_ICON_SRC}
           alt="Roost"
-          width={160}
-          height={160}
-          className="hero-logo"
+          width={120}
+          height={120}
+          className="block mx-auto mb-4 md:mb-5 w-18 h-18 md:w-30 md:h-30 rounded-[20px] md:rounded-[32px]"
           priority
-          sizes="(max-width: 768px) 180px, 220px"
-          style={{ display: 'block', margin: '0 auto 12px', width: 120, height: 'auto' }}
+          sizes="(max-width: 768px) 72px, 120px"
         />
 
         <h1
-          className="hero-h1"
+          className="text-[44px] md:text-[56px] font-black"
           style={{
-            fontSize: 72,
-            fontWeight: 900,
             color: 'white',
             letterSpacing: '-1.5px',
             lineHeight: 1,
@@ -1393,12 +1379,10 @@ export default async function HomePage() {
           Roost
         </h1>
         <h1
-          className="hero-h1"
+          className="hero-h1 text-[28px] md:text-[40px] font-black"
           style={{
-            fontSize: 48,
-            fontWeight: 900,
             color: 'white',
-            letterSpacing: '-1.5px',
+            letterSpacing: '-1px',
             lineHeight: 1.06,
             maxWidth: 600,
             margin: '0 auto 16px',
@@ -1408,9 +1392,8 @@ export default async function HomePage() {
           One app. Zero excuses.
         </h1>
         <p
-          className="hero-copy"
+          className="hero-copy text-[14px] md:text-[16px]"
           style={{
-            fontSize: 16,
             fontWeight: 600,
             color: 'rgba(255,255,255,0.85)',
             lineHeight: 1.6,

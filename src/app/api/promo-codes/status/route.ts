@@ -3,7 +3,7 @@ import { requireSession } from "@/lib/auth/helpers";
 import { getUserHousehold } from "@/app/api/chores/route";
 import { db } from "@/lib/db";
 import { promo_codes, promo_redemptions } from "@/db/schema";
-import { and, desc, eq, gt } from "drizzle-orm";
+import { and, desc, eq, gt, isNull, or } from "drizzle-orm";
 
 export async function GET(request: NextRequest): Promise<Response> {
   let session;
@@ -18,12 +18,14 @@ export async function GET(request: NextRequest): Promise<Response> {
     return Response.json({ error: "No household found" }, { status: 404 });
   }
 
-  // Find active promo redemptions for this household (expiry in the future)
+  // Find active promo redemptions for this household
+  // Include lifetime (premium_expires_at = null) and future-expiry redemptions
   const redemptions = await db
     .select({
       id: promo_redemptions.id,
       code: promo_codes.code,
       durationDays: promo_codes.duration_days,
+      isLifetime: promo_codes.is_lifetime,
       redeemedAt: promo_redemptions.redeemed_at,
       premiumExpiresAt: promo_redemptions.premium_expires_at,
     })
@@ -32,7 +34,10 @@ export async function GET(request: NextRequest): Promise<Response> {
     .where(
       and(
         eq(promo_redemptions.household_id, membership.householdId),
-        gt(promo_redemptions.premium_expires_at, new Date())
+        or(
+          isNull(promo_redemptions.premium_expires_at),
+          gt(promo_redemptions.premium_expires_at, new Date())
+        )
       )
     )
     .orderBy(desc(promo_redemptions.redeemed_at))

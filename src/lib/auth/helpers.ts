@@ -165,7 +165,8 @@ export async function requirePremium(
     throw Response.json({ error: "Premium required" }, { status: 403 });
   }
 
-  // Check time-based expiry (promo codes, cancelled Stripe subs)
+  // Check time-based expiry (promo codes, cancelled Stripe subs).
+  // premium_expires_at = null means permanent premium (Stripe active or lifetime promo).
   if (
     household.premium_expires_at &&
     new Date(household.premium_expires_at) <= new Date()

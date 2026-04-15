@@ -9,6 +9,7 @@ import {
   Copy,
   Eye,
   EyeOff,
+  Infinity as InfinityIcon,
   Loader2,
   MapPin,
   Pencil,
@@ -1176,8 +1177,9 @@ export default function SettingsPage() {
       id: string;
       code: string;
       durationDays: number;
+      isLifetime: boolean;
       redeemedAt: string;
-      premiumExpiresAt: string;
+      premiumExpiresAt: string | null;
     }[];
   }>({
     queryKey: ['promo-status'],
@@ -2647,20 +2649,30 @@ export default function SettingsPage() {
                                 fontWeight: 600,
                               }}
                             >
-                              Code: {r.code} · Expires{' '}
-                              {(() => {
-                                try {
-                                  return new Date(
-                                    r.premiumExpiresAt
-                                  ).toLocaleDateString('en-US', {
-                                    month: 'short',
-                                    day: 'numeric',
-                                    year: 'numeric',
-                                  });
-                                } catch {
-                                  return r.premiumExpiresAt;
-                                }
-                              })()}
+                              Code: {r.code} ·{' '}
+                              {r.isLifetime || !r.premiumExpiresAt ? (
+                                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
+                                  <InfinityIcon size={12} />
+                                  Never expires
+                                </span>
+                              ) : (
+                                <>
+                                  Expires{' '}
+                                  {(() => {
+                                    try {
+                                      return new Date(
+                                        r.premiumExpiresAt
+                                      ).toLocaleDateString('en-US', {
+                                        month: 'short',
+                                        day: 'numeric',
+                                        year: 'numeric',
+                                      });
+                                    } catch {
+                                      return r.premiumExpiresAt;
+                                    }
+                                  })()}
+                                </>
+                              )}
                             </p>
                           </div>
                         </div>

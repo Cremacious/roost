@@ -86,13 +86,12 @@ export async function POST(request: NextRequest): Promise<Response> {
 
   if (existingRedemption) {
     return Response.json(
-      { error: "Your household has already used this code" },
+      { error: "This promo code has already been used on your account." },
       { status: 400 }
     );
   }
 
-  // Calculate new premium_expires_at
-  // If household already has a future expiry (from another promo), extend from that date
+  // Fetch household state
   const [household] = await db
     .select({
       premium_expires_at: households.premium_expires_at,
@@ -103,20 +102,8 @@ export async function POST(request: NextRequest): Promise<Response> {
     .where(eq(households.id, membership.householdId))
     .limit(1);
 
+  const isLifetime = promo.is_lifetime === true;
   const now = new Date();
-  let baseDate = now;
-
-  // If already premium with a future expiry (another promo), extend from that date
-  if (
-    household &&
-    household.premium_expires_at &&
-    new Date(household.premium_expires_at) > now
-  ) {
-    baseDate = new Date(household.premium_expires_at);
-  }
-
-  const newExpiresAt = new Date(baseDate);
-  newExpiresAt.setDate(newExpiresAt.getDate() + promo.duration_days);
 
   // If household has an active Stripe subscription (no expiry), the promo still records
   // but premium_expires_at stays null (Stripe takes precedence)
@@ -125,13 +112,31 @@ export async function POST(request: NextRequest): Promise<Response> {
     household.subscription_status === "premium" &&
     !household.premium_expires_at;
 
+  let newExpiresAt: Date | null = null;
+
+  if (isLifetime) {
+    // Lifetime: premium_expires_at = null means never expires
+    newExpiresAt = null;
+  } else {
+    // Time-limited: calculate expiry from now or existing future expiry
+    let baseDate = now;
+    if (
+      household &&
+      household.premium_expires_at &&
+      new Date(household.premium_expires_at) > now
+    ) {
+      baseDate = new Date(household.premium_expires_at);
+    }
+    newExpiresAt = new Date(baseDate);
+    newExpiresAt.setDate(newExpiresAt.getDate() + promo.duration_days);
+  }
+
   // Update household premium status
   await db
     .update(households)
     .set({
       subscription_status: "premium",
-      // Only set expiry if there's no active Stripe sub
-      premium_expires_at: hasActiveStripe ? null : newExpiresAt,
+      premium_expires_at: hasActiveStripe && !isLifetime ? null : newExpiresAt,
       subscription_upgraded_at: household?.subscription_status !== "premium"
         ? new Date()
         : undefined,
@@ -153,19 +158,28 @@ export async function POST(request: NextRequest): Promise<Response> {
     premium_expires_at: newExpiresAt,
   });
 
+  const durationLabel = isLifetime
+    ? "lifetime premium"
+    : `${promo.duration_days} days of premium`;
+
   await logActivity({
     householdId: membership.householdId,
     userId: session.user.id,
     type: "promo_redeemed",
-    description: `Redeemed promo code ${promo.code} for ${promo.duration_days} days of premium`,
+    description: `Redeemed promo code ${promo.code} for ${durationLabel}`,
   });
+
+  const effectiveExpiry = hasActiveStripe && !isLifetime ? null : newExpiresAt;
 
   return Response.json({
     success: true,
-    premiumExpiresAt: hasActiveStripe ? null : newExpiresAt.toISOString(),
+    premiumExpiresAt: effectiveExpiry?.toISOString() ?? null,
     durationDays: promo.duration_days,
-    message: hasActiveStripe
-      ? "Promo code applied. Your Stripe subscription is active, so premium continues without interruption."
-      : `Premium activated for ${promo.duration_days} days.`,
+    isLifetime,
+    message: isLifetime
+      ? "Lifetime premium activated. Your household will never lose access."
+      : hasActiveStripe
+        ? "Promo code applied. Your Stripe subscription is active, so premium continues without interruption."
+        : `Premium activated for ${promo.duration_days} days.`,
   });
 }

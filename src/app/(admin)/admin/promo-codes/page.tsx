@@ -9,6 +9,7 @@ interface PromoCode {
   id: string;
   code: string;
   duration_days: number;
+  is_lifetime: boolean;
   status: string;
   max_redemptions: number | null;
   redemption_count: number;
@@ -161,7 +162,27 @@ function PromoRow({
 
       {/* Duration */}
       <td style={{ padding: "14px 16px", color: "#94A3B8", fontSize: "13px", fontWeight: 600 }}>
-        {durationLabel(promo.duration_days)}
+        {promo.is_lifetime ? (
+          <span
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: "4px",
+              background: "#8B5CF620",
+              color: "#A78BFA",
+              border: "1px solid #8B5CF640",
+              borderRadius: "6px",
+              padding: "2px 10px",
+              fontSize: "12px",
+              fontWeight: 700,
+            }}
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 12c-2-2.67-6-2.67-6 0a4 4 0 0 0 6 4 4 4 0 0 0 6-4c0-2.67-4-2.67-6 0"/></svg>
+            Lifetime
+          </span>
+        ) : (
+          durationLabel(promo.duration_days)
+        )}
       </td>
 
       {/* Status */}
@@ -246,6 +267,7 @@ export default function AdminPromoCodesPage() {
 
   // Create form state
   const [formCode, setFormCode] = useState("");
+  const [formLifetime, setFormLifetime] = useState(false);
   const [formDuration, setFormDuration] = useState(30);
   const [formMaxRedemptions, setFormMaxRedemptions] = useState("");
   const [formExpiresAt, setFormExpiresAt] = useState("");
@@ -276,9 +298,12 @@ export default function AdminPromoCodesPage() {
     setCreating(true);
     setCreateError("");
 
-    const payload: Record<string, unknown> = {
-      durationDays: formDuration,
-    };
+    const payload: Record<string, unknown> = {};
+    if (formLifetime) {
+      payload.isLifetime = true;
+    } else {
+      payload.durationDays = formDuration;
+    }
     if (formCode.trim()) payload.code = formCode.trim();
     if (formMaxRedemptions && Number(formMaxRedemptions) > 0) {
       payload.maxRedemptions = Number(formMaxRedemptions);
@@ -298,6 +323,7 @@ export default function AdminPromoCodesPage() {
       }
       // Reset form and reload
       setFormCode("");
+      setFormLifetime(false);
       setFormMaxRedemptions("");
       setFormExpiresAt("");
       load();
@@ -372,6 +398,50 @@ export default function AdminPromoCodesPage() {
           Create promo code
         </p>
 
+        {/* Lifetime toggle */}
+        <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "12px" }}>
+          <button
+            type="button"
+            onClick={() => setFormLifetime((v) => !v)}
+            style={{
+              width: "40px",
+              height: "22px",
+              borderRadius: "11px",
+              border: "none",
+              background: formLifetime ? "#8B5CF6" : "#334155",
+              cursor: "pointer",
+              position: "relative",
+              transition: "background 0.15s",
+            }}
+          >
+            <span
+              style={{
+                position: "absolute",
+                top: "2px",
+                left: formLifetime ? "20px" : "2px",
+                width: "18px",
+                height: "18px",
+                borderRadius: "50%",
+                background: "#F1F5F9",
+                transition: "left 0.15s",
+              }}
+            />
+          </button>
+          <span
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: "6px",
+              color: formLifetime ? "#A78BFA" : "#64748B",
+              fontSize: "13px",
+              fontWeight: 700,
+            }}
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 12c-2-2.67-6-2.67-6 0a4 4 0 0 0 6 4 4 4 0 0 0 6-4c0-2.67-4-2.67-6 0"/></svg>
+            Lifetime premium
+          </span>
+        </div>
+
         <div
           style={{
             display: "grid",
@@ -405,7 +475,7 @@ export default function AdminPromoCodesPage() {
           </div>
 
           {/* Duration */}
-          <div>
+          <div style={{ opacity: formLifetime ? 0.4 : 1, pointerEvents: formLifetime ? "none" : "auto" }}>
             <label
               style={{
                 display: "block",
@@ -421,7 +491,8 @@ export default function AdminPromoCodesPage() {
             <select
               value={formDuration}
               onChange={(e) => setFormDuration(Number(e.target.value))}
-              style={{ ...inputStyle, width: "100%", cursor: "pointer" }}
+              disabled={formLifetime}
+              style={{ ...inputStyle, width: "100%", cursor: formLifetime ? "not-allowed" : "pointer" }}
             >
               {DURATION_OPTIONS.map((opt) => (
                 <option key={opt.value} value={opt.value}>

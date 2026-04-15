@@ -1331,7 +1331,9 @@ Update this file after every major decision or completed phase.
 - e2e/.auth/*.json files contain session tokens — always in .gitignore, never commit. e2e/.auth/.gitkeep tracks the empty directory.
 - Empty-state tests (chores/grocery) only reliable on first run against a clean DB. Test data accumulates with shared accounts — this is an accepted tradeoff.
 
-Last updated: 2026-04-13 (Promo code system built. Schema: promo_codes + promo_redemptions tables in src/db/schema/promoCodes.ts; db:push applied. requirePremium() in helpers.ts fixed to check premium_expires_at with lazy cleanup (reverts expired premium to free on check). Admin panel: Promo Codes tab added to nav in layout.tsx; full management page at /admin/promo-codes with create form, filter tabs, status actions. Admin API: GET+POST /api/admin/promo-codes, PATCH /api/admin/promo-codes/[id]. User API: POST /api/promo-codes/redeem (validates code, checks duplicates, extends existing promo expiry, respects active Stripe subs), GET /api/promo-codes/status. Settings page: Promotions section added above Billing with code input, redeem button, active promo status cards. NAV_SECTIONS gains section-promotions entry.)
+Last updated: 2026-04-15 (Promo code system upgraded: lifetime promo codes + per-account redemption block. Schema: is_lifetime boolean added to promo_codes (default false); premium_expires_at made nullable on promo_redemptions (null = lifetime); db:push applied. Redemption API: lifetime codes set premium_expires_at=null for permanent premium; duplicate check now blocks all past redemptions per code+household (not just active). Admin API POST accepts isLifetime, skips duration validation when true. requirePremium() comment clarified: null premium_expires_at = permanent premium (no lazy revert). Admin UI: lifetime toggle (purple switch + Infinity icon) in create form disables Duration dropdown; table shows purple "Lifetime" badge. Promo status API returns lifetime redemptions (isNull OR future expiry). Settings promo cards show "Never expires" with Infinity icon for lifetime.)
+
+Previous: 2026-04-13 (Promo code system built. Schema: promo_codes + promo_redemptions tables in src/db/schema/promoCodes.ts; db:push applied. requirePremium() in helpers.ts fixed to check premium_expires_at with lazy cleanup (reverts expired premium to free on check). Admin panel: Promo Codes tab added to nav in layout.tsx; full management page at /admin/promo-codes with create form, filter tabs, status actions. Admin API: GET+POST /api/admin/promo-codes, PATCH /api/admin/promo-codes/[id]. User API: POST /api/promo-codes/redeem (validates code, checks duplicates, extends existing promo expiry, respects active Stripe subs), GET /api/promo-codes/status. Settings page: Promotions section added above Billing with code input, redeem button, active promo status cards. NAV_SECTIONS gains section-promotions entry.)
 
 Previous: 2026-04-13 (Onboarding guard added. onboarding_completed: boolean added to both "user" (better-auth) and "users" (app) tables; db:push applied; existing users with a household backfilled. better-auth user.additionalFields configured so session.user.onboarding_completed is available in proxy.ts without a DB call. Household create and join routes set the flag on both tables via Promise.all. Onboarding page calls GET /api/auth/get-session?disableCookieCache=true after success to flush the 5-min cookie cache before navigating to /dashboard. proxy.ts: ONBOARDING_BYPASS=["/onboarding"] + guard block after auth check redirects un-onboarded users to /onboarding.)
 
@@ -1434,20 +1436,26 @@ Previous: 2026-04-08 (Custom categories + budgets + insights complete. Schema: e
 - STRIPE_PRICE_ID env var: the monthly $4 price ID (price_...) from Stripe dashboard
 
 ## Promo Code System
-- Admin creates promo codes in /admin/promo-codes with: custom or auto-generated code, duration (30/60/90/180/365 days), optional max redemptions, optional code expiry date
+- Admin creates promo codes in /admin/promo-codes with: custom or auto-generated code, duration (30/60/90/180/365 days) or lifetime, optional max redemptions, optional code expiry date
+- Lifetime toggle in admin create form: purple switch + Infinity icon, disables Duration dropdown when on
 - Users redeem codes in Settings > Promotions (above Billing section)
-- Schema: promo_codes (id, code, duration_days, status, max_redemptions, redemption_count, expires_at, created_at) + promo_redemptions (id, promo_code_id, household_id, user_id, redeemed_at, premium_expires_at)
+- Schema: promo_codes (id, code, duration_days, is_lifetime, status, max_redemptions, redemption_count, expires_at, created_at) + promo_redemptions (id, promo_code_id, household_id, user_id, redeemed_at, premium_expires_at)
+- is_lifetime: boolean, default false. Lifetime codes set duration_days=0 (unused) and premium_expires_at=null on redemption
+- premium_expires_at on promo_redemptions is nullable: null means lifetime redemption
 - Code status: 'active' | 'paused' | 'deactivated'; all transitions allowed (admin has full control)
-- Redemption validation: code exists + status active + not expired + not at max redemptions + household hasn't already used this code
-- On redeem: sets household subscription_status='premium', premium_expires_at = now + duration_days
-- If household already has a future premium_expires_at (another promo), extends from that date instead of now
+- Per-account redemption block: duplicate check queries all past promo_redemptions for code+household, regardless of expiry. Even expired redemptions block re-use of the same code.
+- Redemption validation: code exists + status active + not expired + not at max redemptions + household hasn't used this code (lifetime block)
+- On redeem (lifetime): sets subscription_status='premium', premium_expires_at=null (permanent)
+- On redeem (time-limited): sets subscription_status='premium', premium_expires_at = now + duration_days
+- If household already has a future premium_expires_at (another promo), new duration extends from that date instead of now
 - If household has active Stripe subscription (stripe_subscription_id set, no expiry), promo records but premium_expires_at stays null (Stripe takes precedence)
-- requirePremium() server-side now checks premium_expires_at and does lazy cleanup (reverts expired premium to free)
-- Settings Promotions section: code input (auto-uppercase, monospace), Redeem button, active promo status cards with code/expiry/Active badge
+- requirePremium() server-side: premium_expires_at=null means permanent premium (Stripe active or lifetime promo), never reverted. Lazy cleanup only fires when premium_expires_at is non-null and in the past.
+- Settings Promotions section: code input (auto-uppercase, monospace), Redeem button, active promo status cards with code/expiry/Active badge. Lifetime redemptions show "Never expires" with Infinity icon instead of expiry date.
+- Promo status API (GET /api/promo-codes/status): returns lifetime redemptions (premium_expires_at=null) alongside active time-limited ones
 - Info note below input: "When your promotion expires, your household will return to the free plan unless you subscribe."
 - Admin API: GET/POST /api/admin/promo-codes, PATCH /api/admin/promo-codes/[id]
 - User API: POST /api/promo-codes/redeem, GET /api/promo-codes/status
-- Admin UI: indigo-accented create form, filter tabs (All/Active/Paused/Deactivated), table with copy button, status badges, action links
+- Admin UI: indigo-accented create form with lifetime toggle (purple), filter tabs (All/Active/Paused/Deactivated), table with copy button, status badges, action links. Lifetime codes show purple "Lifetime" badge in Duration column.
 - Deactivated codes show with strikethrough and 50% opacity in the admin table
 - Auto-generated codes: 8 chars from ABCDEFGHJKLMNPQRSTUVWXYZ23456789 (excludes ambiguous chars I/O/0/1)
 

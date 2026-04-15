@@ -33,9 +33,10 @@ export async function POST(request: NextRequest): Promise<Response> {
 
   let body: {
     code?: string;
-    durationDays: number;
+    durationDays?: number;
     maxRedemptions?: number;
     expiresAt?: string;
+    isLifetime?: boolean;
   };
   try {
     body = await request.json();
@@ -43,14 +44,17 @@ export async function POST(request: NextRequest): Promise<Response> {
     return Response.json({ error: "Invalid request body" }, { status: 400 });
   }
 
-  const { durationDays, maxRedemptions, expiresAt } = body;
+  const { durationDays, maxRedemptions, expiresAt, isLifetime } = body;
   let code = body.code?.trim().toUpperCase();
 
-  if (!VALID_DURATIONS.includes(durationDays)) {
-    return Response.json(
-      { error: "Duration must be one of: 30, 60, 90, 180, 365 days" },
-      { status: 400 }
-    );
+  // Lifetime codes skip duration validation
+  if (!isLifetime) {
+    if (!durationDays || !VALID_DURATIONS.includes(durationDays)) {
+      return Response.json(
+        { error: "Duration must be one of: 30, 60, 90, 180, 365 days" },
+        { status: 400 }
+      );
+    }
   }
 
   if (code) {
@@ -96,7 +100,8 @@ export async function POST(request: NextRequest): Promise<Response> {
     .insert(promo_codes)
     .values({
       code: code!,
-      duration_days: durationDays,
+      duration_days: isLifetime ? 0 : durationDays!,
+      is_lifetime: isLifetime ?? false,
       max_redemptions: maxRedemptions && maxRedemptions > 0 ? maxRedemptions : null,
       expires_at: expiresAt ? new Date(expiresAt) : null,
     })

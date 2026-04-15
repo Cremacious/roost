@@ -1,17 +1,17 @@
-"use client";
+'use client';
 
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
-import Link from "next/link";
-import Image from "next/image";
-import { toast } from "sonner";
-import { signUp } from "@/lib/auth/client";
-import { GoogleAuthButton } from "@/components/auth/GoogleAuthButton";
+import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import Link from 'next/link';
+import Image from 'next/image';
+import { toast } from 'sonner';
+import { signUp } from '@/lib/auth/client';
+import { GoogleAuthButton } from '@/components/auth/GoogleAuthButton';
 import {
   consumePendingInviteRedirect,
   getPostAuthRedirect,
   persistPendingInviteToken,
-} from "@/lib/auth/client-redirects";
+} from '@/lib/auth/client-redirects';
 import {
   ROOST_BRAND_BG,
   ROOST_BRAND_CARD_MUTED,
@@ -21,29 +21,44 @@ import {
   ROOST_BRAND_SURFACE,
   ROOST_BRAND_TEXT,
   ROOST_ICON_SRC,
-} from "@/lib/brand";
-import { CalendarDays, CheckCircle2, CheckSquare, Coffee, DollarSign, Eye, EyeOff, Loader2, PiggyBank, ShoppingCart, XCircle } from "lucide-react";
-import { motion } from "framer-motion";
+} from '@/lib/brand';
+import {
+  CalendarDays,
+  CheckCircle2,
+  CheckSquare,
+  Coffee,
+  DollarSign,
+  Eye,
+  EyeOff,
+  Loader2,
+  PiggyBank,
+  ShoppingCart,
+  XCircle,
+} from 'lucide-react';
+import { motion } from 'framer-motion';
 
 // ---- Password strength ------------------------------------------------------
 
-type Strength = "weak" | "fair" | "good" | "strong";
+type Strength = 'weak' | 'fair' | 'good' | 'strong';
 
 function getStrength(password: string): Strength {
-  if (password.length < 8) return "weak";
+  if (password.length < 8) return 'weak';
   const hasNumber = /[0-9]/.test(password);
   const hasSymbol = /[^a-zA-Z0-9]/.test(password);
   const hasUpper = /[A-Z]/.test(password);
-  if (hasUpper && hasNumber && hasSymbol) return "strong";
-  if (hasNumber || hasSymbol) return "good";
-  return "fair";
+  if (hasUpper && hasNumber && hasSymbol) return 'strong';
+  if (hasNumber || hasSymbol) return 'good';
+  return 'fair';
 }
 
-const STRENGTH_CONFIG: Record<Strength, { segments: number; label: string; color: string }> = {
-  weak:   { segments: 1, label: "Weak",   color: "#EF4444" },
-  fair:   { segments: 2, label: "Fair",   color: "#F97316" },
-  good:   { segments: 3, label: "Good",   color: "#F59E0B" },
-  strong: { segments: 4, label: "Strong", color: "#22C55E" },
+const STRENGTH_CONFIG: Record<
+  Strength,
+  { segments: number; label: string; color: string }
+> = {
+  weak: { segments: 1, label: 'Weak', color: '#EF4444' },
+  fair: { segments: 2, label: 'Fair', color: '#F97316' },
+  good: { segments: 3, label: 'Good', color: '#F59E0B' },
+  strong: { segments: 4, label: 'Strong', color: '#22C55E' },
 };
 
 // ---- Left panel features ----------------------------------------------------
@@ -51,71 +66,71 @@ const STRENGTH_CONFIG: Record<Strength, { segments: number; label: string; color
 const FEATURES = [
   {
     icon: CheckSquare,
-    title: "Chores",
-    desc: "Assign them. Track them. Stop nagging.",
+    title: 'Chores',
+    desc: 'Assign them. Track them. Stop nagging.',
   },
   {
     icon: ShoppingCart,
-    title: "Groceries",
-    desc: "One list. No more 3 versions of the same milk.",
+    title: 'Groceries',
+    desc: 'One list. No more 3 versions of the same milk.',
   },
   {
     icon: DollarSign,
-    title: "Expenses",
-    desc: "Split the bills. Keep the friends.",
+    title: 'Expenses',
+    desc: 'Split the bills. Keep the friends.',
   },
   {
     icon: CalendarDays,
-    title: "Calendar",
+    title: 'Calendar',
     desc: "Everyone's schedule. One place. No excuses.",
   },
   {
     icon: Coffee,
-    title: "Meals",
+    title: 'Meals',
     desc: 'Plan the week. Skip the "what\'s for dinner" panic.',
   },
   {
     icon: PiggyBank,
-    title: "Allowances",
-    desc: "Kids earn it. You approve it. Everyone learns.",
+    title: 'Allowances',
+    desc: 'Kids earn it. You approve it. Everyone learns.',
   },
 ];
 
 // ---- Styles -----------------------------------------------------------------
 
 const labelStyle: React.CSSProperties = {
-  display: "block",
+  display: 'block',
   fontSize: 11,
   fontWeight: 800,
-  textTransform: "uppercase",
-  letterSpacing: "0.07em",
+  textTransform: 'uppercase',
+  letterSpacing: '0.07em',
   color: ROOST_BRAND_CARD_TEXT,
   marginBottom: 6,
 };
 
 const inputStyle: React.CSSProperties = {
-  border: "1.5px solid #F5C5C5",
-  borderBottom: "3px solid #DBADB0",
+  border: '1.5px solid #F5C5C5',
+  borderBottom: '3px solid #DBADB0',
   color: ROOST_BRAND_TEXT,
   fontWeight: 600,
-  backgroundColor: "white",
+  backgroundColor: 'white',
   borderRadius: 12,
-  width: "100%",
+  width: '100%',
   height: 48,
-  padding: "0 16px",
+  padding: '0 16px',
   fontSize: 14,
-  outline: "none",
-  boxSizing: "border-box",
+  outline: 'none',
+  boxSizing: 'border-box',
 };
 
 // ---- Page -------------------------------------------------------------------
 
 export default function SignupPage() {
   const router = useRouter();
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [confirm, setConfirm] = useState("");
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirm, setConfirm] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -132,10 +147,11 @@ export default function SignupPage() {
 
   function validate(): boolean {
     const next: Record<string, string> = {};
-    if (!name.trim()) next.name = "Name is required";
-    if (!email.trim()) next.email = "Email is required";
-    if (!strength || strength === "weak") next.password = "Password must be at least 8 characters";
-    if (!passwordsMatch) next.confirm = "Passwords do not match";
+    if (!name.trim()) next.name = 'Name is required';
+    if (!email.trim()) next.email = 'Email is required';
+    if (!strength || strength === 'weak')
+      next.password = 'Password must be at least 8 characters';
+    if (!passwordsMatch) next.confirm = 'Passwords do not match';
     setErrors(next);
     return Object.keys(next).length === 0;
   }
@@ -146,26 +162,31 @@ export default function SignupPage() {
     setLoading(true);
     const { error } = await signUp.email({ name, email, password });
     if (error) {
-      toast.error(error.message ?? "Sign up failed", {
-        description: "Check your details and try again.",
+      toast.error(error.message ?? 'Sign up failed', {
+        description: 'Check your details and try again.',
       });
       setLoading(false);
       return;
     }
 
     const params = new URLSearchParams(window.location.search);
-    router.push(consumePendingInviteRedirect() ?? getPostAuthRedirect(params, "/onboarding"));
+    router.push(
+      consumePendingInviteRedirect() ??
+        getPostAuthRedirect(params, '/onboarding'),
+    );
   }
 
   const submitDisabled =
-    loading || (confirmTouched && !passwordsMatch) || (!!strength && strength === "weak");
+    loading ||
+    (confirmTouched && !passwordsMatch) ||
+    (!!strength && strength === 'weak');
 
   return (
     <div
       style={{
-        display: "flex",
-        minHeight: "100vh",
-        fontFamily: "var(--font-nunito)",
+        display: 'flex',
+        minHeight: '100vh',
+        fontFamily: 'var(--font-nunito)',
         backgroundColor: ROOST_BRAND_SOFT_BG,
       }}
     >
@@ -173,16 +194,23 @@ export default function SignupPage() {
       <div
         className="hidden md:flex"
         style={{
-          width: "40%",
+          width: '40%',
           backgroundColor: ROOST_BRAND_BG,
-          flexDirection: "column",
-          justifyContent: "flex-start",
-          alignItems: "center",
-          padding: "48px 40px",
+          flexDirection: 'column',
+          justifyContent: 'flex-start',
+          alignItems: 'center',
+          padding: '48px 40px',
         }}
       >
         {/* Brand block */}
-        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 10,
+            marginBottom: 8,
+          }}
+        >
           <Image
             src={ROOST_ICON_SRC}
             alt="Roost"
@@ -191,35 +219,72 @@ export default function SignupPage() {
             className="rounded-xl"
             priority
             sizes="52px"
-            style={{ objectFit: "cover", width: 52, height: "auto" }}
+            style={{ objectFit: 'cover', width: 52, height: 'auto' }}
           />
-          <span style={{ fontWeight: 900, fontSize: 34, color: "white", letterSpacing: "-1px" }}>Roost</span>
+          <span
+            style={{
+              fontWeight: 900,
+              fontSize: 34,
+              color: 'white',
+              letterSpacing: '-1px',
+            }}
+          >
+            Roost
+          </span>
         </div>
-        <p style={{ fontWeight: 700, fontSize: 15, color: "rgba(255,255,255,0.7)", marginBottom: 40 }}>
+        <p
+          style={{
+            fontWeight: 700,
+            fontSize: 15,
+            color: 'rgba(255,255,255,0.7)',
+            marginBottom: 40,
+          }}
+        >
           Homes run better with Roost.
         </p>
 
         {/* Feature list */}
-        <div style={{ display: "flex", flexDirection: "column", gap: 22 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 22 }}>
           {FEATURES.map(({ icon: Icon, title, desc }) => (
-            <div key={title} style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
+            <div
+              key={title}
+              style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}
+            >
               <div
                 style={{
                   width: 40,
                   height: 40,
-                  borderRadius: "50%",
-                  backgroundColor: "rgba(255,255,255,0.18)",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
+                  borderRadius: '50%',
+                  backgroundColor: 'rgba(255,255,255,0.18)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
                   flexShrink: 0,
                 }}
               >
                 <Icon size={18} color="white" />
               </div>
               <div>
-                <p style={{ fontWeight: 800, fontSize: 15, color: "white", marginBottom: 3 }}>{title}</p>
-                <p style={{ fontWeight: 600, fontSize: 13, color: "rgba(255,255,255,0.62)", lineHeight: 1.35 }}>{desc}</p>
+                <p
+                  style={{
+                    fontWeight: 800,
+                    fontSize: 15,
+                    color: 'white',
+                    marginBottom: 3,
+                  }}
+                >
+                  {title}
+                </p>
+                <p
+                  style={{
+                    fontWeight: 600,
+                    fontSize: 13,
+                    color: 'rgba(255,255,255,0.62)',
+                    lineHeight: 1.35,
+                  }}
+                >
+                  {desc}
+                </p>
               </div>
             </div>
           ))}
@@ -232,28 +297,36 @@ export default function SignupPage() {
         style={{
           flex: 1,
           backgroundColor: ROOST_BRAND_SOFT_BG,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          minHeight: "100vh",
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          minHeight: '100vh',
         }}
       >
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.18, ease: "easeOut" }}
+          transition={{ duration: 0.18, ease: 'easeOut' }}
           style={{
-            width: "100%",
+            width: '100%',
             maxWidth: 420,
             backgroundColor: ROOST_BRAND_SURFACE,
             borderRadius: 28,
-            padding: "28px 24px",
-            boxShadow: "0 28px 70px rgba(69, 10, 10, 0.24)",
-            border: "1px solid rgba(127, 29, 29, 0.22)",
+            padding: '28px 24px',
+            boxShadow: '0 28px 70px rgba(69, 10, 10, 0.24)',
+            border: '1px solid rgba(127, 29, 29, 0.22)',
           }}
         >
           {/* Mobile-only logo */}
-          <div className="flex md:hidden" style={{ flexDirection: "column", alignItems: "center", gap: 8, marginBottom: 24 }}>
+          <div
+            className="flex md:hidden"
+            style={{
+              flexDirection: 'column',
+              alignItems: 'center',
+              gap: 8,
+              marginBottom: 24,
+            }}
+          >
             <Image
               src={ROOST_ICON_SRC}
               alt="Roost"
@@ -261,17 +334,47 @@ export default function SignupPage() {
               height={64}
               priority
               sizes="64px"
-              style={{ borderRadius: 16, objectFit: "cover", width: 64, height: "auto" }}
+              style={{
+                borderRadius: 16,
+                objectFit: 'cover',
+                width: 64,
+                height: 'auto',
+              }}
             />
-            <span style={{ fontWeight: 900, fontSize: 28, color: ROOST_BRAND_CARD_TEXT, letterSpacing: "-0.5px", lineHeight: 1 }}>Roost</span>
+            <span
+              style={{
+                fontWeight: 900,
+                fontSize: 28,
+                color: ROOST_BRAND_CARD_TEXT,
+                letterSpacing: '-0.5px',
+                lineHeight: 1,
+              }}
+            >
+              Roost
+            </span>
           </div>
 
-      
-
-          <h1 style={{ fontSize: 28, fontWeight: 900, color: ROOST_BRAND_CARD_TEXT, marginBottom: 4, letterSpacing: "-0.5px" }}>
+          <h1
+            className="text-center"
+            style={{
+              fontSize: 28,
+              fontWeight: 900,
+              color: ROOST_BRAND_CARD_TEXT,
+              marginBottom: 4,
+              letterSpacing: '-0.5px',
+            }}
+          >
             Create your account.
           </h1>
-          <p style={{ fontSize: 14, fontWeight: 600, color: ROOST_BRAND_CARD_MUTED, marginBottom: 28 }}>
+          <p
+            className="text-center"
+            style={{
+              fontSize: 14,
+              fontWeight: 600,
+              color: ROOST_BRAND_CARD_MUTED,
+              marginBottom: 28,
+            }}
+          >
             Let us get your household sorted.
           </p>
 
@@ -279,13 +382,43 @@ export default function SignupPage() {
             <GoogleAuthButton disabled={loading} mode="signup" />
           </div>
 
-          <div style={{ display: "flex", alignItems: "center", gap: 12, margin: "0 0 20px" }}>
-            <div style={{ flex: 1, height: 1, backgroundColor: "rgba(255,255,255,0.22)" }} />
-            <span style={{ fontSize: 13, fontWeight: 700, color: ROOST_BRAND_CARD_MUTED }}>or</span>
-            <div style={{ flex: 1, height: 1, backgroundColor: "rgba(255,255,255,0.22)" }} />
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 12,
+              margin: '0 0 20px',
+            }}
+          >
+            <div
+              style={{
+                flex: 1,
+                height: 1,
+                backgroundColor: 'rgba(255,255,255,0.22)',
+              }}
+            />
+            <span
+              style={{
+                fontSize: 13,
+                fontWeight: 700,
+                color: ROOST_BRAND_CARD_MUTED,
+              }}
+            >
+              or
+            </span>
+            <div
+              style={{
+                flex: 1,
+                height: 1,
+                backgroundColor: 'rgba(255,255,255,0.22)',
+              }}
+            />
           </div>
 
-          <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+          <form
+            onSubmit={handleSubmit}
+            style={{ display: 'flex', flexDirection: 'column', gap: 16 }}
+          >
             {/* Name */}
             <div>
               <label style={labelStyle}>Your name</label>
@@ -293,12 +426,24 @@ export default function SignupPage() {
                 type="text"
                 autoComplete="name"
                 value={name}
-                onChange={(e) => { setName(e.target.value); setErrors((p) => ({ ...p, name: "" })); }}
+                onChange={(e) => {
+                  setName(e.target.value);
+                  setErrors((p) => ({ ...p, name: '' }));
+                }}
                 placeholder="What should we call you?"
                 style={inputStyle}
               />
               {errors.name && (
-                <p style={{ fontSize: 12, fontWeight: 600, color: "#FFE2E2", marginTop: 4 }}>{errors.name}</p>
+                <p
+                  style={{
+                    fontSize: 12,
+                    fontWeight: 600,
+                    color: '#FFE2E2',
+                    marginTop: 4,
+                  }}
+                >
+                  {errors.name}
+                </p>
               )}
             </div>
 
@@ -309,24 +454,39 @@ export default function SignupPage() {
                 type="email"
                 autoComplete="email"
                 value={email}
-                onChange={(e) => { setEmail(e.target.value); setErrors((p) => ({ ...p, email: "" })); }}
+                onChange={(e) => {
+                  setEmail(e.target.value);
+                  setErrors((p) => ({ ...p, email: '' }));
+                }}
                 placeholder="you@example.com"
                 style={inputStyle}
               />
               {errors.email && (
-                <p style={{ fontSize: 12, fontWeight: 600, color: "#FFE2E2", marginTop: 4 }}>{errors.email}</p>
+                <p
+                  style={{
+                    fontSize: 12,
+                    fontWeight: 600,
+                    color: '#FFE2E2',
+                    marginTop: 4,
+                  }}
+                >
+                  {errors.email}
+                </p>
               )}
             </div>
 
             {/* Password */}
             <div>
               <label style={labelStyle}>Password</label>
-              <div style={{ position: "relative" }}>
+              <div style={{ position: 'relative' }}>
                 <input
-                  type={showPassword ? "text" : "password"}
+                  type={showPassword ? 'text' : 'password'}
                   autoComplete="new-password"
                   value={password}
-                  onChange={(e) => { setPassword(e.target.value); setErrors((p) => ({ ...p, password: "" })); }}
+                  onChange={(e) => {
+                    setPassword(e.target.value);
+                    setErrors((p) => ({ ...p, password: '' }));
+                  }}
                   placeholder="At least 8 characters"
                   style={{ ...inputStyle, paddingRight: 44 }}
                 />
@@ -335,14 +495,14 @@ export default function SignupPage() {
                   onClick={() => setShowPassword((v) => !v)}
                   tabIndex={-1}
                   style={{
-                    position: "absolute",
+                    position: 'absolute',
                     right: 12,
-                    top: "50%",
-                    transform: "translateY(-50%)",
+                    top: '50%',
+                    transform: 'translateY(-50%)',
                     color: ROOST_BRAND_MUTED,
-                    background: "none",
-                    border: "none",
-                    cursor: "pointer",
+                    background: 'none',
+                    border: 'none',
+                    cursor: 'pointer',
                   }}
                 >
                   {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
@@ -351,8 +511,15 @@ export default function SignupPage() {
 
               {/* Strength bar */}
               {cfg && (
-                <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 6 }}>
-                  <div style={{ display: "flex", flex: 1, gap: 3 }}>
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 8,
+                    marginTop: 6,
+                  }}
+                >
+                  <div style={{ display: 'flex', flex: 1, gap: 3 }}>
                     {[0, 1, 2, 3].map((i) => (
                       <div
                         key={i}
@@ -360,59 +527,91 @@ export default function SignupPage() {
                           height: 4,
                           flex: 1,
                           borderRadius: 2,
-                          backgroundColor: i < cfg.segments ? cfg.color : "#F5C5C5",
+                          backgroundColor:
+                            i < cfg.segments ? cfg.color : '#F5C5C5',
                         }}
                       />
                     ))}
                   </div>
-                  <span style={{ fontSize: 11, fontWeight: 700, color: cfg.color }}>{cfg.label}</span>
+                  <span
+                    style={{ fontSize: 11, fontWeight: 700, color: cfg.color }}
+                  >
+                    {cfg.label}
+                  </span>
                 </div>
               )}
               {errors.password && (
-                <p style={{ fontSize: 12, fontWeight: 600, color: "#FFE2E2", marginTop: 4 }}>{errors.password}</p>
+                <p
+                  style={{
+                    fontSize: 12,
+                    fontWeight: 600,
+                    color: '#FFE2E2',
+                    marginTop: 4,
+                  }}
+                >
+                  {errors.password}
+                </p>
               )}
             </div>
 
             {/* Confirm password */}
             <div>
               <label style={labelStyle}>Confirm password</label>
-              <div style={{ position: "relative" }}>
+              <div style={{ position: 'relative' }}>
                 <input
-                  type={showConfirm ? "text" : "password"}
+                  type={showConfirm ? 'text' : 'password'}
                   autoComplete="new-password"
                   value={confirm}
-                  onChange={(e) => { setConfirm(e.target.value); setErrors((p) => ({ ...p, confirm: "" })); }}
+                  onChange={(e) => {
+                    setConfirm(e.target.value);
+                    setErrors((p) => ({ ...p, confirm: '' }));
+                  }}
                   placeholder="Same as above"
                   style={{ ...inputStyle, paddingRight: 60 }}
                 />
                 <div
                   style={{
-                    position: "absolute",
+                    position: 'absolute',
                     right: 12,
-                    top: "50%",
-                    transform: "translateY(-50%)",
-                    display: "flex",
-                    alignItems: "center",
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    display: 'flex',
+                    alignItems: 'center',
                     gap: 4,
                   }}
                 >
-                  {confirmTouched && (
-                    passwordsMatch
-                      ? <CheckCircle2 size={15} color="#22C55E" />
-                      : <XCircle size={15} color={ROOST_BRAND_BG} />
-                  )}
+                  {confirmTouched &&
+                    (passwordsMatch ? (
+                      <CheckCircle2 size={15} color="#22C55E" />
+                    ) : (
+                      <XCircle size={15} color={ROOST_BRAND_BG} />
+                    ))}
                   <button
                     type="button"
                     onClick={() => setShowConfirm((v) => !v)}
                     tabIndex={-1}
-                    style={{ color: ROOST_BRAND_MUTED, background: "none", border: "none", cursor: "pointer" }}
+                    style={{
+                      color: ROOST_BRAND_MUTED,
+                      background: 'none',
+                      border: 'none',
+                      cursor: 'pointer',
+                    }}
                   >
                     {showConfirm ? <EyeOff size={16} /> : <Eye size={16} />}
                   </button>
                 </div>
               </div>
               {errors.confirm && (
-                <p style={{ fontSize: 12, fontWeight: 600, color: "#FFE2E2", marginTop: 4 }}>{errors.confirm}</p>
+                <p
+                  style={{
+                    fontSize: 12,
+                    fontWeight: 600,
+                    color: '#FFE2E2',
+                    marginTop: 4,
+                  }}
+                >
+                  {errors.confirm}
+                </p>
               )}
             </div>
 
@@ -423,32 +622,41 @@ export default function SignupPage() {
               disabled={submitDisabled}
               whileTap={{ y: 2 }}
               style={{
-                width: "100%",
+                width: '100%',
                 height: 50,
-                backgroundColor: "white",
+                backgroundColor: 'white',
                 color: ROOST_BRAND_BG,
                 fontWeight: 800,
                 fontSize: 14,
                 borderRadius: 14,
-                border: "none",
-                borderBottom: "3px solid #E7B7B7",
-                cursor: submitDisabled ? "not-allowed" : "pointer",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
+                border: 'none',
+                borderBottom: '3px solid #E7B7B7',
+                cursor: submitDisabled ? 'not-allowed' : 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
                 opacity: submitDisabled ? 0.6 : 1,
                 marginTop: 4,
               }}
             >
-              {loading ? <Loader2 size={18} className="animate-spin" /> : "Create account"}
+              {loading ? (
+                <Loader2 size={18} className="animate-spin" />
+              ) : (
+                'Create account'
+              )}
             </motion.button>
           </form>
 
           {/* Footer link */}
-          <div style={{ textAlign: "center", marginTop: 24 }}>
+          <div style={{ textAlign: 'center', marginTop: 24 }}>
             <Link
               href="/login"
-              style={{ fontSize: 13, fontWeight: 700, color: "white", textDecoration: "none" }}
+              style={{
+                fontSize: 13,
+                fontWeight: 700,
+                color: 'white',
+                textDecoration: 'none',
+              }}
             >
               Already have an account? Sign in
             </Link>

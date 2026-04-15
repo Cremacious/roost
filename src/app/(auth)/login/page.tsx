@@ -262,7 +262,12 @@ export default function LoginPage() {
           {/* Mobile-only logo */}
           <div
             className="flex md:hidden"
-            style={{ flexDirection: 'column', alignItems: 'center', gap: 8, marginBottom: 24 }}
+            style={{
+              flexDirection: 'column',
+              alignItems: 'center',
+              gap: 8,
+              marginBottom: 24,
+            }}
           >
             <Image
               src={ROOST_ICON_SRC}
@@ -292,6 +297,7 @@ export default function LoginPage() {
           </div>
 
           <h1
+            className="text-center"
             style={{
               fontSize: 28,
               fontWeight: 900,
@@ -303,6 +309,7 @@ export default function LoginPage() {
             Welcome back.
           </h1>
           <p
+            className="text-center"
             style={{
               fontSize: 14,
               fontWeight: 600,
@@ -401,7 +408,13 @@ export default function LoginPage() {
                   {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                 </button>
               </div>
-              <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 8 }}>
+              <div
+                style={{
+                  display: 'flex',
+                  justifyContent: 'flex-end',
+                  marginTop: 8,
+                }}
+              >
                 <Link
                   href="/forgot-password"
                   style={{

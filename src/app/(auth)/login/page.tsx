@@ -129,7 +129,7 @@ export default function LoginPage() {
           backgroundColor: ROOST_BRAND_BG,
           flexDirection: "column",
           justifyContent: "flex-start",
-          alignItems: "flex-start",
+          alignItems: "center",
           padding: "48px 40px",
         }}
       >

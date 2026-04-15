@@ -6,6 +6,12 @@ import Link from "next/link";
 import Image from "next/image";
 import { toast } from "sonner";
 import { signUp } from "@/lib/auth/client";
+import { GoogleAuthButton } from "@/components/auth/GoogleAuthButton";
+import {
+  consumePendingInviteRedirect,
+  getPostAuthRedirect,
+  persistPendingInviteToken,
+} from "@/lib/auth/client-redirects";
 import {
   ROOST_BRAND_BG,
   ROOST_BRAND_CARD_MUTED,
@@ -116,11 +122,7 @@ export default function SignupPage() {
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const inviteToken = params.get("invite");
-    if (inviteToken) {
-      sessionStorage.setItem("pendingInviteToken", inviteToken);
-    }
+    persistPendingInviteToken(new URLSearchParams(window.location.search));
   }, []);
 
   const strength = password.length > 0 ? getStrength(password) : null;
@@ -150,13 +152,9 @@ export default function SignupPage() {
       setLoading(false);
       return;
     }
-    const pendingToken = sessionStorage.getItem("pendingInviteToken");
-    if (pendingToken) {
-      sessionStorage.removeItem("pendingInviteToken");
-      router.push(`/invite/${pendingToken}`);
-    } else {
-      router.push("/onboarding");
-    }
+
+    const params = new URLSearchParams(window.location.search);
+    router.push(consumePendingInviteRedirect() ?? getPostAuthRedirect(params, "/onboarding"));
   }
 
   const submitDisabled =
@@ -281,6 +279,16 @@ export default function SignupPage() {
           <p style={{ fontSize: 14, fontWeight: 600, color: ROOST_BRAND_CARD_MUTED, marginBottom: 28 }}>
             Let us get your household sorted.
           </p>
+
+          <div style={{ marginBottom: 20 }}>
+            <GoogleAuthButton disabled={loading} mode="signup" />
+          </div>
+
+          <div style={{ display: "flex", alignItems: "center", gap: 12, margin: "0 0 20px" }}>
+            <div style={{ flex: 1, height: 1, backgroundColor: "rgba(255,255,255,0.22)" }} />
+            <span style={{ fontSize: 13, fontWeight: 700, color: ROOST_BRAND_CARD_MUTED }}>or</span>
+            <div style={{ flex: 1, height: 1, backgroundColor: "rgba(255,255,255,0.22)" }} />
+          </div>
 
           <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 16 }}>
             {/* Name */}

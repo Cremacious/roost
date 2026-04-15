@@ -4,6 +4,9 @@ import { db } from "@/lib/db";
 import { users } from "@/db/schema";
 import { log } from "@/lib/utils/logger";
 
+const googleClientId = process.env.GOOGLE_AUTH_CLIENT_ID?.trim();
+const googleClientSecret = process.env.GOOGLE_AUTH_CLIENT_SECRET?.trim();
+
 export const auth = betterAuth({
   database: drizzleAdapter(db, {
     provider: "pg",
@@ -11,6 +14,15 @@ export const auth = betterAuth({
   emailAndPassword: {
     enabled: true,
   },
+  socialProviders:
+    googleClientId && googleClientSecret
+      ? {
+          google: {
+            clientId: googleClientId,
+            clientSecret: googleClientSecret,
+          },
+        }
+      : undefined,
   user: {
     additionalFields: {
       onboarding_completed: {

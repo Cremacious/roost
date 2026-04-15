@@ -28,21 +28,8 @@ export async function POST(request: NextRequest): Promise<Response> {
   }
   const { householdId } = membership;
 
-  // Premium check
-  const [household] = await db
-    .select({ subscription_status: households.subscription_status })
-    .from(households)
-    .where(eq(households.id, householdId))
-    .limit(1);
-
-  if (household?.subscription_status !== "premium") {
-    return Response.json(
-      { error: "Guest invites require premium", code: "GUEST_MEMBER_PREMIUM" },
-      { status: 403 }
-    );
-  }
-
   let body: {
+    type?: "guest" | "member";
     email?: string;
     expires_in_days?: number;
     expires_at_custom?: string;
@@ -53,58 +40,104 @@ export async function POST(request: NextRequest): Promise<Response> {
     return Response.json({ error: "Invalid request body" }, { status: 400 });
   }
 
+  const inviteType = body.type ?? "guest";
   const hasPreset = body.expires_in_days !== undefined;
   const hasCustom = body.expires_at_custom !== undefined && body.expires_at_custom !== "";
 
-  if (!hasPreset && !hasCustom) {
-    return Response.json(
-      { error: "Provide either expires_in_days or expires_at_custom" },
-      { status: 400 }
-    );
+  if (inviteType !== "guest" && inviteType !== "member") {
+    return Response.json({ error: "Invalid invite type" }, { status: 400 });
   }
-  if (hasPreset && hasCustom) {
+
+  const [household] = await db
+    .select({ subscription_status: households.subscription_status })
+    .from(households)
+    .where(eq(households.id, householdId))
+    .limit(1);
+
+  let membershipExpiry = addDays(new Date(), 7);
+
+  if (inviteType === "guest") {
+    if (!hasPreset && !hasCustom) {
+      return Response.json(
+        { error: "Provide either expires_in_days or expires_at_custom" },
+        { status: 400 }
+      );
+    }
+    if (hasPreset && hasCustom) {
+      return Response.json(
+        { error: "Provide only one of expires_in_days or expires_at_custom" },
+        { status: 400 }
+      );
+    }
+
+    if (hasPreset) {
+      if (!VALID_PRESET_DAYS.includes(body.expires_in_days!)) {
+        return Response.json(
+          { error: "expires_in_days must be one of: 1, 3, 7, 14, 30" },
+          { status: 400 }
+        );
+      }
+      membershipExpiry = addDays(new Date(), body.expires_in_days!);
+    } else {
+      const parsed = new Date(body.expires_at_custom!);
+      if (isNaN(parsed.getTime())) {
+        return Response.json({ error: "Invalid date for expires_at_custom" }, { status: 400 });
+      }
+      const tomorrow = addDays(new Date(), 1);
+      const maxDate = addDays(new Date(), 365);
+      if (parsed < tomorrow) {
+        return Response.json(
+          { error: "Expiry date must be at least 1 day in the future" },
+          { status: 400 }
+        );
+      }
+      if (parsed > maxDate) {
+        return Response.json(
+          { error: "Expiry date must be within 365 days" },
+          { status: 400 }
+        );
+      }
+      membershipExpiry = parsed;
+    }
+  } else if (hasPreset || hasCustom) {
     return Response.json(
-      { error: "Provide only one of expires_in_days or expires_at_custom" },
+      { error: "Member invite links do not use guest expiry settings" },
       { status: 400 }
     );
   }
 
-  let membershipExpiry: Date;
-
-  if (hasPreset) {
-    if (!VALID_PRESET_DAYS.includes(body.expires_in_days!)) {
-      return Response.json(
-        { error: "expires_in_days must be one of: 1, 3, 7, 14, 30" },
-        { status: 400 }
-      );
-    }
-    membershipExpiry = addDays(new Date(), body.expires_in_days!);
-  } else {
-    const parsed = new Date(body.expires_at_custom!);
-    if (isNaN(parsed.getTime())) {
-      return Response.json({ error: "Invalid date for expires_at_custom" }, { status: 400 });
-    }
-    const tomorrow = addDays(new Date(), 1);
-    const maxDate = addDays(new Date(), 365);
-    if (parsed < tomorrow) {
-      return Response.json(
-        { error: "Expiry date must be at least 1 day in the future" },
-        { status: 400 }
-      );
-    }
-    if (parsed > maxDate) {
-      return Response.json(
-        { error: "Expiry date must be within 365 days" },
-        { status: 400 }
-      );
-    }
-    membershipExpiry = parsed;
+  if (inviteType === "guest" && household?.subscription_status !== "premium") {
+    return Response.json(
+      { error: "Guest invites require premium", code: "GUEST_MEMBER_PREMIUM" },
+      { status: 403 }
+    );
   }
 
   if (body.email) {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(body.email)) {
       return Response.json({ error: "Invalid email format" }, { status: 400 });
+    }
+  }
+
+  if (inviteType === "member" && body.email) {
+    const [existingMemberInvite] = await db
+      .select({ id: household_invites.id })
+      .from(household_invites)
+      .where(
+        and(
+          eq(household_invites.household_id, householdId),
+          eq(household_invites.email, body.email),
+          eq(household_invites.is_guest, false)
+        )
+      )
+      .limit(1);
+
+    if (existingMemberInvite) {
+      return Response.json(
+        { error: "An active member invite already exists for that email" },
+        { status: 409 }
+      );
     }
   }
 
@@ -118,7 +151,7 @@ export async function POST(request: NextRequest): Promise<Response> {
       created_by: session.user.id,
       token,
       email: body.email ?? null,
-      is_guest: true,
+      is_guest: inviteType === "guest",
       expires_at: membershipExpiry,
       link_expires_at: linkExpiry,
     })
@@ -127,8 +160,11 @@ export async function POST(request: NextRequest): Promise<Response> {
   await logActivity({
     householdId,
     userId: session.user.id,
-    type: "guest_invited",
-    description: `invited a guest (access until ${format(membershipExpiry, "MMM d, yyyy")})`,
+    type: inviteType === "guest" ? "guest_invited" : "member_invited",
+    description:
+      inviteType === "guest"
+        ? `invited a guest (access until ${format(membershipExpiry, "MMM d, yyyy")})`
+        : "created a household invite link",
     entityId: invite.id,
     entityType: "household_invite",
   });
@@ -138,6 +174,7 @@ export async function POST(request: NextRequest): Promise<Response> {
       id: invite.id,
       token: invite.token,
       url: getInviteUrl(invite.token),
+      type: inviteType,
       expires_at: membershipExpiry.toISOString(),
       link_expires_at: linkExpiry.toISOString(),
       email: invite.email,

@@ -1,8 +1,8 @@
 import { NextRequest } from "next/server";
-import { requireCurrentMembership } from "@/lib/auth/helpers";
+import { getUserMemberships, requireCurrentMembership } from "@/lib/auth/helpers";
 import { db } from "@/lib/db";
 import { households, member_permissions } from "@/db/schema";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 
 export async function GET(request: NextRequest): Promise<Response> {
   let authContext;
@@ -38,15 +38,26 @@ export async function GET(request: NextRequest): Promise<Response> {
   }
 
   const permissionRows = await db
-    .select({ permission: member_permissions.permission })
+    .select({
+      permission: member_permissions.permission,
+      householdId: member_permissions.household_id,
+    })
     .from(member_permissions)
     .where(eq(member_permissions.user_id, userId));
 
-  const permissions = permissionRows.map((p) => p.permission);
+  const permissions = permissionRows
+    .filter(
+      (permissionRow) =>
+        permissionRow.permission && permissionRow.householdId === membership.householdId
+    )
+    .map((p) => p.permission);
+  const memberships = await getUserMemberships(userId);
 
   return Response.json({
     household,
     role: membership.role,
     permissions,
+    activeHouseholdId: membership.householdId,
+    membershipCount: memberships.length,
   });
 }

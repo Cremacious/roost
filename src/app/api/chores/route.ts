@@ -1,7 +1,10 @@
 import { NextRequest } from "next/server";
-import { requireSession } from "@/lib/auth/helpers";
+import {
+  getUserActiveMembership,
+  requireSession,
+} from "@/lib/auth/helpers";
 import { db } from "@/lib/db";
-import { chores, chore_categories, chore_completions, household_members, households, users } from "@/db/schema";
+import { chores, chore_categories, chore_completions, households, users } from "@/db/schema";
 import { and, desc, eq, gte, isNull } from "drizzle-orm";
 import { addDays, addMonths, startOfDay } from "date-fns";
 import { checkChoreLimit } from "@/lib/utils/premiumGating";
@@ -10,25 +13,7 @@ import { FREE_TIER_LIMITS } from "@/lib/constants/freeTierLimits";
 // ---- Shared helpers ---------------------------------------------------------
 
 export async function getUserHousehold(userId: string) {
-  const [m] = await db
-    .select({
-      householdId: household_members.household_id,
-      role: household_members.role,
-      expiresAt: household_members.expires_at,
-    })
-    .from(household_members)
-    .where(eq(household_members.user_id, userId))
-    .orderBy(desc(household_members.joined_at))
-    .limit(1);
-
-  if (!m) return null;
-
-  // Expired guests are treated as non-members; cron handles cleanup
-  if (m.role === "guest" && m.expiresAt && m.expiresAt < new Date()) {
-    return null;
-  }
-
-  return m;
+  return getUserActiveMembership(userId);
 }
 
 export function calcNextDueAt(

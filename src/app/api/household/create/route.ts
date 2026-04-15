@@ -1,5 +1,10 @@
 import { NextRequest } from "next/server";
-import { requireSession } from "@/lib/auth/helpers";
+import {
+  getUserMemberships,
+  requireSession,
+  setUserActiveHousehold,
+  userHasPremiumHousehold,
+} from "@/lib/auth/helpers";
 import { db } from "@/lib/db";
 import { households, household_members, user, users } from "@/db/schema";
 import { eq } from "drizzle-orm";
@@ -44,6 +49,15 @@ export async function POST(request: NextRequest): Promise<Response> {
     return Response.json({ error: "Household name is required" }, { status: 400 });
   }
 
+  const memberships = await getUserMemberships(session.user.id);
+  const hasPremiumAccess = await userHasPremiumHousehold(session.user.id);
+  if (memberships.length > 0 && !hasPremiumAccess) {
+    return Response.json(
+      { error: "Upgrade to premium to create an additional household" },
+      { status: 403 }
+    );
+  }
+
   const code = await uniqueCode();
 
   const [household] = await db
@@ -60,6 +74,8 @@ export async function POST(request: NextRequest): Promise<Response> {
     user_id: session.user.id,
     role: "admin",
   });
+
+  await setUserActiveHousehold(session.user.id, household.id);
 
   // Seed default expense categories for every new household
   try {

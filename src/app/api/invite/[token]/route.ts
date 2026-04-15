@@ -1,10 +1,17 @@
 import { NextRequest } from "next/server";
-import { getSession, requireSession } from "@/lib/auth/helpers";
+import {
+  getUserMemberships,
+  requireSession,
+  setUserActiveHousehold,
+  userHasPremiumHousehold,
+} from "@/lib/auth/helpers";
 import { db } from "@/lib/db";
-import { household_invites, household_members, households, users } from "@/db/schema";
+import { household_invites, household_members, households, user, users } from "@/db/schema";
 import { and, count, eq, isNull } from "drizzle-orm";
 import { logActivity } from "@/lib/utils/activity";
 import { format } from "date-fns";
+import { checkMemberLimit } from "@/lib/utils/premiumGating";
+import { FREE_TIER_LIMITS } from "@/lib/constants/freeTierLimits";
 
 // Default guest permissions: all 12 permission keys
 const GUEST_PERMISSIONS: { permission: string; enabled: boolean }[] = [
@@ -72,7 +79,9 @@ export async function GET(
   return Response.json({
     valid: true,
     household_name: household?.name ?? "Unknown household",
+    invite_type: invite.is_guest ? "guest" : "member",
     expires_at: invite.expires_at.toISOString(),
+    link_expires_at: invite.link_expires_at.toISOString(),
     email: invite.email,
   });
 }
@@ -108,6 +117,20 @@ export async function POST(
     );
   }
 
+  const [household] = await db
+    .select({
+      id: households.id,
+      name: households.name,
+      subscriptionStatus: households.subscription_status,
+    })
+    .from(households)
+    .where(eq(households.id, invite.household_id))
+    .limit(1);
+
+  if (!household) {
+    return Response.json({ error: "Household not found" }, { status: 404 });
+  }
+
   // Check already a member
   const [existing] = await db
     .select({ id: household_members.id })
@@ -137,29 +160,57 @@ export async function POST(
     return Response.json({ error: "Household is at capacity" }, { status: 403 });
   }
 
-  // Insert guest membership
+  const memberships = await getUserMemberships(session.user.id);
+  const hasPremiumAccess = await userHasPremiumHousehold(session.user.id);
+  if (
+    memberships.length > 0 &&
+    household.subscriptionStatus !== "premium" &&
+    !hasPremiumAccess
+  ) {
+    return Response.json(
+      { error: "Upgrade to premium to join multiple households" },
+      { status: 403 }
+    );
+  }
+
+  if (!invite.is_guest && household.subscriptionStatus !== "premium") {
+    const { allowed } = await checkMemberLimit(household.id);
+    if (!allowed) {
+      return Response.json(
+        {
+          error: `This household has reached the ${FREE_TIER_LIMITS.members} member limit`,
+          code: "MEMBERS_LIMIT",
+          limit: FREE_TIER_LIMITS.members,
+        },
+        { status: 403 }
+      );
+    }
+  }
+
   await db.insert(household_members).values({
     household_id: invite.household_id,
     user_id: session.user.id,
-    role: "guest",
-    expires_at: invite.expires_at,
+    role: invite.is_guest ? "guest" : "member",
+    expires_at: invite.is_guest ? invite.expires_at : null,
   });
 
   // Set default guest permissions
-  await db
-    .insert(
-      // member_permissions table
-      (await import("@/db/schema")).member_permissions
-    )
-    .values(
-      GUEST_PERMISSIONS.map((p) => ({
-        household_id: invite.household_id,
-        user_id: session.user.id,
-        permission: p.permission,
-        enabled: p.enabled,
-      }))
-    )
-    .onConflictDoNothing();
+  if (invite.is_guest) {
+    await db
+      .insert(
+        // member_permissions table
+        (await import("@/db/schema")).member_permissions
+      )
+      .values(
+        GUEST_PERMISSIONS.map((p) => ({
+          household_id: invite.household_id,
+          user_id: session.user.id,
+          permission: p.permission,
+          enabled: p.enabled,
+        }))
+      )
+      .onConflictDoNothing();
+  }
 
   // Mark invite as accepted
   await db
@@ -170,6 +221,13 @@ export async function POST(
     })
     .where(eq(household_invites.id, invite.id));
 
+  await setUserActiveHousehold(session.user.id, invite.household_id);
+
+  await Promise.all([
+    db.update(user).set({ onboarding_completed: true }).where(eq(user.id, session.user.id)),
+    db.update(users).set({ onboarding_completed: true }).where(eq(users.id, session.user.id)),
+  ]);
+
   // Log activity
   const [userRow] = await db
     .select({ name: users.name })
@@ -177,16 +235,20 @@ export async function POST(
     .where(eq(users.id, session.user.id))
     .limit(1);
   const name = userRow?.name ?? session.user.name ?? "Someone";
-  const expiryStr = format(invite.expires_at, "MMM d, yyyy");
-
   await logActivity({
     householdId: invite.household_id,
     userId: session.user.id,
-    type: "guest_joined",
-    description: `${name} joined as a guest (access until ${expiryStr})`,
+    type: invite.is_guest ? "guest_joined" : "member_joined",
+    description: invite.is_guest
+      ? `${name} joined as a guest (access until ${format(invite.expires_at, "MMM d, yyyy")})`
+      : `${name} joined the household`,
     entityId: invite.id,
     entityType: "household_invite",
   });
 
-  return Response.json({ success: true, household_id: invite.household_id });
+  return Response.json({
+    success: true,
+    household_id: invite.household_id,
+    invite_type: invite.is_guest ? "guest" : "member",
+  });
 }

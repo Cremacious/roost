@@ -5,24 +5,30 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useRouter } from "next/navigation";
 import {
+  ChevronDown,
   Cloud,
   CloudLightning,
   CloudRain,
   CloudSnow,
+  Lock,
   Sun,
   Wind,
 } from "lucide-react";
 import RoostLogo from "@/components/shared/RoostLogo";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { useHouseholds } from "@/lib/hooks/useHouseholds";
 import { useUserPreferences } from "@/lib/hooks/useUserPreferences";
 import { useIsClient } from "@/lib/hooks/useIsClient";
 import { Skeleton } from "@/components/ui/skeleton";
-
-// ---- Types ------------------------------------------------------------------
-
-interface MembersResponse {
-  household: { id: string; name: string };
-}
 
 interface WeatherResponse {
   current_weather: { temperature: number; weathercode: number };
@@ -52,8 +58,19 @@ export default function TopBar() {
   const [time, setTime] = useState<string>("");
   const locationRequested = useRef(false);
   const queryClient = useQueryClient();
+  const router = useRouter();
 
   const { temperatureUnit, latitude, longitude, isLoading: prefsLoading } = useUserPreferences();
+  const {
+    activeHousehold,
+    canSwitchHouseholds,
+    hasPremiumAccess,
+    households,
+    isLoading: householdsLoading,
+    isSwitcherLocked,
+    isSwitching,
+    switchHousehold,
+  } = useHouseholds();
 
   // ---- Clock ------------------------------------------------------------------
 
@@ -101,22 +118,6 @@ export default function TopBar() {
     );
   }, [prefsLoading, latitude, queryClient]);
 
-  // ---- Household members -------------------------------------------------------
-
-  const { data: membersData } = useQuery<MembersResponse>({
-    queryKey: ["household-members"],
-    queryFn: async () => {
-      const r = await fetch("/api/household/members");
-      if (!r.ok) {
-        const d = await r.json().catch(() => ({}));
-        throw new Error(d.error ?? "Failed to load members");
-      }
-      return r.json();
-    },
-    staleTime: 60_000,
-    retry: false,
-  });
-
   // ---- Weather ----------------------------------------------------------------
 
   const effectiveLat = latitude ?? 28.5;
@@ -135,8 +136,15 @@ export default function TopBar() {
     retry: false,
   });
 
-  const householdName = membersData?.household?.name ?? "";
+  const householdName = activeHousehold?.name ?? "";
   const weather = weatherData?.current_weather;
+  async function handleSwitchHousehold(householdId: string) {
+    if (householdId === activeHousehold?.id) return;
+
+    await switchHousehold(householdId);
+    router.push("/dashboard");
+    router.refresh();
+  }
   const unitLabel = temperatureUnit === "fahrenheit" ? "°F" : "°C";
 
   return (
@@ -151,12 +159,121 @@ export default function TopBar() {
         <div className="md:hidden">
           <RoostLogo size="sm" variant="white" />
         </div>
-        <span
-          className="hidden text-base truncate max-w-48 md:block"
-          style={{ color: "var(--roost-text-primary)", fontWeight: 800 }}
-        >
-          {householdName || "\u00A0"}
-        </span>
+        <div className="hidden md:block">
+          {householdsLoading ? (
+            <Skeleton className="h-9 w-44 rounded-xl" />
+          ) : isSwitcherLocked ? (
+            <div
+              className="flex h-9 items-center gap-2 rounded-xl px-3"
+              style={{
+                backgroundColor: "var(--roost-surface)",
+                border: "1.5px solid var(--roost-border)",
+                borderBottom: "3px solid var(--roost-border-bottom)",
+                color: "var(--roost-text-primary)",
+              }}
+            >
+              <span
+                className="max-w-48 truncate text-base"
+                style={{ fontWeight: 800 }}
+              >
+                {householdName || "\u00A0"}
+              </span>
+              <Lock
+                className="size-3.5"
+                style={{ color: "var(--roost-text-muted)" }}
+              />
+            </div>
+          ) : (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button
+                  type="button"
+                  disabled={isSwitching}
+                  className="flex h-9 items-center gap-2 rounded-xl px-3"
+                  style={{
+                    backgroundColor: "var(--roost-surface)",
+                    border: "1.5px solid var(--roost-border)",
+                    borderBottom: "3px solid var(--roost-border-bottom)",
+                    color: "var(--roost-text-primary)",
+                  }}
+                >
+                  <span
+                    className="max-w-48 truncate text-base"
+                    style={{ fontWeight: 800 }}
+                  >
+                    {householdName || "\u00A0"}
+                  </span>
+                  <ChevronDown
+                    className="size-4"
+                    style={{ color: "var(--roost-text-muted)" }}
+                  />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent
+                className="rounded-xl"
+                style={{
+                  backgroundColor: "var(--roost-surface)",
+                  color: "var(--roost-text-primary)",
+                  border: "1.5px solid var(--roost-border)",
+                }}
+              >
+                <DropdownMenuLabel>Households</DropdownMenuLabel>
+                {households.map((household) => (
+                  <DropdownMenuItem
+                    key={household.id}
+                    onClick={() => handleSwitchHousehold(household.id)}
+                    disabled={isSwitching || household.isActive}
+                    className="rounded-lg px-2 py-2"
+                  >
+                    <div className="flex min-w-0 flex-1 items-center justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="truncate text-sm" style={{ fontWeight: 700 }}>
+                          {household.name}
+                        </p>
+                        <p
+                          className="truncate text-xs"
+                          style={{
+                            color: "var(--roost-text-muted)",
+                            fontWeight: 600,
+                          }}
+                        >
+                          {household.isPremium ? "Premium" : "Free"} · {household.role}
+                        </p>
+                      </div>
+                      {household.isActive && (
+                        <span
+                          className="rounded-md px-2 py-0.5 text-[11px]"
+                          style={{
+                            backgroundColor: "#22C55E20",
+                            color: "#15803D",
+                            fontWeight: 800,
+                          }}
+                        >
+                          Active
+                        </span>
+                      )}
+                    </div>
+                  </DropdownMenuItem>
+                ))}
+                {!canSwitchHouseholds && hasPremiumAccess && (
+                  <>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem disabled className="rounded-lg px-2 py-2">
+                      <span
+                        style={{
+                          color: "var(--roost-text-muted)",
+                          fontWeight: 600,
+                        }}
+                      >
+                        Join or create another household to switch here.
+                      </span>
+                    </DropdownMenuItem>
+                  </>
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
+        </div>
       </div>
 
       {/* Right: weather chip + time */}

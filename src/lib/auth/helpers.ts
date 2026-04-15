@@ -1,7 +1,7 @@
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { household_members, households } from "@/db/schema";
-import { and, desc, eq } from "drizzle-orm";
+import { household_members, households, users } from "@/db/schema";
+import { and, desc, eq, inArray } from "drizzle-orm";
 import type { HouseholdMember } from "@/db/schema";
 
 type SessionUser = typeof auth.$Infer.Session.user;
@@ -23,8 +23,112 @@ export interface CurrentMembership {
   joinedAt: Date | null;
 }
 
+export interface UserMembershipSummary extends CurrentMembership {
+  id: string;
+}
+
 const sessionCache = new WeakMap<Request, Promise<AuthSession | null>>();
 const membershipCache = new WeakMap<Request, Promise<CurrentMembership | null>>();
+
+function isMembershipActive(membership: {
+  role: HouseholdMember["role"];
+  expiresAt: Date | null;
+}): boolean {
+  if (
+    membership.role === "guest" &&
+    membership.expiresAt &&
+    membership.expiresAt < new Date()
+  ) {
+    return false;
+  }
+
+  return true;
+}
+
+async function persistActiveHousehold(userId: string, householdId: string): Promise<void> {
+  await db
+    .update(users)
+    .set({
+      active_household_id: householdId,
+      updated_at: new Date(),
+    })
+    .where(eq(users.id, userId))
+    .catch(() => {
+      // Non-fatal: some older users may still be missing an app-users row.
+    });
+}
+
+export async function getUserMemberships(
+  userId: string
+): Promise<UserMembershipSummary[]> {
+  const memberships = await db
+    .select({
+      id: household_members.id,
+      householdId: household_members.household_id,
+      role: household_members.role,
+      expiresAt: household_members.expires_at,
+      joinedAt: household_members.joined_at,
+    })
+    .from(household_members)
+    .where(eq(household_members.user_id, userId))
+    .orderBy(desc(household_members.joined_at));
+
+  return memberships.filter(isMembershipActive);
+}
+
+export async function getUserActiveMembership(
+  userId: string
+): Promise<CurrentMembership | null> {
+  const memberships = await getUserMemberships(userId);
+  if (memberships.length === 0) {
+    return null;
+  }
+
+  const [userRow] = await db
+    .select({ activeHouseholdId: users.active_household_id })
+    .from(users)
+    .where(eq(users.id, userId))
+    .limit(1);
+
+  const activeMembership =
+    memberships.find((membership) => membership.householdId === userRow?.activeHouseholdId) ??
+    memberships[0];
+
+  if (activeMembership && activeMembership.householdId !== userRow?.activeHouseholdId) {
+    await persistActiveHousehold(userId, activeMembership.householdId);
+  }
+
+  return {
+    householdId: activeMembership.householdId,
+    role: activeMembership.role,
+    expiresAt: activeMembership.expiresAt,
+    joinedAt: activeMembership.joinedAt,
+  };
+}
+
+export async function userHasPremiumHousehold(userId: string): Promise<boolean> {
+  const memberships = await getUserMemberships(userId);
+  if (memberships.length === 0) {
+    return false;
+  }
+
+  const householdRows = await db
+    .select({
+      id: households.id,
+      subscriptionStatus: households.subscription_status,
+      premiumExpiresAt: households.premium_expires_at,
+    })
+    .from(households)
+    .where(inArray(households.id, memberships.map((membership) => membership.householdId)));
+
+  return householdRows.some((household) => {
+    if (household.subscriptionStatus !== "premium") {
+      return false;
+    }
+
+    return household.premiumExpiresAt === null || new Date(household.premiumExpiresAt) > new Date();
+  });
+}
 
 export async function getSession(
   request: Request
@@ -56,30 +160,7 @@ export async function getCurrentMembership(
     cached = (async () => {
       const session = await getSession(request);
       if (!session) return null;
-
-      const [membership] = await db
-        .select({
-          householdId: household_members.household_id,
-          role: household_members.role,
-          expiresAt: household_members.expires_at,
-          joinedAt: household_members.joined_at,
-        })
-        .from(household_members)
-        .where(eq(household_members.user_id, session.user.id))
-        .orderBy(desc(household_members.joined_at))
-        .limit(1);
-
-      if (!membership) return null;
-
-      if (
-        membership.role === "guest" &&
-        membership.expiresAt &&
-        membership.expiresAt < new Date()
-      ) {
-        return null;
-      }
-
-      return membership;
+      return getUserActiveMembership(session.user.id);
     })();
 
     membershipCache.set(request, cached);
@@ -189,6 +270,13 @@ export async function requirePremium(
 
 export function isChild(member: HouseholdMember): boolean {
   return member.role === "child";
+}
+
+export async function setUserActiveHousehold(
+  userId: string,
+  householdId: string
+): Promise<void> {
+  await persistActiveHousehold(userId, householdId);
 }
 
 export function blockChild(member: HouseholdMember): void {

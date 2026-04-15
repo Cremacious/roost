@@ -27,15 +27,21 @@ import { logActivity } from "@/lib/utils/activity";
 import { log } from "@/lib/utils/logger";
 
 export async function POST(request: NextRequest): Promise<Response> {
+  const body = await request.text();
+  const sig = request.headers.get("stripe-signature");
+
+  if (!sig) {
+    log.warn("stripe.webhook.sig_invalid", { at: new Date().toISOString() });
+    return Response.json({ error: "Invalid signature" }, { status: 400 });
+  }
+
   if (!isStripeWebhookConfigured()) {
-    return Response.json({ error: "Stripe webhook is not configured" }, { status: 503 });
+    log.warn("stripe.webhook.sig_invalid", { at: new Date().toISOString() });
+    return Response.json({ error: "Invalid signature" }, { status: 400 });
   }
 
   const stripe = getStripe();
   const stripePriceId = getStripePrice();
-
-  const body = await request.text();
-  const sig = request.headers.get("stripe-signature");
 
   let event: Stripe.Event;
   try {

@@ -125,7 +125,7 @@ test.describe("Billing API — admin checkout session creation", () => {
     } else {
       // Stripe keys not configured in this environment (expected locally without .env)
       // The permission check passed (we didn't get 401 or 403) — that's the important thing
-      expect([400, 500]).toContain(res.status());
+      expect([400, 500, 503]).toContain(res.status());
       console.log(
         `  ℹ checkout creation skipped (status ${res.status()}) — STRIPE_SECRET_KEY not set in this environment`
       );

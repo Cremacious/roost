@@ -8,14 +8,6 @@ import { getStripe, getStripeAppUrl, getStripePrice } from "@/lib/utils/stripe";
 import { log } from "@/lib/utils/logger";
 
 export async function POST(request: NextRequest): Promise<Response> {
-  if (!isStripeConfigured()) {
-    return Response.json({ error: "Billing is not configured" }, { status: 503 });
-  }
-
-  const stripe = getStripe();
-  const stripePriceId = getStripePrice();
-  const appUrl = getStripeAppUrl();
-
   let session;
   try {
     session = await requireSession(request);
@@ -44,6 +36,14 @@ export async function POST(request: NextRequest): Promise<Response> {
       { status: 403 }
     );
   }
+
+  if (!isStripeConfigured()) {
+    return Response.json({ error: "Billing is not configured" }, { status: 503 });
+  }
+
+  const stripe = getStripe();
+  const stripePriceId = getStripePrice();
+  const appUrl = getStripeAppUrl();
 
   const [household] = await db
     .select()

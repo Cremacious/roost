@@ -4,7 +4,7 @@ import { getSession } from "@/lib/auth/helpers";
 import { isAdminIpAllowed } from "@/lib/security/request";
 
 // Always public — never redirect
-const ALWAYS_PUBLIC = ["/", "/privacy", "/terms"];
+const ALWAYS_PUBLIC = ["/", "/privacy", "/terms", "/forgot-password", "/reset-password"];
 
 // Auth pages: public when signed out; redirect to /dashboard when signed in
 const AUTH_PAGES = ["/login", "/signup", "/child-login"];

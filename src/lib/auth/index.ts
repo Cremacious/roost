@@ -2,6 +2,7 @@ import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "@better-auth/drizzle-adapter";
 import { db } from "@/lib/db";
 import { users } from "@/db/schema";
+import { sendPasswordResetEmail } from "@/lib/email/auth-emails";
 import { log } from "@/lib/utils/logger";
 
 const googleClientId = process.env.GOOGLE_AUTH_CLIENT_ID?.trim();
@@ -13,6 +14,15 @@ export const auth = betterAuth({
   }),
   emailAndPassword: {
     enabled: true,
+    minPasswordLength: 8,
+    revokeSessionsOnPasswordReset: true,
+    sendResetPassword: async ({ user, url }) => {
+      await sendPasswordResetEmail({
+        to: user.email,
+        name: user.name,
+        resetUrl: url,
+      });
+    },
   },
   socialProviders:
     googleClientId && googleClientSecret

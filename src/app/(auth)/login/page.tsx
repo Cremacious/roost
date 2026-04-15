@@ -399,6 +399,19 @@ export default function LoginPage() {
                   {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                 </button>
               </div>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 8 }}>
+                <Link
+                  href="/forgot-password"
+                  style={{
+                    fontSize: 12,
+                    fontWeight: 700,
+                    color: ROOST_BRAND_CARD_MUTED,
+                    textDecoration: 'none',
+                  }}
+                >
+                  Forgot password?
+                </Link>
+              </div>
             </div>
 
             {/* Submit */}

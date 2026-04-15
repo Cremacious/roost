@@ -5,9 +5,11 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { headers } from 'next/headers';
 import { Bell, GraduationCap, Home, Users } from 'lucide-react';
+import StructuredDataScript from '@/components/marketing/StructuredDataScript';
 import { auth } from '@/lib/auth';
 import { ROOST_ICON_SRC } from '@/lib/brand';
-import { getAppUrl } from '@/lib/env';
+import { homepageResourceLinks } from '@/lib/seo-content';
+import { buildPublicMetadata, getHomepageJsonLd } from '@/lib/seo';
 
 const nunito = Nunito({
   subsets: ['latin'],
@@ -15,14 +17,38 @@ const nunito = Nunito({
   display: 'swap',
 });
 
-export const metadata: Metadata = {
-  title: 'Roost - Homes run better with Roost.',
+export const metadata: Metadata = buildPublicMetadata({
+  title: 'Household Management App for Families and Roommates',
   description:
-    'The household app for families and roommates. Chores, groceries, bills, meals, reminders, and a shared calendar. One app.',
-  alternates: {
-    canonical: getAppUrl(),
+    'Roost is a household management app for families and roommates with chores, grocery lists, bill splitting, reminders, meal planning, allowances, and a shared calendar.',
+  path: '/',
+  keywords: [
+    'household management app',
+    'family organizer app',
+    'roommate app',
+    'shared grocery list app',
+    'roommate chore app',
+    'split bills for roommates',
+  ],
+});
+
+const homepageFaqs = [
+  {
+    question: 'What is Roost?',
+    answer:
+      'Roost is a household management app for families and roommates that combines chores, grocery lists, bills, reminders, calendars, meals, and allowances in one place.',
   },
-};
+  {
+    question: 'Is Roost for roommates or families?',
+    answer:
+      'Both. Roost is designed for shared homes, so it fits roommates, families, college houses, and other households that need a shared operating system.',
+  },
+  {
+    question: 'Why not just use separate apps for chores, groceries, and bills?',
+    answer:
+      'Separate apps create more switching, more missed handoffs, and more household context trapped in different tools. Roost keeps those workflows connected in one place.',
+  },
+];
 
 
 function ChoresMockup() {
@@ -1120,14 +1146,32 @@ export default async function HomePage() {
   const brandTint = '#FFF1F2';
 
   return (
-    <main
-      style={{
-        fontFamily: ff,
-        margin: 0,
-        padding: 0,
-        backgroundColor: brandBg,
-      }}
-    >
+    <>
+      {getHomepageJsonLd().map((item, index) => (
+        <StructuredDataScript key={index} data={item} />
+      ))}
+      <StructuredDataScript
+        data={{
+          '@context': 'https://schema.org',
+          '@type': 'FAQPage',
+          mainEntity: homepageFaqs.map((faq) => ({
+            '@type': 'Question',
+            name: faq.question,
+            acceptedAnswer: {
+              '@type': 'Answer',
+              text: faq.answer,
+            },
+          })),
+        }}
+      />
+      <main
+        style={{
+          fontFamily: ff,
+          margin: 0,
+          padding: 0,
+          backgroundColor: brandBg,
+        }}
+      >
       <style>{`
         .landing-nav {
           background: ${brandBg};
@@ -1365,7 +1409,7 @@ export default async function HomePage() {
           sizes="(max-width: 768px) 72px, 120px"
         />
 
-        <h1
+        <p
           className="text-[44px] md:text-[56px] font-black"
           style={{
             color: 'white',
@@ -1377,19 +1421,19 @@ export default async function HomePage() {
           }}
         >
           Roost
-        </h1>
+        </p>
         <h1
           className="hero-h1 text-[28px] md:text-[40px] font-black"
           style={{
             color: 'white',
             letterSpacing: '-1px',
             lineHeight: 1.06,
-            maxWidth: 600,
+            maxWidth: 760,
             margin: '0 auto 16px',
             fontFamily: ff,
           }}
         >
-          One app. Zero excuses.
+          The household management app for families and roommates.
         </h1>
         <p
           className="hero-copy text-[14px] md:text-[16px]"
@@ -1397,13 +1441,14 @@ export default async function HomePage() {
             fontWeight: 600,
             color: 'rgba(255,255,255,0.85)',
             lineHeight: 1.6,
-            maxWidth: 420,
+            maxWidth: 700,
             margin: '0 auto 30px',
             fontFamily: ff,
           }}
         >
-          One app for chores, groceries, bills, meals, and everything in
-          between.
+          Chores, groceries, bills, reminders, a shared calendar, meal planning,
+          allowances, and notes. All under one roof, so your home runs on one
+          shared system instead of a pile of separate tools.
         </p>
         <div className="hero-actions">
           <Link
@@ -2127,6 +2172,167 @@ export default async function HomePage() {
         </div>
       </section>
 
+      <section
+        style={{
+          backgroundColor: '#FFF7F7',
+          padding: '56px 40px',
+          borderTop: '1px solid #FEE2E2',
+        }}
+      >
+        <div style={{ maxWidth: 1040, margin: '0 auto' }}>
+          <h2
+            style={{
+              fontSize: 28,
+              fontWeight: 900,
+              color: '#1a1a1a',
+              letterSpacing: '-0.7px',
+              margin: '0 0 10px',
+              textAlign: 'center',
+              fontFamily: ff,
+            }}
+          >
+            Explore Roost by use case
+          </h2>
+          <p
+            style={{
+              fontSize: 15,
+              fontWeight: 700,
+              color: '#666',
+              margin: '0 auto 24px',
+              maxWidth: 760,
+              textAlign: 'center',
+              lineHeight: 1.7,
+              fontFamily: ff,
+            }}
+          >
+            These pages are built around the problems people actually search
+            for, from roommate chores and shared grocery lists to family
+            organization and allowances.
+          </p>
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+              gap: 16,
+            }}
+          >
+            {homepageResourceLinks.map((link) => (
+              <Link
+                key={link.href}
+                href={link.href}
+                style={{
+                  display: 'block',
+                  borderRadius: 18,
+                  border: '1.5px solid #FECACA',
+                  borderBottom: `4px solid ${brandAccent}`,
+                  backgroundColor: 'white',
+                  padding: 20,
+                  textDecoration: 'none',
+                }}
+              >
+                <div
+                  style={{
+                    color: brandBg,
+                    fontSize: 12,
+                    fontWeight: 900,
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.08em',
+                    marginBottom: 8,
+                    fontFamily: ff,
+                  }}
+                >
+                  Use case
+                </div>
+                <div
+                  style={{
+                    color: '#1a1a1a',
+                    fontSize: 18,
+                    fontWeight: 900,
+                    lineHeight: 1.25,
+                    marginBottom: 8,
+                    fontFamily: ff,
+                  }}
+                >
+                  {link.label}
+                </div>
+                <div
+                  style={{
+                    color: '#666',
+                    fontSize: 14,
+                    lineHeight: 1.65,
+                    fontWeight: 600,
+                    fontFamily: ff,
+                  }}
+                >
+                  {link.description}
+                </div>
+              </Link>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section
+        style={{
+          backgroundColor: 'white',
+          padding: '56px 40px',
+          borderTop: '1px solid #F3F4F6',
+        }}
+      >
+        <div style={{ maxWidth: 920, margin: '0 auto' }}>
+          <h2
+            style={{
+              fontSize: 28,
+              fontWeight: 900,
+              color: '#1a1a1a',
+              letterSpacing: '-0.7px',
+              margin: '0 0 22px',
+              textAlign: 'center',
+              fontFamily: ff,
+            }}
+          >
+            Frequently asked questions
+          </h2>
+          <div style={{ display: 'grid', gap: 12 }}>
+            {homepageFaqs.map((faq) => (
+              <details
+                key={faq.question}
+                style={{
+                  border: '1.5px solid #FECACA',
+                  borderRadius: 16,
+                  padding: '16px 18px',
+                  backgroundColor: '#FFF7F7',
+                }}
+              >
+                <summary
+                  style={{
+                    cursor: 'pointer',
+                    color: '#7F1D1D',
+                    fontWeight: 800,
+                    lineHeight: 1.5,
+                    fontFamily: ff,
+                  }}
+                >
+                  {faq.question}
+                </summary>
+                <p
+                  style={{
+                    margin: '12px 0 0',
+                    color: '#4B5563',
+                    fontSize: 15,
+                    lineHeight: 1.75,
+                    fontWeight: 600,
+                    fontFamily: ff,
+                  }}
+                >
+                  {faq.answer}
+                </p>
+              </details>
+            ))}
+          </div>
+        </div>
+      </section>
+
       {/* 8. BOTTOM CTA */}
       <section
         className="cta-section"
@@ -2285,6 +2491,7 @@ export default async function HomePage() {
           </div>
         </div>
       </footer>
-    </main>
+      </main>
+    </>
   );
 }

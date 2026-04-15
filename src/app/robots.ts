@@ -18,6 +18,7 @@ export default function robots(): MetadataRoute.Robots {
         "/dashboard",
         "/expenses",
         "/grocery",
+        "/homepage-preview",
         "/invite/",
         "/login",
         "/meals",

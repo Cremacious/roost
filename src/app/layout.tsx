@@ -4,8 +4,16 @@ import { Toaster } from "@/components/ui/sonner";
 import ThemeProvider from "@/components/providers/ThemeProvider";
 import ObservabilityProvider from "@/components/providers/ObservabilityProvider";
 import WebVitals from "@/components/providers/WebVitals";
+import StructuredDataScript from "@/components/marketing/StructuredDataScript";
 import { DEFAULT_THEME } from "@/lib/constants/themes";
 import { getAppUrl, getMetadataBaseUrl, validateServerEnv } from "@/lib/env";
+import {
+  DEFAULT_KEYWORDS,
+  DEFAULT_OG_IMAGE,
+  SITE_DESCRIPTION,
+  SITE_NAME,
+  getOrganizationJsonLd,
+} from "@/lib/seo";
 import "./globals.css";
 
 validateServerEnv();
@@ -26,20 +34,14 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   metadataBase: getMetadataBaseUrl(),
   title: {
-    default: "Roost",
+    default: `${SITE_NAME} | Household Management App for Families and Roommates`,
     template: "%s | Roost",
   },
-  description: "The household app for families and roommates.",
-  keywords: [
-    "household management",
-    "chores",
-    "grocery list",
-    "bill splitting",
-    "family organizer",
-    "roommate app",
-  ],
-  authors: [{ name: "Roost" }],
-  creator: "Roost",
+  description: SITE_DESCRIPTION,
+  keywords: DEFAULT_KEYWORDS,
+  authors: [{ name: SITE_NAME }],
+  creator: SITE_NAME,
+  publisher: SITE_NAME,
   icons: {
     icon: [
       { url: "/favicon-16x16.png", sizes: "16x16", type: "image/png" },
@@ -58,23 +60,37 @@ export const metadata: Metadata = {
     type: "website",
     locale: "en_US",
     url: appUrl,
-    title: "Roost",
-    description: "Homes run better with Roost.",
-    siteName: "Roost",
+    title: `${SITE_NAME} | Household Management App for Families and Roommates`,
+    description: SITE_DESCRIPTION,
+    siteName: SITE_NAME,
+    images: [
+      {
+        url: DEFAULT_OG_IMAGE,
+        width: 1200,
+        height: 630,
+        alt: `${SITE_NAME} preview image`,
+      },
+    ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "Roost",
-    description: "Homes run better with Roost.",
+    title: `${SITE_NAME} | Household Management App for Families and Roommates`,
+    description: SITE_DESCRIPTION,
+    images: [DEFAULT_OG_IMAGE],
   },
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
-    title: "Roost",
+    title: SITE_NAME,
   },
   formatDetection: {
     telephone: false,
   },
+  verification: process.env.GOOGLE_SITE_VERIFICATION
+    ? {
+        google: process.env.GOOGLE_SITE_VERIFICATION,
+      }
+    : undefined,
 };
 
 export const viewport: Viewport = {
@@ -95,6 +111,9 @@ export default function RootLayout({
       className={`${nunito.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
+        {getOrganizationJsonLd().map((item, index) => (
+          <StructuredDataScript key={index} data={item} />
+        ))}
         <ObservabilityProvider />
         <WebVitals />
         <ThemeProvider initialTheme={DEFAULT_THEME}>

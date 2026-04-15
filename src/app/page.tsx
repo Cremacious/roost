@@ -24,9 +24,6 @@ export const metadata: Metadata = {
   },
 };
 
-// ---------------------------------------------------------------------------
-// Mockup components (decorative static UI previews)
-// ---------------------------------------------------------------------------
 
 function ChoresMockup() {
   const items = [
@@ -1372,12 +1369,12 @@ export default async function HomePage() {
         <Image
           src={ROOST_ICON_SRC}
           alt="Roost"
-          width={220}
-          height={220}
+          width={160}
+          height={160}
           className="hero-logo"
           priority
           sizes="(max-width: 768px) 180px, 220px"
-          style={{ display: 'block', margin: '0 auto 12px', width: 220, height: 'auto' }}
+          style={{ display: 'block', margin: '0 auto 12px', width: 120, height: 'auto' }}
         />
 
         <h1
@@ -1452,19 +1449,7 @@ export default async function HomePage() {
           textAlign: 'center',
         }}
       >
-        <div
-          style={{
-            fontSize: 11,
-            fontWeight: 800,
-            color: brandAccent,
-            letterSpacing: '1px',
-            textTransform: 'uppercase',
-            marginBottom: 12,
-            fontFamily: ff,
-          }}
-        >
-          Sound familiar?
-        </div>
+
         <h2
           style={{
             fontSize: 32,

@@ -300,7 +300,7 @@ function PageShell({ children }: { children: React.ReactNode }) {
     <div
       style={{
         minHeight: "100vh",
-        backgroundColor: "#F9FAFB",
+        backgroundColor: "#FFC8C8",
         display: "flex",
         flexDirection: "column",
         alignItems: "center",

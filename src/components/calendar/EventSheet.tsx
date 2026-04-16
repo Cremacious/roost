@@ -723,7 +723,8 @@ export default function EventSheet({
                   mode="single"
                   selected={selectedDate}
                   onSelect={(d) => d && setSelectedDate(d)}
-                  className="w-full"
+                  fixedWeeks
+                  className="roost-calendar-mobile w-full"
                 />
               </div>
             </div>

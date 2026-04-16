@@ -88,13 +88,12 @@ export function GoogleAuthButton({ disabled = false, mode }: GoogleAuthButtonPro
       style={{
         width: "100%",
         minHeight: 52,
-        background:
-          "linear-gradient(180deg, rgba(255,252,252,0.98) 0%, rgba(255,243,243,0.96) 100%)",
+        backgroundColor: "#FFFFFF",
         color: ROOST_BRAND_BG,
         fontWeight: 900,
         fontSize: 14,
         borderRadius: 16,
-        border: "1px solid rgba(255, 233, 233, 0.9)",
+        border: "1px solid rgba(229, 231, 235, 0.95)",
         borderBottom: "3px solid rgba(219, 173, 176, 0.95)",
         boxShadow: "0 16px 30px rgba(69, 10, 10, 0.12)",
         cursor: disabled || loading ? "not-allowed" : "pointer",
@@ -102,6 +101,7 @@ export function GoogleAuthButton({ disabled = false, mode }: GoogleAuthButtonPro
         alignItems: "center",
         justifyContent: "center",
         gap: 10,
+        flexWrap: "nowrap",
         opacity: disabled || loading ? 0.68 : 1,
         padding: "0 16px",
       }}
@@ -120,19 +120,25 @@ export function GoogleAuthButton({ disabled = false, mode }: GoogleAuthButtonPro
               width: 28,
               height: 28,
               borderRadius: 999,
-              backgroundColor: "rgba(255,255,255,0.92)",
+              backgroundColor: "#FFFFFF",
               display: "inline-flex",
               alignItems: "center",
               justifyContent: "center",
               boxShadow: "inset 0 0 0 1px rgba(185, 28, 28, 0.08)",
+              flexShrink: 0,
             }}
           >
             <GoogleGlyph />
           </span>
-          <span style={{ color: ROOST_BRAND_BG }}>
+          <span
+            style={{
+              color: ROOST_BRAND_BG,
+              whiteSpace: "nowrap",
+              lineHeight: 1.1,
+            }}
+          >
             {mode === "signup" ? "Create with Google" : "Continue with Google"}
           </span>
-          <span style={{ color: ROOST_BRAND_CARD_TEXT, opacity: 0.42 }}>in one tap</span>
         </>
       )}
     </motion.button>

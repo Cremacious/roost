@@ -305,6 +305,52 @@ html {
   font-size: 12px;
 }
 
+/* ---- Mobile calendar (EventSheet mobile date picker) ------------------- */
+
+.roost-calendar-mobile {
+  --cell-size: 42px;
+  width: 100% !important;
+  max-width: 100% !important;
+  padding: 12px 10px 10px !important;
+}
+
+.roost-calendar-mobile .rdp-month_caption {
+  font-size: 18px;
+  font-weight: 800;
+  margin-bottom: 6px;
+}
+
+.roost-calendar-mobile .rdp-button_previous,
+.roost-calendar-mobile .rdp-button_next {
+  width: 40px;
+  height: 40px;
+}
+
+.roost-calendar-mobile .rdp-weekday {
+  width: calc(100% / 7);
+  height: 32px;
+  padding: 0;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.roost-calendar-mobile .rdp-week {
+  margin-top: 6px;
+}
+
+.roost-calendar-mobile .rdp-day {
+  width: calc(100% / 7);
+  height: 46px;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.roost-calendar-mobile .rdp-day_button {
+  width: 42px;
+  height: 42px;
+  font-size: 15px;
+}
+
 /* ---- Dark theme: feature card border override --------------------------- */
 
 [data-dark="true"] .feature-card {

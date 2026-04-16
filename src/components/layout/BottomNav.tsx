@@ -7,11 +7,14 @@ import {
   BarChart2,
   Bell,
   Calendar,
+  ChevronRight,
   CheckCircle2,
   CheckSquare,
   DollarSign,
   FileText,
   Home,
+  House,
+  Lock,
   Loader2,
   LogOut,
   MoreHorizontal,
@@ -36,6 +39,7 @@ import {
 } from "@/components/ui/dialog";
 import { motion } from "framer-motion";
 import { signOut } from "@/lib/auth/client";
+import { useHouseholds } from "@/lib/hooks/useHouseholds";
 import { applyTheme } from "@/components/providers/ThemeProvider";
 import { DEFAULT_THEME } from "@/lib/constants/themes";
 
@@ -72,14 +76,34 @@ export default function BottomNav({ hasIncompleteChores = false }: BottomNavProp
   const pathname = usePathname();
   const router = useRouter();
   const [moreOpen, setMoreOpen] = useState(false);
+  const [householdsOpen, setHouseholdsOpen] = useState(false);
   const [confirmSignOut, setConfirmSignOut] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
+  const {
+    activeHousehold,
+    canSwitchHouseholds,
+    hasPremiumAccess,
+    households,
+    isLoading: householdsLoading,
+    isSwitcherLocked,
+    isSwitching,
+    switchHousehold,
+  } = useHouseholds();
 
   async function handleSignOut() {
     setSigningOut(true);
     applyTheme(DEFAULT_THEME);
     await signOut();
     router.push("/login");
+  }
+
+  async function handleSwitchHousehold(householdId: string) {
+    if (householdId === activeHousehold?.id) return;
+
+    await switchHousehold(householdId);
+    setHouseholdsOpen(false);
+    router.push("/dashboard");
+    router.refresh();
   }
 
   return (
@@ -155,6 +179,45 @@ export default function BottomNav({ hasIncompleteChores = false }: BottomNavProp
               More
             </SheetTitle>
           </SheetHeader>
+          <button
+            type="button"
+            disabled={householdsLoading || isSwitching || isSwitcherLocked}
+            onClick={() => {
+              setMoreOpen(false);
+              setHouseholdsOpen(true);
+            }}
+            className="mb-3 flex h-14 w-full items-center gap-3 rounded-xl px-4 disabled:opacity-70"
+            style={{
+              backgroundColor: "var(--roost-bg)",
+              border: "1.5px solid var(--roost-border)",
+              borderBottom: "3px solid var(--roost-border-bottom)",
+            }}
+          >
+            <House className="size-4 shrink-0" style={{ color: "#EF4444" }} />
+            <div className="min-w-0 flex-1 text-left">
+              <p
+                className="truncate text-sm"
+                style={{ color: "var(--roost-text-primary)", fontWeight: 700 }}
+              >
+                {activeHousehold?.name ?? "Households"}
+              </p>
+              <p
+                className="truncate text-xs"
+                style={{ color: "var(--roost-text-muted)", fontWeight: 600 }}
+              >
+                {isSwitcherLocked
+                  ? "Premium unlocks switching"
+                  : canSwitchHouseholds
+                    ? `${households.length} households available`
+                    : "No other households yet"}
+              </p>
+            </div>
+            {isSwitcherLocked ? (
+              <Lock className="size-3.5" style={{ color: "var(--roost-text-muted)" }} />
+            ) : (
+              <ChevronRight className="size-4" style={{ color: "var(--roost-text-muted)" }} />
+            )}
+          </button>
           <div className="grid grid-cols-2 gap-2">
             {MORE_ITEMS.map((item, i) => {
               const Icon = item.icon;
@@ -213,6 +276,90 @@ export default function BottomNav({ hasIncompleteChores = false }: BottomNavProp
                 Sign out
               </span>
             </button>
+          </div>
+        </SheetContent>
+      </Sheet>
+
+      <Sheet open={householdsOpen} onOpenChange={setHouseholdsOpen}>
+        <SheetContent
+          side="bottom"
+          className="rounded-t-2xl px-4 pb-8 pt-2"
+          style={{ backgroundColor: "var(--roost-surface)" }}
+        >
+          <div className="mx-auto mb-4 h-1 w-10 rounded-full" style={{ backgroundColor: "var(--roost-border)" }} />
+          <SheetHeader className="mb-3 text-left">
+            <SheetTitle style={{ color: "var(--roost-text-primary)", fontWeight: 800 }}>
+              Households
+            </SheetTitle>
+          </SheetHeader>
+          <div className="space-y-2">
+            {households.map((household) => (
+              <button
+                key={household.id}
+                type="button"
+                disabled={isSwitching || household.isActive}
+                onClick={() => handleSwitchHousehold(household.id)}
+                className="flex min-h-14 w-full items-center gap-3 rounded-xl px-4 py-3 text-left disabled:opacity-70"
+                style={{
+                  backgroundColor: household.isActive ? "#EF444412" : "var(--roost-bg)",
+                  border: "1.5px solid var(--roost-border)",
+                  borderBottom: `3px solid ${household.isActive ? "#EF444440" : "var(--roost-border-bottom)"}`,
+                }}
+              >
+                <House className="size-4 shrink-0" style={{ color: household.isActive ? "#EF4444" : "var(--roost-text-muted)" }} />
+                <div className="min-w-0 flex-1">
+                  <p
+                    className="truncate text-sm"
+                    style={{ color: "var(--roost-text-primary)", fontWeight: 700 }}
+                  >
+                    {household.name}
+                  </p>
+                  <p
+                    className="truncate text-xs"
+                    style={{ color: "var(--roost-text-muted)", fontWeight: 600 }}
+                  >
+                    {household.isPremium ? "Premium" : "Free"} · {household.role}
+                  </p>
+                </div>
+                {household.isActive ? (
+                  <span
+                    className="rounded-md px-2 py-0.5 text-[11px]"
+                    style={{
+                      backgroundColor: "#22C55E20",
+                      color: "#15803D",
+                      fontWeight: 800,
+                    }}
+                  >
+                    Active
+                  </span>
+                ) : (
+                  <ChevronRight className="size-4" style={{ color: "var(--roost-text-muted)" }} />
+                )}
+              </button>
+            ))}
+            {!canSwitchHouseholds && hasPremiumAccess && (
+              <div
+                className="rounded-xl px-4 py-3"
+                style={{
+                  backgroundColor: "var(--roost-bg)",
+                  border: "1.5px solid var(--roost-border)",
+                  borderBottom: "3px solid var(--roost-border-bottom)",
+                }}
+              >
+                <p
+                  className="text-sm"
+                  style={{ color: "var(--roost-text-primary)", fontWeight: 700 }}
+                >
+                  No other households yet
+                </p>
+                <p
+                  className="mt-1 text-xs"
+                  style={{ color: "var(--roost-text-muted)", fontWeight: 600 }}
+                >
+                  When you join or create another household, you can switch here.
+                </p>
+              </div>
+            )}
           </div>
         </SheetContent>
       </Sheet>

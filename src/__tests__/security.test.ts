@@ -1,4 +1,5 @@
 import { buildContentSecurityPolicy } from "@/lib/security/csp";
+import { isLocalAdminDevEnabled } from "@/lib/admin/devAccess";
 import {
   getAdminAllowedIps,
   hashValue,
@@ -18,12 +19,19 @@ function createRequestLike(
 
 describe("security helpers", () => {
   const originalAdminAllowedIps = process.env.ADMIN_ALLOWED_IPS;
+  const originalNodeEnv = process.env.NODE_ENV;
 
   afterEach(() => {
     if (originalAdminAllowedIps === undefined) {
       delete process.env.ADMIN_ALLOWED_IPS;
     } else {
       process.env.ADMIN_ALLOWED_IPS = originalAdminAllowedIps;
+    }
+
+    if (originalNodeEnv === undefined) {
+      delete process.env.NODE_ENV;
+    } else {
+      process.env.NODE_ENV = originalNodeEnv;
     }
   });
 
@@ -75,6 +83,17 @@ describe("security helpers", () => {
 
     expect(isAdminIpAllowed(allowedRequest)).toBe(true);
     expect(isAdminIpAllowed(blockedRequest)).toBe(false);
+  });
+
+  it("only enables local admin dev tools on localhost:3000 in development", () => {
+    process.env.NODE_ENV = "development";
+
+    expect(isLocalAdminDevEnabled("localhost:3000")).toBe(true);
+    expect(isLocalAdminDevEnabled("127.0.0.1:3000")).toBe(false);
+    expect(isLocalAdminDevEnabled("roost.test")).toBe(false);
+
+    process.env.NODE_ENV = "production";
+    expect(isLocalAdminDevEnabled("localhost:3000")).toBe(false);
   });
 
   it("hashes sensitive values before reuse", () => {

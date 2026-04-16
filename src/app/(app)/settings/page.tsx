@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
 import {
@@ -13,7 +13,6 @@ import {
   Loader2,
   MapPin,
   Pencil,
-  Plus,
   RefreshCw,
   Thermometer,
   Tag,
@@ -50,7 +49,10 @@ import MemberSheet, {
   type SheetMember,
 } from '@/components/settings/MemberSheet';
 import InviteGuestSheet from '@/components/settings/InviteGuestSheet';
+import InviteMemberSheet from '@/components/settings/InviteMemberSheet';
 import AddChildSheet from '@/components/settings/AddChildSheet';
+import HouseholdJoinRequestsCard from '@/components/household/HouseholdJoinRequestsCard';
+import RequestHouseholdJoinCard from '@/components/household/RequestHouseholdJoinCard';
 import MemberAvatar from '@/components/shared/MemberAvatar';
 import PremiumGate from '@/components/shared/PremiumGate';
 import { PageContainer } from '@/components/layout/PageContainer';
@@ -1155,6 +1157,7 @@ export default function SettingsPage() {
   const [selectedMember, setSelectedMember] = useState<SheetMember | null>(
     null,
   );
+  const [inviteMemberOpen, setInviteMemberOpen] = useState(false);
   const [inviteGuestOpen, setInviteGuestOpen] = useState(false);
   const [addChildOpen, setAddChildOpen] = useState(false);
 
@@ -2194,6 +2197,24 @@ export default function SettingsPage() {
                 )}
               </div>
 
+              {role !== 'child' && (
+                <div
+                  className="p-4"
+                  style={{ borderTop: '1px solid var(--roost-border)' }}
+                >
+                  <RequestHouseholdJoinCard />
+                </div>
+              )}
+
+              {isAdmin && (
+                <div
+                  className="p-4"
+                  style={{ borderTop: '1px solid var(--roost-border)' }}
+                >
+                  <HouseholdJoinRequestsCard />
+                </div>
+              )}
+
               {/* Subscription */}
               <div
                 className="flex items-center justify-between p-4"
@@ -2432,6 +2453,23 @@ export default function SettingsPage() {
 
             {isAdmin && (
               <div className="mt-3 flex flex-col gap-2">
+                <motion.button
+                  type="button"
+                  whileTap={{ y: 1 }}
+                  onClick={() => setInviteMemberOpen(true)}
+                  className="flex h-12 w-full items-center justify-center gap-2 rounded-xl text-sm"
+                  style={{
+                    backgroundColor: 'var(--roost-surface)',
+                    border: '1.5px solid var(--roost-border)',
+                    borderBottom: '3px solid var(--roost-border-bottom)',
+                    color: 'var(--roost-text-secondary)',
+                    fontWeight: 700,
+                  }}
+                >
+                  <UserPlus className="size-4" />
+                  Invite Household Member
+                </motion.button>
+
                 <motion.button
                   type="button"
                   whileTap={{ y: 1 }}
@@ -3345,6 +3383,11 @@ export default function SettingsPage() {
           householdId={householdId}
           onClose={() => setSelectedMember(null)}
           onRefetch={refetchMembers}
+        />
+
+        <InviteMemberSheet
+          open={inviteMemberOpen}
+          onClose={() => setInviteMemberOpen(false)}
         />
 
         {/* Invite guest sheet */}

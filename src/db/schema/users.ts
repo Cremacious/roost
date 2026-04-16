@@ -1,4 +1,5 @@
-import { boolean, numeric, pgTable, text, timestamp } from "drizzle-orm/pg-core";
+import { boolean, numeric, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
+import { households } from "./households";
 
 export const users = pgTable("users", {
   id: text("id").primaryKey(),
@@ -16,6 +17,7 @@ export const users = pgTable("users", {
   // Child account fields
   is_child_account: boolean("is_child_account").notNull().default(false),
   child_of_household_id: text("child_of_household_id"),
+  active_household_id: uuid("active_household_id").references(() => households.id),
   // Onboarding
   onboarding_completed: boolean("onboarding_completed").notNull().default(false),
   has_seen_welcome: boolean("has_seen_welcome").notNull().default(false),

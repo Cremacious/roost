@@ -140,34 +140,35 @@ export async function PATCH(
     .where(eq(user.id, joinRequest.requesterUserId))
     .limit(1);
 
-  await db.transaction(async (tx) => {
-    if (!existingMember) {
-      await tx.insert(household_members).values({
+  if (!existingMember) {
+    await db
+      .insert(household_members)
+      .values({
         household_id: joinRequest.householdId,
         user_id: joinRequest.requesterUserId,
         role: "member",
-      });
-    }
-
-    await tx
-      .update(household_join_requests)
-      .set({
-        status: "approved",
-        resolved_at: new Date(),
-        resolved_by_user_id: adminContext.user.id,
       })
-      .where(eq(household_join_requests.id, joinRequest.id));
+      .onConflictDoNothing();
+  }
 
-    await tx
-      .update(user)
-      .set({ onboarding_completed: true })
-      .where(eq(user.id, joinRequest.requesterUserId));
+  await db
+    .update(household_join_requests)
+    .set({
+      status: "approved",
+      resolved_at: new Date(),
+      resolved_by_user_id: adminContext.user.id,
+    })
+    .where(eq(household_join_requests.id, joinRequest.id));
 
-    await tx
-      .update(users)
-      .set({ onboarding_completed: true, updated_at: new Date() })
-      .where(eq(users.id, joinRequest.requesterUserId));
-  });
+  await db
+    .update(user)
+    .set({ onboarding_completed: true })
+    .where(eq(user.id, joinRequest.requesterUserId));
+
+  await db
+    .update(users)
+    .set({ onboarding_completed: true, updated_at: new Date() })
+    .where(eq(users.id, joinRequest.requesterUserId));
 
   return Response.json({
     success: true,

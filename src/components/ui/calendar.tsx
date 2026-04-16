@@ -90,7 +90,10 @@ function Calendar({
         // Keep the DayPicker month grid using native table layout. WebKit on
         // iOS is much less forgiving than Blink when <tr> elements are forced
         // into flex containers, which can clip later week rows on real devices.
-        table: cn("w-full table-fixed border-collapse", defaultClassNames.table),
+        month_grid: cn(
+          "w-full table-fixed border-collapse",
+          defaultClassNames.month_grid
+        ),
         weekdays: cn(defaultClassNames.weekdays),
         weekday: cn(
           "rounded-(--cell-radius) text-[0.8rem] font-normal text-muted-foreground select-none",

@@ -1,5 +1,5 @@
 import { NextRequest } from "next/server";
-import { requireSession, requireHouseholdAdmin } from "@/lib/auth/helpers";
+import { requireHouseholdAdmin } from "@/lib/auth/helpers";
 import { db } from "@/lib/db";
 import {
   households,
@@ -21,6 +21,7 @@ import {
   reminders,
   reminder_receipts,
   household_activity,
+  household_join_requests,
 } from "@/db/schema";
 import { eq, inArray } from "drizzle-orm";
 
@@ -138,6 +139,9 @@ async function deleteAllHouseholdData(householdId: string) {
 
   // Activity
   await db.delete(household_activity).where(eq(household_activity.household_id, householdId));
+  await db
+    .delete(household_join_requests)
+    .where(eq(household_join_requests.household_id, householdId));
 }
 
 export async function DELETE(

@@ -265,7 +265,7 @@ export default function TopBar() {
                           fontWeight: 600,
                         }}
                       >
-                        Join or create another household to switch here.
+                        Join or create another household to switch here. You can also add one from Settings.
                       </span>
                     </DropdownMenuItem>
                   </>

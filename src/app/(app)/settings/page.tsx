@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
 import {
@@ -13,7 +13,6 @@ import {
   Loader2,
   MapPin,
   Pencil,
-  Plus,
   RefreshCw,
   Thermometer,
   Tag,
@@ -52,6 +51,8 @@ import MemberSheet, {
 import InviteGuestSheet from '@/components/settings/InviteGuestSheet';
 import InviteMemberSheet from '@/components/settings/InviteMemberSheet';
 import AddChildSheet from '@/components/settings/AddChildSheet';
+import HouseholdJoinRequestsCard from '@/components/household/HouseholdJoinRequestsCard';
+import RequestHouseholdJoinCard from '@/components/household/RequestHouseholdJoinCard';
 import MemberAvatar from '@/components/shared/MemberAvatar';
 import PremiumGate from '@/components/shared/PremiumGate';
 import { PageContainer } from '@/components/layout/PageContainer';
@@ -2195,6 +2196,24 @@ export default function SettingsPage() {
                   </button>
                 )}
               </div>
+
+              {role !== 'child' && (
+                <div
+                  className="p-4"
+                  style={{ borderTop: '1px solid var(--roost-border)' }}
+                >
+                  <RequestHouseholdJoinCard />
+                </div>
+              )}
+
+              {isAdmin && (
+                <div
+                  className="p-4"
+                  style={{ borderTop: '1px solid var(--roost-border)' }}
+                >
+                  <HouseholdJoinRequestsCard />
+                </div>
+              )}
 
               {/* Subscription */}
               <div

@@ -2214,6 +2214,8 @@ export default async function HomePage() {
               display: 'grid',
               gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
               gap: 16,
+              maxWidth: 880,
+              margin: '0 auto',
             }}
           >
             {homepageResourceLinks.map((link) => (
@@ -2230,19 +2232,6 @@ export default async function HomePage() {
                   textDecoration: 'none',
                 }}
               >
-                <div
-                  style={{
-                    color: brandBg,
-                    fontSize: 12,
-                    fontWeight: 900,
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.08em',
-                    marginBottom: 8,
-                    fontFamily: ff,
-                  }}
-                >
-                  Use case
-                </div>
                 <div
                   style={{
                     color: '#1a1a1a',

@@ -47,3 +47,4 @@ e2e/.auth/*.json
 .playwright/
 playwright-report/
 test-results/
+.claude/worktrees/elegant-jepsen-6ad1df

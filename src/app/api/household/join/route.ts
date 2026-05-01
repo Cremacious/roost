@@ -1,5 +1,10 @@
 import { NextRequest } from "next/server";
-import { requireSession } from "@/lib/auth/helpers";
+import {
+  getUserMemberships,
+  requireSession,
+  setUserActiveHousehold,
+  userHasPremiumHousehold,
+} from "@/lib/auth/helpers";
 import { db } from "@/lib/db";
 import { households, household_members, user, users } from "@/db/schema";
 import { and, eq, ilike, isNull } from "drizzle-orm";
@@ -52,15 +57,14 @@ export async function POST(request: NextRequest): Promise<Response> {
     return Response.json({ error: "You are already a member of this household" }, { status: 400 });
   }
 
-  // Check multi-household: if user already belongs to any household,
-  // the target household must be premium
-  const [currentMembership] = await db
-    .select({ id: household_members.id })
-    .from(household_members)
-    .where(eq(household_members.user_id, session.user.id))
-    .limit(1);
+  const memberships = await getUserMemberships(session.user.id);
+  const hasPremiumAccess = await userHasPremiumHousehold(session.user.id);
 
-  if (currentMembership && household.subscription_status !== "premium") {
+  if (
+    memberships.length > 0 &&
+    household.subscription_status !== "premium" &&
+    !hasPremiumAccess
+  ) {
     return Response.json(
       { error: "Upgrade to premium to join multiple households" },
       { status: 403 }
@@ -83,6 +87,8 @@ export async function POST(request: NextRequest): Promise<Response> {
     user_id: session.user.id,
     role: "member",
   });
+
+  await setUserActiveHousehold(session.user.id, household.id);
 
   // Mark onboarding complete on both the better-auth user table (session-visible)
   // and the app users table (app-visible).

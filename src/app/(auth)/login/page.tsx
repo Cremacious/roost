@@ -99,9 +99,27 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [inviteHouseholdName, setInviteHouseholdName] = useState<string | null>(null);
 
   useEffect(() => {
     persistPendingInviteToken(new URLSearchParams(window.location.search));
+  }, []);
+
+  useEffect(() => {
+    const inviteToken = new URLSearchParams(window.location.search).get('invite');
+    if (!inviteToken) return;
+
+    fetch(`/api/invite/${inviteToken}`)
+      .then(async (response) => {
+        if (!response.ok) return null;
+        return response.json();
+      })
+      .then((data) => {
+        if (data?.household_name) {
+          setInviteHouseholdName(data.household_name);
+        }
+      })
+      .catch(() => {});
   }, []);
 
   async function handleSubmit(e: React.FormEvent) {
@@ -319,6 +337,28 @@ export default function LoginPage() {
           >
             Your household is waiting.
           </p>
+          {inviteHouseholdName && (
+            <div
+              className="mb-5 rounded-2xl px-4 py-3"
+              style={{
+                backgroundColor: 'rgba(255,255,255,0.1)',
+                border: '1px solid rgba(255,255,255,0.18)',
+              }}
+            >
+              <p
+                className="text-center"
+                style={{ fontSize: 12, fontWeight: 800, color: '#FFE4E6' }}
+              >
+                Joining household
+              </p>
+              <p
+                className="mt-1 text-center"
+                style={{ fontSize: 15, fontWeight: 800, color: 'white' }}
+              >
+                {inviteHouseholdName}
+              </p>
+            </div>
+          )}
 
           <div style={{ marginBottom: 20 }}>
             <GoogleAuthButton disabled={loading} mode="login" />

@@ -23,6 +23,7 @@ import { formatDistanceToNow } from "date-fns";
 import { motion } from "framer-motion";
 import { SECTION_COLORS, type SectionKey } from "@/lib/constants/colors";
 import { PageContainer } from "@/components/layout/PageContainer";
+import HouseholdJoinRequestsCard from "@/components/household/HouseholdJoinRequestsCard";
 import RewardsWidget from "@/components/shared/RewardsWidget";
 import WelcomeModal from "@/components/shared/WelcomeModal";
 
@@ -464,6 +465,8 @@ export default function DashboardPage() {
             </p>
           </div>
         )}
+
+        {role === "admin" && <HouseholdJoinRequestsCard compact />}
 
         {/* Feature tiles grid */}
         <div data-testid="dashboard-tiles" className="grid grid-cols-2 gap-3 md:grid-cols-4">

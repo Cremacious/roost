@@ -21,7 +21,9 @@ const GREEN_DARK = "#159040";
 interface InviteInfo {
   valid: true;
   household_name: string;
+  invite_type: "guest" | "member";
   expires_at: string;
+  link_expires_at: string;
   email: string | null;
 }
 
@@ -73,6 +75,15 @@ export default function InvitePage() {
       })
       .catch(() => setInviteState({ status: "error" }));
   }, [token]);
+
+  useEffect(() => {
+    if (!isLoggedIn) return;
+    if (inviteState.status !== "valid") return;
+    if (inviteState.info.invite_type !== "member") return;
+    if (joining || joined) return;
+
+    void handleJoin();
+  }, [inviteState, isLoggedIn, joining, joined]);
 
   async function handleJoin() {
     setJoining(true);
@@ -147,6 +158,7 @@ export default function InvitePage() {
   // ---- Valid invite ----------------------------------------------------------
 
   const { info } = inviteState;
+  const isGuestInvite = info.invite_type === "guest";
   const expiryLabel = formatRelativeExpiry(info.expires_at);
   const expiryFull = formatExpiryDate(info.expires_at);
 
@@ -173,6 +185,8 @@ export default function InvitePage() {
           Join <strong>{info.household_name}</strong> on Roost
         </p>
 
+        {isGuestInvite ? (
+          <>
         {/* Guest badge */}
         <div
           className="inline-flex items-center gap-1.5 rounded-xl px-3 py-1.5 mb-5"
@@ -208,6 +222,24 @@ export default function InvitePage() {
             ))}
           </div>
         </div>
+          </>
+        ) : (
+          <div
+            className="mb-6 rounded-xl px-4 py-3"
+            style={{
+              backgroundColor: "#FEE2E2",
+              border: "1px solid #FECACA",
+            }}
+          >
+            <p style={{ fontSize: 13, fontWeight: 800, color: "#991B1B" }}>
+              Full member invite
+            </p>
+            <p style={{ fontSize: 14, fontWeight: 600, color: "#7F1D1D", marginTop: 6 }}>
+              After you sign up or log in, Roost will add you to this household
+              and take you straight to the dashboard.
+            </p>
+          </div>
+        )}
 
         {/* Join buttons */}
         {isLoggedIn ? (
@@ -238,9 +270,9 @@ export default function InvitePage() {
             {joined ? (
               <><Check className="size-4" /> Joined! Redirecting...</>
             ) : joining ? (
-              <><Loader2 className="size-4 animate-spin" /> Joining...</>
+              <><Loader2 className="size-4 animate-spin" /> {isGuestInvite ? "Joining..." : "Finishing setup..."}</>
             ) : (
-              `Join as ${sessionData.user.name}`
+              `${isGuestInvite ? "Join" : "Continue"} as ${sessionData.user.name}`
             )}
           </motion.button>
         ) : (
@@ -264,7 +296,7 @@ export default function InvitePage() {
                 textDecoration: "none",
               }}
             >
-              Sign up to join
+              {isGuestInvite ? "Sign up to join" : "Sign up to continue"}
             </motion.a>
             <a
               href={`/login?invite=${token}`}
@@ -279,7 +311,7 @@ export default function InvitePage() {
                 textDecoration: "none",
               }}
             >
-              Log in to join
+              {isGuestInvite ? "Log in to join" : "Log in to continue"}
             </a>
           </div>
         )}
@@ -287,7 +319,9 @@ export default function InvitePage() {
 
       {/* Footer */}
       <p className="mt-5 text-center text-sm" style={{ color: "#6B7280", fontWeight: 600 }}>
-        Guest access expires {expiryFull}. After that, your account remains but you&apos;ll lose access to this household.
+        {isGuestInvite
+          ? `Guest access expires ${expiryFull}. After that, your account remains but you'll lose access to this household.`
+          : "This invite link expires in 7 days. Once you join, your household access stays active."}
       </p>
     </PageShell>
   );

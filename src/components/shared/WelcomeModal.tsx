@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import { CheckCircle2, Home, Users, ListChecks } from "lucide-react";
 import {
@@ -35,12 +36,24 @@ const TIPS = [
 export default function WelcomeModal({ onDismiss }: Props) {
   const [open, setOpen] = useState(true);
   const [dismissing, setDismissing] = useState(false);
+  const queryClient = useQueryClient();
 
   async function handleDismiss() {
     if (dismissing) return;
     setDismissing(true);
     try {
       await fetch("/api/user/dismiss-welcome", { method: "POST" });
+
+      queryClient.setQueryData(
+        ["dashboard-summary"],
+        (current: Record<string, unknown> | undefined) =>
+          current
+            ? {
+                ...current,
+                hasSeenWelcome: true,
+              }
+            : current
+      );
     } catch {
       // fire-and-forget
     }

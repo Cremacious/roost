@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { verifyAdminSession, ADMIN_SESSION_COOKIE } from "@/lib/admin/auth";
+import { isLocalAdminDevEnabled } from "@/lib/admin/devAccess";
 import Link from "next/link";
 
 export const metadata: Metadata = {
@@ -26,6 +27,8 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   const headersList = await headers();
   const pathname = headersList.get("x-pathname") ?? "";
   const isLoginPage = pathname === "/admin/login";
+  const host = headersList.get("x-forwarded-host") ?? headersList.get("host");
+  const showDevTab = isLocalAdminDevEnabled(host);
 
   if (!isLoginPage) {
     const cookieStore = await cookies();
@@ -86,6 +89,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
               { href: "/admin/users", label: "Users" },
               { href: "/admin/households", label: "Households" },
               { href: "/admin/promo-codes", label: "Promo Codes" },
+              ...(showDevTab ? [{ href: "/admin/dev", label: "Dev" }] : []),
             ].map((link) => (
               <Link
                 key={link.href}

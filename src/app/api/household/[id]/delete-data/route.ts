@@ -19,6 +19,7 @@ import {
   reminders,
   reminder_receipts,
   household_activity,
+  household_join_requests,
 } from "@/db/schema";
 import { eq, inArray } from "drizzle-orm";
 
@@ -108,6 +109,9 @@ export async function POST(
 
   // Activity
   await db.delete(household_activity).where(eq(household_activity.household_id, id));
+  await db
+    .delete(household_join_requests)
+    .where(eq(household_join_requests.household_id, id));
 
   return Response.json({ success: true });
 }

@@ -18,6 +18,7 @@ import {
   grocery_lists,
   household_activity,
   household_invites,
+  household_join_requests,
   household_members,
   households,
   meal_plan_slots,
@@ -213,6 +214,9 @@ export async function cleanupPlaywrightTestData(): Promise<void> {
 
       await tx.delete(promo_redemptions).where(inArray(promo_redemptions.household_id, householdIds));
       await tx.delete(household_invites).where(inArray(household_invites.household_id, householdIds));
+      await tx
+        .delete(household_join_requests)
+        .where(inArray(household_join_requests.household_id, householdIds));
       await tx.delete(reminders).where(inArray(reminders.household_id, householdIds));
       await tx.delete(chore_streaks).where(inArray(chore_streaks.household_id, householdIds));
       await tx.delete(chores).where(inArray(chores.household_id, householdIds));
@@ -245,6 +249,9 @@ export async function cleanupPlaywrightTestData(): Promise<void> {
       await tx.delete(member_permissions).where(inArray(member_permissions.user_id, allUserIds));
       await tx.delete(household_members).where(inArray(household_members.user_id, allUserIds));
       await tx.delete(notification_queue).where(inArray(notification_queue.user_id, allUserIds));
+      await tx
+        .delete(household_join_requests)
+        .where(inArray(household_join_requests.requester_user_id, allUserIds));
       await tx.delete(session).where(inArray(session.userId, allUserIds));
       await tx.delete(account).where(inArray(account.userId, allUserIds));
       if (allUserEmails.length > 0) {

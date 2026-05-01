@@ -30,7 +30,14 @@
 4. Existing user IDs, household IDs, member associations, and subscription statuses are confirmed preserved and readable from the V2 development branch
 5. `getUserHousehold` lives in `src/lib/auth/helpers.ts` and shared packages (`api-types`, `constants`, `utils`) are importable from both `apps/web` and `apps/mobile`
 
-**Plans:** TBD
+**Plans:** 5 plans
+Plans:
+- [ ] 00-01-PLAN.md — Monorepo restructure: convert repo to npm workspace, move all V1 source to apps/web/
+- [ ] 00-02-PLAN.md — getUserHousehold refactor: move to lib/auth/helpers, update 67 callers
+- [ ] 00-03-PLAN.md — Expo project skeleton: SDK 53 scaffold, EAS config, better-auth Expo plugin
+- [ ] 00-04-PLAN.md — Drizzle migration baseline: Neon v2-dev branch, DEV_DATABASE_URL, 0000_initial.sql
+- [ ] 00-05-PLAN.md — better-auth Expo verification: physical device auth test against production URL
+
 
 ---
 
@@ -266,7 +273,7 @@ Note: The requirements document header states 112 but the enumerated requirement
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 0. Foundation | 0/TBD | Not started | - |
+| 0. Foundation | 0/5 | Not started | - |
 | 1. Product Redesign | 0/TBD | Not started | - |
 | 2. Feature Parity Web | 0/TBD | Not started | - |
 | 3. iOS + Revenue | 0/TBD | Not started | - |

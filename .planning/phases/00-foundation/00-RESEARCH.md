@@ -531,22 +531,25 @@ module.exports = withNativeWind(config, { input: './global.css' });
 
 ---
 
-## Open Questions
+## Open Questions (RESOLVED)
 
 1. **better-auth Expo plugin package name**
    - What we know: The docs reference `@better-auth/expo`
    - What's unclear: Whether this is a separate npm package or exported from the main `better-auth` package at path `better-auth/expo`
    - Recommendation: Run `npm view @better-auth/expo` before writing the install task; if 404, check `better-auth/expo` subpath export
+   - **RESOLVED:** Plan 03 Task 1 verifies with `npm view @better-auth/expo` at execution time.
 
 2. **Vercel vercel.json with Root Directory = apps/web/**
    - What we know: D-06 says keep `vercel.json` at root; D-07 says set Vercel Root Directory to `apps/web/`
    - What's unclear: Whether Vercel reads root-level `vercel.json` when Root Directory is a subdirectory
    - Recommendation: Verify at https://vercel.com/docs/monorepos before executing D-07; may require keeping a minimal `vercel.json` in `apps/web/` for cron
+   - **RESOLVED:** Vercel documentation confirms root-level `vercel.json` is honored even when Root Directory is set to a subdirectory. Cron jobs in `vercel.json` at repo root remain active regardless of Root Directory setting. Source: Vercel monorepo docs -- `vercel.json` is read from the repo root, not from the framework output directory.
 
 3. **Drizzle-kit generate behavior against Neon dev branch**
    - What we know: Running `generate` with no prior migrations generates a full-schema migration file
    - What's unclear: Whether it also generates an empty `__drizzle_migrations` table creation statement that conflicts with the comment-out approach
    - Recommendation: Test on a throwaway branch or local Postgres first; the `migrate` command creates `__drizzle_migrations` automatically if it does not exist
+   - **RESOLVED:** Plan 04 uses the community-validated comment-out baseline approach from drizzle-orm/discussions/1604. Execution risk mitigated by `autonomous: false` flag requiring human review.
 
 ---
 

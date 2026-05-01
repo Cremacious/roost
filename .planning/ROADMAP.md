@@ -30,13 +30,22 @@
 4. Existing user IDs, household IDs, member associations, and subscription statuses are confirmed preserved and readable from the V2 development branch
 5. `getUserHousehold` lives in `src/lib/auth/helpers.ts` and shared packages (`api-types`, `constants`, `utils`) are importable from both `apps/web` and `apps/mobile`
 
-**Plans:** 5 plans
-Plans:
+**Plans:** 5 plans across 4 waves
+
+Wave 1
 - [ ] 00-01-PLAN.md — Monorepo restructure: convert repo to npm workspace, move all V1 source to apps/web/
-- [ ] 00-02-PLAN.md — getUserHousehold refactor: move to lib/auth/helpers, update 67 callers
-- [ ] 00-03-PLAN.md — Expo project skeleton: SDK 53 scaffold, EAS config, better-auth Expo plugin
-- [ ] 00-04-PLAN.md — Drizzle migration baseline: Neon v2-dev branch, DEV_DATABASE_URL, 0000_initial.sql
-- [ ] 00-05-PLAN.md — better-auth Expo verification: physical device auth test against production URL
+
+Wave 2 *(blocked on Wave 1 completion)*
+- [ ] 00-02-PLAN.md — getUserHousehold refactor: move to lib/auth/helpers, update 71 callers
+- [ ] 00-03-PLAN.md — Expo project skeleton: SDK 53 scaffold, EAS config, better-auth Expo plugin *(non-autonomous)*
+
+Wave 3 *(blocked on Wave 2 completion)*
+- [ ] 00-04-PLAN.md — Drizzle migration baseline: Neon v2-dev branch, DEV_DATABASE_URL, 0000_initial.sql *(non-autonomous)*
+
+Wave 4 *(blocked on Wave 3 completion)*
+- [ ] 00-05-PLAN.md — better-auth Expo verification: physical device auth test against production URL *(non-autonomous)*
+
+Cross-cutting constraints: production DATABASE_URL never in V2 code (all plans); all work on rebuild/v2 branch (all plans)
 
 
 ---

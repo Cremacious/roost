@@ -1,7 +1,7 @@
 # Project State: Roost V2
 
-**Status:** Planning Complete — Ready for Phase 0
-**Current Phase:** Not Started
+**Status:** Phase 0 Planned — Ready to Execute
+**Current Phase:** Phase 0 (Foundation)
 **Last Updated:** 2026-05-01
 
 ---
@@ -21,7 +21,7 @@ See: `.planning/PROJECT.md` (updated 2026-05-01)
 
 | Phase | Name | Status |
 |-------|------|--------|
-| 0 | Foundation | Not Started |
+| 0 | Foundation | Ready to Execute (5 plans) |
 | 1 | Product Redesign | Not Started |
 | 2 | Feature Parity Web | Not Started |
 | 3 | iOS + Revenue | Not Started |
@@ -31,13 +31,13 @@ See: `.planning/PROJECT.md` (updated 2026-05-01)
 
 ## Current Position
 
-**Phase:** None (pre-Phase 0)
-**Plan:** None
-**Status:** Not started
+**Phase:** 0 — Foundation
+**Plan:** None (ready to begin Wave 1)
+**Status:** Planned — 5 plans across 4 waves
 
 ```
 [ Phase 0 ] [ Phase 1 ] [ Phase 2 ] [ Phase 3 ] [ Phase 4 ]
-    ---          ---          ---          ---          ---
+  PLANNED       ---          ---          ---          ---
 ```
 
 ---

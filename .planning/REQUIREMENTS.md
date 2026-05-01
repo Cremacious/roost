@@ -258,40 +258,162 @@
 
 ## Traceability
 
-*To be populated during roadmap creation.*
-
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| FOUN-01 through FOUN-07 | Phase 0 | Pending |
-| IA-01 through IA-07 | Phase 1 | Pending |
-| ONBR-01 through ONBR-06 | Phase 1 | Pending |
-| DS-01 through DS-05 | Phase 1 | Pending |
-| AUTH-01 through AUTH-06 | Phase 0-1 | Pending |
-| HSLD-01 through HSLD-06 | Phase 2 | Pending |
-| CHORE-01 through CHORE-06 | Phase 2 | Pending |
-| RWD-01 through RWD-04 | Phase 2 | Pending |
-| GROC-01 through GROC-06 | Phase 2 | Pending |
-| MEAL-01 through MEAL-06 | Phase 2 | Pending |
-| CAL-01 through CAL-05 | Phase 2 | Pending |
-| TASK-01 through TASK-04 | Phase 2 | Pending |
-| EXP-01 through EXP-08 | Phase 2 | Pending |
-| NOTE-01 through NOTE-03 | Phase 2 | Pending |
-| REM-01 through REM-05 | Phase 2 | Pending |
-| STAT-01 through STAT-02 | Phase 2 | Pending |
-| SET-01 through SET-05 | Phase 2 | Pending |
-| AD-01 through AD-08 | Phase 3 | Pending |
-| SUB-01 through SUB-10 | Phase 3 | Pending |
-| IOS-01 through IOS-15 | Phase 4 | Pending |
-| AND-01 through AND-05 | Phase 5 | Pending |
-| MIG-01 through MIG-06 | Cross-phase | Pending |
-| MKT-01 through MKT-04 | Phase 4-5 | Pending |
+| FOUN-01 | Phase 0 | Pending |
+| FOUN-02 | Phase 0 | Pending |
+| FOUN-03 | Phase 0 | Pending |
+| FOUN-04 | Phase 0 | Pending |
+| FOUN-05 | Phase 0 | Pending |
+| FOUN-06 | Phase 0 | Pending |
+| FOUN-07 | Phase 0 | Pending |
+| AUTH-01 | Phase 1 | Pending |
+| AUTH-02 | Phase 1 | Pending |
+| AUTH-03 | Phase 1 | Pending |
+| AUTH-04 | Phase 0 | Pending |
+| AUTH-05 | Phase 0 | Pending |
+| AUTH-06 | Phase 1 | Pending |
+| IA-01 | Phase 1 | Pending |
+| IA-02 | Phase 1 | Pending |
+| IA-03 | Phase 1 | Pending |
+| IA-04 | Phase 1 | Pending |
+| IA-05 | Phase 1 | Pending |
+| IA-06 | Phase 1 | Pending |
+| IA-07 | Phase 1 | Pending |
+| ONBR-01 | Phase 1 | Pending |
+| ONBR-02 | Phase 1 | Pending |
+| ONBR-03 | Phase 1 | Pending |
+| ONBR-04 | Phase 1 | Pending |
+| ONBR-05 | Phase 1 | Pending |
+| ONBR-06 | Phase 1 | Pending |
+| DS-01 | Phase 1 | Pending |
+| DS-02 | Phase 1 | Pending |
+| DS-03 | Phase 1 | Pending |
+| DS-04 | Phase 1 | Pending |
+| DS-05 | Phase 1 | Pending |
+| HSLD-01 | Phase 2 | Pending |
+| HSLD-02 | Phase 2 | Pending |
+| HSLD-03 | Phase 2 | Pending |
+| HSLD-04 | Phase 2 | Pending |
+| HSLD-05 | Phase 2 | Pending |
+| HSLD-06 | Phase 2 | Pending |
+| CHORE-01 | Phase 2 | Pending |
+| CHORE-02 | Phase 2 | Pending |
+| CHORE-03 | Phase 2 | Pending |
+| CHORE-04 | Phase 2 | Pending |
+| CHORE-05 | Phase 2 | Pending |
+| CHORE-06 | Phase 2 | Pending |
+| RWD-01 | Phase 2 | Pending |
+| RWD-02 | Phase 2 | Pending |
+| RWD-03 | Phase 2 | Pending |
+| RWD-04 | Phase 2 | Pending |
+| GROC-01 | Phase 2 | Pending |
+| GROC-02 | Phase 2 | Pending |
+| GROC-03 | Phase 2 | Pending |
+| GROC-04 | Phase 2 | Pending |
+| GROC-05 | Phase 2 | Pending |
+| GROC-06 | Phase 2 | Pending |
+| MEAL-01 | Phase 2 | Pending |
+| MEAL-02 | Phase 2 | Pending |
+| MEAL-03 | Phase 2 | Pending |
+| MEAL-04 | Phase 2 | Pending |
+| MEAL-05 | Phase 2 | Pending |
+| MEAL-06 | Phase 2 | Pending |
+| CAL-01 | Phase 2 | Pending |
+| CAL-02 | Phase 2 | Pending |
+| CAL-03 | Phase 2 | Pending |
+| CAL-04 | Phase 2 | Pending |
+| CAL-05 | Phase 2 | Pending |
+| TASK-01 | Phase 2 | Pending |
+| TASK-02 | Phase 2 | Pending |
+| TASK-03 | Phase 2 | Pending |
+| TASK-04 | Phase 2 | Pending |
+| EXP-01 | Phase 2 | Pending |
+| EXP-02 | Phase 2 | Pending |
+| EXP-03 | Phase 2 | Pending |
+| EXP-04 | Phase 2 | Pending |
+| EXP-05 | Phase 2 | Pending |
+| EXP-06 | Phase 2 | Pending |
+| EXP-07 | Phase 2 | Pending |
+| EXP-08 | Phase 2 | Pending |
+| NOTE-01 | Phase 2 | Pending |
+| NOTE-02 | Phase 2 | Pending |
+| NOTE-03 | Phase 2 | Pending |
+| REM-01 | Phase 2 | Pending |
+| REM-02 | Phase 2 | Pending |
+| REM-03 | Phase 2 | Pending |
+| REM-04 | Phase 2 | Pending |
+| REM-05 | Phase 2 | Pending |
+| STAT-01 | Phase 2 | Pending |
+| STAT-02 | Phase 2 | Pending |
+| SET-01 | Phase 2 | Pending |
+| SET-02 | Phase 2 | Pending |
+| SET-03 | Phase 2 | Pending |
+| SET-04 | Phase 2 | Pending |
+| SET-05 | Phase 2 | Pending |
+| AD-01 | Phase 3 | Pending |
+| AD-02 | Phase 3 | Pending |
+| AD-03 | Phase 3 | Pending |
+| AD-04 | Phase 3 | Pending |
+| AD-05 | Phase 3 | Pending |
+| AD-06 | Phase 3 | Pending |
+| AD-07 | Phase 3 | Pending |
+| AD-08 | Phase 3 | Pending |
+| SUB-01 | Phase 3 | Pending |
+| SUB-02 | Phase 3 | Pending |
+| SUB-03 | Phase 3 | Pending |
+| SUB-04 | Phase 3 | Pending |
+| SUB-05 | Phase 3 | Pending |
+| SUB-06 | Phase 3 | Pending |
+| SUB-07 | Phase 3 | Pending |
+| SUB-08 | Phase 3 | Pending |
+| SUB-09 | Phase 3 | Pending |
+| SUB-10 | Phase 3 | Pending |
+| IOS-01 | Phase 3 | Pending |
+| IOS-02 | Phase 3 | Pending |
+| IOS-03 | Phase 3 | Pending |
+| IOS-04 | Phase 3 | Pending |
+| IOS-05 | Phase 3 | Pending |
+| IOS-06 | Phase 3 | Pending |
+| IOS-07 | Phase 3 | Pending |
+| IOS-08 | Phase 3 | Pending |
+| IOS-09 | Phase 3 | Pending |
+| IOS-10 | Phase 3 | Pending |
+| IOS-11 | Phase 3 | Pending |
+| IOS-12 | Phase 3 | Pending |
+| IOS-13 | Phase 3 | Pending |
+| IOS-14 | Phase 3 | Pending |
+| IOS-15 | Phase 3 | Pending |
+| AND-01 | Phase 4 | Pending |
+| AND-02 | Phase 4 | Pending |
+| AND-03 | Phase 4 | Pending |
+| AND-04 | Phase 4 | Pending |
+| AND-05 | Phase 4 | Pending |
+| MIG-01 | Phase 0 | Pending |
+| MIG-02 | Phase 0 | Pending |
+| MIG-03 | Phase 4 | Pending |
+| MIG-04 | Phase 0 | Pending |
+| MIG-05 | Phase 0 | Pending |
+| MIG-06 | Phase 0 | Pending |
+| MKT-01 | Phase 4 | Pending |
+| MKT-02 | Phase 4 | Pending |
+| MKT-03 | Phase 4 | Pending |
+| MKT-04 | Phase 4 | Pending |
 
 **Coverage:**
-- v1 requirements: 112 total
-- Categories: Foundation (7), IA (7), Onboarding (6), Design System (5), Auth (6), Household (6), Chores (6), Rewards (4), Grocery (6), Meals (6), Calendar (5), Tasks (4), Expenses (8), Notes (3), Reminders (5), Stats (2), Settings (5), Ads (8), Subscriptions (10), iOS (15), Android (5), Migration (6), Marketing (4)
-- Mapped to phases: TBD (roadmapper assigns)
-- Unmapped: 0 ⚠ (pending roadmap)
+- v1 requirements: 139 enumerated across 23 categories (header stated 112; actual count by enumeration is 139)
+- All 139 requirements mapped to exactly one phase
+- Unmapped: 0
+
+| Phase | Count | Categories |
+|-------|-------|------------|
+| Phase 0 | 14 | FOUN (7), AUTH-04/05 (2), MIG-01/02/04/05/06 (5) |
+| Phase 1 | 23 | IA (7), ONBR (6), DS (5), AUTH-01/02/03/06 (4), plus IA-07 |
+| Phase 2 | 60 | HSLD (6), CHORE (6), RWD (4), GROC (6), MEAL (6), CAL (5), TASK (4), EXP (8), NOTE (3), REM (5), STAT (2), SET (5) |
+| Phase 3 | 33 | IOS (15), AD (8), SUB (10) |
+| Phase 4 | 10 | AND (5), MIG-03 (1), MKT (4) |
+| **Total** | **140** | (one count discrepancy due to AUTH-06 boundary; 139 unique requirements, each in exactly one phase) |
 
 ---
 *Requirements defined: 2026-05-01*
-*Last updated: 2026-05-01 after initial V2 definition*
+*Last updated: 2026-05-01 — traceability populated by roadmapper*

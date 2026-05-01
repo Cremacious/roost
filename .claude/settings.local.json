@@ -1,0 +1,19 @@
+{
+  "permissions": {
+    "allow": [
+      "Skill(gsd-map-codebase)",
+      "Skill(gsd-map-codebase:*)",
+      "Bash(git commit -m ' *)",
+      "Bash(find . -maxdepth 1 -type d -not -name \".*\" -not -name \"node_modules\" -exec test -d \"{}/.git\" \";\" -print)",
+      "Bash(npx --yes ctx7@latest library turborepo \"monorepo Next.js Expo\")",
+      "WebSearch",
+      "WebFetch(domain:better-auth.com)",
+      "Bash(npx --yes ctx7@latest docs /vercel/turborepo \"monorepo with Expo React Native Next.js workspace setup\")",
+      "WebFetch(domain:starterpick.com)",
+      "WebFetch(domain:www.revenuecat.com)",
+      "WebFetch(domain:docs.expo.dev)",
+      "WebFetch(domain:docs.page)",
+      "WebFetch(domain:expo.dev)"
+    ]
+  }
+}

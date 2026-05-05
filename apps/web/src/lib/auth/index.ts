@@ -31,14 +31,18 @@ export const auth = betterAuth({
     user: {
       create: {
         after: async (user) => {
-          await db
-            .insert(schema.users)
-            .values({
-              id: user.id,
-              name: user.name,
-              email: user.email,
-            })
-            .onConflictDoNothing()
+          try {
+            await db
+              .insert(schema.users)
+              .values({
+                id: user.id,
+                name: user.name,
+                email: user.email,
+              })
+              .onConflictDoNothing()
+          } catch (err) {
+            console.error('[auth] databaseHook: failed to create users row for', user.id, err)
+          }
         },
       },
     },

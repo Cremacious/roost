@@ -1,0 +1,31 @@
+{
+  "name": "@roost/mobile",
+  "version": "0.1.0",
+  "private": true,
+  "main": "expo-router/entry",
+  "scripts": {
+    "dev": "expo start",
+    "android": "expo run:android",
+    "ios": "expo run:ios",
+    "lint": "eslint ."
+  },
+  "dependencies": {
+    "@roost/constants": "*",
+    "@roost/api-types": "*",
+    "expo": "~53.0.0",
+    "expo-router": "~4.0.0",
+    "expo-secure-store": "~14.0.0",
+    "expo-status-bar": "~2.2.3",
+    "react": "19.0.0",
+    "react-native": "0.79.2",
+    "better-auth": "^1.5.6",
+    "date-fns": "^4.1.0",
+    "zustand": "^5.0.12"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.25.2",
+    "@types/react": "~19.0.10",
+    "@types/react-native": "^0.73.0",
+    "typescript": "^5.3.3"
+  }
+}

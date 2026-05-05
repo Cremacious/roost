@@ -1,0 +1,74 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+:root {
+  /* Default (light) theme */
+  --roost-bg: #f9fafb;
+  --roost-surface: #ffffff;
+  --roost-border: #e5e7eb;
+  --roost-border-bottom: #d1d5db;
+  --roost-text-primary: #111827;
+  --roost-text-secondary: #374151;
+  --roost-text-muted: #6b7280;
+  --roost-topbar-bg: #ffffff;
+  --roost-topbar-border: #e5e7eb;
+  /* Sidebar always uses brand red — not theme-driven */
+  --roost-sidebar-bg: #dc2626;
+
+  /* shadcn compatibility */
+  --background: var(--roost-bg);
+  --foreground: var(--roost-text-primary);
+  --card: var(--roost-surface);
+  --card-foreground: var(--roost-text-primary);
+  --border: var(--roost-border);
+  --input: var(--roost-border);
+  --primary: #111827;
+  --primary-foreground: #ffffff;
+  --muted: #f3f4f6;
+  --muted-foreground: var(--roost-text-muted);
+  --radius: 0.75rem;
+}
+
+[data-theme="midnight"] {
+  --roost-bg: #111827;
+  --roost-surface: #1f2937;
+  --roost-border: #374151;
+  --roost-border-bottom: #4b5563;
+  --roost-text-primary: #f9fafb;
+  --roost-text-secondary: #e5e7eb;
+  --roost-text-muted: #9ca3af;
+  --roost-topbar-bg: #1f2937;
+  --roost-topbar-border: #374151;
+
+  --background: var(--roost-bg);
+  --foreground: var(--roost-text-primary);
+  --card: var(--roost-surface);
+  --card-foreground: var(--roost-text-primary);
+  --border: var(--roost-border);
+  --input: var(--roost-border);
+  --primary: #f9fafb;
+  --primary-foreground: #111827;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  background-color: var(--roost-bg);
+  color: var(--roost-text-primary);
+  font-family: var(--font-nunito), sans-serif;
+  font-weight: 600;
+}
+
+/* Prevent iOS Safari auto-zoom on input focus */
+@media (max-width: 768px) {
+  input,
+  textarea,
+  select,
+  [contenteditable] {
+    font-size: 16px !important;
+  }
+}

@@ -1,0 +1,39 @@
+{
+  "expo": {
+    "name": "Roost",
+    "slug": "roost",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "scheme": "roost",
+    "userInterfaceStyle": "automatic",
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#EF4444"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.roost.app",
+      "infoPlist": {
+        "NSPhotoLibraryUsageDescription": "Roost needs access to your photos to scan receipts.",
+        "NSCameraUsageDescription": "Roost needs camera access to scan receipts.",
+        "NSUserTrackingUsageDescription": "Roost uses this to show you relevant ads. You can always opt out."
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#EF4444"
+      },
+      "package": "com.roost.app"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-secure-store"
+    ],
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "name": "@roost/constants",
+  "version": "0.1.0",
+  "private": true,
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./colors": "./src/colors.ts",
+    "./limits": "./src/limits.ts",
+    "./sections": "./src/sections.ts"
+  }
+}

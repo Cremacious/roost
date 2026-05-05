@@ -23,7 +23,7 @@ export const auth = betterAuth({
       onboardingCompleted: {
         type: 'boolean',
         defaultValue: false,
-        fieldName: 'onboarding_completed',
+        fieldName: 'onboardingCompleted',
       },
     },
   },

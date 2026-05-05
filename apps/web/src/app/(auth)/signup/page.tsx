@@ -1,17 +1,15 @@
 'use client'
 
-import { useState, Suspense } from 'react'
-import { useRouter, useSearchParams } from 'next/navigation'
+import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { signIn } from '@/lib/auth/client'
+import { signUp } from '@/lib/auth/client'
 import { Input } from '@/components/ui/Input'
 import { Button } from '@/components/ui/Button'
 
-function LoginForm() {
+export default function SignupPage() {
   const router = useRouter()
-  const params = useSearchParams()
-  const callbackUrl = params.get('callbackUrl') ?? '/today'
-
+  const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
@@ -20,13 +18,17 @@ function LoginForm() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setError('')
+    if (password.length < 8) {
+      setError('Password must be at least 8 characters')
+      return
+    }
     setLoading(true)
     try {
-      const result = await signIn.email({ email, password })
+      const result = await signUp.email({ name, email, password })
       if (result.error) {
-        setError(result.error.message ?? 'Invalid email or password')
+        setError(result.error.message ?? 'Sign up failed')
       } else {
-        router.push(callbackUrl)
+        router.push('/onboarding')
       }
     } catch {
       setError('Something went wrong. Try again.')
@@ -80,13 +82,26 @@ function LoginForm() {
       >
         <div style={{ width: '100%', maxWidth: 400 }}>
           <h1 style={{ color: '#1A0505', fontWeight: 900, fontSize: 28, letterSpacing: '-0.5px', marginBottom: 4 }}>
-            Welcome back
+            Create your account
           </h1>
           <p style={{ color: '#7A3F3F', fontWeight: 700, fontSize: 14, marginBottom: 28 }}>
-            Sign in to your household
+            Set up Roost for your household
           </p>
 
           <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            <div>
+              <label style={{ display: 'block', fontSize: 11, fontWeight: 800, letterSpacing: '0.07em', color: '#7A3F3F', marginBottom: 6 }}>
+                NAME
+              </label>
+              <Input
+                value={name}
+                onChange={e => setName(e.target.value)}
+                placeholder="Your name"
+                required
+                autoComplete="name"
+                style={{ border: '1.5px solid #F5C5C5', borderBottom: '3px solid #DBADB0' }}
+              />
+            </div>
             <div>
               <label style={{ display: 'block', fontSize: 11, fontWeight: 800, letterSpacing: '0.07em', color: '#7A3F3F', marginBottom: 6 }}>
                 EMAIL
@@ -111,7 +126,7 @@ function LoginForm() {
                 onChange={e => setPassword(e.target.value)}
                 placeholder="••••••••"
                 required
-                autoComplete="current-password"
+                autoComplete="new-password"
                 style={{ border: '1.5px solid #F5C5C5', borderBottom: '3px solid #DBADB0' }}
               />
             </div>
@@ -121,26 +136,18 @@ function LoginForm() {
             )}
 
             <Button type="submit" loading={loading} color="#EF4444" darkColor="#C93B3B" size="lg">
-              Sign in
+              Continue
             </Button>
           </form>
 
           <p style={{ marginTop: 20, textAlign: 'center', fontSize: 13, fontWeight: 700, color: '#7A3F3F' }}>
-            New here?{' '}
-            <Link href="/signup" style={{ color: '#EF4444' }}>
-              Create an account
+            Already have an account?{' '}
+            <Link href="/login" style={{ color: '#EF4444' }}>
+              Sign in
             </Link>
           </p>
         </div>
       </div>
     </div>
-  )
-}
-
-export default function LoginPage() {
-  return (
-    <Suspense>
-      <LoginForm />
-    </Suspense>
   )
 }

@@ -3,7 +3,6 @@ import type { NextRequest } from 'next/server'
 import { auth } from '@/lib/auth'
 
 const AUTH_ROUTES = ['/login', '/signup']
-const ONBOARDING_BYPASS = ['/onboarding']
 
 function isAppRoute(pathname: string) {
   return (
@@ -31,6 +30,11 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(new URL('/today', request.url))
   }
 
+  // /onboarding requires auth; unauthenticated → /signup
+  if (!session && pathname.startsWith('/onboarding')) {
+    return NextResponse.redirect(new URL('/signup', request.url))
+  }
+
   // Protected app routes require auth
   if (!session && isAppRoute(pathname)) {
     const url = new URL('/login', request.url)
@@ -41,7 +45,7 @@ export async function proxy(request: NextRequest) {
   // Onboarding guard: authed but onboarding not completed → hold at /onboarding
   if (session && isAppRoute(pathname)) {
     const user = session.user as { onboardingCompleted?: boolean }
-    if (!user.onboardingCompleted && !ONBOARDING_BYPASS.includes(pathname)) {
+    if (!user.onboardingCompleted) {
       return NextResponse.redirect(new URL('/onboarding', request.url))
     }
   }

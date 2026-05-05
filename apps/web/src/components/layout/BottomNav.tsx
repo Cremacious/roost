@@ -23,7 +23,7 @@ export function BottomNav() {
 
   return (
     <nav
-      className="md:hidden"
+      className="flex md:hidden"
       style={{
         position: 'fixed',
         bottom: 0,
@@ -32,7 +32,6 @@ export function BottomNav() {
         height: 52,
         backgroundColor: 'var(--roost-surface)',
         borderTop: '1px solid var(--roost-border)',
-        display: 'flex',
         zIndex: 50,
       }}
     >

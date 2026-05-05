@@ -46,11 +46,6 @@ export async function proxy(request: NextRequest) {
     }
   }
 
-  // /onboarding requires auth
-  if (pathname === '/onboarding' && !session) {
-    return NextResponse.redirect(new URL('/login?callbackUrl=/onboarding', request.url))
-  }
-
   return NextResponse.next()
 }
 

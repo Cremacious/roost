@@ -40,6 +40,9 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
+# Brainstorming visual companion sessions
+.superpowers/
+
 # Playwright auth state (contains session tokens — never commit)
 e2e/.auth/*.json
 

@@ -35,7 +35,7 @@ import { CHORE_ICON_OPTIONS } from '@/components/chores/choreIconMap';
 import { THEMES, type ThemeKey } from '@/lib/constants/themes';
 import { useTheme } from '@/components/providers/ThemeProvider';
 import { useSession } from '@/lib/auth/client';
-import { useHousehold } from '@/lib/hooks/useHousehold';
+import { useHousehold, StatsVisibility } from '@/lib/hooks/useHousehold';
 import { useUserPreferences } from '@/lib/hooks/useUserPreferences';
 import {
   AlertDialog,
@@ -1127,9 +1127,10 @@ function StatsVisibilitySection({
   visibility,
   onToggle,
 }: {
-  visibility: Record<string, boolean>;
+  visibility: StatsVisibility;
   onToggle: (key: string, value: boolean) => void;
 }) {
+  const vis = visibility as unknown as Record<string, boolean>;
   return (
     <SettingsSection
       id="section-stats-visibility"
@@ -1159,14 +1160,14 @@ function StatsVisibilitySection({
             </span>
             <button
               type="button"
-              onClick={() => onToggle(t.key, !visibility[t.key])}
-              aria-label={visibility[t.key] ? `Hide ${t.label}` : `Show ${t.label}`}
+              onClick={() => onToggle(t.key, !vis[t.key])}
+              aria-label={vis[t.key] ? `Hide ${t.label}` : `Show ${t.label}`}
               style={{
                 width: 44,
                 height: 24,
                 borderRadius: 12,
                 border: 'none',
-                backgroundColor: visibility[t.key] ? '#6366F1' : 'var(--roost-border-bottom)',
+                backgroundColor: vis[t.key] ? '#6366F1' : 'var(--roost-border-bottom)',
                 cursor: 'pointer',
                 position: 'relative',
                 transition: 'background-color 0.2s',
@@ -1177,7 +1178,7 @@ function StatsVisibilitySection({
                 style={{
                   position: 'absolute',
                   top: 2,
-                  left: visibility[t.key] ? 22 : 2,
+                  left: vis[t.key] ? 22 : 2,
                   width: 20,
                   height: 20,
                   borderRadius: 10,
@@ -1552,7 +1553,7 @@ export default function SettingsPage() {
 
   // ---- Stats visibility toggle ----------------------------------------------
   async function handleStatsVisibilityToggle(key: string, value: boolean) {
-    const current: Record<string, boolean> = { ...(statsVisibility as Record<string, boolean>) };
+    const current = { ...statsVisibility } as Record<string, boolean>;
     const updated = { ...current, [key]: value };
     try {
       const r = await fetch(`/api/household/${householdId}`, {
@@ -2920,7 +2921,7 @@ export default function SettingsPage() {
           {/* ---- SECTION: STATS VISIBILITY (admin + premium only) -------------- */}
           {isAdmin && isPremium && (
             <StatsVisibilitySection
-              visibility={statsVisibility as Record<string, boolean>}
+              visibility={statsVisibility}
               onToggle={handleStatsVisibilityToggle}
             />
           )}

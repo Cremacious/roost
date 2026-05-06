@@ -1,6 +1,7 @@
 import { requireSession, getUserHousehold } from '@/lib/auth/helpers'
 import { Sidebar } from '@/components/layout/Sidebar'
 import { BottomNav } from '@/components/layout/BottomNav'
+import { TopBar } from '@/components/layout/TopBar'
 import { AdBanner } from '@/components/layout/AdBanner'
 import { DevTools } from '@/components/dev/DevTools'
 
@@ -12,9 +13,10 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   return (
     <div className="flex" style={{ minHeight: '100dvh', backgroundColor: 'var(--roost-bg)' }}>
       <Sidebar />
+      <TopBar />
       <main
         className="flex-1 overflow-y-auto"
-        style={{ paddingBottom: isPremium ? 52 : 102 }}
+        style={{ paddingTop: 56, paddingBottom: isPremium ? 52 : 102 }}
       >
         {children}
       </main>

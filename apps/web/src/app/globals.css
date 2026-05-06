@@ -14,6 +14,8 @@
   --roost-text-muted: #6b7280;
   --roost-topbar-bg: #ffffff;
   --roost-topbar-border: #e5e7eb;
+  --roost-weather-bg: rgba(0,0,0,0.05);
+  --roost-weather-color: #374151;
   /* Sidebar always uses brand red — not theme-driven */
   --roost-sidebar-bg: #dc2626;
 
@@ -41,6 +43,8 @@
   --roost-text-muted: #9ca3af;
   --roost-topbar-bg: #1f2937;
   --roost-topbar-border: #374151;
+  --roost-weather-bg: rgba(255,255,255,0.1);
+  --roost-weather-color: #e5e7eb;
 
   --background: var(--roost-bg);
   --foreground: var(--roost-text-primary);

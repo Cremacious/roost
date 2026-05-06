@@ -114,6 +114,7 @@ const NAV_SECTIONS = [
   { id: 'section-promotions', label: 'Promotions' },
   { id: 'section-privacy', label: 'Privacy & Data' },
   { id: 'section-stats-visibility', label: 'Stats Visibility', adminOnly: true },
+  { id: 'section-danger', label: 'Danger Zone' },
 ];
 
 // ---- Shared helpers ---------------------------------------------------------
@@ -2897,7 +2898,7 @@ export default function SettingsPage() {
           <SettingsSection
             id="section-privacy"
             title="Privacy & Data"
-            subtitle="Export or permanently delete your account."
+            subtitle="Download a copy of your personal data."
           >
             <div
               className="overflow-hidden rounded-2xl"
@@ -2907,7 +2908,6 @@ export default function SettingsPage() {
                 backgroundColor: 'var(--roost-surface)',
               }}
             >
-              {/* Export data */}
               <div className="p-4">
                 <p className="text-sm" style={{ color: 'var(--roost-text-primary)', fontWeight: 700 }}>
                   Export my data
@@ -2930,50 +2930,6 @@ export default function SettingsPage() {
                   Download my data
                 </a>
               </div>
-
-              <div style={{ height: 1, backgroundColor: 'var(--roost-border)', margin: '0 16px' }} />
-
-              {/* Delete account */}
-              <div className="p-4">
-                <p className="text-sm" style={{ color: '#EF4444', fontWeight: 700 }}>
-                  Delete my account
-                </p>
-                <p className="text-xs mt-0.5 mb-3" style={{ color: 'var(--roost-text-muted)', fontWeight: 600 }}>
-                  Permanently deletes your account. You will be removed from all households. This cannot be undone.
-                </p>
-                <p className="text-xs mb-2" style={{ color: 'var(--roost-text-secondary)', fontWeight: 700 }}>
-                  Type your email address to confirm
-                </p>
-                <input
-                  type="email"
-                  value={emailConfirm}
-                  onChange={e => setEmailConfirm(e.target.value)}
-                  placeholder={profileEmail || 'your@email.com'}
-                  className="mb-3 h-11 w-full rounded-xl px-3 text-sm"
-                  style={{
-                    border: '1.5px solid var(--roost-border)',
-                    borderBottom: '3px solid var(--roost-border-bottom)',
-                    backgroundColor: 'var(--roost-bg)',
-                    color: 'var(--roost-text-primary)',
-                    fontWeight: 600,
-                    outline: 'none',
-                  }}
-                />
-                <button
-                  type="button"
-                  disabled={emailConfirm !== profileEmail || deletingAccount || !profileEmail}
-                  onClick={handleDeleteAccount}
-                  className="h-10 rounded-xl px-4 text-sm disabled:opacity-40"
-                  style={{
-                    border: '1.5px solid #EF444430',
-                    borderBottom: '3px solid #EF444445',
-                    color: '#EF4444',
-                    fontWeight: 700,
-                  }}
-                >
-                  {deletingAccount ? 'Deleting...' : 'Delete my account'}
-                </button>
-              </div>
             </div>
           </SettingsSection>
 
@@ -2985,8 +2941,8 @@ export default function SettingsPage() {
             />
           )}
 
-          {/* ---- SECTION 8: DANGER ZONE (admin only) ------------------------ */}
-          {isAdmin && (
+          {/* ---- SECTION 8: DANGER ZONE ------------------------------------ */}
+          {role !== 'child' && (
             <SettingsSection id="section-danger" title="Danger Zone">
               <div
                 className="overflow-hidden rounded-2xl"
@@ -2996,32 +2952,37 @@ export default function SettingsPage() {
                   backgroundColor: 'var(--roost-surface)',
                 }}
               >
-                {/* Delete all data */}
+                {/* Delete my account */}
                 <div className="p-4">
-                  <p
-                    className="text-sm"
-                    style={{ color: '#EF4444', fontWeight: 700 }}
-                  >
-                    Delete all household data
+                  <p className="text-sm" style={{ color: '#EF4444', fontWeight: 700 }}>
+                    Delete my account
                   </p>
-                  <p
-                    className="text-xs mt-0.5 mb-3"
+                  <p className="text-xs mt-0.5 mb-3" style={{ color: 'var(--roost-text-muted)', fontWeight: 600 }}>
+                    Permanently deletes your account. You will be removed from all households. This cannot be undone.
+                  </p>
+                  <p className="text-xs mb-2" style={{ color: 'var(--roost-text-secondary)', fontWeight: 700 }}>
+                    Type your email address to confirm
+                  </p>
+                  <input
+                    type="email"
+                    value={emailConfirm}
+                    onChange={e => setEmailConfirm(e.target.value)}
+                    placeholder={profileEmail || 'your@email.com'}
+                    className="mb-3 h-11 w-full rounded-xl px-3 text-sm"
                     style={{
-                      color: 'var(--roost-text-muted)',
+                      border: '1.5px solid #EF444430',
+                      borderBottom: '3px solid #EF444445',
+                      backgroundColor: 'var(--roost-bg)',
+                      color: 'var(--roost-text-primary)',
                       fontWeight: 600,
+                      outline: 'none',
                     }}
-                  >
-                    Permanently deletes all chores, grocery lists, expenses,
-                    notes, and calendar events. Members stay in the household.
-                  </p>
+                  />
                   <button
                     type="button"
-                    onClick={() => {
-                      setDeleteDataOpen(true);
-                      setDeleteDataStep2(false);
-                      setDeleteDataConfirm('');
-                    }}
-                    className="h-10 rounded-xl px-4 text-sm"
+                    disabled={emailConfirm !== profileEmail || deletingAccount || !profileEmail}
+                    onClick={handleDeleteAccount}
+                    className="h-10 rounded-xl px-4 text-sm disabled:opacity-40"
                     style={{
                       border: '1.5px solid #EF444430',
                       borderBottom: '3px solid #EF444445',
@@ -3029,49 +2990,69 @@ export default function SettingsPage() {
                       fontWeight: 700,
                     }}
                   >
-                    Delete all data
+                    {deletingAccount ? 'Deleting...' : 'Delete my account'}
                   </button>
                 </div>
 
-                {/* Delete household */}
-                <div
-                  className="p-4"
-                  style={{ borderTop: '1px solid #EF444420' }}
-                >
-                  <p
-                    className="text-sm"
-                    style={{ color: '#EF4444', fontWeight: 700 }}
-                  >
-                    Delete household
-                  </p>
-                  <p
-                    className="text-xs mt-0.5 mb-3"
-                    style={{
-                      color: 'var(--roost-text-muted)',
-                      fontWeight: 600,
-                    }}
-                  >
-                    Permanently deletes the household and removes all members.
-                    This cannot be undone.
-                  </p>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setDeleteHouseOpen(true);
-                      setDeleteHouseStep2(false);
-                      setDeleteHouseConfirm('');
-                    }}
-                    className="h-10 rounded-xl px-4 text-sm"
-                    style={{
-                      border: '1.5px solid #EF444430',
-                      borderBottom: '3px solid #EF444445',
-                      color: '#EF4444',
-                      fontWeight: 700,
-                    }}
-                  >
-                    Delete household
-                  </button>
-                </div>
+                {/* Admin-only: Delete all household data */}
+                {isAdmin && (
+                  <div className="p-4" style={{ borderTop: '1px solid #EF444420' }}>
+                    <p className="text-sm" style={{ color: '#EF4444', fontWeight: 700 }}>
+                      Delete all household data
+                    </p>
+                    <p className="text-xs mt-0.5 mb-3" style={{ color: 'var(--roost-text-muted)', fontWeight: 600 }}>
+                      Permanently deletes all chores, grocery lists, expenses,
+                      notes, and calendar events. Members stay in the household.
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setDeleteDataOpen(true);
+                        setDeleteDataStep2(false);
+                        setDeleteDataConfirm('');
+                      }}
+                      className="h-10 rounded-xl px-4 text-sm"
+                      style={{
+                        border: '1.5px solid #EF444430',
+                        borderBottom: '3px solid #EF444445',
+                        color: '#EF4444',
+                        fontWeight: 700,
+                      }}
+                    >
+                      Delete all data
+                    </button>
+                  </div>
+                )}
+
+                {/* Admin-only: Delete household */}
+                {isAdmin && (
+                  <div className="p-4" style={{ borderTop: '1px solid #EF444420' }}>
+                    <p className="text-sm" style={{ color: '#EF4444', fontWeight: 700 }}>
+                      Delete household
+                    </p>
+                    <p className="text-xs mt-0.5 mb-3" style={{ color: 'var(--roost-text-muted)', fontWeight: 600 }}>
+                      Permanently deletes the household and removes all members.
+                      This cannot be undone.
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setDeleteHouseOpen(true);
+                        setDeleteHouseStep2(false);
+                        setDeleteHouseConfirm('');
+                      }}
+                      className="h-10 rounded-xl px-4 text-sm"
+                      style={{
+                        border: '1.5px solid #EF444430',
+                        borderBottom: '3px solid #EF444445',
+                        color: '#EF4444',
+                        fontWeight: 700,
+                      }}
+                    >
+                      Delete household
+                    </button>
+                  </div>
+                )}
               </div>
             </SettingsSection>
           )}

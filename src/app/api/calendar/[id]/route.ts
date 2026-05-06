@@ -2,7 +2,7 @@ import { NextRequest } from "next/server";
 import { requireSession } from "@/lib/auth/helpers";
 import { db } from "@/lib/db";
 import { calendar_events, household_members, users } from "@/db/schema";
-import { and, eq, inArray, isNull } from "drizzle-orm";
+import { and, eq, inArray } from "drizzle-orm";
 import { getUserHousehold } from "@/app/api/chores/route";
 
 // ---- Push notification helper ------------------------------------------------
@@ -21,12 +21,7 @@ async function sendEventPushNotifications(
     const members = await db
       .select({ userId: household_members.user_id })
       .from(household_members)
-      .where(
-        and(
-          eq(household_members.household_id, householdId),
-          isNull(household_members.deleted_at)
-        )
-      );
+      .where(eq(household_members.household_id, householdId));
     userIds = members.map((m) => m.userId);
   } else {
     try {

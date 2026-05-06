@@ -292,16 +292,6 @@ export default function NotesPage() {
         )}
       </motion.div>
 
-      {/* FAB */}
-      <motion.button
-        whileTap={{ y: 2 }} type="button"
-        onClick={() => { setEditNote(null); setSheetOpen(true) }}
-        className="md:hidden"
-        style={{ position: 'fixed', bottom: 80, right: 20, width: 56, height: 56, borderRadius: 18, backgroundColor: COLOR, border: 'none', borderBottom: `4px solid ${COLOR_DARK}`, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', boxShadow: '0 4px 16px rgba(0,0,0,0.15)', zIndex: 40 }}
-      >
-        <Plus size={24} color="#fff" />
-      </motion.button>
-
       <NoteSheet
         open={sheetOpen}
         onClose={() => { setSheetOpen(false); setEditNote(null); setUpgradeCode(null) }}

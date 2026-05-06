@@ -39,21 +39,37 @@ export async function PATCH(
     return r as Response;
   }
 
-  let body: { name?: string };
+  let body: { name?: string; statsVisibility?: Record<string, boolean> };
   try {
     body = await request.json();
   } catch {
     return Response.json({ error: "Invalid request body" }, { status: 400 });
   }
 
-  const name = body.name?.trim();
-  if (!name) {
-    return Response.json({ error: "Name is required" }, { status: 400 });
+  // Build update payload — at least one field must be present
+  const updates: { name?: string; stats_visibility?: string; updated_at: Date } = {
+    updated_at: new Date(),
+  };
+
+  if (body.name !== undefined) {
+    const name = body.name.trim();
+    if (!name) {
+      return Response.json({ error: "Name is required" }, { status: 400 });
+    }
+    updates.name = name;
+  }
+
+  if (body.statsVisibility !== undefined) {
+    updates.stats_visibility = JSON.stringify(body.statsVisibility);
+  }
+
+  if (!updates.name && !updates.stats_visibility) {
+    return Response.json({ error: "Nothing to update" }, { status: 400 });
   }
 
   const [updated] = await db
     .update(households)
-    .set({ name, updated_at: new Date() })
+    .set(updates)
     .where(eq(households.id, id))
     .returning();
 

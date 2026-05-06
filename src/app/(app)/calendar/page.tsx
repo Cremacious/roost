@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useSession } from "@/lib/auth/client";
 import {
@@ -13,7 +13,6 @@ import {
   isSameDay,
   isSameMonth,
   isPast,
-  isWithinInterval,
   startOfDay,
   startOfMonth,
   startOfWeek,
@@ -21,7 +20,8 @@ import {
   addDays,
 } from "date-fns";
 import { motion, AnimatePresence } from "framer-motion";
-import { CalendarX, ChevronLeft, ChevronRight, MoreHorizontal, Plus, Repeat } from "lucide-react";
+import { CalendarDays, CalendarX, ChevronLeft, ChevronRight, MapPin, MoreHorizontal, Plus, Repeat } from "lucide-react";
+import { CALENDAR_CATEGORIES, getCategoryColor } from "@/lib/constants/calendarCategories";
 import { toast } from "sonner";
 import { useMutation } from "@tanstack/react-query";
 import EmptyState from "@/components/shared/EmptyState";
@@ -142,13 +142,13 @@ export default function CalendarPage() {
   const [selectedEvent, setSelectedEvent] = useState<CalendarEventFull | null>(null);
   const [initialDate, setInitialDate] = useState<Date | undefined>(undefined);
 
-  // Mobile week strip state
-  const [mobileWeekStart, setMobileWeekStart] = useState(() =>
-    startOfWeek(new Date(), { weekStartsOn: 0 })
-  );
-  const [mobileSelectedDay, setMobileSelectedDay] = useState<Date>(() =>
-    startOfDay(new Date())
-  );
+  // Category filter (desktop)
+  const [categoryFilter, setCategoryFilter] = useState<string | null>(null);
+
+  // Mobile agenda-first date scroller state
+  const [mobileSelectedDate, setMobileSelectedDate] = useState<Date>(() => startOfDay(new Date()));
+  const agendaScrollRef = useRef<HTMLDivElement>(null);
+
 
   const month = currentMonth.getMonth() + 1;
   const year = currentMonth.getFullYear();
@@ -175,7 +175,7 @@ export default function CalendarPage() {
     retry: 2,
   });
 
-  // Agenda queries (today + 2 months ahead)
+  // Agenda queries (today + 2 months ahead) — always enabled for mobile date scroller
   const agendaQ1 = useQuery<CalendarResponse>({
     queryKey: ["calendar-events", agendaM1.getFullYear(), agendaM1.getMonth() + 1],
     queryFn: async () => {
@@ -185,7 +185,6 @@ export default function CalendarPage() {
     },
     staleTime: 10_000,
     retry: 2,
-    enabled: view === "agenda",
   });
 
   const agendaQ2 = useQuery<CalendarResponse>({
@@ -197,7 +196,6 @@ export default function CalendarPage() {
     },
     staleTime: 10_000,
     retry: 2,
-    enabled: view === "agenda",
   });
 
   const { data: membersData } = useQuery<MembersResponse>({
@@ -260,20 +258,38 @@ export default function CalendarPage() {
     return result;
   }, [gridDays]);
 
-  // Events by date key (YYYY-MM-DD)
+  // Visible categories from current month events (for desktop filter pills)
+  const visibleCategories = useMemo(() => {
+    const slugs = new Set(
+      (events ?? []).map((e: CalendarEventFull) => e.category).filter(Boolean) as string[]
+    );
+    return CALENDAR_CATEGORIES.filter((c) => slugs.has(c.slug));
+  }, [events]);
+
+  // Filtered events for desktop grid
+  const filteredEvents = categoryFilter
+    ? (events ?? []).filter((e: CalendarEventFull) => e.category === categoryFilter)
+    : (events ?? []);
+
+  // Events by date key (YYYY-MM-DD) — uses filteredEvents for desktop grid
   const eventsByDay = useMemo(() => {
     const map = new Map<string, CalendarEventFull[]>();
-    for (const ev of events) {
+    for (const ev of filteredEvents) {
       const key = format(new Date(ev.start_time), "yyyy-MM-dd");
       if (!map.has(key)) map.set(key, []);
       map.get(key)!.push(ev);
     }
     return map;
-  }, [events]);
+  }, [filteredEvents]);
 
-  // Agenda events: today + 60 days
+  // Mobile date scroller: 7 days back + 60 days ahead
+  const scrollDays = useMemo(() => {
+    const base = startOfDay(new Date());
+    return eachDayOfInterval({ start: addDays(base, -7), end: addDays(base, 60) });
+  }, []);
+
+  // Agenda events: today + 60 days — always computed for mobile date scroller
   const agendaEvents = useMemo(() => {
-    if (view !== "agenda") return [];
     const agendaStart = today;
     const agendaEnd = addDays(today, 60);
     const allEvents = [
@@ -287,7 +303,7 @@ export default function CalendarPage() {
         return d >= agendaStart && d <= agendaEnd;
       })
       .sort((a, b) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime());
-  }, [view, today, mainQuery.data, agendaQ1.data, agendaQ2.data]);
+  }, [today, mainQuery.data, agendaQ1.data, agendaQ2.data]);
 
   // Group agenda events by date
   const agendaGroups = useMemo(() => {
@@ -327,31 +343,22 @@ export default function CalendarPage() {
     setDaySheetOpen(true);
   }
 
+  function scrollToAgendaDate(date: Date) {
+    setMobileSelectedDate(date);
+    if (agendaScrollRef.current) {
+      const el = agendaScrollRef.current.querySelector(
+        `[data-agenda-date="${format(date, "yyyy-MM-dd")}"]`
+      );
+      if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  }
+
   const dayEvents = useMemo(() => {
     if (!selectedDay) return [];
     const key = format(selectedDay, "yyyy-MM-dd");
     return eventsByDay.get(key) ?? [];
   }, [selectedDay, eventsByDay]);
 
-  const mobileWeekDays = useMemo(
-    () => Array.from({ length: 7 }, (_, i) => addDays(mobileWeekStart, i)),
-    [mobileWeekStart]
-  );
-
-  const mobileSelectedEvents = useMemo(() => {
-    const key = format(mobileSelectedDay, "yyyy-MM-dd");
-    return eventsByDay.get(key) ?? [];
-  }, [mobileSelectedDay, eventsByDay]);
-
-  function goMobileWeek(dir: -1 | 1) {
-    const newStart = addDays(mobileWeekStart, dir * 7);
-    setMobileWeekStart(newStart);
-    setMobileSelectedDay(startOfDay(newStart));
-    const newMonth = startOfMonth(newStart);
-    if (!isSameMonth(newMonth, currentMonth)) {
-      setCurrentMonth(newMonth);
-    }
-  }
 
   // ---- Render ----------------------------------------------------------------
 
@@ -385,9 +392,9 @@ export default function CalendarPage() {
           >
             <Plus className="size-4 text-white" />
           </motion.button>
-          {/* View toggle */}
+          {/* View toggle (desktop only) */}
           <div
-            className="flex overflow-hidden rounded-xl"
+            className="hidden md:flex overflow-hidden rounded-xl"
             style={{
               border: "1.5px solid #BAD3F7",
               borderBottom: "3px solid #1A5CB5",
@@ -429,74 +436,66 @@ export default function CalendarPage() {
       {/* Month view */}
       {!mainQuery.isLoading && !mainQuery.isError && view === "month" && (
         <>
-          {/* ── Mobile: week strip + day event list ── */}
-          <div className="block md:hidden space-y-4">
-            {/* Week strip card */}
-            <div
-              className="overflow-hidden rounded-2xl"
-              style={{
-                border: "1.5px solid #BAD3F7",
-                borderBottom: `4px solid ${COLOR_DARK}`,
-                backgroundColor: "var(--roost-surface)",
-              }}
-            >
-              {/* Week header: prev / label / next */}
+          {/* ── Mobile: agenda-first with date scroller ── */}
+          <div className="block md:hidden">
+            {/* Date scroller strip */}
+            <div className="mb-3">
+              <p className="mb-1.5 text-xs font-bold" style={{ color: "var(--roost-text-muted)" }}>
+                {format(mobileSelectedDate, "MMMM yyyy")}
+              </p>
               <div
-                className="flex items-center justify-between px-3 py-2"
-                style={{ borderBottom: "1px solid var(--roost-border)" }}
+                className="flex gap-2 overflow-x-auto pb-1"
+                style={{ scrollbarWidth: "none" }}
               >
-                <button
-                  type="button"
-                  onClick={() => goMobileWeek(-1)}
-                  className="flex h-8 w-8 items-center justify-center rounded-full"
-                  style={{ color: "var(--roost-text-secondary)" }}
-                >
-                  <ChevronLeft className="size-4" />
-                </button>
-                <p className="text-sm" style={{ color: "var(--roost-text-primary)", fontWeight: 900 }}>
-                  {format(mobileSelectedDay, "MMMM yyyy")}
-                </p>
-                <button
-                  type="button"
-                  onClick={() => goMobileWeek(1)}
-                  className="flex h-8 w-8 items-center justify-center rounded-full"
-                  style={{ color: "var(--roost-text-secondary)" }}
-                >
-                  <ChevronRight className="size-4" />
-                </button>
-              </div>
-
-              {/* Day columns */}
-              <div className="grid grid-cols-7">
-                {mobileWeekDays.map((day) => {
-                  const key = format(day, "yyyy-MM-dd");
-                  const hasEvents = (eventsByDay.get(key) ?? []).length > 0;
-                  const todayCell = isToday(day);
-                  const selected = isSameDay(day, mobileSelectedDay);
+                {scrollDays.map((day) => {
+                  const isTodayDay = isToday(day);
+                  const isSelected = isSameDay(day, mobileSelectedDate);
+                  const hasEvent = agendaEvents.some((e: CalendarEventFull) =>
+                    isSameDay(new Date(e.start_time), day)
+                  );
                   return (
                     <button
-                      key={key}
+                      key={day.toISOString()}
                       type="button"
-                      onClick={() => setMobileSelectedDay(startOfDay(day))}
-                      className="flex flex-col items-center gap-0.5 py-3"
+                      onClick={() => scrollToAgendaDate(day)}
+                      className="flex shrink-0 flex-col items-center rounded-xl px-2.5 py-2 gap-0.5"
+                      style={{
+                        minWidth: 44,
+                        background: isTodayDay
+                          ? "#3B82F6"
+                          : isSelected
+                            ? "#DBEAFE"
+                            : "var(--roost-surface)",
+                        border: `1.5px solid ${isSelected || isTodayDay ? "#BAD3F7" : "var(--roost-border)"}`,
+                      }}
                     >
-                      <span className="mb-0.5 text-[10px]" style={{ color: "var(--roost-text-muted)", fontWeight: 700 }}>
-                        {format(day, "EEEEE")}
-                      </span>
-                      <div
-                        className="flex h-9 w-9 items-center justify-center rounded-full text-sm"
+                      <span
+                        className="text-[10px] uppercase"
                         style={{
-                          backgroundColor: todayCell ? COLOR : selected ? "#DBEAFE" : undefined,
-                          color: todayCell ? "white" : selected ? "#1D4ED8" : "var(--roost-text-primary)",
-                          fontWeight: todayCell || selected ? 900 : 700,
+                          fontWeight: 700,
+                          color: isTodayDay ? "rgba(255,255,255,0.8)" : "var(--roost-text-muted)",
+                        }}
+                      >
+                        {format(day, "EEE")[0]}
+                      </span>
+                      <span
+                        className="text-sm"
+                        style={{
+                          fontWeight: 800,
+                          color: isTodayDay ? "#fff" : isSelected ? "#1D4ED8" : "var(--roost-text-primary)",
                         }}
                       >
                         {format(day, "d")}
-                      </div>
-                      {hasEvents && (
-                        <div
-                          className="h-1 w-1 rounded-full"
-                          style={{ backgroundColor: todayCell ? "white" : COLOR }}
+                      </span>
+                      {hasEvent && (
+                        <span
+                          style={{
+                            width: 4,
+                            height: 4,
+                            borderRadius: "50%",
+                            background: isTodayDay ? "rgba(255,255,255,0.7)" : "#3B82F6",
+                            display: "block",
+                          }}
                         />
                       )}
                     </button>
@@ -505,87 +504,79 @@ export default function CalendarPage() {
               </div>
             </div>
 
-            {/* Day event list */}
-            <div>
-              <div className="mb-3 flex items-center justify-between">
-                <p className="text-sm" style={{ color: "var(--roost-text-primary)", fontWeight: 800 }}>
-                  {format(mobileSelectedDay, "EEEE, MMM d")}
-                </p>
-                {mobileSelectedEvents.length > 0 && (
-                  <span
-                    className="flex h-5 items-center rounded-full px-2 text-[11px]"
-                    style={{ backgroundColor: COLOR + "18", color: COLOR, fontWeight: 700 }}
-                  >
-                    {mobileSelectedEvents.length}
-                  </span>
-                )}
-              </div>
-
-              {mobileSelectedEvents.length === 0 ? (
-                <div
-                  className="flex flex-col items-center gap-1.5 rounded-2xl px-6 py-8 text-center"
-                  style={{ border: "2px dashed rgba(59,130,246,0.3)" }}
-                >
-                  <p className="text-sm" style={{ color: "var(--roost-text-primary)", fontWeight: 700 }}>
-                    Nothing scheduled
-                  </p>
-                  <p className="text-xs" style={{ color: "var(--roost-text-muted)", fontWeight: 600 }}>
-                    Tap + to add an event
-                  </p>
-                </div>
+            {/* Agenda list */}
+            <div ref={agendaScrollRef}>
+              {agendaGroups.length === 0 ? (
+                <EmptyState
+                  color={COLOR}
+                  icon={CalendarDays}
+                  title="Wide open."
+                  body="No events coming up. Either things are calm, or nobody told the app."
+                  buttonLabel="Add an event"
+                  onButtonClick={() => openCreate()}
+                  containerBorderColor="rgba(59,130,246,0.4)"
+                />
               ) : (
-                <div className="space-y-2">
-                  {mobileSelectedEvents.map((ev, i) => (
-                    <motion.button
-                      key={`${ev.id}-${ev.start_time}`}
-                      type="button"
-                      onClick={() => openView(ev)}
-                      whileTap={{ y: 1 }}
-                      initial={{ opacity: 0, y: 6 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: Math.min(i * 0.04, 0.2), duration: 0.15 }}
-                      className="flex w-full min-h-16 items-stretch gap-0 overflow-hidden rounded-xl text-left"
-                      style={{
-                        backgroundColor: "var(--roost-surface)",
-                        border: "1px solid #E2E8F0",
-                        borderBottom: "3px solid #E2E8F0",
-                      }}
-                    >
-                      <div className="w-1 shrink-0" style={{ backgroundColor: COLOR }} />
-                      <div className="min-w-0 flex-1 px-3 py-3">
-                        <div className="flex items-center gap-1.5">
-                          {ev.isRecurring && <Repeat className="size-3 shrink-0" style={{ color: "var(--roost-text-muted)" }} />}
-                          <p className="text-sm leading-tight" style={{ color: "var(--roost-text-primary)", fontWeight: 700 }}>
-                            {ev.title}
-                          </p>
-                        </div>
-                        <p className="mt-0.5 text-xs" style={{ color: COLOR, fontWeight: 600 }}>
-                          {formatEventTime(ev)}
-                        </p>
-                        {(ev.creator_name || ev.attendees.length > 0) && (
-                          <div className="mt-1.5 flex items-center gap-1">
-                            {ev.creator_name && (
-                              <>
-                                <MemberAvatar name={ev.creator_name} avatarColor={ev.creator_avatar} size="sm" />
-                                <span className="text-xs" style={{ color: "var(--roost-text-muted)", fontWeight: 600 }}>
-                                  {firstName(ev.creator_name)}
-                                </span>
-                              </>
-                            )}
-                            {ev.attendees.slice(0, 2).map((a) => (
-                              <MemberAvatar key={a.userId} name={a.name ?? "?"} avatarColor={a.avatarColor} size="sm" />
-                            ))}
-                            {ev.attendees.length > 2 && (
-                              <span className="text-[10px]" style={{ color: "var(--roost-text-muted)", fontWeight: 600 }}>
-                                +{ev.attendees.length - 2}
-                              </span>
-                            )}
-                          </div>
-                        )}
+                agendaGroups.map(({ date, events: groupEvents }) => {
+                  const label = agendaDateHeader(date, today);
+                  return (
+                    <div key={format(date, "yyyy-MM-dd")} data-agenda-date={format(date, "yyyy-MM-dd")} className="mb-4">
+                      <p
+                        className="mb-2 text-xs font-extrabold uppercase tracking-wide"
+                        style={{ color: COLOR }}
+                      >
+                        {label}
+                      </p>
+                      <div className="space-y-2">
+                        {groupEvents.map((event) => (
+                          <motion.button
+                            key={`${event.id}-${event.start_time}`}
+                            type="button"
+                            onClick={() => openView(event)}
+                            whileTap={{ y: 1 }}
+                            className="flex w-full items-start gap-3 rounded-2xl p-3 text-left"
+                            style={{
+                              backgroundColor: "var(--roost-surface)",
+                              border: "1.5px solid var(--roost-border)",
+                              borderLeft: `4px solid ${getCategoryColor(event.category)}`,
+                            }}
+                          >
+                            <div className="min-w-0 flex-1">
+                              <div className="flex items-center gap-1.5">
+                                {event.isRecurring && (
+                                  <Repeat className="size-3 shrink-0" style={{ color: "var(--roost-text-muted)" }} />
+                                )}
+                                <p
+                                  className="text-sm"
+                                  style={{ color: "var(--roost-text-primary)", fontWeight: 700 }}
+                                >
+                                  {event.title}
+                                </p>
+                              </div>
+                              <p
+                                className="mt-0.5 text-xs"
+                                style={{ color: getCategoryColor(event.category), fontWeight: 600 }}
+                              >
+                                {formatEventTime(event)}
+                              </p>
+                              {event.location && (
+                                <div className="mt-0.5 flex items-center gap-1">
+                                  <MapPin className="size-3" style={{ color: "var(--roost-text-muted)" }} />
+                                  <span
+                                    className="text-xs"
+                                    style={{ color: "var(--roost-text-muted)", fontWeight: 600 }}
+                                  >
+                                    {event.location}
+                                  </span>
+                                </div>
+                              )}
+                            </div>
+                          </motion.button>
+                        ))}
                       </div>
-                    </motion.button>
-                  ))}
-                </div>
+                    </div>
+                  );
+                })
               )}
             </div>
           </div>
@@ -641,6 +632,51 @@ export default function CalendarPage() {
                 </button>
               </div>
             </div>
+
+            {/* Category filter pills */}
+            {visibleCategories.length > 0 && (
+              <div className="mb-3 hidden md:flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={() => setCategoryFilter(null)}
+                  className="rounded-full px-3 py-1 text-xs"
+                  style={{
+                    fontWeight: 700,
+                    background: !categoryFilter ? "#0F172A" : "var(--roost-bg)",
+                    color: !categoryFilter ? "#fff" : "var(--roost-text-secondary)",
+                    border: `1.5px solid ${!categoryFilter ? "#0F172A" : "var(--roost-border)"}`,
+                  }}
+                >
+                  All
+                </button>
+                {visibleCategories.map((cat) => (
+                  <button
+                    key={cat.slug}
+                    type="button"
+                    onClick={() => setCategoryFilter(categoryFilter === cat.slug ? null : cat.slug)}
+                    className="flex items-center gap-1.5 rounded-full px-3 py-1 text-xs"
+                    style={{
+                      fontWeight: 700,
+                      background: categoryFilter === cat.slug ? cat.color : "var(--roost-bg)",
+                      color: categoryFilter === cat.slug ? "#fff" : "var(--roost-text-secondary)",
+                      border: `1.5px solid ${categoryFilter === cat.slug ? cat.color : "var(--roost-border)"}`,
+                    }}
+                  >
+                    <span
+                      style={{
+                        width: 7,
+                        height: 7,
+                        borderRadius: "50%",
+                        background: categoryFilter === cat.slug ? "rgba(255,255,255,0.5)" : cat.color,
+                        display: "inline-block",
+                        flexShrink: 0,
+                      }}
+                    />
+                    {cat.label}
+                  </button>
+                ))}
+              </div>
+            )}
 
             {/* Grid */}
             <div
@@ -702,10 +738,10 @@ export default function CalendarPage() {
                             key={`${ev.id}-${ev.start_time}`}
                             className="flex w-full items-center gap-0.5 truncate rounded px-1 text-[11px] leading-5"
                             style={{
-                              backgroundColor: COLOR + "26",
-                              color: COLOR,
+                              backgroundColor: getCategoryColor(ev.category) + "26",
+                              color: getCategoryColor(ev.category),
                               fontWeight: 700,
-                              borderBottom: `2px solid ${COLOR_DARK}`,
+                              borderBottom: `2px solid ${getCategoryColor(ev.category)}80`,
                             }}
                           >
                             {ev.isRecurring && <Repeat className="size-2.5 shrink-0" />}
@@ -856,6 +892,7 @@ export default function CalendarPage() {
         events={dayEvents}
         onAddEvent={(day) => openCreate(day)}
         onViewEvent={(ev) => openView(ev)}
+        currentUserId={currentUserId}
       />
 
       {/* Event sheet */}

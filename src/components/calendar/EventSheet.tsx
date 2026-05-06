@@ -15,7 +15,8 @@ import {
 } from "@/components/ui/dialog";
 import { Switch } from "@/components/ui/switch";
 import { Calendar } from "@/components/ui/calendar";
-import { Loader2, Lock, Pencil, Repeat, Trash2, X } from "lucide-react";
+import { Bell, Loader2, Lock, MapPin, Pencil, Repeat, Trash2 } from "lucide-react";
+import { CALENDAR_CATEGORIES, getCategoryColor } from "@/lib/constants/calendarCategories";
 import { format } from "date-fns";
 import MemberAvatar from "@/components/shared/MemberAvatar";
 import { useHousehold } from "@/lib/hooks/useHousehold";
@@ -29,6 +30,7 @@ export interface Attendee {
   userId: string;
   name: string | null;
   avatarColor: string | null;
+  rsvpStatus: string | null;
 }
 
 export interface CalendarEventFull {
@@ -53,6 +55,10 @@ export interface CalendarEventFull {
   // Original template start_time — used in edit mode so editing always targets
   // the template anchor date rather than the specific instance occurrence date
   template_start_time?: string | null;
+  category?: string | null;
+  location?: string | null;
+  notify_member_ids?: string | null;
+  rsvp_enabled?: boolean;
 }
 
 export interface Member {
@@ -298,6 +304,174 @@ function RecurringFields({
   );
 }
 
+// ---- CategoryPicker sub-component -------------------------------------------
+
+function CategoryPicker({
+  value,
+  onChange,
+}: {
+  value: string | null;
+  onChange: (slug: string | null) => void;
+}) {
+  return (
+    <div className="flex flex-wrap gap-2">
+      {CALENDAR_CATEGORIES.map((cat) => {
+        const selected = value === cat.slug;
+        return (
+          <button
+            key={cat.slug}
+            type="button"
+            onClick={() => onChange(selected ? null : cat.slug)}
+            className="flex items-center gap-1.5 rounded-full px-3 py-1 text-xs"
+            style={{
+              fontWeight: 700,
+              background: selected ? cat.color : "var(--roost-bg)",
+              color: selected ? "#fff" : "var(--roost-text-secondary)",
+              border: `1.5px solid ${selected ? cat.color : "var(--roost-border)"}`,
+            }}
+          >
+            <span
+              style={{
+                width: 7,
+                height: 7,
+                borderRadius: "50%",
+                background: selected ? "rgba(255,255,255,0.5)" : cat.color,
+                flexShrink: 0,
+                display: "inline-block",
+              }}
+            />
+            {cat.label}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+// ---- AttendeePicker sub-component -------------------------------------------
+
+function AttendeePicker({
+  members,
+  selectedIds,
+  currentUserId,
+  onChange,
+}: {
+  members: Member[];
+  selectedIds: string[];
+  currentUserId: string;
+  onChange: (ids: string[]) => void;
+}) {
+  const others = members.filter((m) => m.userId !== currentUserId);
+  if (others.length === 0) return null;
+  return (
+    <div className="flex flex-wrap gap-2">
+      {others.map((m) => {
+        const selected = selectedIds.includes(m.userId);
+        return (
+          <button
+            key={m.userId}
+            type="button"
+            onClick={() =>
+              onChange(
+                selected
+                  ? selectedIds.filter((id) => id !== m.userId)
+                  : [...selectedIds, m.userId]
+              )
+            }
+            className="flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs"
+            style={{
+              fontWeight: 700,
+              background: selected ? "#EFF6FF" : "var(--roost-bg)",
+              color: selected ? "#1E40AF" : "var(--roost-text-secondary)",
+              border: `1.5px solid ${selected ? "#BAD3F7" : "var(--roost-border)"}`,
+            }}
+          >
+            <MemberAvatar name={m.name} avatarColor={m.avatarColor} size="sm" />
+            {(m.name ?? "?").split(" ")[0]}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+// ---- NotifyPicker sub-component ---------------------------------------------
+
+function NotifyPicker({
+  members,
+  notifyAll,
+  notifyIds,
+  currentUserId,
+  onToggleAll,
+  onToggleMember,
+}: {
+  members: Member[];
+  notifyAll: boolean;
+  notifyIds: string[];
+  currentUserId: string;
+  onToggleAll: () => void;
+  onToggleMember: (id: string) => void;
+}) {
+  return (
+    <div
+      className="rounded-xl p-3"
+      style={{
+        background: "var(--roost-bg)",
+        border: "1.5px solid var(--roost-border)",
+        borderBottom: "3px solid var(--roost-border-bottom)",
+      }}
+    >
+      <div className="mb-2 flex items-center gap-1.5">
+        <Bell className="size-3" style={{ color: "#374151" }} />
+        <span className="text-[11px] font-extrabold uppercase tracking-wide" style={{ color: "#374151" }}>
+          Notify when saved
+        </span>
+      </div>
+      <div className="flex flex-wrap gap-2">
+        <button
+          type="button"
+          onClick={onToggleAll}
+          className="flex items-center gap-1 rounded-full px-3 py-1 text-xs"
+          style={{
+            fontWeight: 700,
+            background: notifyAll ? "#0F172A" : "var(--roost-surface)",
+            color: notifyAll ? "#fff" : "var(--roost-text-secondary)",
+            border: `1.5px solid ${notifyAll ? "#0F172A" : "var(--roost-border)"}`,
+          }}
+        >
+          All household
+        </button>
+        {members
+          .filter((m) => m.userId !== currentUserId)
+          .map((m) => {
+            const selected = !notifyAll && notifyIds.includes(m.userId);
+            return (
+              <button
+                key={m.userId}
+                type="button"
+                onClick={() => !notifyAll && onToggleMember(m.userId)}
+                className="flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs"
+                style={{
+                  fontWeight: 700,
+                  opacity: notifyAll ? 0.4 : 1,
+                  background: selected ? "#EFF6FF" : "var(--roost-surface)",
+                  color: selected ? "#1E40AF" : "var(--roost-text-secondary)",
+                  border: `1.5px solid ${selected ? "#BAD3F7" : "var(--roost-border)"}`,
+                }}
+              >
+                <MemberAvatar name={m.name} avatarColor={m.avatarColor} size="sm" />
+                {(m.name ?? "?").split(" ")[0]}
+              </button>
+            );
+          })}
+      </div>
+      <p className="mt-2 text-[11px]" style={{ color: "var(--roost-text-muted)", fontWeight: 600 }}>
+        Selected members get a push notification when this event is saved.
+      </p>
+    </div>
+  );
+}
+
 // ---- Component --------------------------------------------------------------
 
 export default function EventSheet({
@@ -323,8 +497,15 @@ export default function EventSheet({
   const [startTime, setStartTime] = useState("09:00");
   const [endTime, setEndTime] = useState("");
   const [description, setDescription] = useState("");
-  const [attendeeIds, setAttendeeIds] = useState<Set<string>>(new Set());
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+
+  // New fields
+  const [category, setCategory] = useState<string | null>(null);
+  const [location, setLocation] = useState("");
+  const [attendeeIds, setAttendeeIds] = useState<string[]>([]);
+  const [rsvpEnabled, setRsvpEnabled] = useState(false);
+  const [notifyIds, setNotifyIds] = useState<string[]>([]);
+  const [notifyAll, setNotifyAll] = useState(false);
 
   // Recurring state
   const [recurring, setRecurring] = useState(false);
@@ -349,7 +530,12 @@ export default function EventSheet({
       setStartTime("09:00");
       setEndTime("");
       setDescription("");
-      setAttendeeIds(new Set());
+      setCategory(null);
+      setLocation("");
+      setAttendeeIds([]);
+      setRsvpEnabled(false);
+      setNotifyIds([]);
+      setNotifyAll(false);
       setRecurring(false);
       setFrequency("weekly");
       setRepeatEndType("forever");
@@ -367,7 +553,12 @@ export default function EventSheet({
       setStartTime(event.all_day ? "09:00" : format(editDate, "HH:mm"));
       setEndTime(event.end_time && !event.all_day ? format(new Date(event.end_time), "HH:mm") : "");
       setDescription(event.description ?? "");
-      setAttendeeIds(new Set(event.attendees.map((a) => a.userId)));
+      setCategory(event.category ?? null);
+      setLocation(event.location ?? "");
+      setAttendeeIds(event.attendees.map((a) => a.userId));
+      setRsvpEnabled(event.rsvp_enabled ?? false);
+      setNotifyIds([]);
+      setNotifyAll(false);
       setRecurring(event.recurring ?? false);
       setFrequency(event.frequency ?? "weekly");
       setRepeatEndType(event.repeat_end_type ?? "forever");
@@ -426,8 +617,12 @@ export default function EventSheet({
         start_time: startISO,
         end_time: endISO ?? null,
         all_day: allDay,
-        attendee_ids: Array.from(attendeeIds),
+        attendee_ids: attendeeIds,
         recurring,
+        category: category || null,
+        location: location.trim() || null,
+        rsvp_enabled: rsvpEnabled,
+        notify_member_ids: notifyAll ? "all" : notifyIds.length > 0 ? notifyIds : null,
       };
 
       if (recurring) {
@@ -498,15 +693,6 @@ export default function EventSheet({
     onError: (err: Error) => toast.error(err.message),
   });
 
-  function toggleAttendee(userId: string) {
-    setAttendeeIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(userId)) next.delete(userId);
-      else next.add(userId);
-      return next;
-    });
-  }
-
   // ---- View mode render -------------------------------------------------------
 
   if (mode === "view" && event) {
@@ -549,6 +735,31 @@ export default function EventSheet({
                   <p className="mt-1 text-xs" style={{ color: COLOR + "99", fontWeight: 600 }}>
                     Repeats {frequencyLabel(event.frequency).toLowerCase()}
                   </p>
+                )}
+                {event.category && (
+                  <div className="mt-1 flex items-center gap-1.5">
+                    <span
+                      style={{
+                        width: 8,
+                        height: 8,
+                        borderRadius: "50%",
+                        background: getCategoryColor(event.category),
+                        display: "inline-block",
+                        flexShrink: 0,
+                      }}
+                    />
+                    <span className="text-xs font-bold" style={{ color: getCategoryColor(event.category) }}>
+                      {CALENDAR_CATEGORIES.find((c) => c.slug === event.category)?.label}
+                    </span>
+                  </div>
+                )}
+                {event.location && (
+                  <div className="mt-1 flex items-center gap-1.5">
+                    <MapPin className="size-3 shrink-0" style={{ color: "var(--roost-text-muted)" }} />
+                    <span className="text-xs font-semibold" style={{ color: "var(--roost-text-muted)" }}>
+                      {event.location}
+                    </span>
+                  </div>
                 )}
               </div>
 
@@ -784,37 +995,91 @@ export default function EventSheet({
               />
             </div>
 
+            {/* Category */}
+            <div>
+              <label className="mb-1.5 block text-[11px] font-extrabold uppercase tracking-wide" style={{ color: "#374151" }}>
+                Category
+              </label>
+              <CategoryPicker value={category} onChange={setCategory} />
+            </div>
+
+            {/* Location */}
+            <div>
+              <label className="mb-1.5 block text-[11px] font-extrabold uppercase tracking-wide" style={{ color: "#374151" }}>
+                Location
+              </label>
+              <div className="relative">
+                <MapPin className="absolute left-3 top-1/2 size-4 -translate-y-1/2" style={{ color: "#94A3B8" }} />
+                <input
+                  type="text"
+                  placeholder="Add a location"
+                  value={location}
+                  onChange={(e) => setLocation(e.target.value)}
+                  className="w-full rounded-xl pl-9 pr-3 py-2.5 text-sm"
+                  style={{
+                    fontWeight: 600,
+                    background: "var(--roost-surface)",
+                    border: "1.5px solid var(--roost-border)",
+                    borderBottom: "3px solid var(--roost-border-bottom)",
+                    borderRadius: 12,
+                    color: "var(--roost-text-primary)",
+                    outline: "none",
+                  }}
+                />
+              </div>
+            </div>
+
             {/* Attendees */}
-            {householdMembers.length > 0 && (
-              <div>
-                <label className="mb-2 block text-xs" style={{ color: "#374151", fontWeight: 700 }}>
-                  Attendees
-                </label>
-                <div className="flex flex-wrap gap-2">
-                  {householdMembers.map((m) => {
-                    const selected = attendeeIds.has(m.userId);
-                    return (
-                      <button
-                        key={m.userId}
-                        type="button"
-                        onClick={() => toggleAttendee(m.userId)}
-                        className="flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs"
-                        style={{
-                          backgroundColor: selected ? COLOR + "18" : "var(--roost-bg)",
-                          border: selected ? `1.5px solid ${COLOR}40` : "1.5px solid var(--roost-border)",
-                          color: selected ? COLOR : "var(--roost-text-primary)",
-                          fontWeight: selected ? 700 : 600,
-                        }}
-                      >
-                        <MemberAvatar name={m.name} avatarColor={m.avatarColor} size="sm" />
-                        {m.name.split(" ")[0]}
-                        {selected && <X className="size-3" />}
-                      </button>
-                    );
-                  })}
+            <div>
+              <label className="mb-1.5 block text-[11px] font-extrabold uppercase tracking-wide" style={{ color: "#374151" }}>
+                Who&apos;s going
+              </label>
+              <AttendeePicker
+                members={householdMembers}
+                selectedIds={attendeeIds}
+                currentUserId={currentUserId}
+                onChange={setAttendeeIds}
+              />
+            </div>
+
+            {/* RSVP toggle */}
+            {attendeeIds.length > 0 && (
+              <div
+                className="flex items-center justify-between rounded-xl px-3 py-2.5"
+                style={{
+                  background: "#EFF6FF",
+                  border: "1.5px solid #BAD3F7",
+                  borderBottom: "3px solid #1A5CB5",
+                }}
+              >
+                <div>
+                  <p className="text-sm font-bold" style={{ color: "#1E40AF" }}>Ask for RSVP</p>
+                  <p className="text-xs font-semibold" style={{ color: "#3B82F6" }}>
+                    Attendees can mark attending, maybe, or no
+                  </p>
+                </div>
+                <div style={{ "--primary": "#3B82F6" } as React.CSSProperties}>
+                  <Switch checked={rsvpEnabled} onCheckedChange={setRsvpEnabled} />
                 </div>
               </div>
             )}
+
+            {/* Notify */}
+            <NotifyPicker
+              members={householdMembers}
+              notifyAll={notifyAll}
+              notifyIds={notifyIds}
+              currentUserId={currentUserId}
+              onToggleAll={() => {
+                setNotifyAll((v) => !v);
+                setNotifyIds([]);
+              }}
+              onToggleMember={(id) =>
+                setNotifyIds((prev) =>
+                  prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
+                )
+              }
+            />
 
             {/* Recurring fields */}
             <RecurringFields

@@ -5,6 +5,7 @@ import { meals, grocery_lists, grocery_items, households } from "@/db/schema";
 import { and, eq, isNull } from "drizzle-orm";
 import { getUserHousehold } from "@/app/api/chores/route";
 import { logActivity } from "@/lib/utils/activity";
+import { parseIngredients } from "@/lib/utils/parseIngredients";
 
 // ---- POST -------------------------------------------------------------------
 
@@ -49,36 +50,69 @@ export async function POST(
     return Response.json({ error: "Meal not found" }, { status: 404 });
   }
 
-  let ingredients: string[] = [];
+  // Parse optional body: { listId?, ingredientNames? }
+  let listId: string | undefined;
+  let ingredientNames: string[] | undefined;
   try {
-    ingredients = meal.ingredients ? (JSON.parse(meal.ingredients) as string[]) : [];
+    const body = await request.json();
+    listId = body.listId;
+    ingredientNames = Array.isArray(body.ingredientNames) ? body.ingredientNames : undefined;
   } catch {
-    ingredients = [];
+    // body is optional
   }
 
-  if (ingredients.length === 0) {
+  // Resolve ingredient names to push (defaults to all meal ingredients)
+  let namesToPush: string[];
+  if (ingredientNames && ingredientNames.length > 0) {
+    namesToPush = ingredientNames.filter((n) => typeof n === "string" && n.trim());
+  } else {
+    const items = parseIngredients(meal.ingredients ?? "");
+    namesToPush = items.map((item) => item.name).filter(Boolean);
+  }
+
+  if (namesToPush.length === 0) {
     return Response.json({ error: "This meal has no ingredients to add" }, { status: 400 });
   }
 
-  const [defaultList] = await db
-    .select()
-    .from(grocery_lists)
-    .where(
-      and(
-        eq(grocery_lists.household_id, householdId),
-        eq(grocery_lists.is_default, true),
-        isNull(grocery_lists.deleted_at)
+  // Resolve target list (use provided listId or fall back to default list)
+  let targetListId: string;
+  if (listId) {
+    const [specified] = await db
+      .select({ id: grocery_lists.id })
+      .from(grocery_lists)
+      .where(
+        and(
+          eq(grocery_lists.id, listId),
+          eq(grocery_lists.household_id, householdId),
+          isNull(grocery_lists.deleted_at)
+        )
       )
-    )
-    .limit(1);
-
-  if (!defaultList) {
-    return Response.json({ error: "No default grocery list found" }, { status: 404 });
+      .limit(1);
+    if (!specified) {
+      return Response.json({ error: "Grocery list not found" }, { status: 404 });
+    }
+    targetListId = specified.id;
+  } else {
+    const [defaultList] = await db
+      .select({ id: grocery_lists.id })
+      .from(grocery_lists)
+      .where(
+        and(
+          eq(grocery_lists.household_id, householdId),
+          eq(grocery_lists.is_default, true),
+          isNull(grocery_lists.deleted_at)
+        )
+      )
+      .limit(1);
+    if (!defaultList) {
+      return Response.json({ error: "No default grocery list found" }, { status: 404 });
+    }
+    targetListId = defaultList.id;
   }
 
   await db.insert(grocery_items).values(
-    ingredients.map((name) => ({
-      list_id: defaultList.id,
+    namesToPush.map((name) => ({
+      list_id: targetListId,
       household_id: householdId,
       name,
       added_by: session.user.id,
@@ -94,5 +128,5 @@ export async function POST(
     entityType: "meal",
   });
 
-  return Response.json({ added: ingredients.length });
+  return Response.json({ added: namesToPush.length });
 }

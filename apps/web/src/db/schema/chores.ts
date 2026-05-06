@@ -36,6 +36,7 @@ export const chores = pgTable('chores', {
   createdBy: text('created_by')
     .notNull()
     .references(() => users.id),
+  snoozedUntil: timestamp('snoozed_until'),
   createdAt: timestamp('created_at').notNull().defaultNow(),
   updatedAt: timestamp('updated_at').notNull().defaultNow(),
   deletedAt: timestamp('deleted_at'),

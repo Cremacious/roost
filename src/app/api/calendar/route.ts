@@ -1,13 +1,64 @@
 import { NextRequest } from "next/server";
 import { requireSession } from "@/lib/auth/helpers";
 import { db } from "@/lib/db";
-import { calendar_events, event_attendees, households, member_permissions, users } from "@/db/schema";
+import { calendar_events, event_attendees, household_members, households, member_permissions, users } from "@/db/schema";
 import { and, eq, gte, inArray, isNull, lt } from "drizzle-orm";
 import { getUserHousehold } from "@/app/api/chores/route";
 import { logActivity } from "@/lib/utils/activity";
 import { checkCalendarEventLimit } from "@/lib/utils/premiumGating";
 import { FREE_TIER_LIMITS } from "@/lib/constants/freeTierLimits";
 import { expandEventsForRange } from "@/lib/utils/recurrence";
+import { format } from "date-fns";
+
+// ---- Push notification helper -----------------------------------------------
+
+async function sendEventPushNotifications(
+  notifyMemberIds: string | null,
+  householdId: string,
+  title: string,
+  startTime: Date,
+  location: string | null
+): Promise<void> {
+  if (!notifyMemberIds) return;
+
+  let userIds: string[];
+  if (notifyMemberIds === "all") {
+    const members = await db
+      .select({ userId: household_members.user_id })
+      .from(household_members)
+      .where(eq(household_members.household_id, householdId));
+    userIds = members.map((m) => m.userId);
+  } else {
+    try {
+      userIds = JSON.parse(notifyMemberIds) as string[];
+    } catch {
+      return;
+    }
+  }
+
+  if (userIds.length === 0) return;
+
+  const userRows = await db
+    .select({ pushToken: users.push_token })
+    .from(users)
+    .where(inArray(users.id, userIds));
+
+  const tokens = userRows.map((u) => u.pushToken).filter(Boolean) as string[];
+  if (tokens.length === 0) return;
+
+  const dateStr = format(startTime, "EEE MMM d 'at' h:mm a");
+  const body = location ? `${dateStr} at ${location}` : dateStr;
+
+  await Promise.allSettled(
+    tokens.map((token) =>
+      fetch("https://exp.host/--/api/v2/push/send", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ to: token, title, body, sound: "default" }),
+      })
+    )
+  );
+}
 
 // ---- Permission helper -------------------------------------------------------
 
@@ -73,6 +124,10 @@ export async function GET(request: NextRequest): Promise<Response> {
       repeat_end_type: calendar_events.repeat_end_type,
       repeat_until: calendar_events.repeat_until,
       repeat_occurrences: calendar_events.repeat_occurrences,
+      category: calendar_events.category,
+      location: calendar_events.location,
+      notify_member_ids: calendar_events.notify_member_ids,
+      rsvp_enabled: calendar_events.rsvp_enabled,
     })
     .from(calendar_events)
     .leftJoin(users, eq(calendar_events.created_by, users.id))
@@ -107,6 +162,10 @@ export async function GET(request: NextRequest): Promise<Response> {
       repeat_end_type: calendar_events.repeat_end_type,
       repeat_until: calendar_events.repeat_until,
       repeat_occurrences: calendar_events.repeat_occurrences,
+      category: calendar_events.category,
+      location: calendar_events.location,
+      notify_member_ids: calendar_events.notify_member_ids,
+      rsvp_enabled: calendar_events.rsvp_enabled,
     })
     .from(calendar_events)
     .leftJoin(users, eq(calendar_events.created_by, users.id))
@@ -144,18 +203,20 @@ export async function GET(request: NextRequest): Promise<Response> {
       user_id: event_attendees.user_id,
       name: users.name,
       avatar_color: users.avatar_color,
+      rsvp_status: event_attendees.rsvp_status,
     })
     .from(event_attendees)
     .leftJoin(users, eq(event_attendees.user_id, users.id))
     .where(inArray(event_attendees.event_id, uniqueEventIds));
 
-  const attendeesByEvent = new Map<string, { userId: string; name: string | null; avatarColor: string | null }[]>();
+  const attendeesByEvent = new Map<string, { userId: string; name: string | null; avatarColor: string | null; rsvpStatus: string | null }[]>();
   for (const a of attendeeRows) {
     if (!attendeesByEvent.has(a.event_id)) attendeesByEvent.set(a.event_id, []);
     attendeesByEvent.get(a.event_id)!.push({
       userId: a.user_id,
       name: a.name,
       avatarColor: a.avatar_color,
+      rsvpStatus: a.rsvp_status,
     });
   }
 
@@ -203,6 +264,10 @@ export async function POST(request: NextRequest): Promise<Response> {
     repeat_end_type?: string;
     repeat_until?: string;
     repeat_occurrences?: number;
+    category?: string;
+    location?: string;
+    notify_member_ids?: string | string[];
+    rsvp_enabled?: boolean;
   };
   try {
     body = await request.json();
@@ -282,6 +347,18 @@ export async function POST(request: NextRequest): Promise<Response> {
       repeat_end_type: body.recurring ? (body.repeat_end_type ?? "forever") : null,
       repeat_until: body.recurring && body.repeat_until ? new Date(body.repeat_until) : null,
       repeat_occurrences: body.recurring && body.repeat_occurrences ? body.repeat_occurrences : null,
+      category: body.category ?? null,
+      location: body.location?.trim() || null,
+      notify_member_ids: body.notify_member_ids
+        ? (body.notify_member_ids === "all"
+            ? "all"
+            : JSON.stringify(
+                Array.isArray(body.notify_member_ids)
+                  ? body.notify_member_ids
+                  : [body.notify_member_ids]
+              ))
+        : null,
+      rsvp_enabled: body.rsvp_enabled ?? false,
     })
     .returning();
 
@@ -299,6 +376,14 @@ export async function POST(request: NextRequest): Promise<Response> {
     entityId: event.id,
     entityType: "calendar_event",
   });
+
+  await sendEventPushNotifications(
+    event.notify_member_ids ?? null,
+    householdId,
+    event.title,
+    event.start_time,
+    event.location ?? null
+  );
 
   return Response.json({ event }, { status: 201 });
 }

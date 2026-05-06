@@ -5,9 +5,11 @@ import { toast } from "sonner";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import DraggableSheet from "@/components/shared/DraggableSheet";
-import { Loader2, Plus, Trash2, X } from "lucide-react";
+import RecipeEditor from "@/components/meals/RecipeEditor";
+import { Loader2 } from "lucide-react";
 import { SECTION_COLORS } from "@/lib/constants/colors";
 import { FREE_TIER_LIMITS } from "@/lib/constants/freeTierLimits";
+import { parseIngredients, type IngredientItem } from "@/lib/utils/parseIngredients";
 
 const COLOR = SECTION_COLORS.meals;
 const COLOR_DARK = "#C4581A";
@@ -20,6 +22,7 @@ export interface MealData {
   description: string | null;
   category: string;
   ingredients: string | null;
+  instructions: string | null;
   prep_time: number | null;
   created_by: string;
 }
@@ -48,6 +51,16 @@ const inputStyle: React.CSSProperties = {
   fontWeight: 600,
 };
 
+function parseSteps(raw: string | null): string[] {
+  if (!raw) return [];
+  try {
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed.filter((s) => typeof s === "string") : [];
+  } catch {
+    return [];
+  }
+}
+
 // ---- Component --------------------------------------------------------------
 
 export default function MealSheet({ open, onClose, meal, isPremium, mealCount, onUpgradeRequired }: MealSheetProps) {
@@ -58,49 +71,41 @@ export default function MealSheet({ open, onClose, meal, isPremium, mealCount, o
   const [category, setCategory] = useState("dinner");
   const [description, setDescription] = useState("");
   const [prepTime, setPrepTime] = useState("");
-  const [ingredients, setIngredients] = useState<string[]>(["", "", ""]);
+  const [ingredients, setIngredients] = useState<IngredientItem[]>([{ name: "" }, { name: "" }, { name: "" }]);
+  const [steps, setSteps] = useState<string[]>([]);
 
   useEffect(() => {
-    if (meal) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setName(meal.name);
-      setCategory(meal.category);
-      setDescription(meal.description ?? "");
-      setPrepTime(meal.prep_time != null ? String(meal.prep_time) : "");
-      const parsed: string[] = meal.ingredients
-        ? (JSON.parse(meal.ingredients) as string[])
-        : [];
-      setIngredients(parsed.length > 0 ? parsed : ["", "", ""]);
-    } else {
-      setName("");
-      setCategory("dinner");
-      setDescription("");
-      setPrepTime("");
-      setIngredients(["", "", ""]);
+    if (open) {
+      if (meal) {
+        setName(meal.name);
+        setCategory(meal.category);
+        setDescription(meal.description ?? "");
+        setPrepTime(meal.prep_time != null ? String(meal.prep_time) : "");
+        const parsed = parseIngredients(meal.ingredients ?? "");
+        setIngredients(parsed.length > 0 ? parsed : [{ name: "" }, { name: "" }, { name: "" }]);
+        setSteps(parseSteps(meal.instructions));
+      } else {
+        setName("");
+        setCategory("dinner");
+        setDescription("");
+        setPrepTime("");
+        setIngredients([{ name: "" }, { name: "" }, { name: "" }]);
+        setSteps([]);
+      }
     }
   }, [meal, open]);
 
-  function updateIngredient(i: number, value: string) {
-    setIngredients((prev) => prev.map((v, idx) => (idx === i ? value : v)));
-  }
-
-  function removeIngredient(i: number) {
-    setIngredients((prev) => prev.filter((_, idx) => idx !== i));
-  }
-
-  function addIngredient() {
-    setIngredients((prev) => [...prev, ""]);
-  }
-
   const saveMutation = useMutation({
     mutationFn: async () => {
-      const filteredIngredients = ingredients.filter((i) => i.trim());
+      const filteredIngredients = ingredients.filter((i) => i.name.trim());
+      const filteredSteps = steps.filter((s) => s.trim());
       const body = {
         name: name.trim(),
         category,
         description: description.trim() || undefined,
         prep_time: prepTime ? parseInt(prepTime) : undefined,
         ingredients: filteredIngredients,
+        instructions: filteredSteps.length > 0 ? filteredSteps : undefined,
       };
 
       const url = isEdit ? `/api/meals/${meal!.id}` : "/api/meals";
@@ -144,7 +149,7 @@ export default function MealSheet({ open, onClose, meal, isPremium, mealCount, o
 
   return (
     <DraggableSheet open={open} onOpenChange={(v) => !v && onClose()} featureColor="#F97316">
-      <div className="px-4 pb-8" style={{ maxHeight: "calc(92dvh - 60px)" }}>
+      <div className="px-4 pb-8">
         <p className="mb-5 text-lg" style={{ color: "var(--roost-text-primary)", fontWeight: 800 }}>
           {isEdit ? "Edit meal" : "Add to meal bank"}
         </p>
@@ -152,7 +157,7 @@ export default function MealSheet({ open, onClose, meal, isPremium, mealCount, o
         <div className="space-y-5">
           {/* Name */}
           <div className="space-y-1.5">
-            <label className="text-sm" style={{ color: "var(--roost-text-primary)", fontWeight: 700 }}>
+            <label className="text-sm" style={{ color: "#374151", fontWeight: 700 }}>
               Name
             </label>
             <input
@@ -167,7 +172,7 @@ export default function MealSheet({ open, onClose, meal, isPremium, mealCount, o
 
           {/* Category */}
           <div className="space-y-1.5">
-            <label className="text-sm" style={{ color: "var(--roost-text-primary)", fontWeight: 700 }}>
+            <label className="text-sm" style={{ color: "#374151", fontWeight: 700 }}>
               Category
             </label>
             <div className="grid grid-cols-4 gap-2">
@@ -197,7 +202,7 @@ export default function MealSheet({ open, onClose, meal, isPremium, mealCount, o
 
           {/* Description */}
           <div className="space-y-1.5">
-            <label className="text-sm" style={{ color: "var(--roost-text-primary)", fontWeight: 700 }}>
+            <label className="text-sm" style={{ color: "#374151", fontWeight: 700 }}>
               Description
               <span className="ml-1.5 text-xs" style={{ color: "var(--roost-text-muted)", fontWeight: 600 }}>
                 optional
@@ -215,7 +220,7 @@ export default function MealSheet({ open, onClose, meal, isPremium, mealCount, o
 
           {/* Prep time */}
           <div className="space-y-1.5">
-            <label className="text-sm" style={{ color: "var(--roost-text-primary)", fontWeight: 700 }}>
+            <label className="text-sm" style={{ color: "#374151", fontWeight: 700 }}>
               Prep time
               <span className="ml-1.5 text-xs" style={{ color: "var(--roost-text-muted)", fontWeight: 600 }}>
                 optional
@@ -237,55 +242,23 @@ export default function MealSheet({ open, onClose, meal, isPremium, mealCount, o
             </div>
           </div>
 
-          {/* Ingredients */}
+          {/* Recipe editor */}
           <div className="space-y-1.5">
-            <label className="text-sm" style={{ color: "var(--roost-text-primary)", fontWeight: 700 }}>
+            <label className="text-sm" style={{ color: "#374151", fontWeight: 700 }}>
               Ingredients
               <span className="ml-1.5 text-xs" style={{ color: "var(--roost-text-muted)", fontWeight: 600 }}>
                 optional, used for grocery list
               </span>
             </label>
-            <div className="space-y-2">
-              {ingredients.map((ingredient, i) => (
-                <div key={i} className="flex items-center gap-2">
-                  <input
-                    type="text"
-                    value={ingredient}
-                    onChange={(e) => updateIngredient(i, e.target.value)}
-                    placeholder="e.g. 500g pasta"
-                    className="flex h-11 flex-1 rounded-xl px-4 text-sm placeholder:italic focus:outline-none"
-                    style={inputStyle}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => removeIngredient(i)}
-                    className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl"
-                    style={{
-                      border: "1.5px solid #E5E7EB",
-                      borderBottom: "3px solid #E5E7EB",
-                      color: "var(--roost-text-muted)",
-                    }}
-                  >
-                    <X className="size-4" />
-                  </button>
-                </div>
-              ))}
-              <motion.button
-                type="button"
-                onClick={addIngredient}
-                whileTap={{ y: 1 }}
-                className="flex h-11 w-full items-center justify-center gap-2 rounded-xl text-sm"
-                style={{
-                  border: "1.5px dashed #E5E7EB",
-                  borderBottom: "3px dashed #E5E7EB",
-                  color: "var(--roost-text-muted)",
-                  fontWeight: 700,
-                }}
-              >
-                <Plus className="size-4" />
-                Add ingredient
-              </motion.button>
-            </div>
+            <RecipeEditor
+              ingredients={ingredients}
+              steps={steps}
+              onChange={(ing, stps) => {
+                setIngredients(ing);
+                setSteps(stps);
+              }}
+              color={COLOR}
+            />
           </div>
 
           {/* Save */}

@@ -2,6 +2,24 @@
 
 import { useQuery } from "@tanstack/react-query";
 
+export interface StatsVisibility {
+  leaderboard: boolean;
+  chores: boolean;
+  expenses: boolean;
+  tasks: boolean;
+  meals: boolean;
+  grocery: boolean;
+}
+
+export const DEFAULT_STATS_VISIBILITY: StatsVisibility = {
+  leaderboard: true,
+  chores: true,
+  expenses: true,
+  tasks: true,
+  meals: true,
+  grocery: true,
+};
+
 interface HouseholdData {
   household: {
     id: string;
@@ -12,6 +30,7 @@ interface HouseholdData {
     stripe_subscription_id: string | null;
     stripe_price_id: string | null;
     premium_expires_at: string | null;
+    stats_visibility: string | null;
     created_by: string | null;
   };
   role: string;
@@ -44,6 +63,18 @@ export function useHousehold() {
     premiumExpiresAt !== null &&
     new Date(premiumExpiresAt) > new Date();
 
+  // Parse statsVisibility JSON — falls back to all-visible defaults
+  let statsVisibility: StatsVisibility = { ...DEFAULT_STATS_VISIBILITY };
+  const rawVisibility = data?.household?.stats_visibility;
+  if (rawVisibility) {
+    try {
+      const parsed = JSON.parse(rawVisibility) as Partial<StatsVisibility>;
+      statsVisibility = { ...DEFAULT_STATS_VISIBILITY, ...parsed };
+    } catch {
+      // malformed JSON → use defaults
+    }
+  }
+
   return {
     household: data?.household,
     role: data?.role,
@@ -53,6 +84,7 @@ export function useHousehold() {
     stripeCustomerId: data?.household?.stripe_customer_id ?? null,
     stripeSubscriptionId: data?.household?.stripe_subscription_id ?? null,
     premiumExpiresAt,
+    statsVisibility,
     isLoading,
     error,
   };

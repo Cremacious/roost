@@ -3,7 +3,7 @@ import { pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
 export const households = pgTable("households", {
   id: uuid("id").primaryKey().defaultRandom(),
   name: text("name").notNull(),
-  code: text("code").unique().notNull(),
+  code: text("invite_code").unique().notNull(),
   subscription_status: text("subscription_status").notNull().default("free"),
   stripe_subscription_id: text("stripe_subscription_id"),
   stripe_customer_id: text("stripe_customer_id"),

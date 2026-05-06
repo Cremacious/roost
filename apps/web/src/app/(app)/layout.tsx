@@ -2,6 +2,7 @@ import { requireSession, getUserHousehold } from '@/lib/auth/helpers'
 import { Sidebar } from '@/components/layout/Sidebar'
 import { BottomNav } from '@/components/layout/BottomNav'
 import { AdBanner } from '@/components/layout/AdBanner'
+import { DevTools } from '@/components/dev/DevTools'
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const session = await requireSession()
@@ -19,6 +20,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       </main>
       {/* BottomNav is self-fixed at bottom: 0 */}
       <BottomNav />
+      <DevTools />
       {/* AdBanner sits above BottomNav (bottom: 52) */}
       {!isPremium && (
         <div

@@ -20,6 +20,7 @@ export async function GET() {
         name: households.name,
         inviteCode: households.inviteCode,
         adminId: households.adminId,
+        subscriptionStatus: households.subscriptionStatus,
       })
       .from(households)
       .where(and(eq(households.id, householdId), isNull(households.deletedAt)))

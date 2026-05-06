@@ -4,12 +4,32 @@ import { db } from '@/lib/db'
 import { groceryLists, groceryItems } from '@/db/schema'
 import { eq, and, isNull, sql } from 'drizzle-orm'
 
+async function getOrCreateDefaultList(householdId: string, userId: string) {
+  const existing = await db
+    .select({ id: groceryLists.id })
+    .from(groceryLists)
+    .where(and(eq(groceryLists.householdId, householdId), isNull(groceryLists.deletedAt)))
+    .limit(1)
+    .then(r => r[0] ?? null)
+
+  if (existing) return
+
+  await db.insert(groceryLists).values({
+    householdId,
+    name: 'Shopping List',
+    isDefault: true,
+    createdBy: userId,
+  })
+}
+
 export async function GET() {
   const session = await getSession()
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const membership = await getUserHousehold(session.user.id)
   if (!membership) return NextResponse.json({ error: 'No household' }, { status: 403 })
+
+  await getOrCreateDefaultList(membership.householdId, session.user.id)
 
   const lists = await db
     .select({

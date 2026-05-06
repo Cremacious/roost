@@ -2,7 +2,19 @@ import { NextResponse } from 'next/server'
 import { getSession, getUserHousehold } from '@/lib/auth/helpers'
 import { db } from '@/lib/db'
 import { chores, choreCompletions } from '@/db/schema'
-import { eq, and, isNull } from 'drizzle-orm'
+import { eq, and, isNull, gte, lt } from 'drizzle-orm'
+
+function startOfToday() {
+  const d = new Date()
+  d.setHours(0, 0, 0, 0)
+  return d
+}
+
+function startOfTomorrow() {
+  const d = startOfToday()
+  d.setDate(d.getDate() + 1)
+  return d
+}
 
 function calcNextDueAt(frequency: string, customDays: string | null, from = new Date()): Date {
   const next = new Date(from)
@@ -99,4 +111,33 @@ export async function POST(
     .where(eq(chores.id, choreId))
 
   return NextResponse.json({ ok: true, nextDueAt: nextDueAt.toISOString() })
+}
+
+export async function DELETE(
+  _request: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const { id: choreId } = await params
+
+  const session = await getSession()
+  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+  const membership = await getUserHousehold(session.user.id)
+  if (!membership) return NextResponse.json({ error: 'No household' }, { status: 403 })
+
+  const { householdId } = membership
+
+  await db
+    .delete(choreCompletions)
+    .where(
+      and(
+        eq(choreCompletions.choreId, choreId),
+        eq(choreCompletions.householdId, householdId),
+        eq(choreCompletions.userId, session.user.id),
+        gte(choreCompletions.completedAt, startOfToday()),
+        lt(choreCompletions.completedAt, startOfTomorrow()),
+      )
+    )
+
+  return NextResponse.json({ ok: true })
 }

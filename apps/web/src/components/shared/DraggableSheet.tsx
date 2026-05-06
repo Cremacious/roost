@@ -7,6 +7,8 @@ import {
   SheetPortal,
   SheetOverlay,
 } from '@/components/ui/sheet'
+import * as DialogPrimitive from '@radix-ui/react-dialog'
+import * as VisuallyHidden from '@radix-ui/react-visually-hidden'
 
 interface DraggableSheetProps {
   open: boolean
@@ -68,6 +70,9 @@ export function DraggableSheet({
             paddingBottom: 'env(safe-area-inset-bottom)',
           }}
         >
+          <VisuallyHidden.Root>
+            <DialogPrimitive.Title>Sheet</DialogPrimitive.Title>
+          </VisuallyHidden.Root>
           <div className="flex justify-center pt-3 pb-1" data-drag-handle>
             <div
               className="h-1 w-10 rounded-full"

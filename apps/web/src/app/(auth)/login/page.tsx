@@ -127,7 +127,7 @@ function LoginForm() {
 
           <p style={{ marginTop: 20, textAlign: 'center', fontSize: 13, fontWeight: 700, color: '#7A3F3F' }}>
             New here?{' '}
-            <Link href="/signup" style={{ color: '#EF4444' }}>
+            <Link href="/onboarding" style={{ color: '#EF4444' }}>
               Create an account
             </Link>
           </p>

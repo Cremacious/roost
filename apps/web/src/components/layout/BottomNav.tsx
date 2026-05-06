@@ -2,20 +2,14 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import {
-  Home,
-  Users,
-  UtensilsCrossed,
-  Wallet,
-  MoreHorizontal,
-} from 'lucide-react'
+import { Home, Users, Utensils, Wallet, MoreHorizontal } from 'lucide-react'
 
 const TABS = [
-  { href: '/today',     label: 'Today',     icon: Home },
-  { href: '/household', label: 'Household', icon: Users },
-  { href: '/food',      label: 'Food',      icon: UtensilsCrossed },
-  { href: '/money',     label: 'Money',     icon: Wallet },
-  { href: '/more',      label: 'More',      icon: MoreHorizontal },
+  { href: '/today',     label: 'Today',     icon: Home,          activeColor: '#EF4444' },
+  { href: '/household', label: 'Household', icon: Users,         activeColor: '#3B82F6' },
+  { href: '/food',      label: 'Food',      icon: Utensils,      activeColor: '#F97316' },
+  { href: '/money',     label: 'Money',     icon: Wallet,        activeColor: '#22C55E' },
+  { href: '/more',      label: 'More',      icon: MoreHorizontal, activeColor: '#9CA3AF' },
 ]
 
 export function BottomNav() {
@@ -35,9 +29,9 @@ export function BottomNav() {
         zIndex: 50,
       }}
     >
-      {TABS.map(({ href, label, icon: Icon }) => {
+      {TABS.map(({ href, label, icon: Icon, activeColor }) => {
         const active = pathname === href || pathname.startsWith(href + '/')
-        const color = active ? '#EF4444' : '#9CA3AF'
+        const color = active ? activeColor : '#9CA3AF'
         return (
           <Link
             key={href}

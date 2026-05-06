@@ -30,10 +30,15 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(new URL('/today', request.url))
   }
 
-  // /onboarding requires auth; unauthenticated → /signup
-  if (!session && pathname.startsWith('/onboarding')) {
-    return NextResponse.redirect(new URL('/signup', request.url))
+  // Authed users who have completed onboarding visiting /onboarding → /today
+  if (session && pathname.startsWith('/onboarding')) {
+    const user = session.user as { onboardingCompleted?: boolean }
+    if (user.onboardingCompleted) {
+      return NextResponse.redirect(new URL('/today', request.url))
+    }
   }
+
+  // /onboarding is public (Step 1 creates the account); no redirect for unauthenticated
 
   // Protected app routes require auth
   if (!session && isAppRoute(pathname)) {

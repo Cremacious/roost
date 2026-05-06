@@ -1,4 +1,4 @@
-import { pgTable, text, timestamp, boolean, numeric } from 'drizzle-orm/pg-core'
+import { pgTable, text, timestamp, boolean, numeric, integer } from 'drizzle-orm/pg-core'
 import { households } from './households'
 import { users } from './users'
 
@@ -73,6 +73,8 @@ export const recurringExpenses = pgTable('recurring_expenses', {
   lastPostedAt: timestamp('last_posted_at'),
   paused: boolean('paused').notNull().default(false),
   splits: text('splits').notNull().default('[]'),
+  isBill: boolean('is_bill').notNull().default(false),
+  dueDay: integer('due_day'),
   createdBy: text('created_by')
     .notNull()
     .references(() => users.id),

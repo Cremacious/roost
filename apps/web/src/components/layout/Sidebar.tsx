@@ -1,26 +1,40 @@
 'use client'
 
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import {
   Home,
   Users,
-  UtensilsCrossed,
+  ShoppingCart,
   Wallet,
-  MoreHorizontal,
+  CheckSquare,
+  Calendar,
+  CheckCircle2,
+  FileText,
+  UtensilsCrossed,
+  Bell,
+  BarChart2,
+  LogOut,
 } from 'lucide-react'
-import { useSession } from '@/lib/auth/client'
+import { useSession, signOut } from '@/lib/auth/client'
 
 const NAV_ITEMS = [
-  { href: '/today',      label: 'Today',     icon: Home },
-  { href: '/household',  label: 'Household', icon: Users },
-  { href: '/food',       label: 'Food',      icon: UtensilsCrossed },
-  { href: '/money',      label: 'Money',     icon: Wallet },
-  { href: '/more',       label: 'More',      icon: MoreHorizontal },
+  { href: '/today',      label: 'Today',      icon: Home },
+  { href: '/chores',     label: 'Chores',     icon: CheckSquare },
+  { href: '/lists',      label: 'Shopping',   icon: ShoppingCart },
+  { href: '/calendar',   label: 'Calendar',   icon: Calendar },
+  { href: '/money',      label: 'Money',      icon: Wallet },
+  { href: '/tasks',      label: 'Tasks',      icon: CheckCircle2 },
+  { href: '/notes',      label: 'Notes',      icon: FileText },
+  { href: '/meals',      label: 'Meals',      icon: UtensilsCrossed },
+  { href: '/reminders',  label: 'Reminders',  icon: Bell },
+  { href: '/stats',      label: 'Stats',      icon: BarChart2 },
+  { href: '/household',  label: 'Household',  icon: Users },
 ]
 
 export function Sidebar() {
   const pathname = usePathname()
+  const router = useRouter()
   const { data: session } = useSession()
   const name = session?.user?.name ?? ''
   const initials = name
@@ -105,15 +119,7 @@ export function Sidebar() {
 
       {/* User block */}
       <div style={{ padding: '10px 8px', borderTop: '1px solid rgba(255,255,255,0.12)' }}>
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 8,
-            padding: '8px 10px',
-            borderRadius: 9,
-          }}
-        >
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 10px', borderRadius: 9 }}>
           <div
             style={{
               width: 28,
@@ -128,19 +134,16 @@ export function Sidebar() {
           >
             <span style={{ color: '#fff', fontSize: 10, fontWeight: 800 }}>{initials}</span>
           </div>
-          <div style={{ flex: 1, minWidth: 0, overflow: 'hidden' }}>
-            <p style={{
-              color: '#fff',
-              fontSize: 12,
-              fontWeight: 700,
-              margin: 0,
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              whiteSpace: 'nowrap',
-            }}>
-              {name}
-            </p>
-          </div>
+          <p style={{ flex: 1, color: '#fff', fontSize: 12, fontWeight: 700, margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            {name}
+          </p>
+          <button
+            onClick={async () => { await signOut(); router.push('/login') }}
+            title="Sign out"
+            style={{ width: 28, height: 28, borderRadius: 7, backgroundColor: 'transparent', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, padding: 0 }}
+          >
+            <LogOut size={14} color="rgba(255,255,255,0.7)" />
+          </button>
         </div>
       </div>
     </aside>

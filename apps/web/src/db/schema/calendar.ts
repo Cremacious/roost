@@ -17,6 +17,10 @@ export const calendarEvents = pgTable('calendar_events', {
   repeatEndType: text('repeat_end_type').$type<'forever' | 'until_date' | 'after_occurrences'>(),
   repeatUntil: timestamp('repeat_until'),
   repeatOccurrences: integer('repeat_occurrences'),
+  category: text('category'),
+  location: text('location'),
+  notifyMemberIds: text('notify_member_ids'),
+  rsvpEnabled: boolean('rsvp_enabled').notNull().default(false),
   createdBy: text('created_by')
     .notNull()
     .references(() => users.id),
@@ -33,5 +37,6 @@ export const eventAttendees = pgTable('event_attendees', {
   userId: text('user_id')
     .notNull()
     .references(() => users.id),
+  rsvpStatus: text('rsvp_status'),
   createdAt: timestamp('created_at').notNull().defaultNow(),
 })

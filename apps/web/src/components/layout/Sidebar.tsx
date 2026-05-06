@@ -18,6 +18,7 @@ import {
   LogOut,
 } from 'lucide-react'
 import { useSession, signOut } from '@/lib/auth/client'
+import { useQuery } from '@tanstack/react-query'
 
 const NAV_ITEMS = [
   { href: '/today',      label: 'Today',      icon: Home },
@@ -46,6 +47,17 @@ export function Sidebar() {
     .join('')
     .slice(0, 2)
     .toUpperCase()
+
+  const { data: profileData } = useQuery<{ user: { avatar_color: string | null } }>({
+    queryKey: ['user-profile'],
+    queryFn: async () => {
+      const r = await fetch('/api/user/profile')
+      if (!r.ok) throw new Error('Failed')
+      return r.json()
+    },
+    staleTime: 60_000,
+  })
+  const avatarColor = profileData?.user?.avatar_color ?? 'rgba(255,255,255,0.18)'
 
   return (
     <aside
@@ -127,7 +139,7 @@ export function Sidebar() {
               width: 28,
               height: 28,
               borderRadius: '50%',
-              backgroundColor: 'rgba(255,255,255,0.18)',
+              backgroundColor: avatarColor,
               flexShrink: 0,
               display: 'flex',
               alignItems: 'center',

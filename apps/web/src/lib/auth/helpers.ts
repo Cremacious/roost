@@ -31,7 +31,7 @@ export async function getUserHousehold(userId: string) {
       and(
         eq(householdMembers.userId, userId),
         isNull(householdMembers.deletedAt),
-        isNull(households.deletedAt),
+        isNull(households.deleted_at),
       )
     )
     .orderBy(desc(householdMembers.createdAt))

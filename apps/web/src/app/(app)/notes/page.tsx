@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef } from 'react'
+import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { motion } from 'framer-motion'
 import { Plus, Pencil, Trash2, FileText } from 'lucide-react'
@@ -8,33 +8,38 @@ import { toast } from 'sonner'
 import { useSession } from '@/lib/auth/client'
 import { SECTION_COLORS } from '@/lib/constants/colors'
 import { SlabCard } from '@/components/ui/SlabCard'
-import { DraggableSheet } from '@/components/shared/DraggableSheet'
+import NoteSheet, { type NoteData } from '@/components/notes/NoteSheet'
 
 const COLOR = SECTION_COLORS.notes.base
 const COLOR_DARK = SECTION_COLORS.notes.dark
 
-interface Note {
-  id: string
-  title: string | null
-  content: string
-  isRichText: boolean
-  createdBy: string
+const INPUT_STYLE: React.CSSProperties = {
+  width: '100%',
+  border: '1.5px solid var(--roost-border)',
+  borderBottom: '3px solid var(--roost-border)',
+  borderRadius: 12,
+  padding: '12px 14px',
+  fontSize: 15,
+  fontWeight: 600,
+  backgroundColor: 'var(--roost-surface)',
+  color: 'var(--roost-text-primary)',
+  outline: 'none',
+  boxSizing: 'border-box',
+}
+
+interface Note extends NoteData {
   createdAt: string
   updatedAt: string
   creatorName: string | null
   creatorAvatar: string | null
 }
 
-const LABEL_STYLE: React.CSSProperties = {
-  fontSize: 11, fontWeight: 800, textTransform: 'uppercase',
-  letterSpacing: '0.07em', color: '#374151', marginBottom: 6, display: 'block',
+function detectHtml(content: string) {
+  return /<[a-z][\s\S]*>/i.test(content)
 }
-const INPUT_STYLE: React.CSSProperties = {
-  width: '100%', border: '1.5px solid var(--roost-border)',
-  borderBottom: '3px solid var(--roost-border)', borderRadius: 12,
-  padding: '12px 14px', fontSize: 15, fontWeight: 600,
-  backgroundColor: 'var(--roost-surface)', color: 'var(--roost-text-primary)',
-  outline: 'none', boxSizing: 'border-box',
+
+function stripHtml(html: string) {
+  return html.replace(/<[^>]+>/g, '').replace(/&nbsp;/g, ' ').trim()
 }
 
 function NoteCard({
@@ -42,21 +47,39 @@ function NoteCard({
 }: {
   note: Note; canModify: boolean; onEdit: (note: Note) => void; onDelete: (id: string) => void
 }) {
-  const preview = note.content.replace(/<[^>]+>/g, '').slice(0, 180)
+  const isHtml = note.isRichText || detectHtml(note.content)
+  const preview = isHtml ? stripHtml(note.content).slice(0, 180) : note.content.slice(0, 180)
+
   return (
     <SlabCard color={COLOR} style={{ breakInside: 'avoid', marginBottom: 12 }}>
       <div style={{ padding: 16 }}>
-        {note.title && (
-          <p style={{ margin: '0 0 6px', fontWeight: 800, fontSize: 15, color: 'var(--roost-text-primary)' }}>
-            {note.title}
-          </p>
-        )}
+        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8, marginBottom: note.title ? 6 : 0 }}>
+          {note.title && (
+            <p style={{ margin: 0, fontWeight: 800, fontSize: 15, color: 'var(--roost-text-primary)', flex: 1 }}>
+              {note.title}
+            </p>
+          )}
+          {note.isRichText && (
+            <span style={{
+              fontSize: 10,
+              fontWeight: 800,
+              color: COLOR,
+              backgroundColor: `${COLOR}18`,
+              borderRadius: 20,
+              padding: '2px 7px',
+              flexShrink: 0,
+              alignSelf: 'center',
+            }}>
+              Rich
+            </span>
+          )}
+        </div>
         {preview && (
           <p style={{
             margin: 0, fontSize: 13, fontWeight: 600, color: 'var(--roost-text-secondary)',
             lineHeight: 1.5, whiteSpace: 'pre-wrap', wordBreak: 'break-word',
           }}>
-            {preview}{note.content.length > 180 ? '...' : ''}
+            {preview}{(isHtml ? stripHtml(note.content) : note.content).length > 180 ? '...' : ''}
           </p>
         )}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 12 }}>
@@ -85,85 +108,6 @@ function NoteCard({
   )
 }
 
-function NoteSheet({
-  open, onClose, note, onSaved,
-}: { open: boolean; onClose: () => void; note: Note | null; onSaved: () => void }) {
-  const [title, setTitle] = useState('')
-  const [content, setContent] = useState('')
-  const [saving, setSaving] = useState(false)
-
-  useState(() => {
-    if (open) { setTitle(note?.title ?? ''); setContent(note?.content ?? '') }
-  })
-
-  // Reset on open
-  const prevOpen = useRef(false)
-  if (open && !prevOpen.current) {
-    setTitle(note?.title ?? '')
-    setContent(note?.content ?? '')
-  }
-  prevOpen.current = open
-
-  async function handleSave() {
-    if (!title.trim() && !content.trim()) {
-      toast.error('Empty note', { description: 'Add a title or some content.' })
-      return
-    }
-    setSaving(true)
-    try {
-      const url = note ? `/api/notes/${note.id}` : '/api/notes'
-      const method = note ? 'PATCH' : 'POST'
-      const r = await fetch(url, {
-        method,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title: title.trim() || null, content }),
-      })
-      if (!r.ok) throw new Error((await r.json()).error ?? 'Failed')
-      toast.success(note ? 'Note updated' : 'Note saved')
-      onSaved()
-      onClose()
-    } catch (e) {
-      toast.error('Could not save note', { description: (e as Error).message })
-    } finally {
-      setSaving(false)
-    }
-  }
-
-  return (
-    <DraggableSheet open={open} onOpenChange={v => !v && onClose()} featureColor={COLOR}>
-      <div className="px-4 pb-8">
-        <p className="mb-5 text-lg" style={{ color: 'var(--roost-text-primary)', fontWeight: 800 }}>
-          {note ? 'Edit note' : 'New note'}
-        </p>
-        <div style={{ marginBottom: 16 }}>
-          <label style={LABEL_STYLE}>Title</label>
-          <input style={INPUT_STYLE} placeholder="Give it a name" value={title} onChange={e => setTitle(e.target.value)} />
-        </div>
-        <div style={{ marginBottom: 24 }}>
-          <label style={LABEL_STYLE}>Note</label>
-          <textarea
-            style={{ ...INPUT_STYLE, minHeight: 160, resize: 'vertical' }}
-            placeholder="Write whatever you want. Nobody is grading this."
-            value={content}
-            onChange={e => setContent(e.target.value)}
-          />
-        </div>
-        <button
-          type="button" onClick={handleSave} disabled={saving}
-          style={{
-            width: '100%', padding: '14px 0', borderRadius: 14, border: 'none',
-            borderBottom: `3px solid ${COLOR_DARK}`, backgroundColor: COLOR,
-            color: '#fff', fontWeight: 800, fontSize: 15,
-            cursor: saving ? 'not-allowed' : 'pointer', opacity: saving ? 0.7 : 1,
-          }}
-        >
-          {saving ? 'Saving...' : note ? 'Save changes' : 'Save note'}
-        </button>
-      </div>
-    </DraggableSheet>
-  )
-}
-
 export default function NotesPage() {
   const { data: session } = useSession()
   const currentUserId = session?.user?.id ?? ''
@@ -172,6 +116,7 @@ export default function NotesPage() {
   const [sheetOpen, setSheetOpen] = useState(false)
   const [editNote, setEditNote] = useState<Note | null>(null)
   const [quickTitle, setQuickTitle] = useState('')
+  const [upgradeCode, setUpgradeCode] = useState<string | null>(null)
 
   const { data, isLoading, isError } = useQuery({
     queryKey: ['notes'],
@@ -195,6 +140,24 @@ export default function NotesPage() {
   })
   const myRole = householdData?.role ?? 'member'
   const isAdmin = myRole === 'admin'
+  const isPremium = householdData?.household?.subscriptionStatus === 'premium'
+
+  function handleUpgradeRequired(code: string) {
+    setUpgradeCode(code)
+    if (code === 'NOTES_LIMIT') {
+      toast.error('Note limit reached', {
+        description: 'Free accounts are limited to 10 notes. Upgrade to Premium for unlimited notes.',
+      })
+    } else if (code === 'RICH_TEXT_NOTES_PREMIUM') {
+      toast.error('Rich text is a Premium feature', {
+        description: 'Upgrade to Premium to use headings, checklists, and formatting in your notes.',
+      })
+    } else {
+      toast.error('Premium required', {
+        description: 'Upgrade to Premium to unlock this feature.',
+      })
+    }
+  }
 
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
@@ -213,7 +176,11 @@ export default function NotesPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ title: quickTitle.trim(), content: '' }),
       })
-      if (!r.ok) throw new Error((await r.json()).error ?? 'Failed')
+      const data = await r.json()
+      if (!r.ok) {
+        if (data.code) { handleUpgradeRequired(data.code); return }
+        throw new Error(data.error ?? 'Failed')
+      }
       qc.invalidateQueries({ queryKey: ['notes'] })
       setQuickTitle('')
       toast.success('Note added')
@@ -337,9 +304,10 @@ export default function NotesPage() {
 
       <NoteSheet
         open={sheetOpen}
-        onClose={() => { setSheetOpen(false); setEditNote(null) }}
+        onClose={() => { setSheetOpen(false); setEditNote(null); setUpgradeCode(null) }}
         note={editNote}
-        onSaved={() => qc.invalidateQueries({ queryKey: ['notes'] })}
+        isPremium={isPremium}
+        onUpgradeRequired={handleUpgradeRequired}
       />
     </>
   )

@@ -16,6 +16,7 @@ export async function PATCH(
   if (!membership) return NextResponse.json({ error: 'No household' }, { status: 403 })
 
   const { householdId, role } = membership
+  const isPremium = membership.household.subscriptionStatus === 'premium'
 
   const [existing] = await db.select().from(notes).where(eq(notes.id, id)).limit(1)
   if (!existing || existing.householdId !== householdId) {
@@ -27,13 +28,18 @@ export async function PATCH(
   }
 
   const body = await req.json()
-  const { title, content } = body
+  const { title, content, isRichText } = body
+
+  if (content && content.length > 50_000) {
+    return NextResponse.json({ error: 'Note content is too long (50,000 character limit)' }, { status: 400 })
+  }
 
   const [updated] = await db
     .update(notes)
     .set({
       title: title !== undefined ? (title?.trim() ?? null) : existing.title,
       content: content !== undefined ? content : existing.content,
+      isRichText: isRichText !== undefined ? (isRichText && !!isPremium) : existing.isRichText,
       updatedAt: new Date(),
     })
     .where(eq(notes.id, id))

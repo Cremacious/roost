@@ -21,6 +21,11 @@ export const calendar_events = pgTable("calendar_events", {
   repeat_end_type: text("repeat_end_type"), // 'forever' | 'until_date' | 'after_occurrences'
   repeat_until: timestamp("repeat_until"),
   repeat_occurrences: integer("repeat_occurrences"),
+  // V2 fields
+  category: text("category"),
+  location: text("location"),
+  notify_member_ids: text("notify_member_ids"),
+  rsvp_enabled: boolean("rsvp_enabled").notNull().default(false),
 });
 
 export const event_attendees = pgTable(
@@ -31,6 +36,7 @@ export const event_attendees = pgTable(
       .references(() => calendar_events.id)
       .notNull(),
     user_id: text("user_id").notNull(),
+    rsvp_status: text("rsvp_status"),
   },
   (t) => [unique().on(t.event_id, t.user_id)]
 );

@@ -1,4 +1,4 @@
-import { date, index, integer, pgTable, text, timestamp, unique, uuid } from "drizzle-orm/pg-core";
+import { boolean, date, index, integer, pgTable, text, timestamp, unique, uuid } from "drizzle-orm/pg-core";
 import { households } from "./households";
 
 export const meals = pgTable(
@@ -12,6 +12,8 @@ export const meals = pgTable(
     description: text("description"),
     category: text("category").notNull().default("dinner"),
     ingredients: text("ingredients"), // JSON array of strings
+    instructions: text("instructions"), // nullable JSON array of step strings
+    saved_to_bank: boolean("saved_to_bank").notNull().default(true),
     prep_time: integer("prep_time"),
     created_by: text("created_by").notNull(),
     created_at: timestamp("created_at").defaultNow(),

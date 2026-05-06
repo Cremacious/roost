@@ -5,6 +5,7 @@ export * from './members'
 export * from './chores'
 export * from './grocery'
 export * from './tasks'
+// tasks.ts exports: tasks, projects, taskComments, taskDelegations
 export * from './calendar'
 export * from './notes'
 export * from './expenses'

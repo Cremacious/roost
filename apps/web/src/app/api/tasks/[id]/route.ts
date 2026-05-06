@@ -28,7 +28,10 @@ export async function PATCH(
   }
 
   const body = await req.json()
-  const { title, description, assignedTo, dueDate, priority, completed } = body
+  const {
+    title, description, assignedTo, dueDate, dueTime, priority, completed,
+    projectId, recurring, frequency, repeatEndType, repeatUntil, repeatOccurrences,
+  } = body
 
   const updates: Partial<typeof tasks.$inferInsert> = {
     updatedAt: new Date(),
@@ -38,7 +41,14 @@ export async function PATCH(
   if (description !== undefined) updates.description = description?.trim() ?? null
   if (assignedTo !== undefined) updates.assignedTo = assignedTo ?? null
   if (dueDate !== undefined) updates.dueDate = dueDate ? new Date(dueDate) : null
+  if (dueTime !== undefined) updates.dueTime = dueTime ?? null
   if (priority !== undefined) updates.priority = priority
+  if (projectId !== undefined) updates.projectId = projectId ?? null
+  if (recurring !== undefined) updates.recurring = recurring
+  if (frequency !== undefined) updates.frequency = frequency ?? null
+  if (repeatEndType !== undefined) updates.repeatEndType = repeatEndType ?? null
+  if (repeatUntil !== undefined) updates.repeatUntil = repeatUntil ? new Date(repeatUntil) : null
+  if (repeatOccurrences !== undefined) updates.repeatOccurrences = repeatOccurrences ?? null
   if (completed !== undefined) {
     updates.completed = completed
     updates.completedBy = completed ? session.user.id : null
@@ -77,7 +87,6 @@ export async function DELETE(
     return NextResponse.json({ error: 'Not found' }, { status: 404 })
   }
 
-  // Only creator or admin can delete
   if (existing.createdBy !== session.user.id && role !== 'admin') {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }

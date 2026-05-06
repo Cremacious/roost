@@ -208,7 +208,7 @@ const GROUP_COLORS: Record<string, string> = {
 // ---- Main page --------------------------------------------------------------
 
 export default function StatsPage() {
-  const { isPremium } = useHousehold();
+  const { isPremium, statsVisibility } = useHousehold();
   const [quickRange, setQuickRange] = useState<QuickRange>("30d");
   const [customFrom, setCustomFrom] = useState(format(subDays(new Date(), 30), "yyyy-MM-dd"));
   const [customTo, setCustomTo] = useState(format(new Date(), "yyyy-MM-dd"));
@@ -407,65 +407,67 @@ export default function StatsPage() {
             <div className="grid gap-4 sm:grid-cols-2">
 
               {/* Chart 1: Chore completions over time */}
-              <ChartCard title="Chore Activity">
-                {(chores.completionsOverTime?.length ?? 0) < 2 ? (
-                  <EmptyChart message="No chore data for this period" />
-                ) : (
-                  <div style={{ height: 180 }}>
-                    <ResponsiveContainer width="100%" height="100%">
-                      <AreaChart
-                        data={chores.completionsOverTime}
-                        margin={{ top: 4, right: 4, left: -24, bottom: 0 }}
-                      >
-                        <defs>
-                          <linearGradient id="choreAreaGrad" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="5%" stopColor="#EF4444" stopOpacity={0.2} />
-                            <stop offset="95%" stopColor="#EF4444" stopOpacity={0} />
-                          </linearGradient>
-                        </defs>
-                        <CartesianGrid strokeDasharray="3 3" stroke="var(--roost-border)" />
-                        <XAxis
-                          dataKey="date"
-                          tick={{ fontSize: 9, fontWeight: 700, fill: "var(--roost-text-muted)" }}
-                          axisLine={false}
-                          tickLine={false}
-                          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                          tickFormatter={(v: any) => {
-                            try { return format(new Date(v + "T00:00:00"), "Apr 8".length > 0 ? "MMM d" : "MMM d"); }
-                            catch { return v; }
-                          }}
-                          interval="preserveStartEnd"
-                        />
-                        <YAxis
-                          tick={{ fontSize: 9, fontWeight: 700, fill: "var(--roost-text-muted)" }}
-                          axisLine={false}
-                          tickLine={false}
-                          allowDecimals={false}
-                        />
-                        <Tooltip
-                          contentStyle={tooltipStyle}
-                          labelFormatter={(v) => {
-                            try { return format(new Date(v + "T00:00:00"), "MMM d, yyyy"); } catch { return v; }
-                          }}
-                          formatter={(value) => [value, "Completions"]}
-                        />
-                        <Area
-                          type="monotone"
-                          dataKey="count"
-                          stroke="#EF4444"
-                          fill="url(#choreAreaGrad)"
-                          strokeWidth={2.5}
-                          dot={false}
-                          activeDot={{ r: 5, fill: "#EF4444", strokeWidth: 0 }}
-                        />
-                      </AreaChart>
-                    </ResponsiveContainer>
-                  </div>
-                )}
-              </ChartCard>
+              {statsVisibility.chores && (
+                <ChartCard title="Chore Activity">
+                  {(chores.completionsOverTime?.length ?? 0) < 2 ? (
+                    <EmptyChart message="No chore data for this period" />
+                  ) : (
+                    <div style={{ height: 180 }}>
+                      <ResponsiveContainer width="100%" height="100%">
+                        <AreaChart
+                          data={chores.completionsOverTime}
+                          margin={{ top: 4, right: 4, left: -24, bottom: 0 }}
+                        >
+                          <defs>
+                            <linearGradient id="choreAreaGrad" x1="0" y1="0" x2="0" y2="1">
+                              <stop offset="5%" stopColor="#EF4444" stopOpacity={0.2} />
+                              <stop offset="95%" stopColor="#EF4444" stopOpacity={0} />
+                            </linearGradient>
+                          </defs>
+                          <CartesianGrid strokeDasharray="3 3" stroke="var(--roost-border)" />
+                          <XAxis
+                            dataKey="date"
+                            tick={{ fontSize: 9, fontWeight: 700, fill: "var(--roost-text-muted)" }}
+                            axisLine={false}
+                            tickLine={false}
+                            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                            tickFormatter={(v: any) => {
+                              try { return format(new Date(v + "T00:00:00"), "MMM d"); }
+                              catch { return v; }
+                            }}
+                            interval="preserveStartEnd"
+                          />
+                          <YAxis
+                            tick={{ fontSize: 9, fontWeight: 700, fill: "var(--roost-text-muted)" }}
+                            axisLine={false}
+                            tickLine={false}
+                            allowDecimals={false}
+                          />
+                          <Tooltip
+                            contentStyle={tooltipStyle}
+                            labelFormatter={(v) => {
+                              try { return format(new Date(v + "T00:00:00"), "MMM d, yyyy"); } catch { return v; }
+                            }}
+                            formatter={(value) => [value, "Completions"]}
+                          />
+                          <Area
+                            type="monotone"
+                            dataKey="count"
+                            stroke="#EF4444"
+                            fill="url(#choreAreaGrad)"
+                            strokeWidth={2.5}
+                            dot={false}
+                            activeDot={{ r: 5, fill: "#EF4444", strokeWidth: 0 }}
+                          />
+                        </AreaChart>
+                      </ResponsiveContainer>
+                    </div>
+                  )}
+                </ChartCard>
+              )}
 
               {/* Chart 2: Spending over time */}
-              <ChartCard title="Spending Over Time">
+              {statsVisibility.expenses && (<ChartCard title="Spending Over Time">
                 {(exp.overTime?.length ?? 0) === 0 ? (
                   <EmptyChart message="No expense data for this period" />
                 ) : (
@@ -520,10 +522,10 @@ export default function StatsPage() {
                     </ResponsiveContainer>
                   </div>
                 )}
-              </ChartCard>
+              </ChartCard>)}
 
               {/* Chart 3: Spending by category (donut) */}
-              <ChartCard title="Spending by Category">
+              {statsVisibility.expenses && (<ChartCard title="Spending by Category">
                 {(exp.byCategory?.length ?? 0) === 0 ? (
                   <EmptyChart message="No expense data for this period" />
                 ) : (
@@ -568,10 +570,10 @@ export default function StatsPage() {
                     </div>
                   </>
                 )}
-              </ChartCard>
+              </ChartCard>)}
 
               {/* Chart 4: Chores per member */}
-              <ChartCard title="Chores by Member">
+              {statsVisibility.chores && (<ChartCard title="Chores by Member">
                 {(chores.completionsPerMember?.length ?? 0) === 0 ? (
                   <EmptyChart message="No chore completions yet" />
                 ) : (
@@ -613,7 +615,7 @@ export default function StatsPage() {
                     </ResponsiveContainer>
                   </div>
                 )}
-              </ChartCard>
+              </ChartCard>)}
 
               {/* Chart 5: Activity breakdown */}
               <ChartCard title="Activity Breakdown">
@@ -660,7 +662,7 @@ export default function StatsPage() {
               </ChartCard>
 
               {/* Chart 6: Task priority breakdown */}
-              <ChartCard title="Tasks by Priority">
+              {statsVisibility.tasks && (<ChartCard title="Tasks by Priority">
                 {(taskData.byPriority?.length ?? 0) === 0 ? (
                   <EmptyChart message="No tasks created in this period" />
                 ) : (
@@ -705,11 +707,11 @@ export default function StatsPage() {
                     </div>
                   </>
                 )}
-              </ChartCard>
+              </ChartCard>)}
             </div>
 
-            {/* ---- Member overview ------------------------------------------- */}
-            {(hhData.members?.length ?? 0) > 0 && (
+            {/* ---- Member overview (leaderboard) -------------------------------- */}
+            {statsVisibility.leaderboard && (hhData.members?.length ?? 0) > 0 && (
               <div
                 className="rounded-2xl overflow-hidden"
                 style={{

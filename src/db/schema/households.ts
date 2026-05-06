@@ -10,6 +10,7 @@ export const households = pgTable("households", {
   stripe_price_id: text("stripe_price_id"),
   premium_expires_at: timestamp("premium_expires_at"),
   subscription_upgraded_at: timestamp("subscription_upgraded_at"),
+  stats_visibility: text("stats_visibility"), // JSON: { leaderboard, chores, expenses, tasks, meals, grocery }
   created_by: text("created_by"),
   created_at: timestamp("created_at").defaultNow(),
   updated_at: timestamp("updated_at").defaultNow(),

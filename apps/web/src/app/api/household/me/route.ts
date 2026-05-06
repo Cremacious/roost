@@ -33,10 +33,8 @@ export async function GET(request: NextRequest): Promise<Response> {
       subscription_status: households.subscription_status,
       stripe_customer_id: households.stripe_customer_id,
       stripe_subscription_id: households.stripe_subscription_id,
-      stripe_price_id: households.stripe_price_id,
       premium_expires_at: households.premium_expires_at,
       stats_visibility: households.stats_visibility,
-      created_by: households.created_by,
     })
     .from(households)
     .where(and(eq(households.id, membership.householdId), isNull(households.deleted_at)))

@@ -16,7 +16,7 @@ export async function POST(request: Request) {
   const household = await db
     .select()
     .from(households)
-    .where(and(eq(households.inviteCode, code.toUpperCase().trim()), isNull(households.deletedAt)))
+    .where(and(eq(households.code, code.toUpperCase().trim()), isNull(households.deleted_at)))
     .limit(1)
     .then(r => r[0])
 

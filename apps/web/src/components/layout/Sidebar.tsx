@@ -14,6 +14,7 @@ import {
   UtensilsCrossed,
   Bell,
   BarChart2,
+  Settings,
   LogOut,
 } from 'lucide-react'
 import { useSession, signOut } from '@/lib/auth/client'
@@ -30,6 +31,7 @@ const NAV_ITEMS = [
   { href: '/reminders',  label: 'Reminders',  icon: Bell },
   { href: '/stats',      label: 'Stats',      icon: BarChart2 },
   { href: '/household',  label: 'Household',  icon: Users },
+  { href: '/settings',   label: 'Settings',   icon: Settings },
 ]
 
 export function Sidebar() {

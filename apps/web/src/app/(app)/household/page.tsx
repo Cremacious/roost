@@ -18,7 +18,7 @@ interface Member {
 }
 
 interface HouseholdData {
-  household: { id: string; name: string; inviteCode: string; adminId: string }
+  household: { id: string; name: string; code: string }
   role: string
   members: Member[]
 }
@@ -165,9 +165,9 @@ function InviteCodeCard({ code }: { code: string }) {
 
 export default function HouseholdPage() {
   const { data, isLoading, isError } = useQuery<HouseholdData>({
-    queryKey: ['household-me'],
+    queryKey: ['household-members'],
     queryFn: async () => {
-      const res = await fetch('/api/household/me')
+      const res = await fetch('/api/household/members')
       if (!res.ok) throw new Error('Failed to load household')
       return res.json()
     },
@@ -224,7 +224,7 @@ export default function HouseholdPage() {
       </div>
 
       {/* Invite code */}
-      <InviteCodeCard code={data.household.inviteCode} />
+      <InviteCodeCard code={data.household.code} />
 
       {/* Members */}
       <p style={{ fontSize: 10, fontWeight: 800, color: SECTION_COLOR, letterSpacing: '0.08em', margin: '8px 0 0' }}>

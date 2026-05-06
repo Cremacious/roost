@@ -23,14 +23,14 @@ export async function POST(request: Request) {
   let existing = await db
     .select({ id: households.id })
     .from(households)
-    .where(eq(households.inviteCode, inviteCode))
+    .where(eq(households.code, inviteCode))
     .limit(1)
   while (existing.length > 0) {
     inviteCode = generateInviteCode()
     existing = await db
       .select({ id: households.id })
       .from(households)
-      .where(eq(households.inviteCode, inviteCode))
+      .where(eq(households.code, inviteCode))
       .limit(1)
   }
 
@@ -39,8 +39,7 @@ export async function POST(request: Request) {
   await db.insert(households).values({
     id: householdId,
     name: name.trim(),
-    inviteCode,
-    adminId: session.user.id,
+    code: inviteCode,
   })
 
   await db.insert(householdMembers).values({
@@ -54,5 +53,5 @@ export async function POST(request: Request) {
     .set({ onboardingCompleted: true, updatedAt: new Date() })
     .where(eq(user.id, session.user.id))
 
-  return NextResponse.json({ householdId, inviteCode, name: name.trim() })
+  return NextResponse.json({ householdId, code: inviteCode, name: name.trim() })
 }

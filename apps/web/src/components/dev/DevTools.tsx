@@ -13,7 +13,7 @@ function DevToolsInner() {
   const [open, setOpen] = useState(false)
   const queryClient = useQueryClient()
 
-  const { data: householdData, isLoading } = useQuery<{ subscriptionStatus: string }>({
+  const { data: householdData, isLoading } = useQuery<{ subscription_status: string }>({
     queryKey: ['dev-household'],
     queryFn: async () => {
       const r = await fetch('/api/household/me')
@@ -24,7 +24,7 @@ function DevToolsInner() {
     staleTime: 0,
   })
 
-  const isPremium = householdData?.subscriptionStatus === 'premium'
+  const isPremium = householdData?.subscription_status === 'premium'
 
   const toggleMutation = useMutation({
     mutationFn: async () => {
@@ -34,6 +34,7 @@ function DevToolsInner() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['dev-household'] })
+      queryClient.invalidateQueries({ queryKey: ['household'] })
       queryClient.invalidateQueries({ queryKey: ['rewards'] })
       queryClient.invalidateQueries({ queryKey: ['rewards-child'] })
     },

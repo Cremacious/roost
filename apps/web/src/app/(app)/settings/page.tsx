@@ -32,8 +32,6 @@ import {
   type ChoreCategory,
 } from '@/components/chores/ChoreCategoryPicker';
 import { CHORE_ICON_OPTIONS } from '@/components/chores/choreIconMap';
-import { THEMES, type ThemeKey } from '@/lib/constants/themes';
-import { useTheme } from '@/components/providers/ThemeProvider';
 import { useSession } from '@/lib/auth/client';
 import { useHousehold, StatsVisibility } from '@/lib/hooks/useHousehold';
 import { useUserPreferences } from '@/lib/hooks/useUserPreferences';
@@ -107,21 +105,15 @@ const TIMEZONES = [
 
 const NAV_SECTIONS = [
   { id: 'section-profile', label: 'Profile' },
-  { id: 'section-appearance', label: 'Appearance' },
   { id: 'section-preferences', label: 'Preferences' },
-  { id: 'section-household', label: 'Household' },
-  { id: 'section-members', label: 'Members' },
   { id: 'section-notifications', label: 'Notifications' },
+  { id: 'section-household', label: 'Household', adminOnly: false },
+  { id: 'section-members', label: 'Members' },
   { id: 'section-categories', label: 'Categories', adminOnly: true },
-  {
-    id: 'section-chore-categories',
-    label: 'Chore Categories',
-    adminOnly: true,
-  },
-  { id: 'section-promotions', label: 'Promotions' },
   { id: 'section-billing', label: 'Billing' },
+  { id: 'section-promotions', label: 'Promotions' },
+  { id: 'section-privacy', label: 'Privacy & Data' },
   { id: 'section-stats-visibility', label: 'Stats Visibility', adminOnly: true },
-  { id: 'section-danger', label: 'Danger Zone', adminOnly: true },
 ];
 
 // ---- Shared helpers ---------------------------------------------------------
@@ -250,70 +242,6 @@ function SlabRow({
     >
       {children}
     </div>
-  );
-}
-
-function ThemeCard({
-  themeKey,
-  isSelected,
-  onSelect,
-}: {
-  themeKey: ThemeKey;
-  isSelected: boolean;
-  onSelect: () => void;
-}) {
-  const t = THEMES[themeKey];
-  return (
-    <motion.button
-      type="button"
-      onClick={onSelect}
-      whileTap={{ y: 1 }}
-      className="relative flex flex-col gap-2 rounded-2xl p-3 text-left"
-      style={{
-        backgroundColor: 'var(--roost-surface)',
-        border: isSelected
-          ? '2px solid #EF4444'
-          : '1.5px solid var(--roost-border)',
-        borderBottom: isSelected
-          ? '4px solid #C93B3B'
-          : `4px solid ${t.borderBottom}`,
-      }}
-    >
-      {isSelected && (
-        <span
-          className="absolute right-2 top-2 flex h-5 w-5 items-center justify-center rounded-full"
-          style={{ backgroundColor: '#EF4444' }}
-        >
-          <Check className="size-3 text-white" strokeWidth={3} />
-        </span>
-      )}
-      <div
-        className="flex h-12 w-full flex-col gap-1 overflow-hidden rounded-xl p-1.5"
-        style={{ backgroundColor: t.bg }}
-      >
-        <div
-          className="h-2 w-full rounded-md"
-          style={{
-            backgroundColor: t.topbarBg,
-            borderBottom: `1px solid ${t.topbarBorder}`,
-          }}
-        />
-        <div
-          className="h-4 w-3/4 rounded-md"
-          style={{
-            backgroundColor: t.surface,
-            border: `1px solid ${t.border}`,
-            borderBottom: `2px solid ${t.borderBottom}`,
-          }}
-        />
-      </div>
-      <span
-        className="text-xs"
-        style={{ color: 'var(--roost-text-primary)', fontWeight: 700 }}
-      >
-        {t.name}
-      </span>
-    </motion.button>
   );
 }
 
@@ -1200,7 +1128,6 @@ function StatsVisibilitySection({
 export default function SettingsPage() {
   const router = useRouter();
   const queryClient = useQueryClient();
-  const { theme, setTheme } = useTheme();
   const { data: sessionData } = useSession();
   const { household, role, isPremium, statsVisibility } = useHousehold();
   const { temperatureUnit, latitude, longitude, updatePreferences } =
@@ -1208,7 +1135,6 @@ export default function SettingsPage() {
 
   const isAdmin = role === 'admin';
   const householdId = household?.id ?? '';
-  const themeKeys = Object.keys(THEMES) as ThemeKey[];
 
   const [upgradeCode, setUpgradeCode] = useState<string | null>(null);
 
@@ -1254,6 +1180,10 @@ export default function SettingsPage() {
   const [deleteHouseConfirm, setDeleteHouseConfirm] = useState('');
   const [deleteHouseStep2, setDeleteHouseStep2] = useState(false);
   const [deletingHouse, setDeletingHouse] = useState(false);
+
+  // ---- Privacy & Data state -------------------------------------------------
+  const [emailConfirm, setEmailConfirm] = useState('');
+  const [deletingAccount, setDeletingAccount] = useState(false);
 
   // ---- Promo code state -----------------------------------------------------
   const [promoInput, setPromoInput] = useState('');
@@ -1604,6 +1534,29 @@ export default function SettingsPage() {
     }
   }
 
+  // ---- Delete account -------------------------------------------------------
+  async function handleDeleteAccount() {
+    setDeletingAccount(true);
+    try {
+      const r = await fetch('/api/user/account', { method: 'DELETE' });
+      if (!r.ok) {
+        const data = await r.json();
+        toast.error('Could not delete account', {
+          description: data.error ?? 'Something went wrong. Try again.',
+        });
+        setDeletingAccount(false);
+        return;
+      }
+      toast.success('Account deleted');
+      router.push('/login');
+    } catch {
+      toast.error('Could not delete account', {
+        description: 'Something went wrong. Try again.',
+      });
+      setDeletingAccount(false);
+    }
+  }
+
   // ---- Delete household -----------------------------------------------------
   async function handleDeleteHousehold() {
     setDeletingHouse(true);
@@ -1650,21 +1603,24 @@ export default function SettingsPage() {
                 className="flex h-9 w-full items-center rounded-xl px-3 text-sm text-left"
                 style={{
                   backgroundColor:
-                    activeSection === s.id
-                      ? 'var(--roost-surface)'
-                      : 'transparent',
-                  border:
-                    activeSection === s.id
-                      ? '1.5px solid var(--roost-border)'
-                      : '1.5px solid transparent',
-                  color:
-                    activeSection === s.id
-                      ? 'var(--roost-text-primary)'
-                      : 'var(--roost-text-muted)',
+                    activeSection === s.id ? '#EF4444' : 'transparent',
+                  color: activeSection === s.id ? '#fff' : 'var(--roost-text-muted)',
                   fontWeight: activeSection === s.id ? 700 : 600,
                 }}
               >
-                {s.label}
+                <span className="flex-1">{s.label}</span>
+                {s.adminOnly && activeSection !== s.id && (
+                  <span
+                    className="text-[9px] rounded px-1 py-px"
+                    style={{
+                      backgroundColor: 'var(--roost-border)',
+                      color: 'var(--roost-text-muted)',
+                      fontWeight: 700,
+                    }}
+                  >
+                    admin
+                  </span>
+                )}
               </button>
             ))}
           </div>
@@ -1985,25 +1941,7 @@ export default function SettingsPage() {
             </SlabCard>
           </SettingsSection>
 
-          {/* ---- SECTION 2: APPEARANCE --------------------------------------- */}
-          <SettingsSection
-            id="section-appearance"
-            title="Appearance"
-            subtitle="Your theme is only visible to you."
-          >
-            <div className="grid grid-cols-2 gap-3">
-              {themeKeys.map((key) => (
-                <ThemeCard
-                  key={key}
-                  themeKey={key}
-                  isSelected={theme === key}
-                  onSelect={() => setTheme(key)}
-                />
-              ))}
-            </div>
-          </SettingsSection>
-
-          {/* ---- SECTION 3: PREFERENCES ------------------------------------- */}
+          {/* ---- SECTION 2: PREFERENCES ------------------------------------- */}
           <SettingsSection id="section-preferences" title="Preferences">
             <SlabCard>
               {/* Temperature unit */}
@@ -2637,36 +2575,73 @@ export default function SettingsPage() {
             )}
           </SettingsSection>
 
-          {/* ---- SECTION 6: NOTIFICATIONS ----------------------------------- */}
+          {/* ---- SECTION: NOTIFICATIONS --------------------------------------- */}
           <SettingsSection
             id="section-notifications"
             title="Notifications"
-            subtitle="Push notifications are available in the iOS and Android apps. Coming soon."
+            subtitle="Push notifications work in the Roost mobile app. Here is what you will be able to configure when the app launches."
           >
-            <p style={{ fontSize: 14, color: 'var(--roost-text-muted)' }}>
-              No settings available yet.
-            </p>
+            <SlabCard>
+              {[
+                'Chore reminders',
+                'Expense activity',
+                'Calendar events',
+                'Reminders due',
+                'Household announcements',
+              ].map((label) => (
+                <SlabRow key={label}>
+                  <span
+                    className="flex-1 text-sm"
+                    style={{ color: 'var(--roost-text-primary)', fontWeight: 700 }}
+                  >
+                    {label}
+                  </span>
+                  <span
+                    className="text-xs px-2 py-0.5 rounded-full"
+                    style={{
+                      backgroundColor: 'var(--roost-border)',
+                      color: 'var(--roost-text-muted)',
+                      fontWeight: 700,
+                    }}
+                  >
+                    Coming soon
+                  </span>
+                  <div
+                    className="w-11 h-6 rounded-full flex-shrink-0 opacity-40"
+                    style={{ backgroundColor: 'var(--roost-border)' }}
+                  />
+                </SlabRow>
+              ))}
+            </SlabCard>
           </SettingsSection>
 
-          {/* ---- SECTION 7: CATEGORIES (admin only) ------------------------- */}
+          {/* ---- SECTION: CATEGORIES (admin only) --------------------------- */}
           {isAdmin && (
             <SettingsSection
               id="section-categories"
               title="Categories"
-              subtitle="Manage expense categories for your household."
+              subtitle="Manage expense and chore categories for your household."
             >
-              <CategoriesSettingsSection />
-            </SettingsSection>
-          )}
-
-          {/* ---- SECTION 7b: CHORE CATEGORIES (admin only) ------------------ */}
-          {isAdmin && (
-            <SettingsSection
-              id="section-chore-categories"
-              title="Chore Categories"
-              subtitle="Manage chore categories and approve member suggestions."
-            >
-              <ChoreCategoriesSettingsSection />
+              {/* Expense Categories sub-section */}
+              <div>
+                <p
+                  className="text-xs mb-2"
+                  style={{ color: '#22C55E', fontWeight: 800, letterSpacing: '0.06em' }}
+                >
+                  EXPENSE CATEGORIES
+                </p>
+                <CategoriesSettingsSection />
+              </div>
+              {/* Chore Categories sub-section */}
+              <div className="mt-6">
+                <p
+                  className="text-xs mb-2"
+                  style={{ color: '#EF4444', fontWeight: 800, letterSpacing: '0.06em' }}
+                >
+                  CHORE CATEGORIES
+                </p>
+                <ChoreCategoriesSettingsSection />
+              </div>
             </SettingsSection>
           )}
 
@@ -2918,8 +2893,92 @@ export default function SettingsPage() {
             </SlabCard>
           </SettingsSection>
 
-          {/* ---- SECTION: STATS VISIBILITY (admin + premium only) -------------- */}
-          {isAdmin && isPremium && (
+          {/* ---- SECTION: PRIVACY & DATA ------------------------------------ */}
+          <SettingsSection
+            id="section-privacy"
+            title="Privacy & Data"
+            subtitle="Export or permanently delete your account."
+          >
+            <div
+              className="overflow-hidden rounded-2xl"
+              style={{
+                border: '1.5px solid var(--roost-border)',
+                borderBottom: '4px solid var(--roost-border-bottom)',
+                backgroundColor: 'var(--roost-surface)',
+              }}
+            >
+              {/* Export data */}
+              <div className="p-4">
+                <p className="text-sm" style={{ color: 'var(--roost-text-primary)', fontWeight: 700 }}>
+                  Export my data
+                </p>
+                <p className="text-xs mt-0.5 mb-3" style={{ color: 'var(--roost-text-muted)', fontWeight: 600 }}>
+                  Download a JSON file containing your profile, chore history, tasks, and activity log.
+                </p>
+                <a
+                  href="/api/user/export"
+                  download
+                  className="inline-flex h-10 items-center rounded-xl px-4 text-sm"
+                  style={{
+                    border: '1.5px solid var(--roost-border)',
+                    borderBottom: '3px solid var(--roost-border-bottom)',
+                    color: 'var(--roost-text-secondary)',
+                    fontWeight: 700,
+                    textDecoration: 'none',
+                  }}
+                >
+                  Download my data
+                </a>
+              </div>
+
+              <div style={{ height: 1, backgroundColor: 'var(--roost-border)', margin: '0 16px' }} />
+
+              {/* Delete account */}
+              <div className="p-4">
+                <p className="text-sm" style={{ color: '#EF4444', fontWeight: 700 }}>
+                  Delete my account
+                </p>
+                <p className="text-xs mt-0.5 mb-3" style={{ color: 'var(--roost-text-muted)', fontWeight: 600 }}>
+                  Permanently deletes your account. You will be removed from all households. This cannot be undone.
+                </p>
+                <p className="text-xs mb-2" style={{ color: 'var(--roost-text-secondary)', fontWeight: 700 }}>
+                  Type your email address to confirm
+                </p>
+                <input
+                  type="email"
+                  value={emailConfirm}
+                  onChange={e => setEmailConfirm(e.target.value)}
+                  placeholder={profileEmail || 'your@email.com'}
+                  className="mb-3 h-11 w-full rounded-xl px-3 text-sm"
+                  style={{
+                    border: '1.5px solid var(--roost-border)',
+                    borderBottom: '3px solid var(--roost-border-bottom)',
+                    backgroundColor: 'var(--roost-bg)',
+                    color: 'var(--roost-text-primary)',
+                    fontWeight: 600,
+                    outline: 'none',
+                  }}
+                />
+                <button
+                  type="button"
+                  disabled={emailConfirm !== profileEmail || deletingAccount || !profileEmail}
+                  onClick={handleDeleteAccount}
+                  className="h-10 rounded-xl px-4 text-sm disabled:opacity-40"
+                  style={{
+                    border: '1.5px solid #EF444430',
+                    borderBottom: '3px solid #EF444445',
+                    color: '#EF4444',
+                    fontWeight: 700,
+                  }}
+                >
+                  {deletingAccount ? 'Deleting...' : 'Delete my account'}
+                </button>
+              </div>
+            </div>
+          </SettingsSection>
+
+          {/* ---- SECTION: STATS VISIBILITY (admin only) -------------------- */}
+          {isAdmin && (
             <StatsVisibilitySection
               visibility={statsVisibility}
               onToggle={handleStatsVisibilityToggle}

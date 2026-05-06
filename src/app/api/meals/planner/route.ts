@@ -104,6 +104,9 @@ export async function POST(request: NextRequest): Promise<Response> {
     slot_type?: string;
     meal_id?: string | null;
     custom_meal_name?: string | null;
+    // Quick-add path: create meal inline
+    name?: string;
+    savedToBank?: boolean;
   };
   try {
     body = await request.json();
@@ -117,16 +120,42 @@ export async function POST(request: NextRequest): Promise<Response> {
   if (!body.slot_type) {
     return Response.json({ error: "slot_type is required" }, { status: 400 });
   }
-  if (!body.meal_id && !body.custom_meal_name?.trim()) {
-    return Response.json({ error: "meal_id or custom_meal_name is required" }, { status: 400 });
+
+  // Resolve meal_id: either provided directly, or created inline from `name`
+  let resolvedMealId: string | null = body.meal_id ?? null;
+  let mealDisplayName = body.custom_meal_name?.trim() ?? "a meal";
+
+  if (!resolvedMealId && body.name?.trim()) {
+    const savedToBank = body.savedToBank === true;
+    const [newMeal] = await db
+      .insert(meals)
+      .values({
+        household_id: householdId,
+        name: body.name.trim(),
+        category: "dinner",
+        ingredients: null,
+        instructions: null,
+        saved_to_bank: savedToBank,
+        created_by: session.user.id,
+      })
+      .returning();
+    resolvedMealId = newMeal.id;
+    mealDisplayName = newMeal.name;
+  } else if (!resolvedMealId && !body.custom_meal_name?.trim()) {
+    return Response.json({ error: "meal_id, name, or custom_meal_name is required" }, { status: 400 });
+  }
+
+  if (body.meal_id) {
+    const [m] = await db.select({ name: meals.name }).from(meals).where(eq(meals.id, body.meal_id)).limit(1);
+    if (m) mealDisplayName = m.name;
   }
 
   const [slot] = await db
     .insert(meal_plan_slots)
     .values({
       household_id: householdId,
-      meal_id: body.meal_id || null,
-      custom_meal_name: body.custom_meal_name?.trim() || null,
+      meal_id: resolvedMealId,
+      custom_meal_name: resolvedMealId ? null : body.custom_meal_name?.trim() || null,
       slot_date: body.slot_date,
       slot_type: body.slot_type,
       assigned_by: session.user.id,
@@ -134,19 +163,12 @@ export async function POST(request: NextRequest): Promise<Response> {
     .onConflictDoUpdate({
       target: [meal_plan_slots.household_id, meal_plan_slots.slot_date, meal_plan_slots.slot_type],
       set: {
-        meal_id: body.meal_id || null,
-        custom_meal_name: body.custom_meal_name?.trim() || null,
+        meal_id: resolvedMealId,
+        custom_meal_name: resolvedMealId ? null : body.custom_meal_name?.trim() || null,
         assigned_by: session.user.id,
       },
     })
     .returning();
-
-  // Get meal name for activity log
-  let mealDisplayName = body.custom_meal_name?.trim() ?? "a meal";
-  if (body.meal_id) {
-    const [m] = await db.select({ name: meals.name }).from(meals).where(eq(meals.id, body.meal_id)).limit(1);
-    if (m) mealDisplayName = m.name;
-  }
 
   const dayLabel = format(new Date(body.slot_date + "T00:00:00"), "EEEE");
   await logActivity({

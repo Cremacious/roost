@@ -16,7 +16,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { addDays, format, isToday, isTomorrow, startOfWeek } from "date-fns";
-import { Loader2, Search, Trash2, UtensilsCrossed } from "lucide-react";
+import { ChevronLeft, ChevronRight, Loader2, Search, Trash2 } from "lucide-react";
 import { SECTION_COLORS } from "@/lib/constants/colors";
 
 const COLOR = SECTION_COLORS.meals;
@@ -95,8 +95,10 @@ export default function MealSlotSheet({
   const [mode, setMode] = useState<Mode>("menu");
   const [search, setSearch] = useState("");
   const [quickName, setQuickName] = useState("");
+  const [saveToBank, setSaveToBank] = useState(false);
   const [pickedDate, setPickedDate] = useState<Date>(new Date());
   const [pickedSlotType, setPickedSlotType] = useState("dinner");
+  const [pickerWeekOffset, setPickerWeekOffset] = useState(0);
   const [showRemoveConfirm, setShowRemoveConfirm] = useState(false);
 
   // Reset state when sheet opens
@@ -105,7 +107,9 @@ export default function MealSlotSheet({
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setSearch("");
       setQuickName("");
+      setSaveToBank(false);
       setShowRemoveConfirm(false);
+      setPickerWeekOffset(0);
       if (preSelectedMeal) {
         setMode("date");
         setPickedDate(new Date());
@@ -124,15 +128,18 @@ export default function MealSlotSheet({
   const currentMealName = existingSlot?.meal_name ?? existingSlot?.custom_meal_name ?? null;
   const isEditMode = !preSelectedMeal && !!existingSlot;
 
-  // Week days for the date picker (current week Mon-Sun)
-  const pickerWeekStart = startOfWeek(new Date(), { weekStartsOn: 1 });
+  // Week days for the date picker (current week Mon-Sun + offset for prev/next)
+  const pickerWeekStart = addDays(startOfWeek(new Date(), { weekStartsOn: 1 }), pickerWeekOffset * 7);
   const pickerWeekDays = Array.from({ length: 7 }, (_, i) => addDays(pickerWeekStart, i));
+  const pickerWeekLabel = `${format(pickerWeekStart, "MMM d")} - ${format(addDays(pickerWeekStart, 6), "MMM d")}`;
 
   function handleClose() {
     setMode("menu");
     setSearch("");
     setQuickName("");
+    setSaveToBank(false);
     setShowRemoveConfirm(false);
+    setPickerWeekOffset(0);
     onClose();
   }
 
@@ -146,16 +153,20 @@ export default function MealSlotSheet({
       slot,
       meal_id,
       custom_meal_name,
+      name,
+      savedToBank,
     }: {
       date: string;
       slot: string;
       meal_id?: string;
       custom_meal_name?: string;
+      name?: string;
+      savedToBank?: boolean;
     }) => {
       const res = await fetch("/api/meals/planner", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ slot_date: date, slot_type: slot, meal_id, custom_meal_name }),
+        body: JSON.stringify({ slot_date: date, slot_type: slot, meal_id, custom_meal_name, name, savedToBank }),
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
@@ -232,9 +243,33 @@ export default function MealSlotSheet({
             <div className="space-y-5">
               {/* Day picker */}
               <div className="space-y-2">
-                <p className="text-xs" style={{ color: "var(--roost-text-muted)", fontWeight: 700 }}>
-                  Which day?
-                </p>
+                <div className="flex items-center justify-between">
+                  <p className="text-xs" style={{ color: "var(--roost-text-muted)", fontWeight: 700 }}>
+                    Which day?
+                  </p>
+                  <div className="flex items-center gap-1">
+                    <button
+                      type="button"
+                      onClick={() => setPickerWeekOffset((v) => v - 1)}
+                      disabled={pickerWeekOffset <= 0}
+                      className="flex h-7 w-7 items-center justify-center rounded-lg disabled:opacity-30"
+                      style={{ border: "1.5px solid var(--roost-border)", color: "var(--roost-text-muted)" }}
+                    >
+                      <ChevronLeft className="size-4" />
+                    </button>
+                    <span className="text-xs" style={{ color: "var(--roost-text-muted)", fontWeight: 700, minWidth: 100, textAlign: "center" }}>
+                      {pickerWeekLabel}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setPickerWeekOffset((v) => v + 1)}
+                      className="flex h-7 w-7 items-center justify-center rounded-lg"
+                      style={{ border: "1.5px solid var(--roost-border)", color: "var(--roost-text-muted)" }}
+                    >
+                      <ChevronRight className="size-4" />
+                    </button>
+                  </div>
+                </div>
                 <div className="flex gap-1.5 overflow-x-auto pb-1">
                   {pickerWeekDays.map((d) => {
                     const dStr = format(d, "yyyy-MM-dd");
@@ -471,14 +506,33 @@ export default function MealSlotSheet({
                 style={inputStyle}
                 onKeyDown={(e) => {
                   if (e.key === "Enter" && quickName.trim()) {
-                    saveMutation.mutate({ date: dateStr, slot: slotType, custom_meal_name: quickName.trim() });
+                    saveMutation.mutate({ date: dateStr, slot: slotType, name: quickName.trim(), savedToBank: saveToBank });
                   }
                 }}
               />
+              {/* Save to meal bank toggle */}
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={saveToBank}
+                  onClick={() => setSaveToBank((v) => !v)}
+                  className="relative flex h-6 w-11 shrink-0 items-center rounded-full transition-colors"
+                  style={{ backgroundColor: saveToBank ? COLOR : "#E5E7EB" }}
+                >
+                  <span
+                    className="absolute h-5 w-5 rounded-full bg-white shadow-sm transition-transform"
+                    style={{ transform: saveToBank ? "translateX(22px)" : "translateX(2px)" }}
+                  />
+                </button>
+                <span className="text-sm" style={{ color: "var(--roost-text-secondary)", fontWeight: 700 }}>
+                  Save to meal bank
+                </span>
+              </div>
               <motion.button
                 type="button"
                 disabled={!quickName.trim() || saveMutation.isPending}
-                onClick={() => saveMutation.mutate({ date: dateStr, slot: slotType, custom_meal_name: quickName.trim() })}
+                onClick={() => saveMutation.mutate({ date: dateStr, slot: slotType, name: quickName.trim(), savedToBank: saveToBank })}
                 whileTap={{ y: 2 }}
                 className="flex h-12 w-full items-center justify-center rounded-xl text-sm text-white disabled:opacity-50"
                 style={{

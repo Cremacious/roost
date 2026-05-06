@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 import { meals } from "@/db/schema";
 import { and, eq, isNull } from "drizzle-orm";
 import { getUserHousehold } from "@/app/api/chores/route";
+import type { IngredientItem } from "@/lib/utils/parseIngredients";
 
 // ---- PATCH ------------------------------------------------------------------
 
@@ -45,7 +46,8 @@ export async function PATCH(
     name?: string;
     description?: string;
     category?: string;
-    ingredients?: string[];
+    ingredients?: (string | IngredientItem)[];
+    instructions?: string[];
     prep_time?: number | null;
   };
   try {
@@ -54,9 +56,28 @@ export async function PATCH(
     return Response.json({ error: "Invalid request body" }, { status: 400 });
   }
 
-  const ingredients = Array.isArray(body.ingredients)
-    ? body.ingredients.filter((i) => i.trim())
-    : undefined;
+  // Normalize ingredients to IngredientItem[]
+  let ingredientsJson: string | null | undefined = undefined;
+  if (Array.isArray(body.ingredients)) {
+    const normalized: IngredientItem[] = body.ingredients
+      .map((item) => {
+        if (typeof item === "string") return item.trim() ? { name: item.trim() } : null;
+        if (typeof item === "object" && item !== null && typeof (item as IngredientItem).name === "string") {
+          const i = item as IngredientItem;
+          return i.name.trim() ? { name: i.name.trim(), quantity: i.quantity, unit: i.unit } : null;
+        }
+        return null;
+      })
+      .filter((i): i is IngredientItem => i !== null);
+    ingredientsJson = normalized.length > 0 ? JSON.stringify(normalized) : null;
+  }
+
+  // Normalize steps
+  let instructionsJson: string | null | undefined = undefined;
+  if (Array.isArray(body.instructions)) {
+    const steps = body.instructions.filter((s) => typeof s === "string" && s.trim());
+    instructionsJson = steps.length > 0 ? JSON.stringify(steps) : null;
+  }
 
   const [meal] = await db
     .update(meals)
@@ -64,9 +85,8 @@ export async function PATCH(
       name: body.name?.trim() ?? existing.name,
       description: body.description !== undefined ? body.description?.trim() || null : existing.description,
       category: body.category ?? existing.category,
-      ingredients: ingredients !== undefined
-        ? (ingredients.length > 0 ? JSON.stringify(ingredients) : null)
-        : existing.ingredients,
+      ingredients: ingredientsJson !== undefined ? ingredientsJson : existing.ingredients,
+      instructions: instructionsJson !== undefined ? instructionsJson : existing.instructions,
       prep_time: body.prep_time !== undefined ? body.prep_time : existing.prep_time,
       updated_at: new Date(),
     })

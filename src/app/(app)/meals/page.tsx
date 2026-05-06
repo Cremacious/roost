@@ -48,8 +48,10 @@ import MealSlotSheet, {
   type SlotRow,
 } from '@/components/meals/MealSlotSheet';
 import SuggestionSheet from '@/components/meals/SuggestionSheet';
+import GroceryPushSheet from '@/components/meals/GroceryPushSheet';
 import PremiumGate from '@/components/shared/PremiumGate';
 import { PageContainer } from '@/components/layout/PageContainer';
+import { parseIngredients, type IngredientItem } from '@/lib/utils/parseIngredients';
 
 const COLOR = SECTION_COLORS.meals;
 const COLOR_DARK = '#C4581A';
@@ -168,15 +170,16 @@ export default function MealsPage() {
   }>({ open: false, slotDate: null, slotType: 'dinner' });
   const [suggestionSheet, setSuggestionSheet] = useState(false);
   const [upgradeCode, setUpgradeCode] = useState<string | null>(null);
-
-  // Confirmation dialog state
-  const [groceryConfirm, setGroceryConfirm] = useState<MealData | null>(null);
+  const [groceryPushMeal, setGroceryPushMeal] = useState<MealData | null>(null);
   const [approveConfirm, setApproveConfirm] = useState<SuggestionRow | null>(
     null,
   );
-  const [confirmBankSuggestion, setConfirmBankSuggestion] = useState<
-    string | null
-  >(null);
+  const [confirmBankSuggestion, setConfirmBankSuggestion] = useState<SuggestionRow | null>(null);
+  const [approveGroceryPush, setApproveGroceryPush] = useState<{
+    mealId: string;
+    mealName: string;
+    ingredients: IngredientItem[];
+  } | null>(null);
 
   const weekStartStr = format(weekStart, 'yyyy-MM-dd');
   const weekEnd = addDays(weekStart, 6);
@@ -272,46 +275,6 @@ export default function MealsPage() {
     },
   });
 
-  const addToGroceryMutation = useMutation({
-    mutationFn: async (mealId: string) => {
-      const r = await fetch(`/api/meals/${mealId}/add-to-grocery`, {
-        method: 'POST',
-      });
-      if (!r.ok) {
-        const d = await r.json().catch(() => ({}));
-        const err = new Error(
-          d.error ?? 'Failed to add to grocery list',
-        ) as Error & { code?: string };
-        err.code = d.code;
-        throw err;
-      }
-      return r.json();
-    },
-    onSuccess: (data: { added: number }) => {
-      queryClient.invalidateQueries({ queryKey: ['grocery-items'] });
-      setGroceryConfirm(null);
-      toast.success(
-        `Added ${data.added} ingredient${data.added !== 1 ? 's' : ''} to Shopping List`,
-        {
-          className: 'roost-toast roost-toast-success',
-          descriptionClassName: 'roost-toast-description',
-        },
-      );
-    },
-    onError: (err: Error & { code?: string }) => {
-      if (err.code) {
-        setGroceryConfirm(null);
-        setUpgradeCode(err.code);
-        return;
-      }
-      toast.error('Could not add ingredients', {
-        description: err.message,
-        className: 'roost-toast roost-toast-error',
-        descriptionClassName: 'roost-toast-description',
-      });
-    },
-  });
-
   const approveMutation = useMutation({
     mutationFn: async ({
       id,
@@ -333,7 +296,10 @@ export default function MealsPage() {
       }
       return r.json();
     },
-    onSuccess: (data: { slot?: { slot_date?: string; slot_type?: string } }) => {
+    onSuccess: (data: {
+      meal?: { id: string; name: string; ingredients: string | null };
+      slot?: { slot_date?: string; slot_type?: string };
+    }) => {
       queryClient.invalidateQueries({ queryKey: ['suggestions'] });
       queryClient.invalidateQueries({ queryKey: ['meals'] });
       queryClient.invalidateQueries({ queryKey: ['planner'] });
@@ -348,6 +314,18 @@ export default function MealsPage() {
         className: 'roost-toast roost-toast-success',
         descriptionClassName: 'roost-toast-description',
       });
+      if (data.meal?.ingredients) {
+        const parsed = parseIngredients(data.meal.ingredients).filter(
+          (i) => i.name.trim(),
+        );
+        if (parsed.length > 0) {
+          setApproveGroceryPush({
+            mealId: data.meal.id,
+            mealName: data.meal.name,
+            ingredients: parsed,
+          });
+        }
+      }
     },
     onError: (err: Error) => {
       toast.error('Could not approve suggestion', {
@@ -399,13 +377,28 @@ export default function MealsPage() {
       }
       return r.json();
     },
-    onSuccess: () => {
+    onSuccess: (data: {
+      meal?: { id: string; name: string; ingredients: string | null };
+    }) => {
       queryClient.invalidateQueries({ queryKey: ['suggestions'] });
       queryClient.invalidateQueries({ queryKey: ['meals'] });
+      setConfirmBankSuggestion(null);
       toast.success('Added to meal bank', {
         className: 'roost-toast roost-toast-success',
         descriptionClassName: 'roost-toast-description',
       });
+      if (data.meal?.ingredients) {
+        const parsed = parseIngredients(data.meal.ingredients).filter(
+          (i) => i.name.trim(),
+        );
+        if (parsed.length > 0) {
+          setApproveGroceryPush({
+            mealId: data.meal.id,
+            mealName: data.meal.name,
+            ingredients: parsed,
+          });
+        }
+      }
     },
     onError: (err: Error) => {
       toast.error('Could not add to meal bank', {
@@ -860,15 +853,7 @@ export default function MealsPage() {
   // ---- Bank tab --------------------------------------------------------------
 
   function BankTab() {
-    const ingredients = (m: MealData) => {
-      try {
-        return m.ingredients
-          ? (JSON.parse(m.ingredients) as string[]).filter(Boolean)
-          : [];
-      } catch {
-        return [];
-      }
-    };
+    const ingredients = (m: MealData) => parseIngredients(m.ingredients ?? "");
 
     if (mealsQuery.isLoading) {
       return (
@@ -1009,7 +994,7 @@ export default function MealsPage() {
                           fontWeight: 600,
                         }}
                       >
-                        {ing.length} ingredient{ing.length !== 1 ? 's' : ''}
+                        {ing.filter(i => i.name.trim()).length} ingredient{ing.filter(i => i.name.trim()).length !== 1 ? 's' : ''}
                       </span>
                     )}
                   </div>
@@ -1027,8 +1012,8 @@ export default function MealsPage() {
                     </p>
                   )}
 
-                  {/* Ingredient count — Fix 6 */}
-                  {ing.length === 0 && (
+                  {/* No ingredients fallback */}
+                  {ing.filter(i => i.name.trim()).length === 0 && (
                     <p
                       className="mt-1.5 text-xs"
                       style={{
@@ -1060,7 +1045,7 @@ export default function MealsPage() {
                     {ing.length > 0 && (
                       <motion.button
                         type="button"
-                        onClick={() => setGroceryConfirm(m)}
+                        onClick={() => setGroceryPushMeal(m)}
                         whileTap={{ y: 1 }}
                         className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl"
                         style={{
@@ -1135,14 +1120,14 @@ export default function MealsPage() {
             s.target_slot_date && s.target_slot_type
               ? `${format(new Date(`${s.target_slot_date}T00:00:00`), 'EEE, MMM d')} · ${SLOT_LABELS[s.target_slot_type] ?? s.target_slot_type}`
               : null;
-          let ingredientPreview: string[] = [];
-          try {
-            ingredientPreview = s.ingredients
-              ? (JSON.parse(s.ingredients) as string[]).filter(Boolean).slice(0, 4)
-              : [];
-          } catch {
-            ingredientPreview = [];
-          }
+          const ingredientPreview: string[] = s.ingredients
+            ? parseIngredients(s.ingredients)
+                .filter((i) => i.name.trim())
+                .map((i) =>
+                  [i.quantity, i.unit, i.name].filter(Boolean).join(' '),
+                )
+                .slice(0, 4)
+            : [];
 
           return (
             <motion.div
@@ -1316,7 +1301,7 @@ export default function MealsPage() {
                     <motion.button
                       type="button"
                       whileTap={{ y: 1 }}
-                      onClick={() => setConfirmBankSuggestion(s.id)}
+                      onClick={() => setConfirmBankSuggestion(s)}
                       disabled={addSuggestionToBankMutation.isPending || s.status === 'in_bank'}
                       className="flex h-9 items-center rounded-xl px-3 text-xs disabled:opacity-50"
                       style={{
@@ -1496,7 +1481,6 @@ export default function MealsPage() {
 
         <SuggestionSheet
           open={suggestionSheet}
-          weekStart={weekStartStr}
           onClose={() => setSuggestionSheet(false)}
           onUpgradeRequired={(code) => {
             setSuggestionSheet(false);
@@ -1504,137 +1488,30 @@ export default function MealsPage() {
           }}
         />
 
+        <GroceryPushSheet
+          open={!!groceryPushMeal}
+          onClose={() => setGroceryPushMeal(null)}
+          mealName={groceryPushMeal?.name ?? ""}
+          ingredients={parseIngredients(groceryPushMeal?.ingredients ?? "")}
+          mealId={groceryPushMeal?.id ?? ""}
+          isPremium={isPremium}
+        />
+
+        <GroceryPushSheet
+          open={!!approveGroceryPush}
+          onClose={() => setApproveGroceryPush(null)}
+          mealName={approveGroceryPush?.mealName ?? ""}
+          ingredients={approveGroceryPush?.ingredients ?? []}
+          mealId={approveGroceryPush?.mealId ?? ""}
+          isPremium={isPremium}
+        />
+
         {/* Upgrade prompt */}
         {!!upgradeCode && (
           <PremiumGate feature="meals" trigger="sheet" onClose={() => setUpgradeCode(null)} />
         )}
 
-        {/* Grocery confirm dialog (Fix 1) */}
-        {groceryConfirm &&
-          (() => {
-            let ing: string[] = [];
-            try {
-              ing = groceryConfirm.ingredients
-                ? (JSON.parse(groceryConfirm.ingredients) as string[]).filter(
-                    Boolean,
-                  )
-                : [];
-            } catch {
-              ing = [];
-            }
-            const preview = ing.slice(0, 5);
-            const extra = ing.length - 5;
-            return (
-              <Dialog
-                open={!!groceryConfirm}
-                onOpenChange={(v) => !v && setGroceryConfirm(null)}
-              >
-                <DialogContent
-                  style={{ backgroundColor: 'var(--roost-surface)' }}
-                >
-                  <DialogHeader>
-                    <DialogTitle
-                      style={{
-                        color: 'var(--roost-text-primary)',
-                        fontWeight: 900,
-                      }}
-                    >
-                      Add ingredients to grocery list?
-                    </DialogTitle>
-                  </DialogHeader>
-                  <DialogDescription className="sr-only">
-                    Review the ingredients that will be added to your grocery list.
-                  </DialogDescription>
-                  <div className="space-y-2">
-                    <p
-                      className="text-sm"
-                      style={{
-                        color: 'var(--roost-text-secondary)',
-                        fontWeight: 600,
-                      }}
-                    >
-                      This will add {ing.length} ingredient
-                      {ing.length !== 1 ? 's' : ''} from{' '}
-                      <span
-                        style={{
-                          fontWeight: 800,
-                          color: 'var(--roost-text-primary)',
-                        }}
-                      >
-                        {groceryConfirm.name}
-                      </span>{' '}
-                      to your Shopping List:
-                    </p>
-                    <ul className="space-y-1">
-                      {preview.map((item, i) => (
-                        <li
-                          key={i}
-                          className="text-sm"
-                          style={{
-                            color: 'var(--roost-text-secondary)',
-                            fontWeight: 600,
-                          }}
-                        >
-                          {item}
-                        </li>
-                      ))}
-                      {extra > 0 && (
-                        <li
-                          className="text-sm"
-                          style={{
-                            color: 'var(--roost-text-muted)',
-                            fontWeight: 600,
-                          }}
-                        >
-                          + {extra} more
-                        </li>
-                      )}
-                    </ul>
-                  </div>
-                  <DialogFooter className="flex gap-2">
-                    <motion.button
-                      type="button"
-                      onClick={() => setGroceryConfirm(null)}
-                      whileTap={{ y: 1 }}
-                      className="flex h-11 flex-1 items-center justify-center rounded-xl text-sm"
-                      style={{
-                        backgroundColor: 'var(--roost-bg)',
-                        border: '1.5px solid var(--roost-border)',
-                        borderBottom: '3px solid #E5E7EB',
-                        color: 'var(--roost-text-secondary)',
-                        fontWeight: 700,
-                      }}
-                    >
-                      Cancel
-                    </motion.button>
-                    <motion.button
-                      type="button"
-                      disabled={addToGroceryMutation.isPending}
-                      onClick={() =>
-                        addToGroceryMutation.mutate(groceryConfirm.id)
-                      }
-                      whileTap={{ y: 1 }}
-                      className="flex h-11 flex-1 items-center justify-center rounded-xl text-sm text-white disabled:opacity-50"
-                      style={{
-                        backgroundColor: '#22C55E',
-                        border: '1.5px solid #22C55E',
-                        borderBottom: '3px solid #16A34A',
-                        fontWeight: 800,
-                      }}
-                    >
-                      {addToGroceryMutation.isPending ? (
-                        <Loader2 className="size-4 animate-spin" />
-                      ) : (
-                        'Add to list'
-                      )}
-                    </motion.button>
-                  </DialogFooter>
-                </DialogContent>
-              </Dialog>
-            );
-          })()}
-
-        {/* Approve confirm dialog (Fix 2) */}
+        {/* Approve confirm dialog */}
         <Dialog
           open={!!approveConfirm}
           onOpenChange={(v) => !v && setApproveConfirm(null)}
@@ -1743,76 +1620,70 @@ export default function MealsPage() {
         </Dialog>
 
         {/* Add to bank confirm dialog */}
-        {(() => {
-          const confirmSuggestion = suggestions.find(
-            (s) => s.id === confirmBankSuggestion,
-          );
-          return (
-            <Dialog
-              open={!!confirmBankSuggestion}
-              onOpenChange={(v) => !v && setConfirmBankSuggestion(null)}
-            >
-              <DialogContent
-                style={{ backgroundColor: 'var(--roost-surface)' }}
+        <Dialog
+          open={!!confirmBankSuggestion}
+          onOpenChange={(v) => !v && setConfirmBankSuggestion(null)}
+        >
+          <DialogContent style={{ backgroundColor: 'var(--roost-surface)' }}>
+            <DialogHeader>
+              <DialogTitle
+                style={{ color: 'var(--roost-text-primary)', fontWeight: 800 }}
               >
-                <DialogHeader>
-                  <DialogTitle
-                    style={{ color: 'var(--roost-text-primary)', fontWeight: 800 }}
-                  >
-                    Add to meal bank?
-                  </DialogTitle>
-                </DialogHeader>
-                <DialogDescription className="text-sm" style={{ color: 'var(--roost-text-secondary)', fontWeight: 600 }}>
-                  <span style={{ fontWeight: 800, color: 'var(--roost-text-primary)' }}>
-                    &ldquo;{confirmSuggestion?.meal_name}&rdquo;
-                  </span>{' '}
-                  will be saved to your household&apos;s meal bank. The suggestion will stay open until it&apos;s added to a day or rejected.
-                </DialogDescription>
-                <DialogFooter className="mt-2 flex gap-2">
-                  <motion.button
-                    type="button"
-                    onClick={() => setConfirmBankSuggestion(null)}
-                    whileTap={{ y: 1 }}
-                    className="flex h-11 flex-1 items-center justify-center rounded-xl text-sm"
-                    style={{
-                      backgroundColor: 'var(--roost-bg)',
-                      border: '1.5px solid var(--roost-border)',
-                      borderBottom: '3px solid var(--roost-border-bottom)',
-                      color: 'var(--roost-text-primary)',
-                      fontWeight: 700,
-                    }}
-                  >
-                    Cancel
-                  </motion.button>
-                  <motion.button
-                    type="button"
-                    disabled={addSuggestionToBankMutation.isPending}
-                    onClick={() => {
-                      if (confirmBankSuggestion) {
-                        addSuggestionToBankMutation.mutate(confirmBankSuggestion);
-                        setConfirmBankSuggestion(null);
-                      }
-                    }}
-                    whileTap={{ y: 1 }}
-                    className="flex h-11 flex-1 items-center justify-center rounded-xl text-sm text-white disabled:opacity-50"
-                    style={{
-                      backgroundColor: COLOR,
-                      border: `1.5px solid ${COLOR}`,
-                      borderBottom: `3px solid ${COLOR_DARK}`,
-                      fontWeight: 700,
-                    }}
-                  >
-                    {addSuggestionToBankMutation.isPending ? (
-                      <Loader2 className="size-4 animate-spin" />
-                    ) : (
-                      'Add to bank'
-                    )}
-                  </motion.button>
-                </DialogFooter>
-              </DialogContent>
-            </Dialog>
-          );
-        })()}
+                Add to meal bank?
+              </DialogTitle>
+            </DialogHeader>
+            <DialogDescription
+              className="text-sm"
+              style={{ color: 'var(--roost-text-secondary)', fontWeight: 600 }}
+            >
+              <span style={{ fontWeight: 800, color: 'var(--roost-text-primary)' }}>
+                &ldquo;{confirmBankSuggestion?.meal_name}&rdquo;
+              </span>{' '}
+              will be saved to your household&apos;s meal bank. The suggestion
+              will stay open until it&apos;s added to a day or rejected.
+            </DialogDescription>
+            <DialogFooter className="mt-2 flex gap-2">
+              <motion.button
+                type="button"
+                onClick={() => setConfirmBankSuggestion(null)}
+                whileTap={{ y: 1 }}
+                className="flex h-11 flex-1 items-center justify-center rounded-xl text-sm"
+                style={{
+                  backgroundColor: 'var(--roost-bg)',
+                  border: '1.5px solid var(--roost-border)',
+                  borderBottom: '3px solid var(--roost-border-bottom)',
+                  color: 'var(--roost-text-primary)',
+                  fontWeight: 700,
+                }}
+              >
+                Cancel
+              </motion.button>
+              <motion.button
+                type="button"
+                disabled={addSuggestionToBankMutation.isPending}
+                onClick={() => {
+                  if (confirmBankSuggestion) {
+                    addSuggestionToBankMutation.mutate(confirmBankSuggestion.id);
+                  }
+                }}
+                whileTap={{ y: 1 }}
+                className="flex h-11 flex-1 items-center justify-center rounded-xl text-sm text-white disabled:opacity-50"
+                style={{
+                  backgroundColor: COLOR,
+                  border: `1.5px solid ${COLOR}`,
+                  borderBottom: `3px solid ${COLOR_DARK}`,
+                  fontWeight: 700,
+                }}
+              >
+                {addSuggestionToBankMutation.isPending ? (
+                  <Loader2 className="size-4 animate-spin" />
+                ) : (
+                  'Add to bank'
+                )}
+              </motion.button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </PageContainer>
     </motion.div>
   );

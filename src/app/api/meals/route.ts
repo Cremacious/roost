@@ -6,6 +6,7 @@ import { and, asc, eq, isNull } from "drizzle-orm";
 import { getUserHousehold } from "@/app/api/chores/route";
 import { checkMealBankLimit } from "@/lib/utils/premiumGating";
 import { FREE_TIER_LIMITS } from "@/lib/constants/freeTierLimits";
+import type { IngredientItem } from "@/lib/utils/parseIngredients";
 
 // ---- GET --------------------------------------------------------------------
 
@@ -26,7 +27,13 @@ export async function GET(request: NextRequest): Promise<Response> {
   const mealRows = await db
     .select()
     .from(meals)
-    .where(and(eq(meals.household_id, householdId), isNull(meals.deleted_at)))
+    .where(
+      and(
+        eq(meals.household_id, householdId),
+        isNull(meals.deleted_at),
+        eq(meals.saved_to_bank, true)
+      )
+    )
     .orderBy(asc(meals.name));
 
   return Response.json({ meals: mealRows });
@@ -51,28 +58,14 @@ export async function POST(request: NextRequest): Promise<Response> {
   }
   const { householdId } = membership;
 
-  // Premium check
-  const [household] = await db
-    .select({ subscription_status: households.subscription_status })
-    .from(households)
-    .where(eq(households.id, householdId))
-    .limit(1);
-  if (household?.subscription_status !== "premium") {
-    const { allowed, count } = await checkMealBankLimit(householdId);
-    if (!allowed) {
-      return Response.json(
-        { error: "Free tier limit reached", code: "MEAL_BANK_LIMIT", limit: FREE_TIER_LIMITS.mealBank, current: count },
-        { status: 403 }
-      );
-    }
-  }
-
   let body: {
     name?: string;
     description?: string;
     category?: string;
-    ingredients?: string[];
+    ingredients?: (string | IngredientItem)[];
+    instructions?: string[];
     prep_time?: number;
+    savedToBank?: boolean;
   };
   try {
     body = await request.json();
@@ -84,13 +77,46 @@ export async function POST(request: NextRequest): Promise<Response> {
   if (!body.name?.trim()) {
     return Response.json({ error: "Name is required" }, { status: 400 });
   }
-  if (!body.category) {
-    return Response.json({ error: "Category is required" }, { status: 400 });
+
+  const savedToBank = body.savedToBank !== false; // default true
+
+  // Only enforce meal bank limit when saving to bank
+  if (savedToBank) {
+    const [household] = await db
+      .select({ subscription_status: households.subscription_status })
+      .from(households)
+      .where(eq(households.id, householdId))
+      .limit(1);
+    if (household?.subscription_status !== "premium") {
+      const { allowed, count } = await checkMealBankLimit(householdId);
+      if (!allowed) {
+        return Response.json(
+          { error: "Free tier limit reached", code: "MEAL_BANK_LIMIT", limit: FREE_TIER_LIMITS.mealBank, current: count },
+          { status: 403 }
+        );
+      }
+    }
   }
 
-  const ingredients = Array.isArray(body.ingredients)
-    ? body.ingredients.filter((i) => i.trim())
+  // Normalize ingredients to IngredientItem[]
+  const rawIngredients = Array.isArray(body.ingredients) ? body.ingredients : [];
+  const normalizedIngredients: IngredientItem[] = rawIngredients
+    .map((item) => {
+      if (typeof item === "string") return item.trim() ? { name: item.trim() } : null;
+      if (typeof item === "object" && item !== null && typeof (item as IngredientItem).name === "string") {
+        const i = item as IngredientItem;
+        return i.name.trim() ? { name: i.name.trim(), quantity: i.quantity, unit: i.unit } : null;
+      }
+      return null;
+    })
+    .filter((i): i is IngredientItem => i !== null);
+
+  // Normalize steps
+  const steps = Array.isArray(body.instructions)
+    ? body.instructions.filter((s) => typeof s === "string" && s.trim())
     : [];
+
+  const category = body.category ?? "dinner";
 
   const [meal] = await db
     .insert(meals)
@@ -98,8 +124,10 @@ export async function POST(request: NextRequest): Promise<Response> {
       household_id: householdId,
       name: body.name.trim(),
       description: body.description?.trim() || null,
-      category: body.category,
-      ingredients: ingredients.length > 0 ? JSON.stringify(ingredients) : null,
+      category,
+      ingredients: normalizedIngredients.length > 0 ? JSON.stringify(normalizedIngredients) : null,
+      instructions: steps.length > 0 ? JSON.stringify(steps) : null,
+      saved_to_bank: savedToBank,
       prep_time: body.prep_time ?? null,
       created_by: session.user.id,
     })

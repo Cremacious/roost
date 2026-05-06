@@ -4,15 +4,17 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { motion } from "framer-motion";
-import { addDays, format, isToday, isTomorrow } from "date-fns";
+import { addDays, format } from "date-fns";
 import DraggableSheet from "@/components/shared/DraggableSheet";
-import { CalendarDays, Loader2, Plus, X } from "lucide-react";
+import RecipeEditor from "@/components/meals/RecipeEditor";
+import { CalendarDays, Loader2 } from "lucide-react";
 import { SECTION_COLORS } from "@/lib/constants/colors";
+import type { IngredientItem } from "@/lib/utils/parseIngredients";
 
 const COLOR = SECTION_COLORS.meals;
 const COLOR_DARK = "#C4581A";
 
-const CATEGORIES = [
+const SLOT_TYPES = [
   { value: "breakfast", label: "Breakfast" },
   { value: "lunch", label: "Lunch" },
   { value: "dinner", label: "Dinner" },
@@ -27,70 +29,77 @@ const inputStyle: React.CSSProperties = {
   fontWeight: 600,
 };
 
+function getTodayStr() {
+  return format(new Date(), "yyyy-MM-dd");
+}
+
+function getTomorrowStr() {
+  return format(addDays(new Date(), 1), "yyyy-MM-dd");
+}
+
+function getWeekendStr() {
+  const today = new Date();
+  const day = today.getDay(); // 0=Sun, 6=Sat
+  const daysUntilSat = day === 6 ? 0 : 6 - day;
+  return format(addDays(today, daysUntilSat), "yyyy-MM-dd");
+}
+
+type QuickSelect = "today" | "tomorrow" | "weekend" | null;
+
 interface SuggestionSheetProps {
   open: boolean;
   onClose: () => void;
-  weekStart: string;
   onUpgradeRequired?: (code: string) => void;
 }
 
-function getDayLabel(date: Date): string {
-  if (isToday(date)) return "Today";
-  if (isTomorrow(date)) return "Tomorrow";
-  return format(date, "EEE");
-}
-
-export default function SuggestionSheet({
-  open,
-  onClose,
-  weekStart,
-  onUpgradeRequired,
-}: SuggestionSheetProps) {
+export default function SuggestionSheet({ open, onClose, onUpgradeRequired }: SuggestionSheetProps) {
   const queryClient = useQueryClient();
-  const weekStartDate = new Date(`${weekStart}T12:00:00`);
-  const weekDays = Array.from({ length: 7 }, (_, index) =>
-    addDays(weekStartDate, index)
-  );
+
+  const todayStr = getTodayStr();
+  const tomorrowStr = getTomorrowStr();
+  const weekendStr = getWeekendStr();
 
   const [mealName, setMealName] = useState("");
   const [note, setNote] = useState("");
-  const [category, setCategory] = useState("dinner");
   const [prepTime, setPrepTime] = useState("");
-  const [ingredients, setIngredients] = useState<string[]>(["", ""]);
-  const [targetSlotDate, setTargetSlotDate] = useState(() =>
-    format(weekStartDate, "yyyy-MM-dd")
-  );
+  const [ingredients, setIngredients] = useState<IngredientItem[]>([{ name: "" }, { name: "" }]);
+  const [targetSlotDate, setTargetSlotDate] = useState(todayStr);
   const [targetSlotType, setTargetSlotType] = useState("dinner");
+  const [quickSelect, setQuickSelect] = useState<QuickSelect>("today");
 
   function handleClose() {
     setMealName("");
     setNote("");
-    setCategory("dinner");
     setPrepTime("");
-    setIngredients(["", ""]);
-    setTargetSlotDate(format(weekStartDate, "yyyy-MM-dd"));
+    setIngredients([{ name: "" }, { name: "" }]);
+    setTargetSlotDate(todayStr);
     setTargetSlotType("dinner");
+    setQuickSelect("today");
     onClose();
   }
 
-  function updateIngredient(index: number, value: string) {
-    setIngredients((prev) => prev.map((item, i) => (i === index ? value : item)));
+  function handleQuickPill(type: QuickSelect, dateStr: string) {
+    setQuickSelect(type);
+    setTargetSlotDate(dateStr);
   }
 
-  function removeIngredient(index: number) {
-    setIngredients((prev) => prev.filter((_, i) => i !== index));
+  function handleDateInput(value: string) {
+    setTargetSlotDate(value);
+    if (value === todayStr) setQuickSelect("today");
+    else if (value === tomorrowStr) setQuickSelect("tomorrow");
+    else if (value === weekendStr) setQuickSelect("weekend");
+    else setQuickSelect(null);
   }
 
   const submitMutation = useMutation({
     mutationFn: async () => {
-      const filteredIngredients = ingredients.filter((item) => item.trim());
+      const filteredIngredients = ingredients.filter((item) => item.name.trim());
       const res = await fetch("/api/meals/suggest", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           meal_name: mealName.trim(),
           note: note.trim() || undefined,
-          category,
           prep_time: prepTime ? parseInt(prepTime, 10) : undefined,
           ingredients: filteredIngredients.length > 0 ? filteredIngredients : undefined,
           target_slot_date: targetSlotDate,
@@ -99,9 +108,7 @@ export default function SuggestionSheet({
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        const err = new Error(data.error ?? "Failed to submit suggestion") as Error & {
-          code?: string;
-        };
+        const err = new Error(data.error ?? "Failed to submit suggestion") as Error & { code?: string };
         err.code = data.code;
         throw err;
       }
@@ -135,16 +142,23 @@ export default function SuggestionSheet({
     targetSlotType.length > 0 &&
     !submitMutation.isPending;
 
+  const QUICK_PILLS: { key: QuickSelect; label: string; date: string }[] = [
+    { key: "today", label: "Today", date: todayStr },
+    { key: "tomorrow", label: "Tomorrow", date: tomorrowStr },
+    { key: "weekend", label: "This weekend", date: weekendStr },
+  ];
+
   return (
     <DraggableSheet open={open} onOpenChange={(value) => !value && handleClose()} featureColor={COLOR}>
-      <div className="px-4 pb-8" style={{ maxHeight: "calc(92dvh - 60px)" }}>
+      <div className="px-4 pb-8">
         <p className="mb-5 text-lg" style={{ color: "var(--roost-text-primary)", fontWeight: 800 }}>
           Suggest a meal
         </p>
 
         <div className="space-y-5">
+          {/* Meal name */}
           <div className="space-y-1.5">
-            <label className="text-sm" style={{ color: "var(--roost-text-primary)", fontWeight: 700 }}>
+            <label className="text-sm" style={{ color: "#374151", fontWeight: 700 }}>
               What should we eat?
             </label>
             <input
@@ -157,55 +171,62 @@ export default function SuggestionSheet({
             />
           </div>
 
+          {/* Date picker */}
           <div className="space-y-2">
-            <label className="flex items-center gap-2 text-sm" style={{ color: "var(--roost-text-primary)", fontWeight: 700 }}>
+            <label className="flex items-center gap-2 text-sm" style={{ color: "#374151", fontWeight: 700 }}>
               <CalendarDays className="size-4" />
-              Which day should this land on?
+              Which day?
             </label>
-            <div className="flex gap-1.5 overflow-x-auto pb-1">
-              {weekDays.map((date) => {
-                const dateValue = format(date, "yyyy-MM-dd");
-                const active = targetSlotDate === dateValue;
+
+            {/* Quick-select pills */}
+            <div className="flex gap-2">
+              {QUICK_PILLS.map(({ key, label, date }) => {
+                const active = quickSelect === key;
                 return (
                   <motion.button
-                    key={dateValue}
+                    key={key}
                     type="button"
                     whileTap={{ y: 1 }}
-                    onClick={() => setTargetSlotDate(dateValue)}
-                    className="flex min-w-14 shrink-0 flex-col items-center gap-0.5 rounded-xl px-3 py-2"
+                    onClick={() => handleQuickPill(key, date)}
+                    className="flex h-10 items-center justify-center rounded-xl px-3 text-sm"
                     style={{
-                      backgroundColor: active ? COLOR + "18" : "var(--roost-bg)",
+                      backgroundColor: active ? COLOR + "18" : "var(--roost-surface)",
                       border: active ? `1.5px solid ${COLOR}40` : "1.5px solid #E5E7EB",
                       borderBottom: active ? `3px solid ${COLOR_DARK}60` : "3px solid #E5E7EB",
+                      color: active ? COLOR : "var(--roost-text-secondary)",
+                      fontWeight: active ? 800 : 600,
                     }}
                   >
-                    <span className="text-[10px]" style={{ color: active ? COLOR : "var(--roost-text-muted)", fontWeight: 700 }}>
-                      {getDayLabel(date)}
-                    </span>
-                    <span className="text-sm" style={{ color: active ? COLOR : "var(--roost-text-primary)", fontWeight: 800 }}>
-                      {format(date, "d")}
-                    </span>
+                    {label}
                   </motion.button>
                 );
               })}
             </div>
+
+            {/* Always-visible date input */}
+            <input
+              type="date"
+              min={todayStr}
+              value={targetSlotDate}
+              onChange={(e) => handleDateInput(e.target.value)}
+              className="flex h-12 w-full rounded-xl px-4 text-sm focus:outline-none"
+              style={inputStyle}
+            />
           </div>
 
+          {/* Slot type */}
           <div className="space-y-1.5">
-            <label className="text-sm" style={{ color: "var(--roost-text-primary)", fontWeight: 700 }}>
+            <label className="text-sm" style={{ color: "#374151", fontWeight: 700 }}>
               Which slot?
             </label>
             <div className="grid grid-cols-4 gap-2">
-              {CATEGORIES.map((item) => {
+              {SLOT_TYPES.map((item) => {
                 const active = targetSlotType === item.value;
                 return (
                   <motion.button
                     key={item.value}
                     type="button"
-                    onClick={() => {
-                      setCategory(item.value);
-                      setTargetSlotType(item.value);
-                    }}
+                    onClick={() => setTargetSlotType(item.value)}
                     whileTap={{ y: 1 }}
                     className="flex h-11 items-center justify-center rounded-xl text-sm"
                     style={{
@@ -223,55 +244,26 @@ export default function SuggestionSheet({
             </div>
           </div>
 
+          {/* Ingredients via RecipeEditor (simple mode, no steps) */}
           <div className="space-y-1.5">
-            <label className="text-sm" style={{ color: "var(--roost-text-primary)", fontWeight: 700 }}>
+            <label className="text-sm" style={{ color: "#374151", fontWeight: 700 }}>
               Ingredients
+              <span className="ml-1.5 text-xs" style={{ color: "var(--roost-text-muted)", fontWeight: 600 }}>
+                optional
+              </span>
             </label>
-            <div className="space-y-2">
-              {ingredients.map((ingredient, index) => (
-                <div key={index} className="flex items-center gap-2">
-                  <input
-                    type="text"
-                    value={ingredient}
-                    onChange={(e) => updateIngredient(index, e.target.value)}
-                    placeholder="e.g. tortillas, chicken, salsa"
-                    className="flex h-11 flex-1 rounded-xl px-4 text-sm placeholder:italic focus:outline-none"
-                    style={inputStyle}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => removeIngredient(index)}
-                    className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl"
-                    style={{
-                      border: "1.5px solid #E5E7EB",
-                      borderBottom: "3px solid #E5E7EB",
-                      color: "var(--roost-text-muted)",
-                    }}
-                  >
-                    <X className="size-4" />
-                  </button>
-                </div>
-              ))}
-              <motion.button
-                type="button"
-                onClick={() => setIngredients((prev) => [...prev, ""])}
-                whileTap={{ y: 1 }}
-                className="flex h-11 w-full items-center justify-center gap-2 rounded-xl text-sm"
-                style={{
-                  border: "1.5px dashed #E5E7EB",
-                  borderBottom: "3px dashed #E5E7EB",
-                  color: "var(--roost-text-muted)",
-                  fontWeight: 700,
-                }}
-              >
-                <Plus className="size-4" />
-                Add ingredient
-              </motion.button>
-            </div>
+            <RecipeEditor
+              ingredients={ingredients}
+              steps={[]}
+              onChange={(ing) => setIngredients(ing)}
+              color={COLOR}
+              hideSteps
+            />
           </div>
 
+          {/* Why this one */}
           <div className="space-y-1.5">
-            <label className="text-sm" style={{ color: "var(--roost-text-primary)", fontWeight: 700 }}>
+            <label className="text-sm" style={{ color: "#374151", fontWeight: 700 }}>
               Why this one?
               <span className="ml-1.5 text-xs" style={{ color: "var(--roost-text-muted)", fontWeight: 600 }}>
                 optional
@@ -287,8 +279,9 @@ export default function SuggestionSheet({
             />
           </div>
 
+          {/* Prep time */}
           <div className="space-y-1.5">
-            <label className="text-sm" style={{ color: "var(--roost-text-primary)", fontWeight: 700 }}>
+            <label className="text-sm" style={{ color: "#374151", fontWeight: 700 }}>
               Prep time
               <span className="ml-1.5 text-xs" style={{ color: "var(--roost-text-muted)", fontWeight: 600 }}>
                 optional
@@ -310,6 +303,7 @@ export default function SuggestionSheet({
             </div>
           </div>
 
+          {/* Submit */}
           <motion.button
             type="button"
             disabled={!canSubmit}

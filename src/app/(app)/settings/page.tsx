@@ -120,6 +120,7 @@ const NAV_SECTIONS = [
   },
   { id: 'section-promotions', label: 'Promotions' },
   { id: 'section-billing', label: 'Billing' },
+  { id: 'section-stats-visibility', label: 'Stats Visibility', adminOnly: true },
   { id: 'section-danger', label: 'Danger Zone', adminOnly: true },
 ];
 
@@ -1111,6 +1112,88 @@ function ChoreCategoriesSettingsSection() {
   );
 }
 
+// ---- StatsVisibilitySection -------------------------------------------------
+
+const STATS_TOGGLES: { key: string; label: string }[] = [
+  { key: 'leaderboard', label: 'Leaderboard' },
+  { key: 'chores',      label: 'Chores chart' },
+  { key: 'expenses',    label: 'Expenses charts' },
+  { key: 'tasks',       label: 'Tasks chart' },
+  { key: 'meals',       label: 'Meals chart' },
+  { key: 'grocery',     label: 'Grocery chart' },
+];
+
+function StatsVisibilitySection({
+  visibility,
+  onToggle,
+}: {
+  visibility: Record<string, boolean>;
+  onToggle: (key: string, value: boolean) => void;
+}) {
+  return (
+    <SettingsSection
+      id="section-stats-visibility"
+      title="Stats Visibility"
+      subtitle="Choose which sections appear on the household stats page."
+    >
+      <SlabCard>
+        {STATS_TOGGLES.map((t, i) => (
+          <div
+            key={t.key}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              padding: '14px 16px',
+              borderTop: i > 0 ? '1px solid var(--roost-border)' : 'none',
+            }}
+          >
+            <span
+              style={{
+                fontSize: 14,
+                fontWeight: 700,
+                color: 'var(--roost-text-primary)',
+              }}
+            >
+              {t.label}
+            </span>
+            <button
+              type="button"
+              onClick={() => onToggle(t.key, !visibility[t.key])}
+              aria-label={visibility[t.key] ? `Hide ${t.label}` : `Show ${t.label}`}
+              style={{
+                width: 44,
+                height: 24,
+                borderRadius: 12,
+                border: 'none',
+                backgroundColor: visibility[t.key] ? '#6366F1' : 'var(--roost-border-bottom)',
+                cursor: 'pointer',
+                position: 'relative',
+                transition: 'background-color 0.2s',
+                flexShrink: 0,
+              }}
+            >
+              <div
+                style={{
+                  position: 'absolute',
+                  top: 2,
+                  left: visibility[t.key] ? 22 : 2,
+                  width: 20,
+                  height: 20,
+                  borderRadius: 10,
+                  backgroundColor: '#fff',
+                  transition: 'left 0.2s',
+                  boxShadow: '0 1px 3px rgba(0,0,0,0.15)',
+                }}
+              />
+            </button>
+          </div>
+        ))}
+      </SlabCard>
+    </SettingsSection>
+  );
+}
+
 // ---- Page -------------------------------------------------------------------
 
 export default function SettingsPage() {
@@ -1118,7 +1201,7 @@ export default function SettingsPage() {
   const queryClient = useQueryClient();
   const { theme, setTheme } = useTheme();
   const { data: sessionData } = useSession();
-  const { household, role, isPremium } = useHousehold();
+  const { household, role, isPremium, statsVisibility } = useHousehold();
   const { temperatureUnit, latitude, longitude, updatePreferences } =
     useUserPreferences();
 
@@ -1463,6 +1546,25 @@ export default function SettingsPage() {
     } catch (err) {
       toast.error('Could not transfer admin', {
         description: (err as Error).message,
+      });
+    }
+  }
+
+  // ---- Stats visibility toggle ----------------------------------------------
+  async function handleStatsVisibilityToggle(key: string, value: boolean) {
+    const current: Record<string, boolean> = { ...(statsVisibility as Record<string, boolean>) };
+    const updated = { ...current, [key]: value };
+    try {
+      const r = await fetch(`/api/household/${householdId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ statsVisibility: updated }),
+      });
+      if (!r.ok) throw new Error('Failed');
+      queryClient.invalidateQueries({ queryKey: ['household'] });
+    } catch {
+      toast.error('Could not save stats visibility', {
+        description: 'Something went wrong. Try again.',
       });
     }
   }
@@ -2814,6 +2916,14 @@ export default function SettingsPage() {
               </div>
             </SlabCard>
           </SettingsSection>
+
+          {/* ---- SECTION: STATS VISIBILITY (admin + premium only) -------------- */}
+          {isAdmin && isPremium && (
+            <StatsVisibilitySection
+              visibility={statsVisibility as Record<string, boolean>}
+              onToggle={handleStatsVisibilityToggle}
+            />
+          )}
 
           {/* ---- SECTION 8: DANGER ZONE (admin only) ------------------------ */}
           {isAdmin && (

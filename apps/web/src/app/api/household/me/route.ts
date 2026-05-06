@@ -1,21 +1,29 @@
 import { NextRequest } from "next/server";
-import { getUserMemberships, requireCurrentMembership } from "@/lib/auth/helpers";
+import { getSession } from "@/lib/auth/helpers";
 import { db } from "@/lib/db";
-import { households, member_permissions } from "@/db/schema";
-import { and, eq } from "drizzle-orm";
+import { householdMembers, households, memberPermissions } from "@/db/schema";
+import { and, eq, isNull, desc } from "drizzle-orm";
 
 export async function GET(request: NextRequest): Promise<Response> {
-  let authContext;
-  try {
-    authContext = await requireCurrentMembership(request);
-  } catch (res) {
-    return res as Response;
-  }
+  const session = await getSession();
+  if (!session) return Response.json({ error: "Unauthorized" }, { status: 401 });
 
-  const {
-    membership,
-    user: { id: userId },
-  } = authContext;
+  const userId = session.user.id;
+
+  // Most recently joined household membership
+  const [membership] = await db
+    .select({
+      householdId: householdMembers.householdId,
+      role: householdMembers.role,
+    })
+    .from(householdMembers)
+    .where(and(eq(householdMembers.userId, userId), isNull(householdMembers.deletedAt)))
+    .orderBy(desc(householdMembers.createdAt))
+    .limit(1);
+
+  if (!membership) {
+    return Response.json({ error: "No household" }, { status: 404 });
+  }
 
   const [household] = await db
     .select({
@@ -31,34 +39,40 @@ export async function GET(request: NextRequest): Promise<Response> {
       created_by: households.created_by,
     })
     .from(households)
-    .where(eq(households.id, membership.householdId))
+    .where(and(eq(households.id, membership.householdId), isNull(households.deletedAt)))
     .limit(1);
 
   if (!household) {
     return Response.json({ error: "Household not found" }, { status: 404 });
   }
 
-  const permissionRows = await db
-    .select({
-      permission: member_permissions.permission,
-      householdId: member_permissions.household_id,
-    })
-    .from(member_permissions)
-    .where(eq(member_permissions.user_id, userId));
-
-  const permissions = permissionRows
-    .filter(
-      (permissionRow) =>
-        permissionRow.permission && permissionRow.householdId === membership.householdId
+  // Get permissions from the boolean columns
+  const [perms] = await db
+    .select()
+    .from(memberPermissions)
+    .where(
+      and(
+        eq(memberPermissions.userId, userId),
+        eq(memberPermissions.householdId, membership.householdId),
+      )
     )
-    .map((p) => p.permission);
-  const memberships = await getUserMemberships(userId);
+    .limit(1);
 
-  return Response.json({
-    household,
-    role: membership.role,
-    permissions,
-    activeHouseholdId: membership.householdId,
-    membershipCount: memberships.length,
-  });
+  const permissions: string[] = [];
+  if (perms) {
+    if (perms.expensesView) permissions.push("expenses.view");
+    if (perms.expensesAdd) permissions.push("expenses.add");
+    if (perms.choresAdd) permissions.push("chores.add");
+    if (perms.choresEdit) permissions.push("chores.edit");
+    if (perms.groceryAdd) permissions.push("grocery.add");
+    if (perms.groceryCreateList) permissions.push("grocery.create_list");
+    if (perms.calendarAdd) permissions.push("calendar.add");
+    if (perms.calendarEdit) permissions.push("calendar.edit");
+    if (perms.tasksAdd) permissions.push("tasks.add");
+    if (perms.notesAdd) permissions.push("notes.add");
+    if (perms.mealsPlan) permissions.push("meals.plan");
+    if (perms.mealsSuggest) permissions.push("meals.suggest");
+  }
+
+  return Response.json({ household, role: membership.role, permissions });
 }

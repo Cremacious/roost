@@ -22,7 +22,7 @@ export async function getUserHousehold(userId: string) {
       role: householdMembers.role,
       household: {
         name: households.name,
-        subscriptionStatus: households.subscriptionStatus,
+        subscriptionStatus: households.subscription_status,
       },
     })
     .from(householdMembers)

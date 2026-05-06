@@ -61,6 +61,9 @@ export default function NoteSheet({
   const [content, setContent] = useState('')
   const [isRichText, setIsRichText] = useState(false)
 
+  // Premium users always get rich text; free users can opt in per-note
+  const useRichText = isPremium || isRichText
+
   // Debounce timer for rich-text auto-save in view mode
   const autoSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
@@ -107,7 +110,7 @@ export default function NoteSheet({
       toast.error('Empty note', { description: 'Add a title or some content.' })
       return
     }
-    saveMutation.mutate({ title: title.trim() || null, content, isRichText })
+    saveMutation.mutate({ title: title.trim() || null, content, isRichText: useRichText })
   }
 
   // Auto-save for rich text view mode (debounced 800ms)
@@ -148,10 +151,10 @@ export default function NoteSheet({
         </div>
 
         {/* Content */}
-        <div style={{ marginBottom: isRichText ? 12 : 24 }}>
+        <div style={{ marginBottom: useRichText ? 12 : 24 }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
             <label style={{ ...LABEL_STYLE, marginBottom: 0 }}>Note</label>
-            {!isRichText && (
+            {!isPremium && !isRichText && (
               <button
                 type="button"
                 onClick={handleEnableRichText}
@@ -161,32 +164,30 @@ export default function NoteSheet({
                   gap: 4,
                   fontSize: 11,
                   fontWeight: 800,
-                  color: isPremium ? COLOR : 'var(--roost-text-muted)',
+                  color: 'var(--roost-text-muted)',
                   background: 'none',
                   border: 'none',
                   cursor: 'pointer',
                   padding: 0,
                 }}
               >
-                {!isPremium && <Lock size={10} />}
+                <Lock size={10} />
                 Rich text
-                {!isPremium && (
-                  <span style={{
-                    fontSize: 9,
-                    fontWeight: 800,
-                    color: COLOR,
-                    backgroundColor: `${COLOR}18`,
-                    borderRadius: 20,
-                    padding: '1px 6px',
-                  }}>
-                    Premium
-                  </span>
-                )}
+                <span style={{
+                  fontSize: 9,
+                  fontWeight: 800,
+                  color: COLOR,
+                  backgroundColor: `${COLOR}18`,
+                  borderRadius: 20,
+                  padding: '1px 6px',
+                }}>
+                  Premium
+                </span>
               </button>
             )}
           </div>
 
-          {isRichText ? (
+          {useRichText ? (
             <RichTextEditor
               content={content}
               onChange={handleRichTextChange}
@@ -203,7 +204,7 @@ export default function NoteSheet({
           )}
         </div>
 
-        {isRichText && isEditing && (
+        {useRichText && isEditing && (
           <p style={{ margin: '0 0 16px', fontSize: 11, fontWeight: 600, color: 'var(--roost-text-muted)' }}>
             Changes save automatically.
           </p>

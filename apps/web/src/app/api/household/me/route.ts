@@ -39,7 +39,7 @@ export async function GET(request: NextRequest): Promise<Response> {
       created_by: households.created_by,
     })
     .from(households)
-    .where(and(eq(households.id, membership.householdId), isNull(households.deletedAt)))
+    .where(and(eq(households.id, membership.householdId), isNull(households.deleted_at)))
     .limit(1);
 
   if (!household) {

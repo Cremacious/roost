@@ -20,7 +20,7 @@ export async function POST() {
 
   await db
     .update(households)
-    .set({ subscriptionStatus: next })
+    .set({ subscription_status: next })
     .where(eq(households.id, membership.householdId))
 
   return NextResponse.json({ subscriptionStatus: next })

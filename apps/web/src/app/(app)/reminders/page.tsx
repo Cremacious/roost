@@ -3,12 +3,12 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Plus, Bell, Pencil, Trash2, Check, RotateCcw, ChevronDown, ChevronUp, Clock } from 'lucide-react'
+import { Plus, Bell, Pencil, Trash2, Check, ChevronDown, ChevronUp, Clock } from 'lucide-react'
 import { toast } from 'sonner'
 import { useSession } from '@/lib/auth/client'
 import { SECTION_COLORS } from '@/lib/constants/colors'
 import { SlabCard } from '@/components/ui/SlabCard'
-import { DraggableSheet } from '@/components/shared/DraggableSheet'
+import { ReminderSheet, type ReminderData, type Member } from '@/components/reminders/ReminderSheet'
 
 const COLOR = SECTION_COLORS.reminders.base
 const COLOR_DARK = SECTION_COLORS.reminders.dark
@@ -21,30 +21,12 @@ interface Reminder {
   nextRemindAt: string
   frequency: string | null
   notifyType: string
+  notifyUserIds: string
   completed: boolean
   snoozedUntil: string | null
   createdBy: string
   householdId: string
 }
-
-const LABEL_STYLE: React.CSSProperties = {
-  fontSize: 11, fontWeight: 800, textTransform: 'uppercase',
-  letterSpacing: '0.07em', color: '#374151', marginBottom: 6, display: 'block',
-}
-const INPUT_STYLE: React.CSSProperties = {
-  width: '100%', border: '1.5px solid var(--roost-border)',
-  borderBottom: '3px solid var(--roost-border)', borderRadius: 12,
-  padding: '12px 14px', fontSize: 15, fontWeight: 600,
-  backgroundColor: 'var(--roost-surface)', color: 'var(--roost-text-primary)',
-  outline: 'none', boxSizing: 'border-box',
-}
-
-const FREQUENCIES = [
-  { value: 'once', label: 'Once' },
-  { value: 'daily', label: 'Daily' },
-  { value: 'weekly', label: 'Weekly' },
-  { value: 'monthly', label: 'Monthly' },
-]
 
 function isSnoozed(r: Reminder) {
   if (!r.snoozedUntil) return false
@@ -58,7 +40,7 @@ function isOverdue(r: Reminder) {
 function isDueToday(r: Reminder) {
   if (r.completed || isSnoozed(r)) return false
   const d = new Date(r.nextRemindAt)
-  const today = new Date(); today.setHours(0,0,0,0)
+  const today = new Date(); today.setHours(0, 0, 0, 0)
   const tomorrow = new Date(today); tomorrow.setDate(tomorrow.getDate() + 1)
   return d >= today && d < tomorrow
 }
@@ -73,97 +55,12 @@ function freqLabel(f: string | null) {
   return f.charAt(0).toUpperCase() + f.slice(1)
 }
 
-function ReminderSheet({ open, onClose, reminder, onSaved }: {
-  open: boolean; onClose: () => void; reminder: Reminder | null; onSaved: () => void
-}) {
-  const [title, setTitle] = useState(reminder?.title ?? '')
-  const [note, setNote] = useState(reminder?.note ?? '')
-  const [remindAt, setRemindAt] = useState(reminder?.remindAt ? new Date(reminder.remindAt).toISOString().slice(0,16) : '')
-  const [frequency, setFrequency] = useState(reminder?.frequency ?? 'once')
-  const [saving, setSaving] = useState(false)
-
-  // Reset on open
-  const [prevOpen, setPrevOpen] = useState(false)
-  if (open && !prevOpen) {
-    setTitle(reminder?.title ?? '')
-    setNote(reminder?.note ?? '')
-    setRemindAt(reminder?.remindAt ? new Date(reminder.remindAt).toISOString().slice(0,16) : '')
-    setFrequency(reminder?.frequency ?? 'once')
-    setPrevOpen(true)
-  }
-  if (!open && prevOpen) setPrevOpen(false)
-
-  async function handleSave() {
-    if (!title.trim()) { toast.error('Title is required', { description: 'Name your reminder.' }); return }
-    if (!remindAt) { toast.error('Date is required', { description: 'Pick when to remind you.' }); return }
-    setSaving(true)
-    try {
-      const url = reminder ? `/api/reminders/${reminder.id}` : '/api/reminders'
-      const method = reminder ? 'PATCH' : 'POST'
-      const r = await fetch(url, {
-        method,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title: title.trim(), note: note.trim() || null, remindAt: new Date(remindAt).toISOString(), frequency }),
-      })
-      if (!r.ok) throw new Error((await r.json()).error ?? 'Failed')
-      toast.success(reminder ? 'Reminder updated' : 'Reminder set')
-      onSaved()
-      onClose()
-    } catch (e) {
-      toast.error('Could not save reminder', { description: (e as Error).message })
-    } finally {
-      setSaving(false)
-    }
-  }
-
-  return (
-    <DraggableSheet open={open} onOpenChange={v => !v && onClose()} featureColor={COLOR}>
-      <div className="px-4 pb-8">
-        <p className="mb-5 text-lg" style={{ color: 'var(--roost-text-primary)', fontWeight: 800 }}>
-          {reminder ? 'Edit reminder' : 'New reminder'}
-        </p>
-        <div style={{ marginBottom: 16 }}>
-          <label style={LABEL_STYLE}>Title</label>
-          <input style={INPUT_STYLE} placeholder="What do you need to remember?" value={title} onChange={e => setTitle(e.target.value)} />
-        </div>
-        <div style={{ marginBottom: 16 }}>
-          <label style={LABEL_STYLE}>Note</label>
-          <textarea style={{ ...INPUT_STYLE, minHeight: 72, resize: 'vertical' }} placeholder="Any extra details..." value={note} onChange={e => setNote(e.target.value)} />
-        </div>
-        <div style={{ marginBottom: 16 }}>
-          <label style={LABEL_STYLE}>Remind at</label>
-          <input type="datetime-local" style={INPUT_STYLE} value={remindAt} onChange={e => setRemindAt(e.target.value)} />
-        </div>
-        <div style={{ marginBottom: 24 }}>
-          <label style={LABEL_STYLE}>Repeat</label>
-          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-            {FREQUENCIES.map(f => {
-              const active = frequency === f.value
-              return (
-                <button key={f.value} type="button" onClick={() => setFrequency(f.value)}
-                  style={{ flex: '1 1 80px', padding: '10px 0', borderRadius: 10, border: '1.5px solid var(--roost-border)', borderBottom: active ? `3px solid ${COLOR_DARK}` : '3px solid var(--roost-border)', backgroundColor: active ? COLOR : 'var(--roost-surface)', color: active ? '#fff' : 'var(--roost-text-secondary)', fontWeight: 800, fontSize: 13, cursor: 'pointer' }}>
-                  {f.label}
-                </button>
-              )
-            })}
-          </div>
-        </div>
-        <button type="button" onClick={handleSave} disabled={saving}
-          style={{ width: '100%', padding: '14px 0', borderRadius: 14, border: 'none', borderBottom: `3px solid ${COLOR_DARK}`, backgroundColor: COLOR, color: '#fff', fontWeight: 800, fontSize: 15, cursor: saving ? 'not-allowed' : 'pointer', opacity: saving ? 0.7 : 1 }}>
-          {saving ? 'Saving...' : reminder ? 'Save changes' : 'Set reminder'}
-        </button>
-      </div>
-    </DraggableSheet>
-  )
-}
-
 function ReminderRow({ reminder, canModify, onComplete, onUndo, onEdit, onDelete }: {
   reminder: Reminder; canModify: boolean
   onComplete: (id: string) => void; onUndo: (id: string) => void
   onEdit: (r: Reminder) => void; onDelete: (id: string) => void
 }) {
   const snoozed = isSnoozed(reminder)
-  const isOnce = !reminder.frequency || reminder.frequency === 'once'
 
   return (
     <SlabCard color={reminder.completed || snoozed ? 'var(--roost-border-bottom)' : COLOR} style={{ opacity: reminder.completed || snoozed ? 0.7 : 1 }}>
@@ -291,6 +188,25 @@ export default function RemindersPage() {
 
   const hasAny = reminders.length > 0
 
+  const members: Member[] = (householdData?.members ?? []).map((m: { userId: string; name: string; avatarColor: string | null }) => ({
+    userId: m.userId,
+    name: m.name,
+    avatarColor: m.avatarColor,
+  }))
+
+  function toReminderData(r: Reminder): ReminderData {
+    return {
+      id: r.id,
+      title: r.title,
+      note: r.note,
+      remindAt: r.remindAt,
+      frequency: r.frequency,
+      notifyType: r.notifyType,
+      notifyUserIds: r.notifyUserIds,
+      createdBy: r.createdBy,
+    }
+  }
+
   function renderGroup(items: Reminder[], label: string, color: string, opts?: { collapsed?: boolean; onToggle?: () => void }) {
     if (items.length === 0) return null
     return (
@@ -314,7 +230,7 @@ export default function RemindersPage() {
 
   if (isLoading) return (
     <div style={{ padding: '20px 16px', display: 'flex', flexDirection: 'column', gap: 10 }}>
-      {[1,2,3].map(i => <div key={i} style={{ height: 64, borderRadius: 16, backgroundColor: 'var(--roost-surface)', border: '1.5px solid var(--roost-border)', borderBottom: '4px solid var(--roost-border)' }} />)}
+      {[1, 2, 3].map(i => <div key={i} style={{ height: 64, borderRadius: 16, backgroundColor: 'var(--roost-surface)', border: '1.5px solid var(--roost-border)', borderBottom: '4px solid var(--roost-border)' }} />)}
     </div>
   )
 
@@ -365,17 +281,11 @@ export default function RemindersPage() {
         </div>
       </motion.div>
 
-      <motion.button whileTap={{ y: 2 }} type="button" onClick={() => { setEditReminder(null); setSheetOpen(true) }}
-        className="md:hidden"
-        style={{ position: 'fixed', bottom: 80, right: 20, width: 56, height: 56, borderRadius: 18, backgroundColor: COLOR, border: 'none', borderBottom: `4px solid ${COLOR_DARK}`, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', boxShadow: '0 4px 16px rgba(0,0,0,0.15)', zIndex: 40 }}>
-        <Plus size={24} color="#fff" />
-      </motion.button>
-
       <ReminderSheet
         open={sheetOpen}
         onClose={() => { setSheetOpen(false); setEditReminder(null) }}
-        reminder={editReminder}
-        onSaved={() => qc.invalidateQueries({ queryKey: ['reminders'] })}
+        reminder={editReminder ? toReminderData(editReminder) : null}
+        members={members}
       />
     </>
   )

@@ -3,6 +3,7 @@ import { getSession, getUserHousehold } from '@/lib/auth/helpers'
 import { db } from '@/lib/db'
 import { reminders } from '@/db/schema'
 import { eq, and, isNull, asc } from 'drizzle-orm'
+import { logActivity } from '@/lib/utils/activity'
 
 export function calcNextRemindAt(remindAt: Date, frequency: string | null, customDays: string | null): Date {
   if (!frequency || frequency === 'once') return remindAt
@@ -31,7 +32,18 @@ export async function GET() {
     .where(and(eq(reminders.householdId, householdId), isNull(reminders.deletedAt)))
     .orderBy(asc(reminders.nextRemindAt))
 
-  return NextResponse.json({ reminders: rows })
+  const userId = session.user.id
+  const visible = rows.filter(r => {
+    if (r.notifyType === 'household') return true
+    if (r.notifyType === 'self') return r.createdBy === userId
+    if (r.notifyType === 'specific') {
+      const ids = JSON.parse(r.notifyUserIds ?? '[]') as string[]
+      return r.createdBy === userId || ids.includes(userId)
+    }
+    return r.createdBy === userId
+  })
+
+  return NextResponse.json({ reminders: visible })
 }
 
 export async function POST(req: NextRequest) {
@@ -66,6 +78,15 @@ export async function POST(req: NextRequest) {
       createdBy: session.user.id,
     })
     .returning()
+
+  await logActivity({
+    householdId,
+    userId: session.user.id,
+    type: 'reminder_added',
+    entityId: reminder.id,
+    entityType: 'reminder',
+    description: `Set a reminder: "${reminder.title}"`,
+  })
 
   return NextResponse.json({ reminder }, { status: 201 })
 }

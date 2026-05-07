@@ -159,7 +159,6 @@ const compRows: Array<{ feature: string; roost: string; splitwise: string; cozi:
   { feature: 'Shared calendar',          roost: '✓', splitwise: '✗', cozi: '✓', ourHome: '✓' },
   { feature: 'Child accounts',           roost: '✓', splitwise: '✗', cozi: '✗', ourHome: '~' },
   { feature: 'Reminders',               roost: '✓', splitwise: '✗', cozi: '✓', ourHome: '✗' },
-  { feature: 'Per-household pricing',    roost: '✓', splitwise: '✗', cozi: '✗', ourHome: '✗' },
   { feature: 'Notes',                   roost: '✓', splitwise: '✗', cozi: '✗', ourHome: '✗' },
 ]
 

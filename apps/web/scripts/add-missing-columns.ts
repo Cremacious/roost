@@ -34,6 +34,11 @@ async function main() {
     )
   `
 
+  await sql`
+    ALTER TABLE users
+    ADD COLUMN IF NOT EXISTS active_household_id text
+  `
+
   console.log('Done.')
 }
 

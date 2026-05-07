@@ -17,6 +17,7 @@ export const users = pgTable('users', {
   pushToken: text('push_token'),
   venmoHandle: text('venmo_handle'),
   cashappHandle: text('cashapp_handle'),
+  activeHouseholdId: text('active_household_id'),
   isChildAccount: boolean('is_child_account').notNull().default(false),
   childOfHouseholdId: text('child_of_household_id'),
   hasSeenWelcome: boolean('has_seen_welcome').notNull().default(false),

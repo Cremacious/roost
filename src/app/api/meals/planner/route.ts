@@ -146,8 +146,15 @@ export async function POST(request: NextRequest): Promise<Response> {
   }
 
   if (body.meal_id) {
-    const [m] = await db.select({ name: meals.name }).from(meals).where(eq(meals.id, body.meal_id)).limit(1);
-    if (m) mealDisplayName = m.name;
+    const [m] = await db
+      .select({ name: meals.name })
+      .from(meals)
+      .where(and(eq(meals.id, body.meal_id), eq(meals.household_id, householdId)))
+      .limit(1);
+    if (!m) {
+      return Response.json({ error: "Meal not found" }, { status: 404 });
+    }
+    mealDisplayName = m.name;
   }
 
   const [slot] = await db

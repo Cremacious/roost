@@ -69,7 +69,12 @@ export async function POST(
 
   const [updated] = await db
     .update(expense_splits)
-    .set({ settled: true, settled_at: new Date() })
+    .set({
+      settled: true,
+      settled_at: new Date(),
+      settled_by_payer: true,
+      settled_by_payee: true,
+    })
     .where(eq(expense_splits.id, body.split_id))
     .returning();
 

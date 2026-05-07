@@ -52,6 +52,13 @@ export async function GET(request: NextRequest): Promise<Response> {
   const startDate = new Date(`${start}T00:00:00`);
   const endDate = new Date(`${end}T23:59:59`);
 
+  if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
+    return Response.json({ error: "Invalid date format" }, { status: 400 });
+  }
+  if (startDate > endDate) {
+    return Response.json({ error: "start must be before end" }, { status: 400 });
+  }
+
   const [
     // Chores
     q1_totalCompletions,

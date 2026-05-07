@@ -1,7 +1,7 @@
 import { NextRequest } from "next/server";
 import { db } from "@/lib/db";
 import { expenses, expense_splits, users, notification_queue } from "@/db/schema";
-import { and, eq, isNull, lt } from "drizzle-orm";
+import { and, eq, inArray, isNull, lt } from "drizzle-orm";
 import { log } from "@/lib/utils/logger";
 
 // ---- GET: daily cron - remind payees of pending settlements over 7 days old -
@@ -42,11 +42,11 @@ export async function GET(request: NextRequest): Promise<Response> {
   }
 
   // Get expense paid_by info
-  const _expenseIds = [...new Set(pendingSplits.map((s) => s.expense_id))];
+  const expenseIds = [...new Set(pendingSplits.map((s) => s.expense_id))];
   const expenseRows = await db
     .select({ id: expenses.id, paid_by: expenses.paid_by })
     .from(expenses)
-    .where(isNull(expenses.deleted_at));
+    .where(and(inArray(expenses.id, expenseIds), isNull(expenses.deleted_at)));
 
   const expensePaidByMap: Record<string, string> = {};
   for (const e of expenseRows) expensePaidByMap[e.id] = e.paid_by;
@@ -63,11 +63,11 @@ export async function GET(request: NextRequest): Promise<Response> {
   }
 
   // Get debtor names
-  const _debtorIds = [...new Set(Object.values(pairs).map((p) => p.debtorId))];
+  const debtorIds = [...new Set(Object.values(pairs).map((p) => p.debtorId))];
   const debtorUsers = await db
     .select({ id: users.id, name: users.name })
     .from(users)
-    .where(isNull(users.deleted_at));
+    .where(and(inArray(users.id, debtorIds), isNull(users.deleted_at)));
   const nameMap: Record<string, string> = {};
   for (const u of debtorUsers) nameMap[u.id] = u.name;
 

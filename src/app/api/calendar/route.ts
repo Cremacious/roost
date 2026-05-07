@@ -103,6 +103,13 @@ export async function GET(request: NextRequest): Promise<Response> {
   const month = parseInt(url.searchParams.get("month") ?? String(now.getMonth() + 1), 10);
   const year = parseInt(url.searchParams.get("year") ?? String(now.getFullYear()), 10);
 
+  if (!Number.isFinite(month) || month < 1 || month > 12) {
+    return Response.json({ error: "Invalid month" }, { status: 400 });
+  }
+  if (!Number.isFinite(year) || year < 2000 || year > 2100) {
+    return Response.json({ error: "Invalid year" }, { status: 400 });
+  }
+
   const monthStart = new Date(year, month - 1, 1, 0, 0, 0, 0);
   const monthEnd = new Date(year, month, 1, 0, 0, 0, 0);
 

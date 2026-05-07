@@ -17,7 +17,7 @@ export async function GET(request: NextRequest): Promise<Response> {
   const offset = (page - 1) * limit;
 
   const searchClause = search
-    ? sql`AND (h.name ILIKE ${"%" + search + "%"} OR h.code ILIKE ${"%" + search + "%"})`
+    ? sql`AND (h.name ILIKE ${"%" + search + "%"} OR h.invite_code ILIKE ${"%" + search + "%"})`
     : sql``;
 
   const filterClause =
@@ -34,7 +34,7 @@ export async function GET(request: NextRequest): Promise<Response> {
       SELECT
         h.id,
         h.name,
-        h.code,
+        h.invite_code AS code,
         h.subscription_status,
         h.stripe_customer_id,
         h.stripe_subscription_id,

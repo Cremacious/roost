@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { Camera, ChevronDown, ChevronUp, DollarSign, Lock, Percent, Users } from 'lucide-react'
@@ -107,6 +107,13 @@ export function ExpenseSheet({ open, onClose, members, currentUserId, isPremium,
     queryFn: () => fetch('/api/split-templates').then(r => r.ok ? r.json() : []),
     staleTime: 60_000,
   })
+
+  // When the sheet opens or currentUserId becomes available, seed paidBy if not already set
+  useEffect(() => {
+    if (open && currentUserId && !paidBy) {
+      setPaidBy(currentUserId)
+    }
+  }, [open, currentUserId])
 
   const nonPayerMembers = members.filter(m => m.id !== paidBy)
 
@@ -285,7 +292,7 @@ export function ExpenseSheet({ open, onClose, members, currentUserId, isPremium,
       splits = [{ userId: paidBy, amount: totalAmount.toFixed(2) }]
     }
 
-    const effectivePaidBy = paidBy || currentUserId
+    const effectivePaidBy = paidBy || currentUserId || members[0]?.id || ''
     if (!effectivePaidBy) {
       toast.error('Payer required', { description: 'Select who paid for this expense.' })
       return

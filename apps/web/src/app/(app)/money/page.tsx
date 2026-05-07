@@ -15,6 +15,7 @@ import { ExpenseSheet } from '@/components/money/ExpenseSheet'
 import { SettleSheet } from '@/components/money/SettleSheet'
 import { GoalSheet } from '@/components/money/GoalSheet'
 import { ContributeSheet } from '@/components/money/ContributeSheet'
+import { useHousehold } from '@/lib/hooks/useHousehold'
 
 function EmptyState({ color, icon, title, body, buttonLabel, onButtonClick }: {
   color: string; icon: React.ReactNode; title: string; body: string; buttonLabel?: string; onButtonClick?: () => void
@@ -769,14 +770,7 @@ export default function MoneyPage() {
   const [editingGoal, setEditingGoal] = useState<any | null>(null)
   const [contributeGoal, setContributeGoal] = useState<any | null>(null)
 
-  const householdQuery = useQuery({
-    queryKey: ['household-me'],
-    queryFn: () => fetch('/api/household/me').then(r => r.json()),
-    staleTime: 60_000,
-  })
-
-  const role = householdQuery.data?.role ?? 'member'
-  const isPremium = householdQuery.data?.household?.subscriptionStatus === 'premium'
+  const { isPremium, role } = useHousehold()
   const isAdmin = role === 'admin'
 
   const membersQuery = useQuery({

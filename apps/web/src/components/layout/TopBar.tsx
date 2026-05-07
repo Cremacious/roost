@@ -121,7 +121,7 @@ export function TopBar() {
       className="fixed left-0 right-0 top-0 z-30 flex h-14 items-center justify-between border-b px-4 bg-[#C0160C] md:bg-(--roost-topbar-bg) md:left-[180px]"
       style={{ borderBottomColor: 'var(--roost-topbar-border)' }}
     >
-      {/* Left: logo on mobile, household name on desktop */}
+      {/* Left: logo + household name on mobile */}
       <div className="flex items-center gap-2 min-w-0">
         {/* Mobile logo + household name */}
         <div className="flex items-center gap-2 md:hidden">
@@ -153,15 +153,6 @@ export function TopBar() {
           </button>
         </div>
 
-        {/* Desktop household name */}
-        <div className="hidden md:block min-w-0">
-          <span
-            className="truncate text-base"
-            style={{ color: 'var(--roost-text-primary)', fontWeight: 800, maxWidth: 220, display: 'block' }}
-          >
-            {householdName}
-          </span>
-        </div>
       </div>
 
       {/* Right: weather chip + time */}

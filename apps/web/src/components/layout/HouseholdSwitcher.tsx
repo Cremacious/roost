@@ -27,7 +27,6 @@ export function HouseholdSwitcher() {
 
   const households = data?.households ?? []
   const active = households.find(h => h.isActive)
-  const hasMultiple = households.length >= 2
 
   async function handleSwitch(householdId: string) {
     if (households.find(h => h.id === householdId)?.isActive) {
@@ -67,7 +66,7 @@ export function HouseholdSwitcher() {
 
       {/* Household name row */}
       <button
-        onClick={() => hasMultiple && setOpen(o => !o)}
+        onClick={() => setOpen(o => !o)}
         style={{
           display: 'flex',
           alignItems: 'center',
@@ -76,7 +75,7 @@ export function HouseholdSwitcher() {
           background: 'none',
           border: 'none',
           padding: 0,
-          cursor: hasMultiple ? 'pointer' : 'default',
+          cursor: 'pointer',
           gap: 6,
         }}
       >
@@ -94,15 +93,14 @@ export function HouseholdSwitcher() {
         >
           {active?.name ?? '...'}
         </span>
-        {hasMultiple && (
-          open
-            ? <ChevronUp size={14} color="rgba(255,255,255,0.6)" />
-            : <ChevronDown size={14} color="rgba(255,255,255,0.6)" />
-        )}
+        {open
+          ? <ChevronUp size={14} color="rgba(255,255,255,0.6)" />
+          : <ChevronDown size={14} color="rgba(255,255,255,0.6)" />
+        }
       </button>
 
       {/* Inline dropdown */}
-      {open && hasMultiple && (
+      {open && (
         <div
           style={{
             marginTop: 8,

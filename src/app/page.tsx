@@ -1455,18 +1455,18 @@ export default async function HomePage() {
             fontFamily: ff,
           }}
         >
-          Your household is waiting.
+          Your house runs better. Starting today.
         </h2>
         <p
           style={{
-            fontSize: 15,
-            fontWeight: 600,
-            color: 'rgba(255,255,255,0.8)',
+            fontSize: 16,
+            fontWeight: 700,
+            color: 'rgba(255,255,255,0.7)',
             margin: '0 0 28px',
             fontFamily: ff,
           }}
         >
-          Free to get started, no credit card, no excuses.
+          Free to start. $4/month when you&apos;re ready for more.
         </p>
         <div className="cta-actions">
           <Link
@@ -1474,14 +1474,7 @@ export default async function HomePage() {
             className="cta-primary"
             style={{ fontFamily: ff }}
           >
-            Create your household
-          </Link>
-          <Link
-            href="/login"
-            className="cta-secondary"
-            style={{ fontFamily: ff }}
-          >
-            Sign in
+            Get started free
           </Link>
         </div>
       </section>

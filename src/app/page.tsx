@@ -1004,32 +1004,34 @@ export default async function HomePage() {
       {/* 6. COMPARISON TABLE */}
       <section
         className="comp-section"
-        style={{ backgroundColor: brandTint, padding: '56px 40px' }}
+        style={{ backgroundColor: '#F9FAFB', padding: '56px 40px' }}
       >
-        <div style={{ textAlign: 'center', marginBottom: 30 }}>
-          <h2
-            style={{
-              fontSize: 28,
-              fontWeight: 900,
-              color: '#1a1a1a',
-              letterSpacing: '-0.7px',
-              margin: '0 0 8px',
-              fontFamily: ff,
-            }}
-          >
-            How does Roost stack up?
-          </h2>
+        <div style={{ textAlign: 'center', marginBottom: 40 }}>
           <p
             style={{
-              fontSize: 14,
+              fontSize: 11,
               fontWeight: 800,
-              color: '#888',
+              letterSpacing: '0.08em',
+              color: '#9CA3AF',
+              marginBottom: 12,
+              fontFamily: ff,
+              textTransform: 'uppercase',
+            }}
+          >
+            Why Roost?
+          </p>
+          <h2
+            style={{
+              fontSize: 32,
+              fontWeight: 900,
+              color: '#111827',
+              letterSpacing: '-0.7px',
               margin: 0,
               fontFamily: ff,
             }}
           >
-            You tell us how it compares when you try it.
-          </p>
+            Everything they don&apos;t have. Nothing you don&apos;t need.
+          </h2>
         </div>
         <div
           className="comp-grid"

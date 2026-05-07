@@ -36,7 +36,7 @@ production-ready. What remains are two P3 polish items and the first remote CI c
 | `done` | P2 | Add `robots` and `sitemap` | `src/app/robots.ts` (blocks /dashboard, /api, /admin; allows public pages) + `src/app/sitemap.ts`. |
 | `done` | P2 | Fix metadata icon paths | Root layout references favicon-16x16.png, favicon-32x32.png, apple-touch-icon.png, site.webmanifest — all present in `public/`. |
 | `done` | P3 | Remove zoom restriction | `maximumScale: 1` removed from viewport export. iOS auto-zoom prevented via `font-size: 16px !important` in `globals.css` (WCAG 1.4.4 Resize Text). |
-| `done` | P3 | Triage lint warnings | `npm run lint` exits 0. Added `apps/web` and `apps/mobile` to ESLint globalIgnores so Babel notes from workspace `.next` artifacts no longer appear. |
+| `done` | P3 | Triage lint warnings | `npm run lint` exits 0 with zero output. Hoisted module-level constants, added block-level eslint-disable for set-state-in-effect in MealSheet, fixed misplaced disable comments in calendar/grocery/notes pages, removed ~25 unused imports across API routes. |
 
 ## 4. Pre-Launch Ops Checklist (run day-of)
 

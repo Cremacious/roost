@@ -19,6 +19,7 @@ import {
 } from 'lucide-react'
 import { useSession, signOut } from '@/lib/auth/client'
 import { useQuery } from '@tanstack/react-query'
+import { HouseholdSwitcher } from './HouseholdSwitcher'
 
 const NAV_ITEMS = [
   { href: '/today',      label: 'Today',      icon: Home },
@@ -93,6 +94,9 @@ export function Sidebar() {
           Roost
         </span>
       </div>
+
+      {/* Household switcher */}
+      <HouseholdSwitcher />
 
       {/* Nav items */}
       <nav style={{ padding: '10px 8px', display: 'flex', flexDirection: 'column', gap: 2, flex: 1 }}>

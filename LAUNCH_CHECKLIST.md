@@ -36,7 +36,7 @@ production-ready. What remains are two P3 polish items and the first remote CI c
 | `done` | P2 | Add `robots` and `sitemap` | `src/app/robots.ts` (blocks /dashboard, /api, /admin; allows public pages) + `src/app/sitemap.ts`. |
 | `done` | P2 | Fix metadata icon paths | Root layout references favicon-16x16.png, favicon-32x32.png, apple-touch-icon.png, site.webmanifest — all present in `public/`. |
 | `done` | P3 | Remove zoom restriction | `maximumScale: 1` removed from viewport export. iOS auto-zoom prevented via `font-size: 16px !important` in `globals.css` (WCAG 1.4.4 Resize Text). |
-| `todo` | P3 | Triage lint warnings | Run `npm run lint` and document or suppress remaining warnings. |
+| `done` | P3 | Triage lint warnings | `npm run lint` exits 0. Added `apps/web` and `apps/mobile` to ESLint globalIgnores so Babel notes from workspace `.next` artifacts no longer appear. |
 
 ## 4. Pre-Launch Ops Checklist (run day-of)
 
@@ -56,10 +56,9 @@ production-ready. What remains are two P3 polish items and the first remote CI c
 
 ## 5. Remaining Items Before Shipping
 
-Two items remain before calling this fully done:
+One item remains:
 
 1. **Confirm CI passes on GitHub** — push to main or open a PR, verify the Actions workflow
    completes green. The Playwright job only runs when `DATABASE_URL` is in repo secrets.
 
-2. **Lint triage** — run `npm run lint` and fix or `// eslint-disable-line` any remaining
-   warnings with a comment explaining why.
+Everything else is done. Run the pre-launch ops checklist (section 4) on deploy day.

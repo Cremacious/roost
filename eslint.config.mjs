@@ -16,6 +16,9 @@ const eslintConfig = defineConfig([
     "playwright-report/**",
     "test-results/**",
     "coverage/**",
+    // Separate workspace packages — they have their own lint configs.
+    "apps/web/**",
+    "apps/mobile/**",
   ]),
 ]);
 

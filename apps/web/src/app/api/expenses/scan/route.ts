@@ -4,9 +4,16 @@ import { db } from '@/lib/db'
 import { receiptScanUsage } from '@/db/schema'
 import { eq, and } from 'drizzle-orm'
 import { parseReceiptImage } from '@/lib/utils/azureReceipts'
+import { createRateLimiter } from '@/lib/utils/rateLimit'
 
 const MAX_BASE64_LENGTH = 14_000_000 // ~10MB
 const FREE_TIER_SCAN_LIMIT = 75
+
+// Per-user burst limit: 10 scans per 5 minutes.
+// This protects the Azure OCR quota (500 free scans/month for the whole account)
+// from a single user or automated script hammering the endpoint.
+// The limit is intentionally generous — a human scanning receipts will never hit it.
+const scanLimiter = createRateLimiter({ windowMs: 5 * 60_000, maxRequests: 10 })
 
 export async function POST(request: Request) {
   const session = await getSession()
@@ -17,6 +24,22 @@ export async function POST(request: Request) {
 
   if (membership.role === 'child') {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  }
+
+  // Burst rate limit: checked before body parsing to fail fast and cheaply
+  const rateCheck = scanLimiter.check(session.user.id)
+  if (!rateCheck.allowed) {
+    const retryAfterSec = Math.ceil(rateCheck.retryAfterMs / 1000)
+    return NextResponse.json(
+      { error: 'Too many scan requests. Please wait a moment and try again.' },
+      {
+        status: 429,
+        headers: {
+          'Retry-After': String(retryAfterSec),
+          'X-RateLimit-Remaining': '0',
+        },
+      }
+    )
   }
 
   const body = await request.json().catch(() => ({})) as { imageBase64?: string }

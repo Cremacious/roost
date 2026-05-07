@@ -4,6 +4,12 @@ import { auth } from '@/lib/auth'
 import { households, householdMembers as household_members, users } from '@/db/schema'
 import { eq, and } from 'drizzle-orm'
 import { verifyPassword } from 'better-auth/crypto'
+import { createRateLimiter } from '@/lib/utils/rateLimit'
+
+// Per-IP PIN brute-force protection: 10 attempts per 15 minutes.
+// Child PINs are only 4 digits (10,000 combinations), so rate limiting is the
+// primary defense against exhaustive guessing.
+const pinLimiter = createRateLimiter({ windowMs: 15 * 60_000, maxRequests: 10 })
 
 // GET /api/auth/child-login?householdCode=XXXXXX
 // Public — lists child accounts for a household so the child-login page can show a name picker
@@ -63,6 +69,20 @@ export async function POST(request: NextRequest): Promise<Response> {
     )
   }
 
+  // Rate-limit by childId to prevent PIN brute-forcing.
+  // Using childId (not IP) so the limit is scoped to the specific account being attacked.
+  const rateCheck = pinLimiter.check(childId)
+  if (!rateCheck.allowed) {
+    const retryAfterSec = Math.ceil(rateCheck.retryAfterMs / 1000)
+    return Response.json(
+      { error: 'Too many PIN attempts. Please wait a few minutes and try again.' },
+      {
+        status: 429,
+        headers: { 'Retry-After': String(retryAfterSec) },
+      }
+    )
+  }
+
   // Look up the household
   const [household] = await db
     .select({ id: households.id })
@@ -105,6 +125,10 @@ export async function POST(request: NextRequest): Promise<Response> {
   if (!valid) {
     return Response.json({ error: 'Invalid PIN' }, { status: 401 })
   }
+
+  // Successful login — reset the rate limit so a user who fat-fingered a few
+  // digits doesn't get locked out immediately after a successful attempt.
+  pinLimiter.reset(childId)
 
   // Create session via better-auth internal adapter
   const ctx = await auth.$context

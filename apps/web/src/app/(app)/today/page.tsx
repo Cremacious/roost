@@ -33,7 +33,12 @@ export default function TodayPage() {
     queryFn: async () => {
       const r = await fetch('/api/user/profile')
       if (!r.ok) throw new Error('Failed to load profile')
-      return r.json()
+      const json = await r.json()
+      // API returns { user: {...}, hasSeenWelcome, isChildAccount } — pick the flat fields
+      return {
+        hasSeenWelcome: json.hasSeenWelcome as boolean,
+        isChildAccount: json.isChildAccount as boolean,
+      }
     },
     staleTime: Infinity,
   })

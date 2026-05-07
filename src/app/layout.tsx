@@ -96,7 +96,8 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
-  maximumScale: 1,
+  // maximumScale intentionally omitted — pinch-zoom is a user right (WCAG 1.4.4).
+  // iOS Safari auto-zoom on input focus is prevented by font-size: 16px in globals.css.
 };
 
 export default function RootLayout({

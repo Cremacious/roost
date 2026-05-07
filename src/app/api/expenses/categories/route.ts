@@ -2,7 +2,7 @@ import { NextRequest } from "next/server";
 import { requireSession } from "@/lib/auth/helpers";
 import { db } from "@/lib/db";
 import { expense_categories } from "@/db/schema";
-import { and, asc, eq, isNull, or } from "drizzle-orm";
+import { and, asc, eq, or } from "drizzle-orm";
 import { getUserHousehold } from "@/app/api/chores/route";
 import { seedDefaultCategories } from "@/lib/utils/seedCategories";
 

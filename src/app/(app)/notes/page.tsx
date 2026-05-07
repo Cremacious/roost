@@ -20,6 +20,13 @@ import { PageContainer } from '@/components/layout/PageContainer';
 const COLOR = SECTION_COLORS.notes; // #A855F7
 const COLOR_DARK = '#7C28C8';
 
+const PLACEHOLDERS = [
+  'Leave a note for the household...',
+  'Plumber coming Tuesday...',
+  'Someone ate my leftovers again...',
+  'Dog needs a walk at 5pm...',
+];
+
 // ---- Types ------------------------------------------------------------------
 
 interface NoteRow {
@@ -214,13 +221,6 @@ export default function NotesPage() {
     'create',
   );
   const [selectedNote, setSelectedNote] = useState<NoteData | null>(null);
-
-  const PLACEHOLDERS = [
-    'Leave a note for the household...',
-    'Plumber coming Tuesday...',
-    'Someone ate my leftovers again...',
-    'Dog needs a walk at 5pm...',
-  ];
 
   useEffect(() => {
     const id = setInterval(() => {

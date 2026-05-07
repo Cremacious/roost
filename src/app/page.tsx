@@ -4,7 +4,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { headers } from 'next/headers';
-import { Bell, GraduationCap, Home, Users } from 'lucide-react';
+import { Bell, CalendarDays, CheckSquare, DollarSign, GraduationCap, Home, ShoppingCart, Users, UtensilsCrossed } from 'lucide-react';
 import StructuredDataScript from '@/components/marketing/StructuredDataScript';
 import { auth } from '@/lib/auth';
 import { ROOST_ICON_SRC } from '@/lib/brand';
@@ -181,551 +181,6 @@ function ChoresMockup() {
   );
 }
 
-function GroceryMockup() {
-  const items = [
-    { name: 'Milk (2 gallons)', person: 'Sam', checked: true },
-    { name: 'Eggs', person: 'Alex', checked: true },
-    { name: 'Chicken breast', person: 'Sam', checked: false },
-    { name: 'Pasta (3 boxes)', person: 'Jordan', checked: false },
-    { name: 'Dish soap', person: 'Alex', checked: false },
-    { name: 'Paper towels', person: 'Jordan', checked: false },
-  ];
-  return (
-    <div
-      style={{
-        backgroundColor: 'white',
-        borderRadius: 16,
-        border: '1.5px solid #fde68a',
-        borderBottom: '4px solid #D97706',
-        padding: 16,
-        maxWidth: 300,
-        width: '100%',
-      }}
-    >
-      <div
-        style={{
-          display: 'flex',
-          gap: 6,
-          marginBottom: 12,
-          flexWrap: 'wrap' as const,
-        }}
-      >
-        {['Weekly Shop', 'Costco Run', 'Target'].map((tab, i) => (
-          <span
-            key={tab}
-            style={{
-              fontSize: 11,
-              fontWeight: i === 0 ? 800 : 700,
-              backgroundColor: i === 0 ? '#D97706' : '#fef3c7',
-              color: i === 0 ? 'white' : '#92400e',
-              padding: '4px 10px',
-              borderRadius: 99,
-            }}
-          >
-            {tab}
-          </span>
-        ))}
-      </div>
-      {items.map((item) => (
-        <div
-          key={item.name}
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 8,
-            padding: '7px 0',
-            borderBottom: '1px solid #fef3c7',
-          }}
-        >
-          <div
-            style={{
-              width: 16,
-              height: 16,
-              borderRadius: 4,
-              backgroundColor: item.checked ? '#D97706' : 'transparent',
-              border: item.checked ? 'none' : '1.5px solid #fde68a',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              flexShrink: 0,
-            }}
-          >
-            {item.checked && (
-              <span style={{ color: 'white', fontSize: 9, fontWeight: 900 }}>
-                &#10003;
-              </span>
-            )}
-          </div>
-          <span
-            style={{
-              flex: 1,
-              fontSize: 12,
-              fontWeight: 700,
-              color: item.checked ? '#9CA3AF' : '#374151',
-              textDecoration: item.checked ? 'line-through' : 'none',
-            }}
-          >
-            {item.name}
-          </span>
-          <span
-            style={{
-              fontSize: 10,
-              fontWeight: 700,
-              backgroundColor: '#fef3c7',
-              color: '#92400e',
-              padding: '2px 7px',
-              borderRadius: 99,
-            }}
-          >
-            {item.person}
-          </span>
-        </div>
-      ))}
-    </div>
-  );
-}
-
-function CalendarMockup() {
-  const days = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
-  const row1: (number | string)[] = ['', '', '', 1, 2, 3, 4];
-  const row2 = [5, 6, 7, 8, 9, 10, 11];
-  const dotsRow2 = [7, 8, 10, 11];
-  return (
-    <div
-      style={{
-        backgroundColor: 'white',
-        borderRadius: 16,
-        border: '1.5px solid #bfdbfe',
-        borderBottom: '4px solid #2563EB',
-        padding: 16,
-        maxWidth: 300,
-        width: '100%',
-      }}
-    >
-      <div
-        style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          marginBottom: 10,
-        }}
-      >
-        <span style={{ fontSize: 13, fontWeight: 800, color: '#2563EB' }}>
-          April 2026
-        </span>
-        <span style={{ fontSize: 11, fontWeight: 700, color: '#9CA3AF' }}>
-          4 events this week
-        </span>
-      </div>
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(7, 1fr)',
-          marginBottom: 2,
-        }}
-      >
-        {days.map((d, i) => (
-          <div
-            key={i}
-            style={{
-              textAlign: 'center',
-              fontSize: 9,
-              fontWeight: 700,
-              color: '#9CA3AF',
-              paddingBottom: 3,
-            }}
-          >
-            {d}
-          </div>
-        ))}
-      </div>
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(7, 1fr)',
-          marginBottom: 2,
-        }}
-      >
-        {row1.map((d, i) => (
-          <div
-            key={i}
-            style={{
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              gap: 1,
-            }}
-          >
-            <div
-              style={{
-                width: 22,
-                height: 22,
-                borderRadius: '50%',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: 10,
-                fontWeight: 600,
-                color: d ? '#374151' : 'transparent',
-              }}
-            >
-              {d || ''}
-            </div>
-            {[3, 4].includes(d as number) ? (
-              <div
-                style={{
-                  width: 4,
-                  height: 4,
-                  borderRadius: '50%',
-                  backgroundColor: '#2563EB',
-                }}
-              />
-            ) : (
-              <div style={{ width: 4, height: 4 }} />
-            )}
-          </div>
-        ))}
-      </div>
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(7, 1fr)',
-          marginBottom: 10,
-        }}
-      >
-        {row2.map((d) => (
-          <div
-            key={d}
-            style={{
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              gap: 1,
-            }}
-          >
-            <div
-              style={{
-                width: 22,
-                height: 22,
-                borderRadius: '50%',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: 10,
-                fontWeight: d === 10 ? 900 : 600,
-                color: d === 10 ? 'white' : '#374151',
-                backgroundColor: d === 10 ? '#2563EB' : 'transparent',
-              }}
-            >
-              {d}
-            </div>
-            {dotsRow2.includes(d) ? (
-              <div
-                style={{
-                  width: 4,
-                  height: 4,
-                  borderRadius: '50%',
-                  backgroundColor: '#2563EB',
-                }}
-              />
-            ) : (
-              <div style={{ width: 4, height: 4 }} />
-            )}
-          </div>
-        ))}
-      </div>
-      {[
-        { color: '#EF4444', name: 'Alex dentist appt', time: '9am' },
-        { color: '#16A34A', name: 'Rent due', time: '1st' },
-        { color: '#D97706', name: 'Sam&apos;s game night', time: '7pm' },
-      ].map((ev) => (
-        <div
-          key={ev.name}
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 8,
-            padding: '6px 8px',
-            backgroundColor: '#EFF6FF',
-            borderRadius: 8,
-            marginBottom: 5,
-          }}
-        >
-          <div
-            style={{
-              width: 8,
-              height: 8,
-              borderRadius: '50%',
-              backgroundColor: ev.color,
-              flexShrink: 0,
-            }}
-          />
-          <span
-            style={{ flex: 1, fontSize: 11, fontWeight: 700, color: '#1e40af' }}
-          >
-            {ev.name}
-          </span>
-          <span style={{ fontSize: 10, fontWeight: 700, color: '#9CA3AF' }}>
-            {ev.time}
-          </span>
-        </div>
-      ))}
-    </div>
-  );
-}
-
-function ExpensesMockup() {
-  const expenses = [
-    {
-      icon: 'G',
-      iconBg: '#f0fdf4',
-      iconColor: '#16A34A',
-      name: 'Grocery run',
-      sub: 'Split 3 ways',
-      amount: '$84.20',
-      status: 'You owe $28.07',
-      statusColor: '#dc2626',
-      statusBg: '#fff1f2',
-    },
-    {
-      icon: 'E',
-      iconBg: '#fefce8',
-      iconColor: '#D97706',
-      name: 'Electric bill',
-      sub: 'Split equally',
-      amount: '$127.50',
-      status: 'Settled',
-      statusColor: '#16A34A',
-      statusBg: '#f0fdf4',
-    },
-    {
-      icon: 'P',
-      iconBg: '#fff7ed',
-      iconColor: '#ea580c',
-      name: 'Pizza Friday',
-      sub: 'Item split',
-      amount: '$56.00',
-      status: 'Jordan owes $18',
-      statusColor: '#dc2626',
-      statusBg: '#fff1f2',
-    },
-  ];
-  return (
-    <div
-      style={{
-        backgroundColor: 'white',
-        borderRadius: 16,
-        border: '1.5px solid #bbf7d0',
-        borderBottom: '4px solid #16A34A',
-        padding: 16,
-        maxWidth: 300,
-        width: '100%',
-      }}
-    >
-      {expenses.map((e) => (
-        <div
-          key={e.name}
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 9,
-            padding: '9px 0',
-            borderBottom: '1px solid #f0fdf4',
-          }}
-        >
-          <div
-            style={{
-              width: 32,
-              height: 32,
-              borderRadius: 10,
-              backgroundColor: e.iconBg,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              flexShrink: 0,
-            }}
-          >
-            <span style={{ fontSize: 13, fontWeight: 900, color: e.iconColor }}>
-              {e.icon}
-            </span>
-          </div>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 12, fontWeight: 800, color: '#374151' }}>
-              {e.name}
-            </div>
-            <div style={{ fontSize: 10, fontWeight: 600, color: '#9CA3AF' }}>
-              {e.sub}
-            </div>
-          </div>
-          <div style={{ textAlign: 'right' as const, flexShrink: 0 }}>
-            <div style={{ fontSize: 12, fontWeight: 800, color: '#374151' }}>
-              {e.amount}
-            </div>
-            <div
-              style={{
-                fontSize: 10,
-                fontWeight: 700,
-                color: e.statusColor,
-                backgroundColor: e.statusBg,
-                padding: '1px 6px',
-                borderRadius: 99,
-                whiteSpace: 'nowrap' as const,
-              }}
-            >
-              {e.status}
-            </div>
-          </div>
-        </div>
-      ))}
-      <div
-        style={{
-          marginTop: 10,
-          backgroundColor: '#f0fdf4',
-          borderRadius: 10,
-          padding: '10px 12px',
-          display: 'flex',
-          justifyContent: 'space-between',
-        }}
-      >
-        <div style={{ textAlign: 'center' as const }}>
-          <div style={{ fontSize: 11, fontWeight: 800, color: '#16A34A' }}>
-            $46.14
-          </div>
-          <div style={{ fontSize: 9, fontWeight: 700, color: '#9CA3AF' }}>
-            You&apos;re owed
-          </div>
-        </div>
-        <div style={{ textAlign: 'center' as const }}>
-          <div style={{ fontSize: 11, fontWeight: 800, color: '#dc2626' }}>
-            $28.07
-          </div>
-          <div style={{ fontSize: 9, fontWeight: 700, color: '#9CA3AF' }}>
-            You owe
-          </div>
-        </div>
-        <div style={{ textAlign: 'center' as const }}>
-          <div style={{ fontSize: 11, fontWeight: 800, color: '#16A34A' }}>
-            $312
-          </div>
-          <div style={{ fontSize: 9, fontWeight: 700, color: '#9CA3AF' }}>
-            This month
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function RemindersMockup() {
-  const reminders = [
-    {
-      name: 'Pay rent',
-      sub: '1st of every month',
-      badge: 'Household',
-      badgeBg: '#fef3c7',
-      badgeColor: '#92400e',
-    },
-    {
-      name: 'Change AC filter',
-      sub: 'Every 3 months',
-      badge: 'Recurring',
-      badgeBg: '#ecfeff',
-      badgeColor: '#0891B2',
-    },
-    {
-      name: 'Water plants',
-      sub: 'Every Sunday',
-      badge: 'Recurring',
-      badgeBg: '#ecfeff',
-      badgeColor: '#0891B2',
-    },
-    {
-      name: 'Trash day',
-      sub: 'Every Tuesday',
-      badge: 'Household',
-      badgeBg: '#fef3c7',
-      badgeColor: '#92400e',
-    },
-  ];
-  return (
-    <div
-      style={{
-        backgroundColor: 'white',
-        borderRadius: 16,
-        border: '1.5px solid #a5f3fc',
-        borderBottom: '4px solid #0891B2',
-        padding: 16,
-        maxWidth: 300,
-        width: '100%',
-      }}
-    >
-      <div
-        style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          marginBottom: 12,
-        }}
-      >
-        <span style={{ fontSize: 12, fontWeight: 800, color: '#374151' }}>
-          Active reminders
-        </span>
-        <span style={{ fontSize: 12, fontWeight: 800, color: '#0891B2' }}>
-          5 set
-        </span>
-      </div>
-      {reminders.map((r) => (
-        <div
-          key={r.name}
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 9,
-            padding: '8px 0',
-            borderBottom: '1px solid #ecfeff',
-          }}
-        >
-          <div
-            style={{
-              width: 28,
-              height: 28,
-              borderRadius: 8,
-              backgroundColor: '#ecfeff',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              flexShrink: 0,
-            }}
-          >
-            <Bell size={13} color="#0891B2" />
-          </div>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 12, fontWeight: 700, color: '#374151' }}>
-              {r.name}
-            </div>
-            <div style={{ fontSize: 10, fontWeight: 600, color: '#9CA3AF' }}>
-              {r.sub}
-            </div>
-          </div>
-          <span
-            style={{
-              fontSize: 10,
-              fontWeight: 800,
-              backgroundColor: r.badgeBg,
-              color: r.badgeColor,
-              padding: '2px 7px',
-              borderRadius: 99,
-              flexShrink: 0,
-            }}
-          >
-            {r.badge}
-          </span>
-        </div>
-      ))}
-    </div>
-  );
-}
-
 function MealsMockup() {
   const days = [
     { day: 'MON', meal: 'Spaghetti carbonara', votes: '3 votes', empty: false },
@@ -831,164 +286,6 @@ function MealsMockup() {
             {v}
           </span>
         ))}
-      </div>
-    </div>
-  );
-}
-
-function AllowancesMockup() {
-  return (
-    <div
-      style={{
-        backgroundColor: 'white',
-        borderRadius: 16,
-        border: '1.5px solid #ddd6fe',
-        borderBottom: '4px solid #7C3AED',
-        padding: 16,
-        maxWidth: 300,
-        width: '100%',
-      }}
-    >
-      <div
-        style={{
-          fontSize: 12,
-          fontWeight: 800,
-          color: '#7C3AED',
-          textTransform: 'uppercase' as const,
-          letterSpacing: '0.5px',
-          marginBottom: 12,
-        }}
-      >
-        Weekly allowances
-      </div>
-      <div style={{ marginBottom: 12 }}>
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 8,
-            marginBottom: 8,
-          }}
-        >
-          <div
-            style={{
-              width: 28,
-              height: 28,
-              borderRadius: '50%',
-              backgroundColor: '#ede9fe',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              flexShrink: 0,
-            }}
-          >
-            <span style={{ fontSize: 10, fontWeight: 900, color: '#7C3AED' }}>
-              EJ
-            </span>
-          </div>
-          <div style={{ flex: 1 }}>
-            <div style={{ fontSize: 12, fontWeight: 800, color: '#374151' }}>
-              Ethan Jr
-            </div>
-            <div style={{ fontSize: 10, fontWeight: 600, color: '#9CA3AF' }}>
-              Earned{' '}
-              <span style={{ color: '#7C3AED', fontWeight: 700 }}>$4.50</span>{' '}
-              of $5.00
-            </div>
-          </div>
-        </div>
-        <div
-          style={{
-            height: 6,
-            backgroundColor: '#ede9fe',
-            borderRadius: 99,
-            overflow: 'hidden',
-            marginBottom: 4,
-          }}
-        >
-          <div
-            style={{
-              width: '90%',
-              height: '100%',
-              backgroundColor: '#7C3AED',
-              borderRadius: 99,
-            }}
-          />
-        </div>
-        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-          <span style={{ fontSize: 10, fontWeight: 700, color: '#7C3AED' }}>
-            90% chores done
-          </span>
-          <span style={{ fontSize: 10, fontWeight: 700, color: '#7C3AED' }}>
-            1 chore left
-          </span>
-        </div>
-      </div>
-      <div
-        style={{ height: 1, backgroundColor: '#ede9fe', margin: '10px 0' }}
-      />
-      <div>
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 8,
-            marginBottom: 8,
-          }}
-        >
-          <div
-            style={{
-              width: 28,
-              height: 28,
-              borderRadius: '50%',
-              backgroundColor: '#fce7f3',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              flexShrink: 0,
-            }}
-          >
-            <span style={{ fontSize: 10, fontWeight: 900, color: '#BE185D' }}>
-              LS
-            </span>
-          </div>
-          <div style={{ flex: 1 }}>
-            <div style={{ fontSize: 12, fontWeight: 800, color: '#374151' }}>
-              Lily S
-            </div>
-            <div style={{ fontSize: 10, fontWeight: 600, color: '#9CA3AF' }}>
-              Earned{' '}
-              <span style={{ color: '#BE185D', fontWeight: 700 }}>$2.50</span>{' '}
-              of $5.00
-            </div>
-          </div>
-        </div>
-        <div
-          style={{
-            height: 6,
-            backgroundColor: '#fce7f3',
-            borderRadius: 99,
-            overflow: 'hidden',
-            marginBottom: 4,
-          }}
-        >
-          <div
-            style={{
-              width: '50%',
-              height: '100%',
-              backgroundColor: '#BE185D',
-              borderRadius: 99,
-            }}
-          />
-        </div>
-        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-          <span style={{ fontSize: 10, fontWeight: 700, color: '#BE185D' }}>
-            50% done
-          </span>
-          <span style={{ fontSize: 10, fontWeight: 700, color: '#BE185D' }}>
-            5 chores left
-          </span>
-        </div>
       </div>
     </div>
   );
@@ -1322,6 +619,11 @@ export default async function HomePage() {
             gap: 6px !important;
             text-align: center !important;
           }
+          .bento-row-a,
+          .bento-row-b,
+          .bento-row-c {
+            grid-template-columns: 1fr !important;
+          }
         }
       `}</style>
 
@@ -1433,7 +735,7 @@ export default async function HomePage() {
             fontFamily: ff,
           }}
         >
-          The household management app for families and roommates.
+          One App, Zero Excuses
         </h1>
         <p
           className="hero-copy text-[14px] md:text-[16px]"
@@ -1446,9 +748,7 @@ export default async function HomePage() {
             fontFamily: ff,
           }}
         >
-          Chores, groceries, bills, reminders, a shared calendar, meal planning,
-          allowances, and notes. All under one roof, so your home runs on one
-          shared system instead of a pile of separate tools.
+          Chores. Groceries. Bills. Meals. One place, everyone on the same page.
         </p>
         <div className="hero-actions">
           <Link
@@ -1456,7 +756,7 @@ export default async function HomePage() {
             className="hero-primary"
             style={{ fontFamily: ff }}
           >
-            Create your household
+            Get started free
           </Link>
           <Link
             href="/login"
@@ -1468,456 +768,270 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* 4. PROBLEM */}
-      <section
-        className="problem-section"
-        style={{
-          backgroundColor: brandTint,
-          padding: '64px 40px',
-          textAlign: 'center',
-        }}
-      >
+      {/* BENTO GRID */}
+      <section style={{ backgroundColor: '#ffffff', padding: '80px 40px' }}>
+        <div style={{ maxWidth: 1100, margin: '0 auto' }}>
+          <p
+            style={{
+              textAlign: 'center',
+              fontSize: 11,
+              fontWeight: 800,
+              letterSpacing: '0.08em',
+              color: '#9CA3AF',
+              marginBottom: 48,
+              fontFamily: ff,
+              textTransform: 'uppercase',
+            }}
+          >
+            Everything your house needs
+          </p>
 
-        <h2
-          style={{
-            fontSize: 32,
-            fontWeight: 900,
-            color: '#1a1a1a',
-            letterSpacing: '-0.8px',
-            lineHeight: 1.2,
-            maxWidth: 560,
-            margin: '0 auto 14px',
-            fontFamily: ff,
-          }}
-        >
-          Your household runs on five apps, a whiteboard, and a prayer.
-        </h2>
-        <p
-          style={{
-            fontSize: 15,
-            fontWeight: 600,
-            color: '#666',
-            lineHeight: 1.7,
-            maxWidth: 520,
-            margin: '0 auto 24px',
-            fontFamily: ff,
-          }}
-        >
-          One app for splitting bills, another for the grocery list nobody
-          updates, a shared calendar three people ignore, and a group chat full
-          of did anyone do the dishes messages.
-        </p>
-        <p
-          style={{
-            fontSize: 14,
-            fontWeight: 700,
-            color: '#666',
-            marginBottom: 14,
-            fontFamily: ff,
-          }}
-        >
-          All of that becomes a thing of the past.
-        </p>
-      </section>
-
-      {/* 5. FEATURES */}
-      <div id="features">
-        {/* CHORES: copy LEFT, UI RIGHT */}
-        <section style={{ backgroundColor: '#FFF5F5' }}>
-          <div className="feat-inner">
-            <div className="feat-copy">
-              <div
-                style={{
-                  fontSize: 11,
-                  fontWeight: 800,
-                  color: '#EF4444',
-                  textTransform: 'uppercase',
-                  letterSpacing: '1px',
-                  marginBottom: 8,
-                  fontFamily: ff,
-                }}
-              >
-                Chores
+          {/* Row 1: Chores (2/3) + Grocery (1/3) */}
+          <div className="bento-row-a" style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 16 }}>
+            {/* Chores — tall with mockup */}
+            <div
+              style={{
+                background: '#fff',
+                borderRadius: 16,
+                border: '1.5px solid #E5E7EB',
+                borderBottom: '4px solid #C93B3B',
+                padding: 28,
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 24,
+              }}
+            >
+              <div>
+                <div
+                  style={{
+                    width: 36,
+                    height: 36,
+                    borderRadius: 10,
+                    backgroundColor: 'rgba(239,68,68,0.12)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    marginBottom: 12,
+                  }}
+                >
+                  <CheckSquare size={18} color="#EF4444" />
+                </div>
+                <p style={{ fontSize: 16, fontWeight: 900, color: '#111827', margin: '0 0 6px', fontFamily: ff }}>
+                  Chores
+                </p>
+                <p style={{ fontSize: 13, fontWeight: 600, color: '#6B7280', lineHeight: 1.55, margin: 0, fontFamily: ff }}>
+                  Assign it. Track it. Nobody gets away with &ldquo;I forgot.&rdquo; Kids earn rewards for finishing theirs.
+                </p>
               </div>
-              <h3
-                style={{
-                  fontSize: 26,
-                  fontWeight: 900,
-                  color: '#1a1a1a',
-                  letterSpacing: '-0.6px',
-                  lineHeight: 1.15,
-                  margin: '0 0 10px',
-                  fontFamily: ff,
-                }}
-              >
-                Nobody can pretend they forgot.
-              </h3>
-              <p
-                style={{
-                  fontSize: 14,
-                  fontWeight: 600,
-                  color: '#555',
-                  lineHeight: 1.65,
-                  margin: 0,
-                  fontFamily: ff,
-                }}
-              >
-                Assign chores to specific people, set them on a recurring
-                schedule, and let Roost reset them automatically, daily dishes,
-                weekly vacuuming, monthly deep cleans, set it once and let the
-                leaderboard add just enough competition to get everyone off the
-                couch.
-              </p>
-            </div>
-            <div className="feat-ui">
               <ChoresMockup />
             </div>
-          </div>
-        </section>
 
-        {/* GROCERY: UI LEFT, copy RIGHT */}
-        <section style={{ backgroundColor: '#FFFBF0' }}>
-          <div className="feat-inner feat-ui-left">
-            <div className="feat-copy">
+            {/* Grocery — small */}
+            <div
+              style={{
+                background: '#fff',
+                borderRadius: 16,
+                border: '1.5px solid #E5E7EB',
+                borderBottom: '4px solid #C87D00',
+                padding: 24,
+              }}
+            >
               <div
                 style={{
-                  fontSize: 11,
-                  fontWeight: 800,
-                  color: '#D97706',
-                  textTransform: 'uppercase',
-                  letterSpacing: '1px',
-                  marginBottom: 8,
-                  fontFamily: ff,
+                  width: 36,
+                  height: 36,
+                  borderRadius: 10,
+                  backgroundColor: 'rgba(245,158,11,0.12)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  marginBottom: 12,
                 }}
               >
-                Grocery lists
+                <ShoppingCart size={18} color="#F59E0B" />
               </div>
-              <h3
-                style={{
-                  fontSize: 26,
-                  fontWeight: 900,
-                  color: '#1a1a1a',
-                  letterSpacing: '-0.6px',
-                  lineHeight: 1.15,
-                  margin: '0 0 10px',
-                  fontFamily: ff,
-                }}
-              >
-                The list that everyone can actually find.
-              </h3>
-              <p
-                style={{
-                  fontSize: 14,
-                  fontWeight: 600,
-                  color: '#555',
-                  lineHeight: 1.65,
-                  margin: 0,
-                  fontFamily: ff,
-                }}
-              >
-                Create multiple lists for different stores and trips, add items
-                from anywhere, and see who put what in the cart, no more buying
-                three bottles of dish soap because nobody checked the list, and
-                no more can you grab milk texts because the list is right there.
+              <p style={{ fontSize: 16, fontWeight: 900, color: '#111827', margin: '0 0 6px', fontFamily: ff }}>
+                Grocery
+              </p>
+              <p style={{ fontSize: 13, fontWeight: 600, color: '#6B7280', lineHeight: 1.55, margin: 0, fontFamily: ff }}>
+                One list everyone adds to. No more &ldquo;I thought you got the milk.&rdquo;
               </p>
             </div>
-            <div className="feat-ui">
-              <GroceryMockup />
-            </div>
           </div>
-        </section>
 
-        {/* CALENDAR: copy LEFT, UI RIGHT */}
-        <section style={{ backgroundColor: '#EFF6FF' }}>
-          <div className="feat-inner">
-            <div className="feat-copy">
+          {/* Row 2: Expenses (1/3) + Meals (2/3) */}
+          <div className="bento-row-b" style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: 16, marginTop: 16 }}>
+            {/* Expenses — small */}
+            <div
+              style={{
+                background: '#fff',
+                borderRadius: 16,
+                border: '1.5px solid #E5E7EB',
+                borderBottom: '4px solid #159040',
+                padding: 24,
+              }}
+            >
               <div
                 style={{
-                  fontSize: 11,
-                  fontWeight: 800,
-                  color: '#2563EB',
-                  textTransform: 'uppercase',
-                  letterSpacing: '1px',
-                  marginBottom: 8,
-                  fontFamily: ff,
+                  width: 36,
+                  height: 36,
+                  borderRadius: 10,
+                  backgroundColor: 'rgba(34,197,94,0.12)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  marginBottom: 12,
                 }}
               >
-                Shared calendar
+                <DollarSign size={18} color="#22C55E" />
               </div>
-              <h3
-                style={{
-                  fontSize: 26,
-                  fontWeight: 900,
-                  color: '#1a1a1a',
-                  letterSpacing: '-0.6px',
-                  lineHeight: 1.15,
-                  margin: '0 0 10px',
-                  fontFamily: ff,
-                }}
-              >
-                The calendar everyone is actually on.
-              </h3>
-              <p
-                style={{
-                  fontSize: 14,
-                  fontWeight: 600,
-                  color: '#555',
-                  lineHeight: 1.65,
-                  margin: 0,
-                  fontFamily: ff,
-                }}
-              >
-                Add events, assign them to household members, and set them to
-                repeat so nothing falls through the cracks, dentist
-                appointments, rent due dates, game nights, everyone sees the
-                same calendar and nobody gets to say they did not know.
-              </p>
-            </div>
-            <div className="feat-ui">
-              <CalendarMockup />
-            </div>
-          </div>
-        </section>
-
-        {/* EXPENSES: UI LEFT, copy RIGHT */}
-        <section style={{ backgroundColor: '#F0FDF4' }}>
-          <div className="feat-inner feat-ui-left">
-            <div className="feat-copy">
-              <div
-                style={{
-                  fontSize: 11,
-                  fontWeight: 800,
-                  color: '#16A34A',
-                  textTransform: 'uppercase',
-                  letterSpacing: '1px',
-                  marginBottom: 8,
-                  fontFamily: ff,
-                }}
-              >
+              <p style={{ fontSize: 16, fontWeight: 900, color: '#111827', margin: '0 0 6px', fontFamily: ff }}>
                 Expenses
-              </div>
-              <h3
-                style={{
-                  fontSize: 26,
-                  fontWeight: 900,
-                  color: '#1a1a1a',
-                  letterSpacing: '-0.6px',
-                  lineHeight: 1.15,
-                  margin: '0 0 10px',
-                  fontFamily: ff,
-                }}
-              >
-                Split bills, no awkward texts required.
-              </h3>
-              <p
-                style={{
-                  fontSize: 14,
-                  fontWeight: 600,
-                  color: '#555',
-                  lineHeight: 1.65,
-                  margin: 0,
-                  fontFamily: ff,
-                }}
-              >
-                Log a shared expense, split it equally or by item, and watch the
-                balances update in real time, scan a receipt to split it item by
-                item, set recurring bills to post automatically, and track
-                exactly who owes what so the awkward money conversations never
-                have to happen.
+              </p>
+              <p style={{ fontSize: 13, fontWeight: 600, color: '#6B7280', lineHeight: 1.55, margin: 0, fontFamily: ff }}>
+                Split bills three ways, scan a receipt, settle up. No spreadsheets.
               </p>
             </div>
-            <div className="feat-ui">
-              <ExpensesMockup />
-            </div>
-          </div>
-        </section>
 
-        {/* REMINDERS: copy LEFT, UI RIGHT */}
-        <section style={{ backgroundColor: '#ECFEFF' }}>
-          <div className="feat-inner">
-            <div className="feat-copy">
-              <div
-                style={{
-                  fontSize: 11,
-                  fontWeight: 800,
-                  color: '#0891B2',
-                  textTransform: 'uppercase',
-                  letterSpacing: '1px',
-                  marginBottom: 8,
-                  fontFamily: ff,
-                }}
-              >
-                Reminders
+            {/* Meals — tall with mockup */}
+            <div
+              style={{
+                background: '#fff',
+                borderRadius: 16,
+                border: '1.5px solid #E5E7EB',
+                borderBottom: '4px solid #C4581A',
+                padding: 28,
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 24,
+              }}
+            >
+              <div>
+                <div
+                  style={{
+                    width: 36,
+                    height: 36,
+                    borderRadius: 10,
+                    backgroundColor: 'rgba(249,115,22,0.12)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    marginBottom: 12,
+                  }}
+                >
+                  <UtensilsCrossed size={18} color="#F97316" />
+                </div>
+                <p style={{ fontSize: 16, fontWeight: 900, color: '#111827', margin: '0 0 6px', fontFamily: ff }}>
+                  Meals
+                </p>
+                <p style={{ fontSize: 13, fontWeight: 600, color: '#6B7280', lineHeight: 1.55, margin: 0, fontFamily: ff }}>
+                  Plan the week, vote on dinners, push ingredients straight to your grocery list.
+                </p>
               </div>
-              <h3
-                style={{
-                  fontSize: 26,
-                  fontWeight: 900,
-                  color: '#1a1a1a',
-                  letterSpacing: '-0.6px',
-                  lineHeight: 1.15,
-                  margin: '0 0 10px',
-                  fontFamily: ff,
-                }}
-              >
-                The nudge that actually gets things done.
-              </h3>
-              <p
-                style={{
-                  fontSize: 14,
-                  fontWeight: 600,
-                  color: '#555',
-                  lineHeight: 1.65,
-                  margin: 0,
-                  fontFamily: ff,
-                }}
-              >
-                Set a reminder for yourself or send it to the whole household,
-                make it repeat as often as you need, and never pay a late fee
-                again, rent on the first, trash on Tuesdays, filter changes
-                every three months, just set it and move on.
-              </p>
-            </div>
-            <div className="feat-ui">
-              <RemindersMockup />
-            </div>
-          </div>
-        </section>
-
-        {/* MEALS: UI LEFT, copy RIGHT */}
-        <section style={{ backgroundColor: '#FFF7ED' }}>
-          <div className="feat-inner feat-ui-left">
-            <div className="feat-copy">
-              <div
-                style={{
-                  fontSize: 11,
-                  fontWeight: 800,
-                  color: '#EA580C',
-                  textTransform: 'uppercase',
-                  letterSpacing: '1px',
-                  marginBottom: 8,
-                  fontFamily: ff,
-                }}
-              >
-                Meal planning
-              </div>
-              <h3
-                style={{
-                  fontSize: 26,
-                  fontWeight: 900,
-                  color: '#1a1a1a',
-                  letterSpacing: '-0.6px',
-                  lineHeight: 1.15,
-                  margin: '0 0 10px',
-                  fontFamily: ff,
-                }}
-              >
-                What is for dinner is now a solved problem.
-              </h3>
-              <p
-                style={{
-                  fontSize: 14,
-                  fontWeight: 600,
-                  color: '#555',
-                  lineHeight: 1.65,
-                  margin: 0,
-                  fontFamily: ff,
-                }}
-              >
-                Plan the week, vote on what sounds good, and tap any meal to
-                send its ingredients straight to your grocery list, no more
-                standing in front of the fridge at 6pm with no plan, no more
-                defaulting to takeout because nobody could decide.
-              </p>
-            </div>
-            <div className="feat-ui">
               <MealsMockup />
             </div>
           </div>
-        </section>
 
-        {/* ALLOWANCES: copy LEFT, UI RIGHT */}
-        <section style={{ backgroundColor: '#F5F3FF' }}>
-          <div className="feat-inner">
-            <div className="feat-copy">
+          {/* Row 3: Calendar (1/2) + Reminders (1/2) */}
+          <div className="bento-row-c" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginTop: 16 }}>
+            {/* Calendar */}
+            <div
+              style={{
+                background: '#fff',
+                borderRadius: 16,
+                border: '1.5px solid #E5E7EB',
+                borderBottom: '4px solid #1A5CB5',
+                padding: 24,
+              }}
+            >
               <div
                 style={{
-                  fontSize: 11,
-                  fontWeight: 800,
-                  color: '#7C3AED',
-                  textTransform: 'uppercase',
-                  letterSpacing: '1px',
-                  marginBottom: 8,
-                  fontFamily: ff,
+                  width: 36,
+                  height: 36,
+                  borderRadius: 10,
+                  backgroundColor: 'rgba(59,130,246,0.12)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  marginBottom: 12,
                 }}
               >
-                Allowances
+                <CalendarDays size={18} color="#3B82F6" />
               </div>
-              <h3
-                style={{
-                  fontSize: 26,
-                  fontWeight: 900,
-                  color: '#1a1a1a',
-                  letterSpacing: '-0.6px',
-                  lineHeight: 1.15,
-                  margin: '0 0 10px',
-                  fontFamily: ff,
-                }}
-              >
-                Kids earn it, you set the rules.
-              </h3>
-              <p
-                style={{
-                  fontSize: 14,
-                  fontWeight: 600,
-                  color: '#555',
-                  lineHeight: 1.65,
-                  margin: 0,
-                  fontFamily: ff,
-                }}
-              >
-                Set a weekly allowance for each kid, tie it to how many chores
-                they complete, and watch the motivation sort itself out, kids
-                see exactly what they have earned and what is left to do, and
-                parents get a chore system that basically runs itself.
+              <p style={{ fontSize: 16, fontWeight: 900, color: '#111827', margin: '0 0 6px', fontFamily: ff }}>
+                Calendar
+              </p>
+              <p style={{ fontSize: 13, fontWeight: 600, color: '#6B7280', lineHeight: 1.55, margin: 0, fontFamily: ff }}>
+                Household events everyone can see. School pickups, dentist, game night.
               </p>
             </div>
-            <div className="feat-ui">
-              <AllowancesMockup />
+
+            {/* Reminders */}
+            <div
+              style={{
+                background: '#fff',
+                borderRadius: 16,
+                border: '1.5px solid #E5E7EB',
+                borderBottom: '4px solid #0891B2',
+                padding: 24,
+              }}
+            >
+              <div
+                style={{
+                  width: 36,
+                  height: 36,
+                  borderRadius: 10,
+                  backgroundColor: 'rgba(6,182,212,0.12)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  marginBottom: 12,
+                }}
+              >
+                <Bell size={18} color="#06B6D4" />
+              </div>
+              <p style={{ fontSize: 16, fontWeight: 900, color: '#111827', margin: '0 0 6px', fontFamily: ff }}>
+                Reminders
+              </p>
+              <p style={{ fontSize: 13, fontWeight: 600, color: '#6B7280', lineHeight: 1.55, margin: 0, fontFamily: ff }}>
+                Nag the right people at the right time, so you don&apos;t have to.
+              </p>
             </div>
           </div>
-        </section>
-      </div>
+        </div>
+      </section>
 
       {/* 6. COMPARISON TABLE */}
       <section
         className="comp-section"
-        style={{ backgroundColor: brandTint, padding: '56px 40px' }}
+        style={{ backgroundColor: '#F9FAFB', padding: '56px 40px' }}
       >
-        <div style={{ textAlign: 'center', marginBottom: 30 }}>
-          <h2
-            style={{
-              fontSize: 28,
-              fontWeight: 900,
-              color: '#1a1a1a',
-              letterSpacing: '-0.7px',
-              margin: '0 0 8px',
-              fontFamily: ff,
-            }}
-          >
-            How does Roost stack up?
-          </h2>
+        <div style={{ textAlign: 'center', marginBottom: 40 }}>
           <p
             style={{
-              fontSize: 14,
+              fontSize: 11,
               fontWeight: 800,
-              color: '#888',
+              letterSpacing: '0.08em',
+              color: '#9CA3AF',
+              marginBottom: 12,
+              fontFamily: ff,
+              textTransform: 'uppercase',
+            }}
+          >
+            Why Roost?
+          </p>
+          <h2
+            style={{
+              fontSize: 32,
+              fontWeight: 900,
+              color: '#111827',
+              letterSpacing: '-0.7px',
               margin: 0,
               fontFamily: ff,
             }}
           >
-            You tell us how it compares when you try it.
-          </p>
+            Everything they don&apos;t have. Nothing you don&apos;t need.
+          </h2>
         </div>
         <div
           className="comp-grid"
@@ -2341,18 +1455,18 @@ export default async function HomePage() {
             fontFamily: ff,
           }}
         >
-          Your household is waiting.
+          Your house runs better. Starting today.
         </h2>
         <p
           style={{
-            fontSize: 15,
-            fontWeight: 600,
-            color: 'rgba(255,255,255,0.8)',
+            fontSize: 16,
+            fontWeight: 700,
+            color: 'rgba(255,255,255,0.7)',
             margin: '0 0 28px',
             fontFamily: ff,
           }}
         >
-          Free to get started, no credit card, no excuses.
+          Free to start. $4/month when you&apos;re ready for more.
         </p>
         <div className="cta-actions">
           <Link
@@ -2360,14 +1474,7 @@ export default async function HomePage() {
             className="cta-primary"
             style={{ fontFamily: ff }}
           >
-            Create your household
-          </Link>
-          <Link
-            href="/login"
-            className="cta-secondary"
-            style={{ fontFamily: ff }}
-          >
-            Sign in
+            Get started free
           </Link>
         </div>
       </section>
@@ -2426,7 +1533,7 @@ export default async function HomePage() {
               fontFamily: ff,
             }}
           >
-            Homes run better with Roost.
+            &copy; 2026 Roost. Built for families and roommates who share a home.
           </span>
           <div className="footer-links" style={{ display: 'flex', gap: 20 }}>
             <Link

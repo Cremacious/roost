@@ -1,7 +1,7 @@
 import { NextRequest } from "next/server";
 import { requireSession } from "@/lib/auth/helpers";
 import { db } from "@/lib/db";
-import { chores, household_members } from "@/db/schema";
+import { chores } from "@/db/schema";
 import { and, eq, isNull } from "drizzle-orm";
 import { getUserHousehold, calcNextDueAt } from "../route";
 

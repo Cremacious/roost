@@ -6,7 +6,6 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Loader2 } from 'lucide-react';
 import DraggableSheet from '@/components/shared/DraggableSheet';
 import CategoryPicker from '@/components/expenses/CategoryPicker';
-import type { Category } from '@/components/expenses/CategoryPicker';
 
 const COLOR = '#22C55E';
 const COLOR_DARK = '#16A34A';

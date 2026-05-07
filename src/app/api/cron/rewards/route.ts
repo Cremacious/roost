@@ -13,16 +13,12 @@ import {
 import { and, count, eq, gte, isNull, lt } from "drizzle-orm";
 import {
   startOfWeek,
-  endOfWeek,
   startOfMonth,
-  endOfMonth,
   startOfYear,
-  endOfYear,
   addDays,
   subDays,
   format,
   parseISO,
-  isBefore,
 } from "date-fns";
 import { logActivity } from "@/lib/utils/activity";
 import { log } from "@/lib/utils/logger";

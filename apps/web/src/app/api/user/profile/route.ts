@@ -18,6 +18,7 @@ export async function GET() {
       language: users.language,
       theme: users.theme,
       has_seen_welcome: users.hasSeenWelcome,
+      is_child_account: users.isChildAccount,
       venmo_handle: users.venmoHandle,
       cashapp_handle: users.cashappHandle,
     })
@@ -27,7 +28,12 @@ export async function GET() {
 
   if (!row) return NextResponse.json({ error: 'User not found' }, { status: 404 })
 
-  return NextResponse.json({ user: row })
+  return NextResponse.json({
+    user: row,
+    // Flat convenience fields used by today/page.tsx WelcomeModal check
+    hasSeenWelcome: row.has_seen_welcome,
+    isChildAccount: row.is_child_account,
+  })
 }
 
 export async function PATCH(request: Request) {

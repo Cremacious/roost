@@ -474,7 +474,7 @@ export async function GET(request: NextRequest): Promise<Response> {
   }));
 
   const totalSpent = parseFloat(q6_totalSpent[0]?.total ?? "0");
-  const totalExpenseCount = q7_byCategory.reduce((s, r) => s + 1, 0);
+  const totalExpenseCount = q7_byCategory.reduce((s, _r) => s + 1, 0);
   void totalExpenseCount;
   const byCategory = q7_byCategory.map((r) => ({
     categoryId: r.categoryId,

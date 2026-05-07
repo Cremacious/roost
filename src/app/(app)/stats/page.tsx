@@ -5,7 +5,6 @@ import { useQuery } from "@tanstack/react-query";
 import { useHousehold } from "@/lib/hooks/useHousehold";
 import { motion } from "framer-motion";
 import {
-  BarChart2,
   CheckSquare,
   DollarSign,
   ListTodo,
@@ -29,7 +28,7 @@ import {
   Area,
 } from "recharts";
 import { PageContainer } from "@/components/layout/PageContainer";
-import { Skeleton } from "@/components/ui/Skeleton";
+import { Skeleton } from "@/components/ui/skeleton";
 import PremiumGate from "@/components/shared/PremiumGate";
 import MemberAvatar from "@/components/shared/MemberAvatar";
 

@@ -1,7 +1,7 @@
 import { NextRequest } from "next/server";
 import { requireSession } from "@/lib/auth/helpers";
 import { db } from "@/lib/db";
-import { household_invites, household_members, households } from "@/db/schema";
+import { household_invites, households } from "@/db/schema";
 import { and, eq } from "drizzle-orm";
 import { addDays } from "date-fns";
 import { generateInviteToken, getInviteUrl } from "@/lib/utils/inviteToken";

@@ -9,7 +9,7 @@ import {
   household_members,
   notification_queue,
 } from "@/db/schema";
-import { and, eq, isNull, lte, ne, not } from "drizzle-orm";
+import { and, eq, isNull, lte } from "drizzle-orm";
 import { format, subDays } from "date-fns";
 
 export async function GET(request: NextRequest): Promise<Response> {

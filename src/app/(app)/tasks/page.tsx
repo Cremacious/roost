@@ -100,7 +100,7 @@ function firstName(name: string | null): string {
 // ---- More menu --------------------------------------------------------------
 
 function TaskMoreMenu({
-  task,
+  task: _task,
   canDelete,
   onEdit,
   onDelete,
@@ -529,8 +529,6 @@ export default function TasksPage() {
   ).length;
 
   // Filter
-  const filterIsActive = filter !== "all";
-
   let visibleTasks: TaskRow[];
   if (filter === "completed") {
     visibleTasks = completedTasks;

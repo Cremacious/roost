@@ -1,4 +1,4 @@
-import { expect, Page } from "@playwright/test";
+import { Page } from "@playwright/test";
 
 // ---------------------------------------------------------------------------
 // Fixed seed account credentials
@@ -35,15 +35,6 @@ export const PREMIUM_HOUSEHOLD_CODE = "RSTPRM";
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
-
-async function dismissWelcomeDialog(page: Page) {
-  const gotItButton = page.getByRole("button", { name: "Got it, let's go" });
-
-  if (await gotItButton.isVisible().catch(() => false)) {
-    await gotItButton.click({ force: true });
-    await expect(gotItButton).not.toBeVisible({ timeout: 5000 });
-  }
-}
 
 /**
  * Signs up a brand-new account (used only for tests that exercise the signup

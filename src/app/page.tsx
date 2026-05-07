@@ -619,6 +619,11 @@ export default async function HomePage() {
             gap: 6px !important;
             text-align: center !important;
           }
+          .bento-row-a,
+          .bento-row-b,
+          .bento-row-c {
+            grid-template-columns: 1fr !important;
+          }
         }
       `}</style>
 
@@ -763,7 +768,238 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* bento grid goes here (Task 4) */}
+      {/* BENTO GRID */}
+      <section style={{ backgroundColor: '#ffffff', padding: '80px 40px' }}>
+        <div style={{ maxWidth: 1100, margin: '0 auto' }}>
+          <p
+            style={{
+              textAlign: 'center',
+              fontSize: 11,
+              fontWeight: 800,
+              letterSpacing: '0.08em',
+              color: '#9CA3AF',
+              marginBottom: 48,
+              fontFamily: ff,
+              textTransform: 'uppercase',
+            }}
+          >
+            Everything your house needs
+          </p>
+
+          {/* Row 1: Chores (2/3) + Grocery (1/3) */}
+          <div className="bento-row-a" style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 16 }}>
+            {/* Chores — tall with mockup */}
+            <div
+              style={{
+                background: '#fff',
+                borderRadius: 16,
+                border: '1.5px solid #E5E7EB',
+                borderBottom: '4px solid #C93B3B',
+                padding: 28,
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 24,
+              }}
+            >
+              <div>
+                <div
+                  style={{
+                    width: 36,
+                    height: 36,
+                    borderRadius: 10,
+                    backgroundColor: 'rgba(239,68,68,0.12)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    marginBottom: 12,
+                  }}
+                >
+                  <CheckSquare size={18} color="#EF4444" />
+                </div>
+                <p style={{ fontSize: 16, fontWeight: 900, color: '#111827', margin: '0 0 6px', fontFamily: ff }}>
+                  Chores
+                </p>
+                <p style={{ fontSize: 13, fontWeight: 600, color: '#6B7280', lineHeight: 1.55, margin: 0, fontFamily: ff }}>
+                  Assign it. Track it. Nobody gets away with &ldquo;I forgot.&rdquo; Kids earn rewards for finishing theirs.
+                </p>
+              </div>
+              <ChoresMockup />
+            </div>
+
+            {/* Grocery — small */}
+            <div
+              style={{
+                background: '#fff',
+                borderRadius: 16,
+                border: '1.5px solid #E5E7EB',
+                borderBottom: '4px solid #C87D00',
+                padding: 24,
+              }}
+            >
+              <div
+                style={{
+                  width: 36,
+                  height: 36,
+                  borderRadius: 10,
+                  backgroundColor: 'rgba(245,158,11,0.12)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  marginBottom: 12,
+                }}
+              >
+                <ShoppingCart size={18} color="#F59E0B" />
+              </div>
+              <p style={{ fontSize: 16, fontWeight: 900, color: '#111827', margin: '0 0 6px', fontFamily: ff }}>
+                Grocery
+              </p>
+              <p style={{ fontSize: 13, fontWeight: 600, color: '#6B7280', lineHeight: 1.55, margin: 0, fontFamily: ff }}>
+                One list everyone adds to. No more &ldquo;I thought you got the milk.&rdquo;
+              </p>
+            </div>
+          </div>
+
+          {/* Row 2: Expenses (1/3) + Meals (2/3) */}
+          <div className="bento-row-b" style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: 16, marginTop: 16 }}>
+            {/* Expenses — small */}
+            <div
+              style={{
+                background: '#fff',
+                borderRadius: 16,
+                border: '1.5px solid #E5E7EB',
+                borderBottom: '4px solid #159040',
+                padding: 24,
+              }}
+            >
+              <div
+                style={{
+                  width: 36,
+                  height: 36,
+                  borderRadius: 10,
+                  backgroundColor: 'rgba(34,197,94,0.12)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  marginBottom: 12,
+                }}
+              >
+                <DollarSign size={18} color="#22C55E" />
+              </div>
+              <p style={{ fontSize: 16, fontWeight: 900, color: '#111827', margin: '0 0 6px', fontFamily: ff }}>
+                Expenses
+              </p>
+              <p style={{ fontSize: 13, fontWeight: 600, color: '#6B7280', lineHeight: 1.55, margin: 0, fontFamily: ff }}>
+                Split bills three ways, scan a receipt, settle up. No spreadsheets.
+              </p>
+            </div>
+
+            {/* Meals — tall with mockup */}
+            <div
+              style={{
+                background: '#fff',
+                borderRadius: 16,
+                border: '1.5px solid #E5E7EB',
+                borderBottom: '4px solid #C4581A',
+                padding: 28,
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 24,
+              }}
+            >
+              <div>
+                <div
+                  style={{
+                    width: 36,
+                    height: 36,
+                    borderRadius: 10,
+                    backgroundColor: 'rgba(249,115,22,0.12)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    marginBottom: 12,
+                  }}
+                >
+                  <UtensilsCrossed size={18} color="#F97316" />
+                </div>
+                <p style={{ fontSize: 16, fontWeight: 900, color: '#111827', margin: '0 0 6px', fontFamily: ff }}>
+                  Meals
+                </p>
+                <p style={{ fontSize: 13, fontWeight: 600, color: '#6B7280', lineHeight: 1.55, margin: 0, fontFamily: ff }}>
+                  Plan the week, vote on dinners, push ingredients straight to your grocery list.
+                </p>
+              </div>
+              <MealsMockup />
+            </div>
+          </div>
+
+          {/* Row 3: Calendar (1/2) + Reminders (1/2) */}
+          <div className="bento-row-c" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginTop: 16 }}>
+            {/* Calendar */}
+            <div
+              style={{
+                background: '#fff',
+                borderRadius: 16,
+                border: '1.5px solid #E5E7EB',
+                borderBottom: '4px solid #1A5CB5',
+                padding: 24,
+              }}
+            >
+              <div
+                style={{
+                  width: 36,
+                  height: 36,
+                  borderRadius: 10,
+                  backgroundColor: 'rgba(59,130,246,0.12)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  marginBottom: 12,
+                }}
+              >
+                <CalendarDays size={18} color="#3B82F6" />
+              </div>
+              <p style={{ fontSize: 16, fontWeight: 900, color: '#111827', margin: '0 0 6px', fontFamily: ff }}>
+                Calendar
+              </p>
+              <p style={{ fontSize: 13, fontWeight: 600, color: '#6B7280', lineHeight: 1.55, margin: 0, fontFamily: ff }}>
+                Household events everyone can see. School pickups, dentist, game night.
+              </p>
+            </div>
+
+            {/* Reminders */}
+            <div
+              style={{
+                background: '#fff',
+                borderRadius: 16,
+                border: '1.5px solid #E5E7EB',
+                borderBottom: '4px solid #0891B2',
+                padding: 24,
+              }}
+            >
+              <div
+                style={{
+                  width: 36,
+                  height: 36,
+                  borderRadius: 10,
+                  backgroundColor: 'rgba(6,182,212,0.12)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  marginBottom: 12,
+                }}
+              >
+                <Bell size={18} color="#06B6D4" />
+              </div>
+              <p style={{ fontSize: 16, fontWeight: 900, color: '#111827', margin: '0 0 6px', fontFamily: ff }}>
+                Reminders
+              </p>
+              <p style={{ fontSize: 13, fontWeight: 600, color: '#6B7280', lineHeight: 1.55, margin: 0, fontFamily: ff }}>
+                Nag the right people at the right time, so you don&apos;t have to.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
 
       {/* 6. COMPARISON TABLE */}
       <section

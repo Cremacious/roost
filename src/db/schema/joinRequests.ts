@@ -1,11 +1,11 @@
-import { index, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
+import { index, pgTable, text, timestamp } from "drizzle-orm/pg-core";
 import { households } from "./households";
 
 export const household_join_requests = pgTable(
   "household_join_requests",
   {
-    id: uuid("id").primaryKey().defaultRandom(),
-    household_id: uuid("household_id")
+    id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+    household_id: text("household_id")
       .references(() => households.id)
       .notNull(),
     requester_user_id: text("requester_user_id").notNull(),

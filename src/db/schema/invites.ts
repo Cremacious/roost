@@ -1,9 +1,9 @@
-import { boolean, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
+import { boolean, pgTable, text, timestamp } from "drizzle-orm/pg-core";
 import { households } from "./households";
 
 export const household_invites = pgTable("household_invites", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  household_id: uuid("household_id")
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  household_id: text("household_id")
     .references(() => households.id)
     .notNull(),
   created_by: text("created_by").notNull(),

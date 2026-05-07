@@ -1,11 +1,11 @@
-import { boolean, index, pgTable, text, timestamp, unique, uuid } from "drizzle-orm/pg-core";
+import { boolean, index, pgTable, text, timestamp, unique } from "drizzle-orm/pg-core";
 import { households } from "./households";
 
 export const reminders = pgTable(
   "reminders",
   {
-    id: uuid("id").primaryKey().defaultRandom(),
-    household_id: uuid("household_id")
+    id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+    household_id: text("household_id")
       .references(() => households.id)
       .notNull(),
     created_by: text("created_by").notNull(),
@@ -41,8 +41,8 @@ export const reminders = pgTable(
 export const reminder_receipts = pgTable(
   "reminder_receipts",
   {
-    id: uuid("id").primaryKey().defaultRandom(),
-    reminder_id: uuid("reminder_id")
+    id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+    reminder_id: text("reminder_id")
       .references(() => reminders.id)
       .notNull(),
     user_id: text("user_id").notNull(),

@@ -1,9 +1,9 @@
-import { boolean, date, json, numeric, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
+import { boolean, date, json, numeric, pgTable, text, timestamp } from "drizzle-orm/pg-core";
 import { households } from "./households";
 
 export const recurring_expense_templates = pgTable("recurring_expense_templates", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  household_id: uuid("household_id")
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  household_id: text("household_id")
     .references(() => households.id)
     .notNull(),
   created_by: text("created_by").notNull(),

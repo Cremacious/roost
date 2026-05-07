@@ -1,11 +1,11 @@
-import { boolean, date, index, integer, pgTable, text, timestamp, unique, uuid } from "drizzle-orm/pg-core";
+import { boolean, date, index, integer, pgTable, text, timestamp, unique } from "drizzle-orm/pg-core";
 import { households } from "./households";
 
 export const meals = pgTable(
   "meals",
   {
-    id: uuid("id").primaryKey().defaultRandom(),
-    household_id: uuid("household_id")
+    id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+    household_id: text("household_id")
       .references(() => households.id)
       .notNull(),
     name: text("name").notNull(),
@@ -31,11 +31,11 @@ export const meals = pgTable(
 export const meal_plan_slots = pgTable(
   "meal_plan_slots",
   {
-    id: uuid("id").primaryKey().defaultRandom(),
-    household_id: uuid("household_id")
+    id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+    household_id: text("household_id")
       .references(() => households.id)
       .notNull(),
-    meal_id: uuid("meal_id").references(() => meals.id),
+    meal_id: text("meal_id").references(() => meals.id),
     custom_meal_name: text("custom_meal_name"),
     slot_date: date("slot_date").notNull(),
     slot_type: text("slot_type").notNull(),
@@ -52,8 +52,8 @@ export const meal_plan_slots = pgTable(
 );
 
 export const meal_suggestions = pgTable("meal_suggestions", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  household_id: uuid("household_id")
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  household_id: text("household_id")
     .references(() => households.id)
     .notNull(),
   suggested_by: text("suggested_by").notNull(),
@@ -67,8 +67,8 @@ export const meal_suggestions = pgTable("meal_suggestions", {
   status: text("status").notNull().default("suggested"),
   responded_by: text("responded_by"),
   responded_at: timestamp("responded_at"),
-  accepted_meal_id: uuid("accepted_meal_id").references(() => meals.id),
-  accepted_slot_id: uuid("accepted_slot_id").references(() => meal_plan_slots.id),
+  accepted_meal_id: text("accepted_meal_id").references(() => meals.id),
+  accepted_slot_id: text("accepted_slot_id").references(() => meal_plan_slots.id),
   created_at: timestamp("created_at").defaultNow(),
   updated_at: timestamp("updated_at").defaultNow(),
 });
@@ -76,8 +76,8 @@ export const meal_suggestions = pgTable("meal_suggestions", {
 export const meal_suggestion_votes = pgTable(
   "meal_suggestion_votes",
   {
-    id: uuid("id").primaryKey().defaultRandom(),
-    suggestion_id: uuid("suggestion_id")
+    id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+    suggestion_id: text("suggestion_id")
       .references(() => meal_suggestions.id)
       .notNull(),
     user_id: text("user_id").notNull(),

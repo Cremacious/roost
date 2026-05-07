@@ -1,12 +1,12 @@
-import { boolean, index, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
+import { boolean, index, pgTable, text, timestamp } from "drizzle-orm/pg-core";
 
 export const notification_queue = pgTable(
   "notification_queue",
   {
-    id: uuid("id").primaryKey().defaultRandom(),
+    id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
     user_id: text("user_id").notNull(),
     type: text("type").notNull(),
-    entity_id: uuid("entity_id"),
+    entity_id: text("entity_id"),
     entity_type: text("entity_type"),
     title: text("title").notNull(),
     body: text("body").notNull(),

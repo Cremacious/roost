@@ -3,13 +3,12 @@ import {
   pgTable,
   text,
   timestamp,
-  uuid,
 } from "drizzle-orm/pg-core";
 import { households } from "./households";
 
 export const chore_categories = pgTable("chore_categories", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  household_id: uuid("household_id")
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  household_id: text("household_id")
     .references(() => households.id)
     .notNull(),
   name: text("name").notNull(),

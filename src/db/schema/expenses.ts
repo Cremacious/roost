@@ -1,18 +1,18 @@
-import { boolean, index, numeric, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
+import { boolean, index, numeric, pgTable, text, timestamp } from "drizzle-orm/pg-core";
 import { households } from "./households";
 
 export const expenses = pgTable(
   "expenses",
   {
-    id: uuid("id").primaryKey().defaultRandom(),
-    household_id: uuid("household_id")
+    id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+    household_id: text("household_id")
       .references(() => households.id)
       .notNull(),
     title: text("title").notNull(),
     total_amount: numeric("total_amount").notNull(),
     paid_by: text("paid_by").notNull(),
     category: text("category"), // legacy text category (kept for compat)
-    category_id: uuid("category_id"), // FK to expense_categories (nullable)
+    category_id: text("category_id"), // FK to expense_categories (nullable)
     receipt_url: text("receipt_url"),
     receipt_data: text("receipt_data"),
     // Recurring support
@@ -37,8 +37,8 @@ export const expenses = pgTable(
 export const expense_splits = pgTable(
   "expense_splits",
   {
-    id: uuid("id").primaryKey().defaultRandom(),
-    expense_id: uuid("expense_id")
+    id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+    expense_id: text("expense_id")
       .references(() => expenses.id)
       .notNull(),
     user_id: text("user_id").notNull(),

@@ -1,12 +1,12 @@
-import { date, index, integer, pgTable, text, timestamp, unique, uuid } from "drizzle-orm/pg-core";
+import { date, index, integer, pgTable, text, timestamp, unique } from "drizzle-orm/pg-core";
 import { households } from "./households";
 import { chore_categories } from "./choreCategories";
 
 export const chores = pgTable(
   "chores",
   {
-    id: uuid("id").primaryKey().defaultRandom(),
-    household_id: uuid("household_id")
+    id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+    household_id: text("household_id")
       .references(() => households.id)
       .notNull(),
     title: text("title").notNull(),
@@ -14,7 +14,7 @@ export const chores = pgTable(
     assigned_to: text("assigned_to"),
     frequency: text("frequency").notNull(),
     custom_days: text("custom_days"),
-    category_id: uuid("category_id")
+    category_id: text("category_id")
       .references(() => chore_categories.id),
     last_completed_at: timestamp("last_completed_at"),
     next_due_at: timestamp("next_due_at"),
@@ -38,8 +38,8 @@ export const chores = pgTable(
 export const chore_completions = pgTable(
   "chore_completions",
   {
-    id: uuid("id").primaryKey().defaultRandom(),
-    chore_id: uuid("chore_id")
+    id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+    chore_id: text("chore_id")
       .references(() => chores.id)
       .notNull(),
     completed_by: text("completed_by").notNull(),
@@ -57,8 +57,8 @@ export const chore_completions = pgTable(
 export const chore_streaks = pgTable(
   "chore_streaks",
   {
-    id: uuid("id").primaryKey().defaultRandom(),
-    household_id: uuid("household_id")
+    id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+    household_id: text("household_id")
       .references(() => households.id)
       .notNull(),
     user_id: text("user_id").notNull(),

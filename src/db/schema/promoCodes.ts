@@ -1,8 +1,8 @@
-import { pgTable, text, integer, timestamp, uuid, varchar, boolean } from "drizzle-orm/pg-core";
+import { pgTable, text, integer, timestamp, varchar, boolean } from "drizzle-orm/pg-core";
 import { households } from "./households";
 
 export const promo_codes = pgTable("promo_codes", {
-  id: uuid("id").primaryKey().defaultRandom(),
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
   code: varchar("code", { length: 32 }).unique().notNull(),
   duration_days: integer("duration_days").notNull(),
   is_lifetime: boolean("is_lifetime").notNull().default(false),
@@ -14,11 +14,11 @@ export const promo_codes = pgTable("promo_codes", {
 });
 
 export const promo_redemptions = pgTable("promo_redemptions", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  promo_code_id: uuid("promo_code_id")
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  promo_code_id: text("promo_code_id")
     .notNull()
     .references(() => promo_codes.id),
-  household_id: uuid("household_id")
+  household_id: text("household_id")
     .notNull()
     .references(() => households.id),
   user_id: text("user_id").notNull(),

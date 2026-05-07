@@ -1,11 +1,11 @@
-import { boolean, index, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
+import { boolean, index, pgTable, text, timestamp } from "drizzle-orm/pg-core";
 import { households } from "./households";
 
 export const grocery_lists = pgTable(
   "grocery_lists",
   {
-    id: uuid("id").primaryKey().defaultRandom(),
-    household_id: uuid("household_id")
+    id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+    household_id: text("household_id")
       .references(() => households.id)
       .notNull(),
     name: text("name").notNull().default("Shopping List"),
@@ -25,11 +25,11 @@ export const grocery_lists = pgTable(
 export const grocery_items = pgTable(
   "grocery_items",
   {
-    id: uuid("id").primaryKey().defaultRandom(),
-    list_id: uuid("list_id")
+    id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+    list_id: text("list_id")
       .references(() => grocery_lists.id)
       .notNull(),
-    household_id: uuid("household_id")
+    household_id: text("household_id")
       .references(() => households.id)
       .notNull(),
     name: text("name").notNull(),

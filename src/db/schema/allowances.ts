@@ -1,6 +1,6 @@
 import {
   boolean, date, integer, numeric, pgTable,
-  text, timestamp, unique, uuid
+  text, timestamp, unique
 } from "drizzle-orm/pg-core";
 import { households } from "./households";
 import { expenses } from "./expenses";
@@ -8,8 +8,8 @@ import { expenses } from "./expenses";
 export const reward_rules = pgTable(
   "reward_rules",
   {
-    id: uuid("id").primaryKey().defaultRandom(),
-    household_id: uuid("household_id")
+    id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+    household_id: text("household_id")
       .references(() => households.id).notNull(),
     user_id: text("user_id").notNull(),
     title: text("title").notNull().default("Weekly reward"),
@@ -39,11 +39,11 @@ export type NewRewardRule = typeof reward_rules.$inferInsert;
 export const reward_payouts = pgTable(
   "reward_payouts",
   {
-    id: uuid("id").primaryKey().defaultRandom(),
-    household_id: uuid("household_id")
+    id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+    household_id: text("household_id")
       .references(() => households.id).notNull(),
     user_id: text("user_id").notNull(),
-    rule_id: uuid("rule_id").references(() => reward_rules.id),
+    rule_id: text("rule_id").references(() => reward_rules.id),
     period_start: date("period_start").notNull(),
     period_end: date("period_end").notNull(),
     reward_type: text("reward_type").notNull(),
@@ -52,7 +52,7 @@ export const reward_payouts = pgTable(
     earned: boolean("earned").notNull(),
     completion_rate: integer("completion_rate").notNull(),
     threshold_percent: integer("threshold_percent").notNull(),
-    expense_id: uuid("expense_id").references(() => expenses.id),
+    expense_id: text("expense_id").references(() => expenses.id),
     acknowledged: boolean("acknowledged").notNull().default(false),
     created_at: timestamp("created_at").defaultNow(),
   },
@@ -67,8 +67,8 @@ export type NewRewardPayout = typeof reward_payouts.$inferInsert;
 export const allowance_settings = pgTable(
   "allowance_settings",
   {
-    id: uuid("id").primaryKey().defaultRandom(),
-    household_id: uuid("household_id")
+    id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+    household_id: text("household_id")
       .references(() => households.id).notNull(),
     user_id: text("user_id").notNull(),
     enabled: boolean("enabled").notNull().default(false),
@@ -85,8 +85,8 @@ export const allowance_settings = pgTable(
 export const allowance_payouts = pgTable(
   "allowance_payouts",
   {
-    id: uuid("id").primaryKey().defaultRandom(),
-    household_id: uuid("household_id")
+    id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+    household_id: text("household_id")
       .references(() => households.id).notNull(),
     user_id: text("user_id").notNull(),
     week_start: date("week_start").notNull(),
@@ -94,7 +94,7 @@ export const allowance_payouts = pgTable(
     earned: boolean("earned").notNull(),
     completion_rate: integer("completion_rate").notNull(),
     threshold_percent: integer("threshold_percent").notNull(),
-    expense_id: uuid("expense_id").references(() => expenses.id),
+    expense_id: text("expense_id").references(() => expenses.id),
     created_at: timestamp("created_at").defaultNow(),
   },
   (t) => [unique().on(t.household_id, t.user_id, t.week_start)]

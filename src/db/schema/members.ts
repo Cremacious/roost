@@ -1,11 +1,11 @@
-import { boolean, index, pgTable, text, timestamp, unique, uuid } from "drizzle-orm/pg-core";
+import { boolean, index, pgTable, text, timestamp, unique } from "drizzle-orm/pg-core";
 import { households } from "./households";
 
 export const household_members = pgTable(
   "household_members",
   {
-    id: uuid("id").primaryKey().defaultRandom(),
-    household_id: uuid("household_id")
+    id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+    household_id: text("household_id")
       .references(() => households.id)
       .notNull(),
     user_id: text("user_id").notNull(),
@@ -26,8 +26,8 @@ export const household_members = pgTable(
 export const member_permissions = pgTable(
   "member_permissions",
   {
-    id: uuid("id").primaryKey().defaultRandom(),
-    household_id: uuid("household_id")
+    id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+    household_id: text("household_id")
       .references(() => households.id)
       .notNull(),
     user_id: text("user_id").notNull(),

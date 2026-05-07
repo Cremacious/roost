@@ -1,9 +1,9 @@
-import { boolean, date, integer, numeric, pgTable, text, timestamp, uniqueIndex, uuid } from "drizzle-orm/pg-core";
+import { boolean, date, integer, numeric, pgTable, text, timestamp, uniqueIndex } from "drizzle-orm/pg-core";
 import { households } from "./households";
 
 export const expense_categories = pgTable("expense_categories", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  household_id: uuid("household_id")
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+  household_id: text("household_id")
     .references(() => households.id)
     .notNull(),
   name: text("name").notNull(),
@@ -19,11 +19,11 @@ export const expense_categories = pgTable("expense_categories", {
 export const expense_budgets = pgTable(
   "expense_budgets",
   {
-    id: uuid("id").primaryKey().defaultRandom(),
-    household_id: uuid("household_id")
+    id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
+    household_id: text("household_id")
       .references(() => households.id)
       .notNull(),
-    category_id: uuid("category_id")
+    category_id: text("category_id")
       .references(() => expense_categories.id)
       .notNull(),
     amount: numeric("amount").notNull(),

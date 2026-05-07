@@ -81,31 +81,46 @@ export default function TodayPage() {
 
   const dateLabel = format(new Date(), 'EEEE, MMMM d').toUpperCase()
 
+  // Render WelcomeModal regardless of today-data loading state so it is
+  // never blocked by a slow or failed /api/today fetch.
+  const welcomeModal = (
+    <WelcomeModal
+      open={showWelcome}
+      onDismiss={() => setWelcomeDismissed(true)}
+    />
+  )
+
   if (isLoading) {
     return (
-      <div style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 12 }}>
-        <Skeleton style={{ height: 16, width: 160 }} />
-        <SkeletonCard />
-        <Skeleton style={{ height: 12, width: 128 }} />
-        <SkeletonCard />
-        <SkeletonCard />
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+      <>
+        {welcomeModal}
+        <div style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <Skeleton style={{ height: 16, width: 160 }} />
+          <SkeletonCard />
+          <Skeleton style={{ height: 12, width: 128 }} />
           <SkeletonCard />
           <SkeletonCard />
-          <SkeletonCard />
-          <SkeletonCard />
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+            <SkeletonCard />
+            <SkeletonCard />
+            <SkeletonCard />
+            <SkeletonCard />
+          </div>
         </div>
-      </div>
+      </>
     )
   }
 
   if (isError || !data) {
     return (
-      <div style={{ padding: 24, textAlign: 'center' }}>
-        <p style={{ color: 'var(--roost-text-muted)', fontWeight: 700 }}>
-          Could not load today&apos;s data. Please refresh.
-        </p>
-      </div>
+      <>
+        {welcomeModal}
+        <div style={{ padding: 24, textAlign: 'center' }}>
+          <p style={{ color: 'var(--roost-text-muted)', fontWeight: 700 }}>
+            Could not load today&apos;s data. Please refresh.
+          </p>
+        </div>
+      </>
     )
   }
 
@@ -113,10 +128,7 @@ export default function TodayPage() {
 
   return (
     <>
-      <WelcomeModal
-        open={showWelcome}
-        onDismiss={() => setWelcomeDismissed(true)}
-      />
+      {welcomeModal}
       <motion.div
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}

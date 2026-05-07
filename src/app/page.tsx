@@ -1533,7 +1533,7 @@ export default async function HomePage() {
               fontFamily: ff,
             }}
           >
-            Homes run better with Roost.
+            &copy; 2026 Roost. Built for families and roommates who share a home.
           </span>
           <div className="footer-links" style={{ display: 'flex', gap: 20 }}>
             <Link

@@ -15,7 +15,9 @@ export interface LineItem {
 
 interface LineItemReviewProps {
   receipt: ParsedReceipt
-  onConfirm: (items: LineItem[], taxAndTip: number) => void
+  members: { id: string; name: string; avatarColor?: string }[]
+  currentUserId: string
+  onConfirm: (items: LineItem[], taxAndTip: number, splitEnabled: boolean) => void
   onManual: () => void
   onBack: () => void
 }
@@ -24,7 +26,7 @@ function formatAmount(n: number): string {
   return n.toFixed(2)
 }
 
-export function LineItemReview({ receipt, onConfirm, onManual, onBack }: LineItemReviewProps) {
+export function LineItemReview({ receipt, members, currentUserId, onConfirm, onManual, onBack }: LineItemReviewProps) {
   const [items, setItems] = useState<LineItem[]>(() =>
     receipt.lineItems.map(li => ({
       id: crypto.randomUUID(),
@@ -32,8 +34,10 @@ export function LineItemReview({ receipt, onConfirm, onManual, onBack }: LineIte
       amount: li.amount,
     }))
   )
+  const [splitEnabled, setSplitEnabled] = useState(false)
 
   const taxAndTip = (receipt.tax ?? 0) + (receipt.tip ?? 0)
+  const canSplit = members.length > 1
 
   function updateDescription(id: string, value: string) {
     setItems(prev => prev.map(item => item.id === id ? { ...item, description: value } : item))
@@ -245,9 +249,45 @@ export function LineItemReview({ receipt, onConfirm, onManual, onBack }: LineIte
         </div>
       )}
 
+      {/* Split between members toggle (only shown when multiple members) */}
+      {canSplit && (
+        <label
+          style={{
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+            padding: '12px 14px', marginBottom: 16,
+            backgroundColor: 'var(--roost-surface)',
+            border: '1.5px solid var(--roost-border)',
+            borderBottom: `3px solid ${splitEnabled ? COLOR_DARK : 'var(--roost-border-bottom)'}`,
+            borderRadius: 12, cursor: 'pointer',
+          }}
+        >
+          <span style={{ color: 'var(--roost-text-primary)', fontWeight: 700, fontSize: 15 }}>
+            Split between members
+          </span>
+          <div
+            onClick={() => setSplitEnabled(v => !v)}
+            style={{
+              width: 44, height: 26, borderRadius: 13, flexShrink: 0,
+              backgroundColor: splitEnabled ? COLOR : 'var(--roost-border)',
+              transition: 'background-color 0.2s',
+              position: 'relative', cursor: 'pointer',
+            }}
+          >
+            <div style={{
+              position: 'absolute', top: 3,
+              left: splitEnabled ? 21 : 3,
+              width: 20, height: 20, borderRadius: '50%',
+              backgroundColor: '#fff',
+              boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
+              transition: 'left 0.2s',
+            }} />
+          </div>
+        </label>
+      )}
+
       {/* Confirm button */}
       <button
-        onClick={() => isValid && onConfirm(items, taxAndTip)}
+        onClick={() => isValid && onConfirm(items, taxAndTip, canSplit && splitEnabled)}
         disabled={!isValid}
         style={{
           display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -261,7 +301,7 @@ export function LineItemReview({ receipt, onConfirm, onManual, onBack }: LineIte
           opacity: isValid ? 1 : 0.7,
         }}
       >
-        Confirm items
+        {canSplit && splitEnabled ? 'Assign items' : 'Use receipt total'}
       </button>
 
       {/* Enter manually link */}

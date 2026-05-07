@@ -188,10 +188,19 @@ export function ExpenseSheet({ open, onClose, members, currentUserId, isPremium,
     setScanStep('reviewing')
   }
 
-  function handleReviewConfirm(items: LineItem[], taxAndTip: number) {
+  function handleReviewConfirm(items: LineItem[], taxAndTip: number, splitEnabled: boolean) {
     setReviewedItems(items)
     setReviewedTaxAndTip(taxAndTip)
-    setScanStep('grid')
+
+    if (splitEnabled && members.length > 1) {
+      setScanStep('grid')
+    } else {
+      // Skip grid: pre-fill form with receipt total, leave split method unchanged
+      const total = items.reduce((sum, item) => sum + item.amount, 0) + taxAndTip
+      if (scannedReceipt?.merchant) setTitle(scannedReceipt.merchant)
+      setAmount(total.toFixed(2))
+      setScanStep('idle')
+    }
   }
 
   function handleGridConfirm(splits: AssignedSplit[], rData: object) {
@@ -367,6 +376,8 @@ export function ExpenseSheet({ open, onClose, members, currentUserId, isPremium,
       {scanStep === 'reviewing' && scannedReceipt && (
         <LineItemReview
           receipt={scannedReceipt}
+          members={members}
+          currentUserId={currentUserId}
           onConfirm={handleReviewConfirm}
           onManual={() => {
             setScannedReceipt({ lineItems: [] })

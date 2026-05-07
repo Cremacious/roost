@@ -2,7 +2,7 @@ import { headers } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { auth } from './index'
 import { db } from '@/lib/db'
-import { householdMembers, households } from '@/db/schema'
+import { householdMembers, households, users } from '@/db/schema'
 import { eq, and, isNull, desc } from 'drizzle-orm'
 import type { NextRequest } from 'next/server'
 
@@ -17,15 +17,48 @@ export async function requireSession() {
 }
 
 export async function getUserHousehold(userId: string) {
-  const row = await db
-    .select({
-      householdId: householdMembers.householdId,
-      role: householdMembers.role,
-      household: {
-        name: households.name,
-        subscriptionStatus: households.subscription_status,
-      },
-    })
+  // 1. Read the user's active_household_id preference
+  const [userRow] = await db
+    .select({ activeHouseholdId: users.activeHouseholdId })
+    .from(users)
+    .where(eq(users.id, userId))
+    .limit(1)
+
+  const activeHouseholdId = userRow?.activeHouseholdId ?? null
+
+  const selectFields = {
+    householdId: householdMembers.householdId,
+    role: householdMembers.role,
+    household: {
+      name: households.name,
+      subscriptionStatus: households.subscription_status,
+    },
+  }
+
+  // 2. If set, try to load that specific household membership
+  if (activeHouseholdId) {
+    const row = await db
+      .select(selectFields)
+      .from(householdMembers)
+      .innerJoin(households, eq(householdMembers.householdId, households.id))
+      .where(
+        and(
+          eq(householdMembers.userId, userId),
+          eq(householdMembers.householdId, activeHouseholdId),
+          isNull(householdMembers.deletedAt),
+          isNull(households.deleted_at),
+        )
+      )
+      .limit(1)
+      .then(r => r[0] ?? null)
+
+    if (row) return row
+    // Membership no longer valid — fall through to most-recent
+  }
+
+  // 3. Fall back to most recently joined household
+  return db
+    .select(selectFields)
     .from(householdMembers)
     .innerJoin(households, eq(householdMembers.householdId, households.id))
     .where(
@@ -38,8 +71,6 @@ export async function getUserHousehold(userId: string) {
     .orderBy(desc(householdMembers.createdAt))
     .limit(1)
     .then(r => r[0] ?? null)
-
-  return row
 }
 
 export async function requireHouseholdAdmin(

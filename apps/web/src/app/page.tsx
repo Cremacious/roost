@@ -759,8 +759,6 @@ export default async function HomePage() {
             fontFamily: 'var(--font-nunito)',
           }}
         >
-          Free to start. $4/month when you&apos;re ready for more.
-        </p>
         <Link
           href="/signup"
           style={{
@@ -782,7 +780,7 @@ export default async function HomePage() {
       </section>
 
       {/* ── 5. FOOTER ───────────────────────────────────────────────────── */}
-      <footer style={{ backgroundColor: '#111827', padding: '32px 40px' }}>
+      <footer style={{ backgroundColor: C.chores.base, padding: '32px 40px' }}>
         <div style={{ maxWidth: 1100, margin: '0 auto' }}>
           <div className="hp-footer-inner">
             <span
@@ -802,7 +800,7 @@ export default async function HomePage() {
                 style={{
                   fontSize: 13,
                   fontWeight: 700,
-                  color: '#6B7280',
+                  color: 'rgba(255,255,255,0.7)',
                   textDecoration: 'none',
                   fontFamily: 'var(--font-nunito)',
                 }}
@@ -814,7 +812,7 @@ export default async function HomePage() {
                 style={{
                   fontSize: 13,
                   fontWeight: 700,
-                  color: '#6B7280',
+                  color: 'rgba(255,255,255,0.7)',
                   textDecoration: 'none',
                   fontFamily: 'var(--font-nunito)',
                 }}
@@ -827,7 +825,7 @@ export default async function HomePage() {
             style={{
               fontSize: 12,
               fontWeight: 600,
-              color: '#4B5563',
+              color: 'rgba(255,255,255,0.5)',
               textAlign: 'center',
               margin: '20px 0 0',
               fontFamily: 'var(--font-nunito)',

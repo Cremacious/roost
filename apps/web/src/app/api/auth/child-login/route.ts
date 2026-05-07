@@ -1,7 +1,7 @@
 import { type NextRequest } from 'next/server'
 import { db } from '@/lib/db'
 import { auth } from '@/lib/auth'
-import { households, household_members, users } from '@/db/schema'
+import { households, householdMembers as household_members, users } from '@/db/schema'
 import { eq, and } from 'drizzle-orm'
 import { verifyPassword } from 'better-auth/crypto'
 
@@ -29,13 +29,13 @@ export async function GET(request: NextRequest): Promise<Response> {
     .select({
       id: users.id,
       name: users.name,
-      avatarColor: users.avatar_color,
+      avatarColor: users.avatarColor,
     })
     .from(household_members)
-    .innerJoin(users, eq(household_members.user_id, users.id))
+    .innerJoin(users, eq(household_members.userId, users.id))
     .where(
       and(
-        eq(household_members.household_id, household.id),
+        eq(household_members.householdId, household.id),
         eq(household_members.role, 'child'),
       )
     )
@@ -78,13 +78,13 @@ export async function POST(request: NextRequest): Promise<Response> {
   const [member] = await db
     .select({
       pin: household_members.pin,
-      userId: household_members.user_id,
+      userId: household_members.userId,
     })
     .from(household_members)
     .where(
       and(
-        eq(household_members.household_id, household.id),
-        eq(household_members.user_id, childId),
+        eq(household_members.householdId, household.id),
+        eq(household_members.userId, childId),
         eq(household_members.role, 'child'),
       )
     )

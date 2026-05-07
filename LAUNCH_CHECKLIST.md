@@ -4,8 +4,9 @@ Status key: `todo`, `in_progress`, `blocked`, `done`
 
 ## Current Status
 
-Build passes cleanly. E2E suite is green. Security hardening is complete. The app is
-production-ready. What remains are two P3 polish items and the first remote CI confirmation.
+Build passes cleanly. E2E suite is green on GitHub Actions. Security hardening is complete.
+The app is production-ready. What remains are two P2 operational items (cron/webhook verification
+and migration docs) — neither blocks launch.
 
 ## 1. Release Blockers
 
@@ -23,7 +24,7 @@ production-ready. What remains are two P3 polish items and the first remote CI c
 
 | Status | Priority | Item | Notes |
 |---|---|---|---|
-| `in_progress` | P1 | CI pipeline | `.github/workflows/ci.yml` runs install + lint + unit tests + build on PRs/pushes. Playwright wired as second job when `DATABASE_URL` in GitHub secrets. Needs one successful remote run. |
+| `done` | P1 | CI pipeline | `.github/workflows/ci.yml` runs install + lint + unit tests + build on PRs/pushes. Playwright E2E passes green on GitHub Actions. Fixed: uuid→text schema migration, Neon HTTP driver transaction unsupported, FK cleanup ordering (users.active_household_id nulled before households delete). |
 | `done` | P1 | Error reporting and monitoring | `src/lib/observability/` — structured logger (Vercel logs), optional `OBSERVABILITY_WEBHOOK_URL` forwarding, client-side error capture via `sendBeacon`, web vitals tracking, wired to all error boundaries. |
 | `done` | P1 | Validate required env vars | `validateServerEnv()` called in `src/app/layout.tsx`. Build-phase guard prevents crash during `next build` when Vercel hasn't injected secrets. `getDatabaseUrl()` deferred to first DB call via Proxy. |
 | `todo` | P2 | Verify cron and webhook ops | Confirm Stripe webhook secret is set in Vercel, test cron endpoints with `CRON_SECRET`. |
@@ -56,9 +57,7 @@ production-ready. What remains are two P3 polish items and the first remote CI c
 
 ## 5. Remaining Items Before Shipping
 
-One item remains:
+All release blockers and CI are done. Run the pre-launch ops checklist (section 4) on deploy day.
 
-1. **Confirm CI passes on GitHub** — push to main or open a PR, verify the Actions workflow
-   completes green. The Playwright job only runs when `DATABASE_URL` is in repo secrets.
-
-Everything else is done. Run the pre-launch ops checklist (section 4) on deploy day.
+The two P2 items (cron/webhook verification, migration rollback docs) are nice-to-have but do
+not block launch.

@@ -194,19 +194,20 @@ export async function POST(req: NextRequest) {
   }
 
   const expenseId = crypto.randomUUID()
-  await db.transaction(async (tx) => {
-    await tx.insert(expenses).values({
-      id: expenseId,
-      householdId,
-      title: title.trim(),
-      amount: parseFloat(amount).toFixed(2),
-      categoryId: categoryId ?? null,
-      paidBy,
-      notes: notes ?? null,
-      receiptData: receiptData ?? null,
-    })
 
-    await tx.insert(expenseSplits).values(
+  await db.insert(expenses).values({
+    id: expenseId,
+    householdId,
+    title: title.trim(),
+    amount: parseFloat(amount).toFixed(2),
+    categoryId: categoryId ?? null,
+    paidBy,
+    notes: notes ?? null,
+    receiptData: receiptData ?? null,
+  })
+
+  if (splits.length > 0) {
+    await db.insert(expenseSplits).values(
       splits.map((sp: { userId: string; amount: string }) => ({
         id: crypto.randomUUID(),
         expenseId,
@@ -215,7 +216,7 @@ export async function POST(req: NextRequest) {
         amount: parseFloat(sp.amount).toFixed(2),
       }))
     )
-  })
+  }
 
   return NextResponse.json({ id: expenseId }, { status: 201 })
 }

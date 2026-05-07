@@ -750,15 +750,6 @@ export default async function HomePage() {
         >
           Your house runs better. Starting today.
         </h2>
-        <p
-          style={{
-            fontSize: 16,
-            fontWeight: 700,
-            color: 'rgba(255,255,255,0.7)',
-            margin: '0 0 32px',
-            fontFamily: 'var(--font-nunito)',
-          }}
-        >
         <Link
           href="/signup"
           style={{

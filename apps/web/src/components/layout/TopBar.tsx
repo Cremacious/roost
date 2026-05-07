@@ -9,9 +9,11 @@ import {
   CloudSnow,
   Sun,
   Wind,
+  ChevronDown,
 } from 'lucide-react'
 import { useHousehold } from '@/lib/hooks/useHousehold'
 import { useUserPreferences } from '@/lib/hooks/useUserPreferences'
+import { HouseholdSwitcherSheet } from './HouseholdSwitcherSheet'
 
 interface WeatherResponse {
   current_weather: { temperature: number; weathercode: number }
@@ -35,6 +37,7 @@ function formatTime(date: Date): string {
 export function TopBar() {
   const [mounted, setMounted] = useState(false)
   const [time, setTime] = useState('')
+  const [switcherOpen, setSwitcherOpen] = useState(false)
   const locationRequested = useRef(false)
   const queryClient = useQueryClient()
 
@@ -104,14 +107,23 @@ export function TopBar() {
   const unitLabel = temperatureUnit === 'fahrenheit' ? '°F' : '°C'
   const householdName = household?.name ?? ''
 
+  // Households count for mobile switcher
+  const { data: householdsData } = useQuery<{ households: { id: string }[] }>({
+    queryKey: ['households'],
+    queryFn: () => fetch('/api/households').then(r => r.json()),
+    staleTime: 30_000,
+  })
+  const hasMultiple = (householdsData?.households?.length ?? 0) >= 2
+
   return (
+    <>
     <header
       className="fixed left-0 right-0 top-0 z-30 flex h-14 items-center justify-between border-b px-4 bg-[#C0160C] md:bg-(--roost-topbar-bg) md:left-[180px]"
       style={{ borderBottomColor: 'var(--roost-topbar-border)' }}
     >
       {/* Left: logo on mobile, household name on desktop */}
       <div className="flex items-center gap-2 min-w-0">
-        {/* Mobile logo */}
+        {/* Mobile logo + household name */}
         <div className="flex items-center gap-2 md:hidden">
           <div
             style={{
@@ -122,9 +134,23 @@ export function TopBar() {
               flexShrink: 0,
             }}
           />
-          <span style={{ color: '#fff', fontWeight: 800, fontSize: 15, letterSpacing: '-0.3px' }}>
-            Roost
-          </span>
+          <button
+            onClick={() => hasMultiple && setSwitcherOpen(true)}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 4,
+              background: 'none',
+              border: 'none',
+              padding: 0,
+              cursor: hasMultiple ? 'pointer' : 'default',
+            }}
+          >
+            <span style={{ color: '#fff', fontWeight: 800, fontSize: 15, letterSpacing: '-0.3px' }}>
+              {householdName || 'Roost'}
+            </span>
+            {hasMultiple && <ChevronDown size={14} color="rgba(255,255,255,0.7)" />}
+          </button>
         </div>
 
         {/* Desktop household name */}
@@ -184,5 +210,8 @@ export function TopBar() {
         </span>
       </div>
     </header>
+
+    <HouseholdSwitcherSheet open={switcherOpen} onClose={() => setSwitcherOpen(false)} />
+    </>
   )
 }

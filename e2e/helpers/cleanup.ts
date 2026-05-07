@@ -242,6 +242,11 @@ export async function cleanupPlaywrightTestData(): Promise<void> {
     await db.delete(allowance_settings).where(inArray(allowance_settings.household_id, householdIds));
     await db.delete(member_permissions).where(inArray(member_permissions.household_id, householdIds));
     await db.delete(household_members).where(inArray(household_members.household_id, householdIds));
+    // Null out active_household_id on users before deleting the household rows (FK constraint)
+    await db
+      .update(users)
+      .set({ active_household_id: null })
+      .where(inArray(users.active_household_id, householdIds));
     await db.delete(households).where(inArray(households.id, householdIds));
   }
 

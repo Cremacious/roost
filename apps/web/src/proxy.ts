@@ -2,57 +2,57 @@ import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 import { auth } from '@/lib/auth'
 
-const AUTH_ROUTES = ['/login', '/signup']
+// Routes anyone can visit without a session
+const PUBLIC_ROUTES = ['/', '/login', '/signup', '/child-login']
 
-function isAppRoute(pathname: string) {
-  return (
-    pathname.startsWith('/today') ||
-    pathname.startsWith('/household') ||
-    pathname.startsWith('/food') ||
-    pathname.startsWith('/money') ||
-    pathname.startsWith('/more') ||
-    pathname.startsWith('/settings')
-  )
+function isPublic(pathname: string) {
+  if (PUBLIC_ROUTES.includes(pathname)) return true
+  if (pathname.startsWith('/invite/')) return true
+  if (pathname.startsWith('/api/')) return true
+  if (pathname.startsWith('/admin')) return true
+  return false
 }
 
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl
 
-  // API routes handle their own auth
-  if (pathname.startsWith('/api/')) return NextResponse.next()
-  // Static admin bypasses app auth
-  if (pathname.startsWith('/admin')) return NextResponse.next()
+  // Skip middleware for static files handled by matcher config
+  if (isPublic(pathname)) {
+    const session = await auth.api.getSession({ headers: request.headers })
 
-  const session = await auth.api.getSession({ headers: request.headers })
-
-  // Authed users trying to reach login/signup → send to /today
-  if (session && AUTH_ROUTES.some(r => pathname.startsWith(r))) {
-    return NextResponse.redirect(new URL('/today', request.url))
-  }
-
-  // Authed users who have completed onboarding visiting /onboarding → /today
-  if (session && pathname.startsWith('/onboarding')) {
-    const user = session.user as { onboardingCompleted?: boolean }
-    if (user.onboardingCompleted) {
+    // Logged-in users hitting auth pages → send to /today
+    if (session && (pathname === '/login' || pathname === '/signup')) {
       return NextResponse.redirect(new URL('/today', request.url))
     }
+
+    // Logged-in users who finished onboarding visiting /onboarding → /today
+    // (handled below; let /onboarding fall through to the protected block)
+
+    return NextResponse.next()
   }
 
-  // /onboarding is public (Step 1 creates the account); no redirect for unauthenticated
+  // Everything else requires auth
+  const session = await auth.api.getSession({ headers: request.headers })
 
-  // Protected app routes require auth
-  if (!session && isAppRoute(pathname)) {
+  if (!session) {
     const url = new URL('/login', request.url)
     url.searchParams.set('callbackUrl', pathname)
     return NextResponse.redirect(url)
   }
 
-  // Onboarding guard: authed but onboarding not completed → hold at /onboarding
-  if (session && isAppRoute(pathname)) {
+  // Onboarding guard: authed + onboarding complete → skip /onboarding
+  if (pathname.startsWith('/onboarding')) {
     const user = session.user as { onboardingCompleted?: boolean }
-    if (!user.onboardingCompleted) {
-      return NextResponse.redirect(new URL('/onboarding', request.url))
+    if (user.onboardingCompleted) {
+      return NextResponse.redirect(new URL('/today', request.url))
     }
+    return NextResponse.next()
+  }
+
+  // Onboarding guard: authed but onboarding NOT complete → hold at /onboarding
+  const user = session.user as { onboardingCompleted?: boolean }
+  if (!user.onboardingCompleted) {
+    return NextResponse.redirect(new URL('/onboarding', request.url))
   }
 
   return NextResponse.next()

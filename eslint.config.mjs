@@ -16,7 +16,24 @@ const eslintConfig = defineConfig([
     "playwright-report/**",
     "test-results/**",
     "coverage/**",
+    // Separate workspace packages — they have their own lint configs.
+    "apps/web/**",
+    "apps/mobile/**",
   ]),
+  {
+    rules: {
+      // Allow underscore-prefixed names to mark intentionally unused identifiers.
+      "@typescript-eslint/no-unused-vars": [
+        "warn",
+        {
+          varsIgnorePattern: "^_",
+          argsIgnorePattern: "^_",
+          caughtErrorsIgnorePattern: "^_",
+          destructuredArrayIgnorePattern: "^_",
+        },
+      ],
+    },
+  },
 ]);
 
 export default eslintConfig;

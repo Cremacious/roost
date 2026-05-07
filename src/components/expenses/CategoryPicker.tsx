@@ -7,7 +7,7 @@ import {
   Home, Zap, Wifi, Phone, ShoppingCart, UtensilsCrossed, Receipt, Car,
   Droplets, Flame, Tv, Dumbbell, Heart, Shirt, Dog, Baby, Wrench, Music,
   Plane, Gift, Coffee, Beer, Pill, Scissors, Bike, Bus, BookOpen,
-  Gamepad2, Package, CreditCard, Plus, ChevronUp, ChevronDown, Loader2,
+  Gamepad2, Package, CreditCard, Plus, Loader2,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 

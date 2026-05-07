@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from 'next'
 import { Nunito } from 'next/font/google'
+import { headers } from 'next/headers'
 import { Toaster } from 'sonner'
 import { ThemeProvider } from '@/components/providers/ThemeProvider'
 import { QueryProvider } from '@/components/providers/QueryProvider'
@@ -30,6 +31,10 @@ export default async function RootLayout({
 }: {
   children: React.ReactNode
 }) {
+  // Read the nonce injected by proxy.ts so Next.js can stamp its inline
+  // hydration scripts with it (nonce-based CSP — no 'unsafe-inline' for JS).
+  const nonce = (await headers()).get('x-nonce') ?? undefined
+
   const session = await getSession()
   let initialTheme = 'default'
   if (session?.user?.id) {
@@ -43,7 +48,7 @@ export default async function RootLayout({
   }
 
   return (
-    <html lang="en" className={nunito.variable} suppressHydrationWarning>
+    <html lang="en" nonce={nonce} className={nunito.variable} suppressHydrationWarning>
       <body>
         <ThemeProvider initialTheme={initialTheme}>
           <QueryProvider>

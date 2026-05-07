@@ -71,7 +71,7 @@ function agendaDateHeader(date: Date, today: Date): string {
 // ---- Agenda event more menu -------------------------------------------------
 
 function AgendaMoreMenu({
-  event,
+  event: _event,
   canEdit,
   onEdit,
   onDelete,
@@ -229,6 +229,7 @@ export default function CalendarPage() {
 
   // ---- Derived data ----------------------------------------------------------
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- intentional: ?. creates new ref each render; memoizing here would add noise
   const events = mainQuery.data?.events ?? [];
   const members = membersData?.members ?? [];
   const currentMember = members.find((m) => m.userId === currentUserId);
@@ -267,6 +268,7 @@ export default function CalendarPage() {
   }, [events]);
 
   // Filtered events for desktop grid
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- intentional: ternary creates new ref each render; memoizing here would add noise
   const filteredEvents = categoryFilter
     ? (events ?? []).filter((e: CalendarEventFull) => e.category === categoryFilter)
     : (events ?? []);

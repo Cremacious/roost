@@ -26,7 +26,7 @@ export function SnapshotStrip({ data }: { data: SnapshotData }) {
 
   return (
     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-      <Tile label="TONIGHT" color="#F97316" href="/food">
+      <Tile label="TONIGHT" color="#F97316" href="/meals">
         <p style={{ fontWeight: 700, fontSize: 13, color: 'var(--roost-text-primary)', margin: 0 }}>{data.meal?.name ?? 'Nothing planned'}</p>
       </Tile>
       <Tile label="MONEY" color="#22C55E" href="/money">
@@ -35,7 +35,7 @@ export function SnapshotStrip({ data }: { data: SnapshotData }) {
       <Tile label="NEXT UP" color="#3B82F6" href="/household">
         <p style={{ fontWeight: 700, fontSize: 13, color: 'var(--roost-text-primary)', margin: 0 }}>{data.event?.title ?? 'Nothing upcoming'}</p>
       </Tile>
-      <Tile label="GROCERY" color="#F59E0B" href="/food">
+      <Tile label="GROCERY" color="#F59E0B" href="/grocery">
         <p style={{ fontWeight: 700, fontSize: 13, color: 'var(--roost-text-primary)', margin: 0 }}>{data.grocery.count > 0 ? `${data.grocery.count} items` : 'List is empty'}</p>
       </Tile>
     </div>

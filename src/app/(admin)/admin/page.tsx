@@ -170,7 +170,6 @@ export default function AdminOverviewPage() {
     const stored = localStorage.getItem(LS_KEY);
     // eslint-disable-next-line react-hooks/set-state-in-effect
     if (stored !== null) setHideTest(stored !== "false");
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     setMounted(true);
   }, []);
 

@@ -1,7 +1,7 @@
 import { NextRequest } from "next/server";
 import { requireSession } from "@/lib/auth/helpers";
 import { db } from "@/lib/db";
-import { chores, chore_completions, chore_streaks, household_members } from "@/db/schema";
+import { chores, chore_completions, chore_streaks } from "@/db/schema";
 import { and, desc, eq, gte, isNull, lt } from "drizzle-orm";
 import { getUserHousehold, calcNextDueAt } from "../../route";
 import { startOfDay, startOfWeek, subDays, format } from "date-fns";
@@ -106,7 +106,6 @@ export async function POST(
   const currentPoints = existingStreak?.points ?? 0;
 
   let newCurrentStreak: number;
-  const todayStart = startOfDay(now);
   const yesterdayStart = startOfDay(subDays(now, 1));
 
   if (!prevCompletion || !prevCompletion.completed_at) {

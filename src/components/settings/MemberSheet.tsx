@@ -63,7 +63,6 @@ function initials(name: string): string {
 
 export default function MemberSheet({
   member,
-  householdId,
   onClose,
   onRefetch,
 }: {

@@ -24,7 +24,7 @@ import {
   TrendingUp,
 } from "lucide-react";
 import Link from "next/link";
-import { format, parseISO, startOfMonth, endOfMonth, startOfWeek, endOfWeek } from "date-fns";
+import { format, parseISO, startOfWeek, endOfWeek } from "date-fns";
 import { relativeTime } from "@/lib/utils/time";
 import { Skeleton } from "@/components/ui/skeleton";
 import MemberAvatar from "@/components/shared/MemberAvatar";
@@ -1414,7 +1414,7 @@ function RecurringTabView({
   templates,
   recurringDrafts,
   isAdmin,
-  members,
+  members: _members,
   onAddRecurring,
   onEditTemplate,
   onReviewDrafts,

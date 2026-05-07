@@ -2,7 +2,7 @@ import { NextRequest } from "next/server";
 import { requireSession } from "@/lib/auth/helpers";
 import { db } from "@/lib/db";
 import { calendar_events, household_members, users } from "@/db/schema";
-import { and, eq, inArray } from "drizzle-orm";
+import { and, eq, inArray, isNull } from "drizzle-orm";
 import { getUserHousehold } from "@/app/api/chores/route";
 
 // ---- Push notification helper ------------------------------------------------

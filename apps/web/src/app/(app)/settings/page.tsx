@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
 import {
+  Baby,
   Check,
   Clock,
   Copy,
@@ -2455,6 +2456,60 @@ export default function SettingsPage() {
                 Set up rewards for children on the Chores page.
                 Rewards are evaluated automatically based on the period you choose.
               </p>
+            )}
+            {isAdmin && members.length > 0 && !members.some((m) => m.role === 'child') && (
+              <div
+                style={{
+                  background: '#EFF6FF',
+                  border: '1.5px solid #BFDBFE',
+                  borderRadius: 14,
+                  padding: '14px 16px',
+                  display: 'flex',
+                  alignItems: 'flex-start',
+                  gap: 12,
+                  marginBottom: 12,
+                }}
+              >
+                <div
+                  style={{
+                    width: 36,
+                    height: 36,
+                    borderRadius: 10,
+                    background: '#DBEAFE',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flexShrink: 0,
+                  }}
+                >
+                  <Baby size={18} style={{ color: '#1D4ED8' }} />
+                </div>
+                <div style={{ flex: 1 }}>
+                  <p style={{ fontSize: 13, fontWeight: 800, color: '#1E40AF', margin: '0 0 2px' }}>
+                    Add a child account
+                  </p>
+                  <p style={{ fontSize: 12, fontWeight: 600, color: '#3B82F6', margin: '0 0 10px', lineHeight: 1.4 }}>
+                    Kids get a 4-digit PIN login, no email needed and no access to finances, ever.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => setAddChildOpen(true)}
+                    style={{
+                      background: '#3B82F6',
+                      color: '#fff',
+                      fontWeight: 800,
+                      fontSize: 12,
+                      border: 'none',
+                      borderBottom: '2px solid #1A5CB5',
+                      borderRadius: 8,
+                      padding: '6px 14px',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    Add child account
+                  </button>
+                </div>
+              </div>
             )}
             <SlabCard>
               {members.map((m, i) => {

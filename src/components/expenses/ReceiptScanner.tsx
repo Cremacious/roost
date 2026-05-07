@@ -21,7 +21,7 @@ interface ReceiptScannerProps {
 
 type ScanState = "idle" | "scanning" | "empty" | "error";
 
-export default function ReceiptScanner({ onReceiptParsed, onClose }: ReceiptScannerProps) {
+export default function ReceiptScanner({ onReceiptParsed }: ReceiptScannerProps) {
   const [state, setState] = useState<ScanState>("idle");
   const [errorMessage, setErrorMessage] = useState("");
   const [emptyReceipt, setEmptyReceipt] = useState<ParsedReceipt | null>(null);
@@ -30,8 +30,6 @@ export default function ReceiptScanner({ onReceiptParsed, onClose }: ReceiptScan
   );
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  // Which input to trigger after tips are dismissed
-  const pendingInput = useRef<"camera" | "file" | null>(null);
 
   function dismissTips(input?: "camera" | "file") {
     sessionStorage.setItem(SESSION_KEY, "1");

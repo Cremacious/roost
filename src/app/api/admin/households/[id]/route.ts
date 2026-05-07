@@ -2,7 +2,7 @@ import { NextRequest } from "next/server";
 import { requireAdminSession } from "@/lib/admin/requireAdmin";
 import { db } from "@/lib/db";
 import { households } from "@/db/schema";
-import { eq, sql } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { logActivity } from "@/lib/utils/activity";
 
 export async function PATCH(

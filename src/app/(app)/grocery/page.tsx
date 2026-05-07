@@ -12,7 +12,6 @@ import {
   Box,
   Check,
   ChevronDown,
-  ClipboardList,
   Coffee,
   Cookie,
   Droplets,
@@ -43,7 +42,6 @@ import ErrorState from '@/components/shared/ErrorState';
 import { Skeleton } from '@/components/ui/skeleton';
 import { PageContainer } from '@/components/layout/PageContainer';
 import GroceryItemSheet from '@/components/grocery/GroceryItemSheet';
-import PremiumGate from '@/components/shared/PremiumGate';
 import GroceryListSheet, {
   type GroceryListData,
 } from '@/components/grocery/GroceryListSheet';
@@ -83,6 +81,8 @@ const SECTION_ICONS: Record<StoreSection, LucideIconComponent> = {
   'Pet': PawPrint,
   'Other': Box,
 };
+
+const PLACEHOLDERS = ['Add milk...', 'Add eggs...', 'Add anything...'];
 
 // ---- Types ------------------------------------------------------------------
 
@@ -410,7 +410,6 @@ export default function GroceryPage() {
   const [pillScrollOffset, setPillScrollOffset] = useState(0);
   const [pillOverflows, setPillOverflows] = useState(false);
 
-  const PLACEHOLDERS = ['Add milk...', 'Add eggs...', 'Add anything...'];
   const [placeholderIdx, setPlaceholderIdx] = useState(0);
   useEffect(() => {
     const id = setInterval(() => {
@@ -434,6 +433,7 @@ export default function GroceryPage() {
     staleTime: 10_000,
   });
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- intentional: ?? [] creates a new array each render; full memoization adds noise
   const lists = listsQuery.data?.lists ?? [];
   const isPremium = listsQuery.data?.isPremium ?? false;
   const isAdmin = listsQuery.data?.isAdmin ?? false;

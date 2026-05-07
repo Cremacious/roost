@@ -42,7 +42,7 @@ export async function GET(request: NextRequest): Promise<Response> {
   }
 
   // Get expense paid_by info
-  const expenseIds = [...new Set(pendingSplits.map((s) => s.expense_id))];
+  const _expenseIds = [...new Set(pendingSplits.map((s) => s.expense_id))];
   const expenseRows = await db
     .select({ id: expenses.id, paid_by: expenses.paid_by })
     .from(expenses)
@@ -63,7 +63,7 @@ export async function GET(request: NextRequest): Promise<Response> {
   }
 
   // Get debtor names
-  const debtorIds = [...new Set(Object.values(pairs).map((p) => p.debtorId))];
+  const _debtorIds = [...new Set(Object.values(pairs).map((p) => p.debtorId))];
   const debtorUsers = await db
     .select({ id: users.id, name: users.name })
     .from(users)

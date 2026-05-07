@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useHousehold } from "@/lib/hooks/useHousehold";
 import { motion } from "framer-motion";
-import { ArrowLeft, BarChart2, Calendar } from "lucide-react";
+import { ArrowLeft, BarChart2 } from "lucide-react";
 import Link from "next/link";
 import { format, startOfMonth, endOfMonth, subMonths, startOfYear, endOfYear } from "date-fns";
 import {
@@ -12,7 +12,6 @@ import {
   Pie,
   Cell,
   Tooltip,
-  Legend,
   ResponsiveContainer,
   LineChart,
   Line,
@@ -25,8 +24,6 @@ import {
 import { PageContainer } from "@/components/layout/PageContainer";
 import { Skeleton } from "@/components/ui/skeleton";
 import PremiumGate from "@/components/shared/PremiumGate";
-import MemberAvatar from "@/components/shared/MemberAvatar";
-import { CategoryIcon } from "@/components/expenses/CategoryPicker";
 
 const COLOR = "#22C55E";
 const COLOR_DARK = "#16A34A";

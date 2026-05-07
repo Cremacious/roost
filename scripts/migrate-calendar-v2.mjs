@@ -1,4 +1,3 @@
-import { readFileSync } from 'fs';
 import { config } from 'dotenv';
 
 config({ path: './apps/web/.env.local' });

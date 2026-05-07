@@ -6,6 +6,16 @@ import Link from 'next/link'
 import { signIn } from '@/lib/auth/client'
 import { Input } from '@/components/ui/Input'
 import { Button } from '@/components/ui/Button'
+import { CheckSquare, ShoppingCart, DollarSign, CalendarDays, UtensilsCrossed, Bell } from 'lucide-react'
+
+const FEATURES = [
+  { icon: CheckSquare,     title: 'Chores',    desc: 'Track who does what and keep score' },
+  { icon: ShoppingCart,    title: 'Grocery',   desc: 'One shared list, no duplicate buys' },
+  { icon: DollarSign,      title: 'Expenses',  desc: 'Split bills and settle up fairly' },
+  { icon: CalendarDays,    title: 'Calendar',  desc: 'Household events everyone can see' },
+  { icon: UtensilsCrossed, title: 'Meals',     desc: 'Plan the week so nobody asks what\'s for dinner' },
+  { icon: Bell,            title: 'Reminders', desc: 'Nag the right people at the right time' },
+]
 
 function LoginForm() {
   const router = useRouter()
@@ -49,21 +59,24 @@ function LoginForm() {
         }}
       >
         <div style={{ marginBottom: 36 }}>
-          <div
-            style={{
-              width: 42,
-              height: 42,
-              backgroundColor: 'rgba(255,255,255,0.18)',
-              borderRadius: 12,
-              marginBottom: 12,
-            }}
-          />
-          <p style={{ color: '#fff', fontWeight: 900, fontSize: 26, letterSpacing: '-0.5px', margin: 0 }}>
-            Roost
-          </p>
-          <p style={{ color: 'rgba(255,255,255,0.7)', fontWeight: 700, fontSize: 13, marginTop: 4 }}>
-            Home, sorted.
-          </p>
+          <div style={{ width: 42, height: 42, backgroundColor: 'rgba(255,255,255,0.18)', borderRadius: 12, marginBottom: 12 }} />
+          <p style={{ color: '#fff', fontWeight: 900, fontSize: 26, letterSpacing: '-0.5px', margin: 0 }}>Roost</p>
+          <p style={{ color: 'rgba(255,255,255,0.7)', fontWeight: 700, fontSize: 13, marginTop: 4 }}>Home, sorted.</p>
+        </div>
+
+        {/* Feature list */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          {FEATURES.map(({ icon: Icon, title, desc }) => (
+            <div key={title} style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
+              <div style={{ width: 28, height: 28, borderRadius: '50%', backgroundColor: 'rgba(255,255,255,0.18)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 1 }}>
+                <Icon size={13} color="#fff" />
+              </div>
+              <div>
+                <p style={{ fontSize: 12, fontWeight: 800, color: '#fff', margin: 0 }}>{title}</p>
+                <p style={{ fontSize: 11, fontWeight: 600, color: 'rgba(255,255,255,0.62)', margin: '2px 0 0', lineHeight: 1.35 }}>{desc}</p>
+              </div>
+            </div>
+          ))}
         </div>
       </div>
 
@@ -127,7 +140,7 @@ function LoginForm() {
 
           <p style={{ marginTop: 20, textAlign: 'center', fontSize: 13, fontWeight: 700, color: '#7A3F3F' }}>
             New here?{' '}
-            <Link href="/onboarding" style={{ color: '#EF4444' }}>
+            <Link href="/signup" style={{ color: '#EF4444' }}>
               Create an account
             </Link>
           </p>

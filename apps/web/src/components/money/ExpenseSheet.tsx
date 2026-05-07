@@ -82,7 +82,7 @@ export function ExpenseSheet({ open, onClose, members, currentUserId, isPremium,
   // Form state
   const [title, setTitle] = useState('')
   const [amount, setAmount] = useState('')
-  const [paidBy, setPaidBy] = useState(currentUserId)
+  const [paidBy, setPaidBy] = useState(currentUserId ?? '')
   const [splitMethod, setSplitMethod] = useState<SplitMethod>('equal')
   const [customSplits, setCustomSplits] = useState<CustomSplit[]>([])
   const [percentSplits, setPercentSplits] = useState<PercentSplit[]>([])
@@ -280,7 +280,16 @@ export function ExpenseSheet({ open, onClose, members, currentUserId, isPremium,
         amount: (sh.shares * perShare).toFixed(2),
       }))
     }
-    // payer: no splits needed
+    // payer only: one split for the payer themselves covering the full amount
+    if (splitMethod === 'payer') {
+      splits = [{ userId: paidBy, amount: totalAmount.toFixed(2) }]
+    }
+
+    const effectivePaidBy = paidBy || currentUserId
+    if (!effectivePaidBy) {
+      toast.error('Payer required', { description: 'Select who paid for this expense.' })
+      return
+    }
 
     setSaving(true)
     try {
@@ -290,7 +299,7 @@ export function ExpenseSheet({ open, onClose, members, currentUserId, isPremium,
         body: JSON.stringify({
           title: title.trim(),
           amount: totalAmount.toFixed(2),
-          paidBy,
+          paidBy: effectivePaidBy,
           splits,
           ...(receiptData ? { receiptData: JSON.stringify(receiptData) } : {}),
         }),
@@ -407,7 +416,19 @@ export function ExpenseSheet({ open, onClose, members, currentUserId, isPremium,
 
           {/* Scan banner (create mode only) */}
           <button
-            onClick={() => setScanStep('scanning')}
+            onClick={() => {
+              if (!isPremium) {
+                if (onUpgradeRequired) {
+                  onUpgradeRequired('RECEIPT_SCANNING_PREMIUM')
+                } else {
+                  toast.error('Receipt scanning is a premium feature', {
+                    description: 'Upgrade to scan receipts and get unlimited scans.',
+                  })
+                }
+                return
+              }
+              setScanStep('scanning')
+            }}
             style={{
               display: 'flex', alignItems: 'center', gap: 10,
               width: '100%', padding: '12px 14px',
@@ -418,6 +439,7 @@ export function ExpenseSheet({ open, onClose, members, currentUserId, isPremium,
               backgroundColor: `${COLOR}0D`,
               cursor: 'pointer',
               textAlign: 'left',
+              opacity: isPremium ? 1 : 0.6,
             }}
           >
             <div style={{
@@ -426,14 +448,17 @@ export function ExpenseSheet({ open, onClose, members, currentUserId, isPremium,
               border: `1.5px solid ${COLOR}55`,
               display: 'flex', alignItems: 'center', justifyContent: 'center',
             }}>
-              <Camera size={18} style={{ color: COLOR }} />
+              {isPremium
+                ? <Camera size={18} style={{ color: COLOR }} />
+                : <Lock size={18} style={{ color: COLOR }} />
+              }
             </div>
             <div>
               <p style={{ color: COLOR_DARK, fontWeight: 800, fontSize: 14, margin: 0 }}>
                 Scan receipt to auto-fill
               </p>
               <p style={{ color: COLOR_DARK, fontWeight: 600, fontSize: 12, margin: 0, opacity: 0.7 }}>
-                75 free scans/month
+                {isPremium ? '75 free scans/month' : 'Premium feature'}
               </p>
             </div>
           </button>

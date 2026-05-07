@@ -23,16 +23,16 @@ import { HouseholdSwitcher } from './HouseholdSwitcher'
 
 const NAV_ITEMS = [
   { href: '/today',      label: 'Today',      icon: Home },
-  { href: '/chores',     label: 'Chores',     icon: CheckSquare },
-  { href: '/lists',      label: 'Shopping',   icon: ShoppingCart },
-  { href: '/calendar',   label: 'Calendar',   icon: Calendar },
-  { href: '/money',      label: 'Money',      icon: Wallet },
-  { href: '/tasks',      label: 'Tasks',      icon: CheckCircle2 },
-  { href: '/notes',      label: 'Notes',      icon: FileText },
-  { href: '/meals',      label: 'Meals',      icon: UtensilsCrossed },
-  { href: '/reminders',  label: 'Reminders',  icon: Bell },
-  { href: '/stats',      label: 'Stats',      icon: BarChart2 },
   { href: '/household',  label: 'Household',  icon: Users },
+  { href: '/lists',      label: 'Shopping',   icon: ShoppingCart },
+  { href: '/money',      label: 'Money',      icon: Wallet },
+  { href: '/meals',      label: 'Meals',      icon: UtensilsCrossed },
+  { href: '/chores',     label: 'Chores',     icon: CheckSquare },
+  { href: '/calendar',   label: 'Calendar',   icon: Calendar },
+  { href: '/tasks',      label: 'Tasks',      icon: CheckCircle2 },
+  { href: '/reminders',  label: 'Reminders',  icon: Bell },
+  { href: '/notes',      label: 'Notes',      icon: FileText },
+  { href: '/stats',      label: 'Stats',      icon: BarChart2 },
   { href: '/settings',   label: 'Settings',   icon: Settings },
 ]
 

@@ -1,7 +1,7 @@
 import type { LucideIcon } from 'lucide-react'
 import {
   CheckSquare, ShoppingBag, DollarSign, CalendarDays,
-  FileText, Bell, UtensilsCrossed, Users, Star, BarChart2, Tag, UserPlus,
+  FileText, Bell, UtensilsCrossed, Users, Star, BarChart2, Tag, UserPlus, Home,
 } from 'lucide-react'
 
 export interface PremiumGateConfig {
@@ -142,6 +142,20 @@ export const PREMIUM_GATE_CONFIG: Record<string, PremiumGateConfig> = {
     subtitle: 'Bigger households deserve more spots.',
     perks: ['Up to unlimited members', 'Multiple households', 'Full permission control per member'],
     valueProp: 'Everyone in, nobody left out.',
+    featureColor: 'expenses',
+    featureHex: '#22C55E',
+    featureDarkHex: '#159040',
+  },
+  households: {
+    icon: Home,
+    title: 'Unlock multiple households',
+    subtitle: "You're in one home. Premium lets you belong to as many as you need.",
+    perks: [
+      'Join or create unlimited households',
+      'Switch between them instantly',
+      'Each household keeps its own data',
+    ],
+    valueProp: 'Perfect for roommates, family homes, or managing a rental.',
     featureColor: 'expenses',
     featureHex: '#22C55E',
     featureDarkHex: '#159040',

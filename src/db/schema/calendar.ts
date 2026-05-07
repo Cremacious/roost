@@ -1,47 +1,42 @@
-import { boolean, integer, pgTable, text, timestamp, unique } from "drizzle-orm/pg-core";
-import { households } from "./households";
+import { pgTable, text, timestamp, boolean, integer } from 'drizzle-orm/pg-core'
+import { households } from './households'
+import { users } from './users'
 
-export const calendar_events = pgTable("calendar_events", {
-  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
-  household_id: text("household_id")
-    .references(() => households.id)
-    .notNull(),
-  title: text("title").notNull(),
-  description: text("description"),
-  start_time: timestamp("start_time").notNull(),
-  end_time: timestamp("end_time"),
-  all_day: boolean("all_day").notNull().default(false),
-  created_by: text("created_by").notNull(),
-  created_at: timestamp("created_at").defaultNow(),
-  updated_at: timestamp("updated_at").defaultNow(),
-  deleted_at: timestamp("deleted_at"),
-  // Recurrence fields (expand-on-fetch — no child rows, no cron)
-  recurring: boolean("recurring").notNull().default(false),
-  frequency: text("frequency"), // 'daily' | 'weekly' | 'biweekly' | 'monthly' | 'yearly'
-  repeat_end_type: text("repeat_end_type"), // 'forever' | 'until_date' | 'after_occurrences'
-  repeat_until: timestamp("repeat_until"),
-  repeat_occurrences: integer("repeat_occurrences"),
-  // V2 fields
-  category: text("category"),
-  location: text("location"),
-  notify_member_ids: text("notify_member_ids"),
-  rsvp_enabled: boolean("rsvp_enabled").notNull().default(false),
-});
+export const calendarEvents = pgTable('calendar_events', {
+  id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+  householdId: text('household_id')
+    .notNull()
+    .references(() => households.id, { onDelete: 'cascade' }),
+  title: text('title').notNull(),
+  description: text('description'),
+  startTime: timestamp('start_time').notNull(),
+  endTime: timestamp('end_time').notNull(),
+  allDay: boolean('all_day').notNull().default(false),
+  recurring: boolean('recurring').notNull().default(false),
+  frequency: text('frequency').$type<'daily' | 'weekly' | 'biweekly' | 'monthly' | 'yearly'>(),
+  repeatEndType: text('repeat_end_type').$type<'forever' | 'until_date' | 'after_occurrences'>(),
+  repeatUntil: timestamp('repeat_until'),
+  repeatOccurrences: integer('repeat_occurrences'),
+  category: text('category'),
+  location: text('location'),
+  notifyMemberIds: text('notify_member_ids'),
+  rsvpEnabled: boolean('rsvp_enabled').notNull().default(false),
+  createdBy: text('created_by')
+    .notNull()
+    .references(() => users.id),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+  updatedAt: timestamp('updated_at').notNull().defaultNow(),
+  deletedAt: timestamp('deleted_at'),
+})
 
-export const event_attendees = pgTable(
-  "event_attendees",
-  {
-    id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
-    event_id: text("event_id")
-      .references(() => calendar_events.id)
-      .notNull(),
-    user_id: text("user_id").notNull(),
-    rsvp_status: text("rsvp_status"),
-  },
-  (t) => [unique().on(t.event_id, t.user_id)]
-);
-
-export type CalendarEvent = typeof calendar_events.$inferSelect;
-export type NewCalendarEvent = typeof calendar_events.$inferInsert;
-export type EventAttendee = typeof event_attendees.$inferSelect;
-export type NewEventAttendee = typeof event_attendees.$inferInsert;
+export const eventAttendees = pgTable('event_attendees', {
+  id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+  eventId: text('event_id')
+    .notNull()
+    .references(() => calendarEvents.id, { onDelete: 'cascade' }),
+  userId: text('user_id')
+    .notNull()
+    .references(() => users.id),
+  rsvpStatus: text('rsvp_status'),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+})

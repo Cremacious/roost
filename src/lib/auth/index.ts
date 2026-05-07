@@ -1,54 +1,30 @@
-import { betterAuth } from "better-auth";
-import { drizzleAdapter } from "@better-auth/drizzle-adapter";
-import { db } from "@/lib/db";
-import { users } from "@/db/schema";
-import { sendPasswordResetEmail } from "@/lib/email/auth-emails";
-import { log } from "@/lib/utils/logger";
-
-const googleClientId = process.env.GOOGLE_AUTH_CLIENT_ID?.trim();
-const googleClientSecret = process.env.GOOGLE_AUTH_CLIENT_SECRET?.trim();
+import { betterAuth } from 'better-auth'
+import { drizzleAdapter } from 'better-auth/adapters/drizzle'
+import { db } from '@/lib/db'
+import * as schema from '@/db/schema'
 
 export const auth = betterAuth({
+  secret: process.env.BETTER_AUTH_SECRET!,
+  baseURL: process.env.BETTER_AUTH_URL ?? process.env.NEXT_PUBLIC_APP_URL!,
   database: drizzleAdapter(db, {
-    provider: "pg",
+    provider: 'pg',
+    schema: {
+      user: schema.user,
+      session: schema.session,
+      account: schema.account,
+      verification: schema.verification,
+    },
   }),
   emailAndPassword: {
     enabled: true,
-    minPasswordLength: 8,
-    revokeSessionsOnPasswordReset: true,
-    sendResetPassword: async ({ user, url }) => {
-      await sendPasswordResetEmail({
-        to: user.email,
-        name: user.name,
-        resetUrl: url,
-      });
-    },
   },
-  socialProviders:
-    googleClientId && googleClientSecret
-      ? {
-          google: {
-            clientId: googleClientId,
-            clientSecret: googleClientSecret,
-          },
-        }
-      : undefined,
   user: {
     additionalFields: {
-      onboarding_completed: {
-        type: "boolean",
-        required: false,
+      onboardingCompleted: {
+        type: 'boolean',
         defaultValue: false,
-        input: false,
-        fieldName: "onboarding_completed",
+        fieldName: 'onboardingCompleted',
       },
-    },
-  },
-  session: {
-    expiresIn: 60 * 60 * 24 * 30, // 30 days
-    cookieCache: {
-      enabled: true,
-      maxAge: 60 * 5, // 5 minutes
     },
   },
   databaseHooks: {
@@ -56,20 +32,21 @@ export const auth = betterAuth({
       create: {
         after: async (user) => {
           try {
-            await db.insert(users).values({
-              id: user.id,
-              email: user.email ?? undefined,
-              name: user.name,
-              timezone: "America/New_York",
-              language: "en",
-            }).onConflictDoNothing();
+            await db
+              .insert(schema.users)
+              .values({
+                id: user.id,
+                name: user.name,
+                email: user.email,
+              })
+              .onConflictDoNothing()
           } catch (err) {
-            log.error("auth.user_mirror.failed", undefined, err);
+            console.error('[auth] databaseHook: failed to create users row for', user.id, err)
           }
         },
       },
     },
   },
-});
+})
 
-export type Session = typeof auth.$Infer.Session;
+export type Session = typeof auth.$Infer.Session

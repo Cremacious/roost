@@ -1,311 +1,213 @@
-import { NextRequest } from "next/server";
-import { requireSession } from "@/lib/auth/helpers";
-import { db } from "@/lib/db";
-import {
-  reward_rules,
-  household_members,
-  chores,
-  chore_completions,
-  users,
-} from "@/db/schema";
-import { and, count, eq, gte, isNull, lt } from "drizzle-orm";
-import { getUserHousehold } from "@/app/api/chores/route";
-import {
-  startOfWeek,
-  endOfWeek,
-  startOfMonth,
-  endOfMonth,
-  startOfYear,
-  endOfYear,
-  addDays,
-  format,
-  parseISO,
-} from "date-fns";
-
-// ---- Helpers ----------------------------------------------------------------
+import { NextResponse } from 'next/server'
+import { getSession, getUserHousehold } from '@/lib/auth/helpers'
+import { db } from '@/lib/db'
+import { rewardRules, rewardPayouts, chores, choreCompletions, householdMembers, users } from '@/db/schema'
+import { eq, and, isNull, gte, lt, sql } from 'drizzle-orm'
 
 export function getPeriodBounds(
   periodType: string,
+  startsAt: Date,
   periodDays: number | null,
-  startsAt: string | null
+  now = new Date()
 ): { start: Date; end: Date } {
-  const now = new Date();
-
-  if (periodType === "week") {
-    const start = startOfWeek(now, { weekStartsOn: 1 });
-    const end = endOfWeek(now, { weekStartsOn: 1 });
-    return { start, end };
+  if (periodType === 'week') {
+    const d = new Date(now)
+    const day = d.getDay()
+    const diff = day === 0 ? -6 : 1 - day
+    d.setDate(d.getDate() + diff)
+    d.setHours(0, 0, 0, 0)
+    const end = new Date(d)
+    end.setDate(d.getDate() + 7)
+    return { start: d, end }
   }
-
-  if (periodType === "month") {
-    return { start: startOfMonth(now), end: endOfMonth(now) };
+  if (periodType === 'month') {
+    const start = new Date(now.getFullYear(), now.getMonth(), 1)
+    const end = new Date(now.getFullYear(), now.getMonth() + 1, 1)
+    return { start, end }
   }
-
-  if (periodType === "year") {
-    return { start: startOfYear(now), end: endOfYear(now) };
+  if (periodType === 'year') {
+    const start = new Date(now.getFullYear(), 0, 1)
+    const end = new Date(now.getFullYear() + 1, 0, 1)
+    return { start, end }
   }
-
-  // custom
-  const days = periodDays ?? 7;
-  const anchor = startsAt ? parseISO(startsAt) : now;
-  const msSinceAnchor = now.getTime() - anchor.getTime();
-  const msPerPeriod = days * 24 * 60 * 60 * 1000;
-  const periodsElapsed = Math.floor(msSinceAnchor / msPerPeriod);
-  const start = new Date(anchor.getTime() + periodsElapsed * msPerPeriod);
-  const end = addDays(start, days - 1);
-  return { start, end };
+  // custom: from startsAt, repeating every periodDays days
+  const pDays = periodDays ?? 7
+  const elapsed = now.getTime() - startsAt.getTime()
+  const periodMs = pDays * 86_400_000
+  const idx = Math.max(0, Math.floor(elapsed / periodMs))
+  const start = new Date(startsAt.getTime() + idx * periodMs)
+  const end = new Date(start.getTime() + periodMs)
+  return { start, end }
 }
 
-async function getCurrentPeriodProgress(
+async function computeProgress(
   householdId: string,
-  userId: string,
-  periodType: string,
-  periodDays: number | null,
-  startsAt: string | null
+  childUserId: string,
+  periodStart: Date,
+  periodEnd: Date
 ) {
-  const { start, end } = getPeriodBounds(periodType, periodDays, startsAt);
-  const endExclusive = addDays(end, 1);
+  const [assignedChores, completionsInPeriod] = await Promise.all([
+    db
+      .select({ id: chores.id })
+      .from(chores)
+      .where(
+        and(
+          eq(chores.householdId, householdId),
+          eq(chores.assignedTo, childUserId),
+          isNull(chores.deletedAt),
+        )
+      ),
 
-  const [totalRow] = await db
-    .select({ total: count() })
-    .from(chores)
-    .where(
-      and(
-        eq(chores.household_id, householdId),
-        eq(chores.assigned_to, userId),
-        isNull(chores.deleted_at)
+    db
+      .select({ choreId: choreCompletions.choreId })
+      .from(choreCompletions)
+      .where(
+        and(
+          eq(choreCompletions.householdId, householdId),
+          eq(choreCompletions.userId, childUserId),
+          gte(choreCompletions.completedAt, periodStart),
+          lt(choreCompletions.completedAt, periodEnd),
+        )
       )
-    );
-  const total = totalRow?.total ?? 0;
+      .groupBy(choreCompletions.choreId),
+  ])
 
-  const [completedRow] = await db
-    .select({ completed: count() })
-    .from(chore_completions)
-    .innerJoin(chores, eq(chores.id, chore_completions.chore_id))
-    .where(
-      and(
-        eq(chore_completions.completed_by, userId),
-        eq(chores.household_id, householdId),
-        isNull(chores.deleted_at),
-        gte(chore_completions.completed_at, start),
-        lt(chore_completions.completed_at, endExclusive)
-      )
-    );
-  const completed = completedRow?.completed ?? 0;
-
-  const completionRate = total === 0 ? 100 : Math.round((completed / total) * 100);
-
-  return {
-    start: format(start, "yyyy-MM-dd"),
-    end: format(end, "yyyy-MM-dd"),
-    total,
-    completed,
-    completionRate,
-  };
+  const total = assignedChores.length
+  if (total === 0) return { completionRate: 100, completed: 0, total: 0 }
+  const completed = completionsInPeriod.length
+  const rate = Math.round((completed / total) * 100)
+  return { completionRate: rate, completed, total }
 }
 
-// ---- GET --------------------------------------------------------------------
+export async function GET() {
+  const session = await getSession()
+  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-export async function GET(request: NextRequest): Promise<Response> {
-  let session;
-  try {
-    session = await requireSession(request);
-  } catch (r) {
-    return r as Response;
+  const membership = await getUserHousehold(session.user.id)
+  if (!membership) return NextResponse.json({ error: 'No household' }, { status: 403 })
+
+  const { householdId, role } = membership
+  const isPremium = membership.household.subscriptionStatus === 'premium'
+
+  // Admin sees all rules with progress; non-admin returns 403
+  if (role !== 'admin') {
+    return NextResponse.json({ error: 'Admin only' }, { status: 403 })
   }
 
-  const membership = await getUserHousehold(session.user.id);
-  if (!membership) {
-    return Response.json({ error: "No household found" }, { status: 404 });
-  }
-  const { householdId, role } = membership;
-  const isAdmin = role === "admin";
-
-  if (isAdmin) {
-    // Return all rules for household with user info and current period progress
-    const rows = await db
-      .select({
-        id: reward_rules.id,
-        household_id: reward_rules.household_id,
-        user_id: reward_rules.user_id,
-        title: reward_rules.title,
-        reward_type: reward_rules.reward_type,
-        reward_description: reward_rules.reward_description,
-        reward_amount: reward_rules.reward_amount,
-        period_type: reward_rules.period_type,
-        period_days: reward_rules.period_days,
-        threshold_percent: reward_rules.threshold_percent,
-        enabled: reward_rules.enabled,
-        starts_at: reward_rules.starts_at,
-        created_by: reward_rules.created_by,
-        created_at: reward_rules.created_at,
-        updated_at: reward_rules.updated_at,
-        child_name: users.name,
-        child_avatar: users.avatar_color,
-      })
-      .from(reward_rules)
-      .leftJoin(users, eq(users.id, reward_rules.user_id))
-      .where(eq(reward_rules.household_id, householdId))
-      .orderBy(reward_rules.created_at);
-
-    // Attach currentPeriod progress for each rule
-    const rulesWithProgress = await Promise.all(
-      rows.map(async (rule) => {
-        const currentPeriod = await getCurrentPeriodProgress(
-          householdId,
-          rule.user_id,
-          rule.period_type,
-          rule.period_days,
-          rule.starts_at
-        );
-        return {
-          ...rule,
-          currentPeriod: {
-            ...currentPeriod,
-            onTrack: currentPeriod.completionRate >= rule.threshold_percent,
-          },
-        };
-      })
-    );
-
-    return Response.json({ rules: rulesWithProgress });
-  }
-
-  // Child: return only own rules
-  const rows = await db
-    .select()
-    .from(reward_rules)
+  const rules = await db
+    .select({
+      id: rewardRules.id,
+      userId: rewardRules.userId,
+      title: rewardRules.title,
+      periodType: rewardRules.periodType,
+      periodDays: rewardRules.periodDays,
+      thresholdPercent: rewardRules.thresholdPercent,
+      rewardType: rewardRules.rewardType,
+      rewardDetail: rewardRules.rewardDetail,
+      startsAt: rewardRules.startsAt,
+      enabled: rewardRules.enabled,
+      createdAt: rewardRules.createdAt,
+      childName: users.name,
+      childAvatarColor: users.avatarColor,
+    })
+    .from(rewardRules)
+    .innerJoin(users, eq(rewardRules.userId, users.id))
     .where(
       and(
-        eq(reward_rules.household_id, householdId),
-        eq(reward_rules.user_id, session.user.id)
+        eq(rewardRules.householdId, householdId),
+        isNull(rewardRules.deletedAt),
       )
     )
-    .orderBy(reward_rules.created_at);
+    .orderBy(rewardRules.createdAt)
 
-  return Response.json({ rules: rows });
+  const now = new Date()
+  const rulesWithProgress = await Promise.all(
+    rules.map(async rule => {
+      const { start, end } = getPeriodBounds(rule.periodType, rule.startsAt, rule.periodDays, now)
+      const progress = await computeProgress(householdId, rule.userId, start, end)
+      return {
+        ...rule,
+        startsAt: rule.startsAt.toISOString(),
+        createdAt: rule.createdAt.toISOString(),
+        periodStart: start.toISOString(),
+        periodEnd: end.toISOString(),
+        ...progress,
+      }
+    })
+  )
+
+  // Get child members for the create form
+  const childMembers = await db
+    .select({
+      userId: householdMembers.userId,
+      name: users.name,
+      avatarColor: users.avatarColor,
+    })
+    .from(householdMembers)
+    .innerJoin(users, eq(householdMembers.userId, users.id))
+    .where(
+      and(
+        eq(householdMembers.householdId, householdId),
+        eq(householdMembers.role, 'child'),
+        isNull(householdMembers.deletedAt),
+      )
+    )
+
+  return NextResponse.json({ rules: rulesWithProgress, childMembers, isPremium })
 }
 
-// ---- POST -------------------------------------------------------------------
+export async function POST(request: Request) {
+  const session = await getSession()
+  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-export async function POST(request: NextRequest): Promise<Response> {
-  let session;
-  try {
-    session = await requireSession(request);
-  } catch (r) {
-    return r as Response;
-  }
+  const membership = await getUserHousehold(session.user.id)
+  if (!membership) return NextResponse.json({ error: 'No household' }, { status: 403 })
 
-  const membership = await getUserHousehold(session.user.id);
-  if (!membership) {
-    return Response.json({ error: "No household found" }, { status: 404 });
-  }
-  if (membership.role !== "admin") {
-    return Response.json({ error: "Admin only" }, { status: 403 });
-  }
-  const { householdId } = membership;
+  const { householdId, role } = membership
+  const isPremium = membership.household.subscriptionStatus === 'premium'
 
-  let body: {
-    user_id?: string;
-    title?: string;
-    reward_type?: string;
-    reward_description?: string;
-    reward_amount?: number;
-    period_type?: string;
-    period_days?: number;
-    threshold_percent?: number;
-    starts_at?: string;
-  };
-  try {
-    body = await request.json();
-  } catch {
-    return Response.json({ error: "Invalid request body" }, { status: 400 });
+  if (role !== 'admin') {
+    return NextResponse.json({ error: 'Admin only' }, { status: 403 })
+  }
+  if (!isPremium) {
+    return NextResponse.json({ error: 'Premium required', code: 'ALLOWANCES_PREMIUM' }, { status: 403 })
   }
 
-  if (!body.user_id) {
-    return Response.json({ error: "user_id is required" }, { status: 400 });
-  }
-  if (!body.title?.trim()) {
-    return Response.json({ error: "title is required" }, { status: 400 });
-  }
-  if (body.title.trim().length > 60) {
-    return Response.json({ error: "title must be 60 characters or fewer" }, { status: 400 });
+  const body = await request.json().catch(() => null)
+  if (!body?.userId || !body?.title?.trim() || !body?.rewardDetail?.trim()) {
+    return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
   }
 
-  const VALID_REWARD_TYPES = ["money", "gift", "activity", "other"];
-  if (body.reward_type && !VALID_REWARD_TYPES.includes(body.reward_type)) {
-    return Response.json({ error: "Invalid reward_type" }, { status: 400 });
-  }
+  const {
+    userId,
+    title,
+    periodType = 'week',
+    periodDays = null,
+    thresholdPercent = 80,
+    rewardType = 'money',
+    rewardDetail,
+    startsAt,
+  } = body
 
-  const VALID_PERIOD_TYPES = ["week", "month", "year", "custom"];
-  if (body.period_type && !VALID_PERIOD_TYPES.includes(body.period_type)) {
-    return Response.json({ error: "Invalid period_type" }, { status: 400 });
-  }
-
-  if (body.period_type === "custom" && (!body.period_days || body.period_days < 3)) {
-    return Response.json(
-      { error: "period_days must be at least 3 for custom periods" },
-      { status: 400 }
-    );
-  }
-
-  const rewardType = body.reward_type ?? "money";
-  if (rewardType === "money" && (!body.reward_amount || body.reward_amount <= 0)) {
-    return Response.json(
-      { error: "reward_amount must be greater than 0 for money rewards" },
-      { status: 400 }
-    );
-  }
-
-  if (
-    body.threshold_percent !== undefined &&
-    (body.threshold_percent < 50 || body.threshold_percent > 100)
-  ) {
-    return Response.json(
-      { error: "threshold_percent must be between 50 and 100" },
-      { status: 400 }
-    );
-  }
-
-  // Verify target is a child in this household
-  const [targetMember] = await db
-    .select({ role: household_members.role })
-    .from(household_members)
-    .where(
-      and(
-        eq(household_members.household_id, householdId),
-        eq(household_members.user_id, body.user_id)
-      )
-    )
-    .limit(1);
-
-  if (!targetMember) {
-    return Response.json({ error: "Member not found" }, { status: 404 });
-  }
-  if (targetMember.role !== "child") {
-    return Response.json(
-      { error: "Rewards can only be set for child accounts" },
-      { status: 400 }
-    );
+  if (thresholdPercent < 1 || thresholdPercent > 100) {
+    return NextResponse.json({ error: 'Threshold must be 1-100' }, { status: 400 })
   }
 
   const [rule] = await db
-    .insert(reward_rules)
+    .insert(rewardRules)
     .values({
-      household_id: householdId,
-      user_id: body.user_id,
-      title: body.title.trim(),
-      reward_type: rewardType,
-      reward_description: body.reward_description?.trim() || null,
-      reward_amount: body.reward_amount != null ? String(body.reward_amount) : null,
-      period_type: body.period_type ?? "week",
-      period_days: body.period_days ?? null,
-      threshold_percent: body.threshold_percent ?? 80,
-      enabled: true,
-      starts_at: body.starts_at ?? format(new Date(), "yyyy-MM-dd"),
-      created_by: session.user.id,
+      householdId,
+      userId,
+      title: title.trim(),
+      periodType,
+      periodDays: periodDays ?? null,
+      thresholdPercent,
+      rewardType,
+      rewardDetail: rewardDetail.trim(),
+      startsAt: startsAt ? new Date(startsAt) : new Date(),
+      createdBy: session.user.id,
     })
-    .returning();
+    .returning()
 
-  return Response.json({ rule }, { status: 201 });
+  return NextResponse.json({ rule })
 }

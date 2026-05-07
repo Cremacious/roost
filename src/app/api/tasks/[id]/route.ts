@@ -1,175 +1,100 @@
-import { NextRequest } from "next/server";
-import { requireSession } from "@/lib/auth/helpers";
-import { db } from "@/lib/db";
-import { tasks } from "@/db/schema";
-import { and, eq, isNull } from "drizzle-orm";
-import { getUserHousehold } from "@/app/api/chores/route";
-import { logActivity } from "@/lib/utils/activity";
-
-// ---- PATCH ------------------------------------------------------------------
+import { NextRequest, NextResponse } from 'next/server'
+import { getSession, getUserHousehold } from '@/lib/auth/helpers'
+import { db } from '@/lib/db'
+import { tasks } from '@/db/schema'
+import { eq, and } from 'drizzle-orm'
 
 export async function PATCH(
-  request: NextRequest,
+  req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
-): Promise<Response> {
-  const { id } = await params;
+) {
+  const { id } = await params
+  const session = await getSession()
+  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  let session;
-  try {
-    session = await requireSession(request);
-  } catch (r) {
-    return r as Response;
-  }
+  const membership = await getUserHousehold(session.user.id)
+  if (!membership) return NextResponse.json({ error: 'No household' }, { status: 403 })
 
-  const membership = await getUserHousehold(session.user.id);
-  if (!membership) {
-    return Response.json({ error: "No household found" }, { status: 404 });
-  }
-  const { householdId, role } = membership;
+  const { householdId, role } = membership
 
   const [existing] = await db
     .select()
     .from(tasks)
-    .where(
-      and(
-        eq(tasks.id, id),
-        eq(tasks.household_id, householdId),
-        isNull(tasks.deleted_at)
-      )
-    )
-    .limit(1);
+    .where(eq(tasks.id, id))
+    .limit(1)
 
-  if (!existing) {
-    return Response.json({ error: "Task not found" }, { status: 404 });
+  if (!existing || existing.householdId !== householdId) {
+    return NextResponse.json({ error: 'Not found' }, { status: 404 })
   }
 
-  let body: {
-    title?: string;
-    description?: string;
-    assigned_to?: string | null;
-    due_date?: string | null;
-    priority?: string;
-    completed?: boolean;
-  };
-  try {
-    body = await request.json();
-  } catch (err) {
-    console.error("[PATCH /api/tasks/[id]] Failed to parse body:", err);
-    return Response.json({ error: "Invalid request body" }, { status: 400 });
+  const body = await req.json()
+  const {
+    title, description, assignedTo, dueDate, dueTime, priority, completed,
+    projectId, recurring, frequency, repeatEndType, repeatUntil, repeatOccurrences,
+  } = body
+
+  const updates: Partial<typeof tasks.$inferInsert> = {
+    updatedAt: new Date(),
   }
 
-  // Editing task details: block children
-  const isCompletionToggle = body.completed !== undefined &&
-    Object.keys(body).length === 1;
-
-  if (!isCompletionToggle && role === "child") {
-    return Response.json({ error: "Forbidden" }, { status: 403 });
-  }
-
-  const now = new Date();
-  const updateValues: Partial<typeof tasks.$inferInsert> = {
-    updated_at: now,
-  };
-
-  if (body.completed === true) {
-    updateValues.completed = true;
-    updateValues.completed_by = session.user.id;
-    updateValues.completed_at = now;
-  } else if (body.completed === false) {
-    updateValues.completed = false;
-    updateValues.completed_by = null;
-    updateValues.completed_at = null;
-  }
-
-  if (body.title !== undefined) {
-    if (!body.title.trim()) {
-      return Response.json({ error: "Title is required" }, { status: 400 });
-    }
-    updateValues.title = body.title.trim();
-  }
-  if (body.description !== undefined) {
-    updateValues.description = body.description?.trim() || null;
-  }
-  if (body.assigned_to !== undefined) {
-    updateValues.assigned_to = body.assigned_to || null;
-  }
-  if (body.due_date !== undefined) {
-    updateValues.due_date = body.due_date ? new Date(body.due_date) : null;
-  }
-  if (body.priority !== undefined) {
-    updateValues.priority = body.priority;
+  if (title !== undefined) updates.title = title.trim()
+  if (description !== undefined) updates.description = description?.trim() ?? null
+  if (assignedTo !== undefined) updates.assignedTo = assignedTo ?? null
+  if (dueDate !== undefined) updates.dueDate = dueDate ? new Date(dueDate) : null
+  if (dueTime !== undefined) updates.dueTime = dueTime ?? null
+  if (priority !== undefined) updates.priority = priority
+  if (projectId !== undefined) updates.projectId = projectId ?? null
+  if (recurring !== undefined) updates.recurring = recurring
+  if (frequency !== undefined) updates.frequency = frequency ?? null
+  if (repeatEndType !== undefined) updates.repeatEndType = repeatEndType ?? null
+  if (repeatUntil !== undefined) updates.repeatUntil = repeatUntil ? new Date(repeatUntil) : null
+  if (repeatOccurrences !== undefined) updates.repeatOccurrences = repeatOccurrences ?? null
+  if (completed !== undefined) {
+    updates.completed = completed
+    updates.completedBy = completed ? session.user.id : null
+    updates.completedAt = completed ? new Date() : null
   }
 
   const [updated] = await db
     .update(tasks)
-    .set(updateValues)
+    .set(updates)
     .where(eq(tasks.id, id))
-    .returning();
+    .returning()
 
-  // Log completion
-  if (body.completed === true) {
-    await logActivity({
-      householdId,
-      userId: session.user.id,
-      type: "task_completed",
-      description: `completed ${existing.title}`,
-      entityId: id,
-      entityType: "task",
-    });
-  }
-
-  return Response.json({ task: updated });
+  return NextResponse.json({ task: updated })
 }
 
-// ---- DELETE -----------------------------------------------------------------
-
 export async function DELETE(
-  request: NextRequest,
+  req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
-): Promise<Response> {
-  const { id } = await params;
+) {
+  const { id } = await params
+  const session = await getSession()
+  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  let session;
-  try {
-    session = await requireSession(request);
-  } catch (r) {
-    return r as Response;
-  }
+  const membership = await getUserHousehold(session.user.id)
+  if (!membership) return NextResponse.json({ error: 'No household' }, { status: 403 })
 
-  const membership = await getUserHousehold(session.user.id);
-  if (!membership) {
-    return Response.json({ error: "No household found" }, { status: 404 });
-  }
-  if (membership.role === "child") {
-    return Response.json({ error: "Forbidden" }, { status: 403 });
-  }
-  const { householdId, role } = membership;
+  const { householdId, role } = membership
 
   const [existing] = await db
-    .select({ id: tasks.id, created_by: tasks.created_by })
+    .select()
     .from(tasks)
-    .where(
-      and(
-        eq(tasks.id, id),
-        eq(tasks.household_id, householdId),
-        isNull(tasks.deleted_at)
-      )
-    )
-    .limit(1);
+    .where(eq(tasks.id, id))
+    .limit(1)
 
-  if (!existing) {
-    return Response.json({ error: "Task not found" }, { status: 404 });
+  if (!existing || existing.householdId !== householdId) {
+    return NextResponse.json({ error: 'Not found' }, { status: 404 })
   }
 
-  // Only creator or admin can delete
-  if (existing.created_by !== session.user.id && role !== "admin") {
-    return Response.json({ error: "Forbidden" }, { status: 403 });
+  if (existing.createdBy !== session.user.id && role !== 'admin') {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 
   await db
     .update(tasks)
-    .set({ deleted_at: new Date() })
-    .where(eq(tasks.id, id));
+    .set({ deletedAt: new Date() })
+    .where(eq(tasks.id, id))
 
-  return Response.json({ ok: true });
+  return NextResponse.json({ ok: true })
 }

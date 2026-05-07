@@ -1,143 +1,85 @@
-import { NextRequest } from "next/server";
-import { requireSession } from "@/lib/auth/helpers";
-import { db } from "@/lib/db";
-import { meal_suggestions, meal_suggestion_votes, users } from "@/db/schema";
-import { and, desc, eq, inArray } from "drizzle-orm";
-import { getUserHousehold } from "@/app/api/chores/route";
-import { logActivity } from "@/lib/utils/activity";
+import { NextRequest, NextResponse } from 'next/server'
+import { getSession, getUserHousehold } from '@/lib/auth/helpers'
+import { db } from '@/lib/db'
+import { mealSuggestions, mealSuggestionVotes, users } from '@/db/schema'
+import { eq, and, inArray, sql } from 'drizzle-orm'
 
-// ---- GET --------------------------------------------------------------------
+export async function GET() {
+  const session = await getSession()
+  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-export async function GET(request: NextRequest): Promise<Response> {
-  let session;
-  try {
-    session = await requireSession(request);
-  } catch (r) {
-    return r as Response;
-  }
+  const membership = await getUserHousehold(session.user.id)
+  if (!membership) return NextResponse.json({ error: 'No household' }, { status: 403 })
 
-  const membership = await getUserHousehold(session.user.id);
-  if (!membership) {
-    return Response.json({ error: "No household found" }, { status: 404 });
-  }
-  const { householdId } = membership;
+  const { householdId } = membership
 
-  const suggestionRows = await db
+  const rows = await db
     .select({
-      id: meal_suggestions.id,
-      meal_name: meal_suggestions.meal_name,
-      note: meal_suggestions.note,
-      category: meal_suggestions.category,
-      prep_time: meal_suggestions.prep_time,
-      ingredients: meal_suggestions.ingredients,
-      status: meal_suggestions.status,
-      target_slot_date: meal_suggestions.target_slot_date,
-      target_slot_type: meal_suggestions.target_slot_type,
-      suggested_by: meal_suggestions.suggested_by,
-      created_at: meal_suggestions.created_at,
-      suggester_name: users.name,
-      suggester_avatar: users.avatar_color,
+      id: mealSuggestions.id,
+      name: mealSuggestions.name,
+      ingredients: mealSuggestions.ingredients,
+      note: mealSuggestions.note,
+      prepTime: mealSuggestions.prepTime,
+      targetSlotDate: mealSuggestions.targetSlotDate,
+      targetSlotType: mealSuggestions.targetSlotType,
+      status: mealSuggestions.status,
+      suggestedBy: mealSuggestions.suggestedBy,
+      createdAt: mealSuggestions.createdAt,
+      suggesterName: users.name,
+      upvotes: sql<number>`count(case when ${mealSuggestionVotes.voteType} = 'up' then 1 end)::int`,
+      downvotes: sql<number>`count(case when ${mealSuggestionVotes.voteType} = 'down' then 1 end)::int`,
     })
-    .from(meal_suggestions)
-    .leftJoin(users, eq(meal_suggestions.suggested_by, users.id))
+    .from(mealSuggestions)
+    .leftJoin(users, eq(mealSuggestions.suggestedBy, users.id))
+    .leftJoin(mealSuggestionVotes, eq(mealSuggestionVotes.suggestionId, mealSuggestions.id))
     .where(
       and(
-        eq(meal_suggestions.household_id, householdId),
-        inArray(meal_suggestions.status, ["suggested", "in_bank"])
+        eq(mealSuggestions.householdId, householdId),
+        inArray(mealSuggestions.status, ['suggested', 'in_bank'])
       )
     )
-    .orderBy(desc(meal_suggestions.created_at));
+    .groupBy(mealSuggestions.id, users.name)
+    .orderBy(sql`count(case when ${mealSuggestionVotes.voteType} = 'up' then 1 end) desc`)
 
-  if (suggestionRows.length === 0) {
-    return Response.json({ suggestions: [] });
-  }
+  // Get user's votes
+  const myVotes = await db
+    .select({ suggestionId: mealSuggestionVotes.suggestionId, voteType: mealSuggestionVotes.voteType })
+    .from(mealSuggestionVotes)
+    .where(eq(mealSuggestionVotes.userId, session.user.id))
 
-  const suggestionIds = suggestionRows.map((s) => s.id);
-  const votes = await db
-    .select()
-    .from(meal_suggestion_votes)
-    .where(inArray(meal_suggestion_votes.suggestion_id, suggestionIds));
+  const voteMap = new Map(myVotes.map(v => [v.suggestionId, v.voteType]))
 
-  const suggestions = suggestionRows
-    .map((s) => {
-      const sVotes = votes.filter((v) => v.suggestion_id === s.id);
-      const upvotes = sVotes.filter((v) => v.vote === "up").length;
-      const downvotes = sVotes.filter((v) => v.vote === "down").length;
-      const userVote = sVotes.find((v) => v.user_id === session.user.id)?.vote ?? null;
-      return { ...s, upvotes, downvotes, userVote };
-    })
-    .sort((a, b) => b.upvotes - a.upvotes);
+  const suggestions = rows.map(r => ({ ...r, userVote: voteMap.get(r.id) ?? null }))
 
-  return Response.json({ suggestions });
+  return NextResponse.json({ suggestions })
 }
 
-// ---- POST -------------------------------------------------------------------
+export async function POST(req: NextRequest) {
+  const session = await getSession()
+  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-export async function POST(request: NextRequest): Promise<Response> {
-  let session;
-  try {
-    session = await requireSession(request);
-  } catch (r) {
-    return r as Response;
-  }
+  const membership = await getUserHousehold(session.user.id)
+  if (!membership) return NextResponse.json({ error: 'No household' }, { status: 403 })
 
-  const membership = await getUserHousehold(session.user.id);
-  if (!membership) {
-    return Response.json({ error: "No household found" }, { status: 404 });
-  }
-  const { householdId } = membership;
+  const { householdId } = membership
+  const body = await req.json()
+  const { name, ingredients, note, prepTime, targetSlotDate, targetSlotType } = body
 
-  let body: {
-    meal_name?: string;
-    note?: string;
-    category?: string;
-    prep_time?: number;
-    ingredients?: string[];
-    target_slot_date?: string;
-    target_slot_type?: string;
-  };
-  try {
-    body = await request.json();
-  } catch {
-    return Response.json({ error: "Invalid request body" }, { status: 400 });
-  }
-
-  if (!body.meal_name?.trim()) {
-    return Response.json({ error: "Meal name is required" }, { status: 400 });
-  }
-  if (!body.target_slot_date) {
-    return Response.json({ error: "target_slot_date is required" }, { status: 400 });
-  }
-  if (!body.target_slot_type) {
-    return Response.json({ error: "target_slot_type is required" }, { status: 400 });
-  }
-
-  const filteredIngredients = (body.ingredients ?? []).filter((i) => i.trim());
+  if (!name?.trim()) return NextResponse.json({ error: 'Name is required' }, { status: 400 })
 
   const [suggestion] = await db
-    .insert(meal_suggestions)
+    .insert(mealSuggestions)
     .values({
-      household_id: householdId,
-      suggested_by: session.user.id,
-      meal_name: body.meal_name.trim(),
-      note: body.note?.trim() || null,
-      category: body.category ?? "dinner",
-      prep_time: body.prep_time ?? null,
-      target_slot_date: body.target_slot_date,
-      target_slot_type: body.target_slot_type,
-      ingredients: filteredIngredients.length > 0 ? JSON.stringify(filteredIngredients) : null,
-      status: "suggested",
+      householdId,
+      name: name.trim(),
+      ingredients: JSON.stringify(ingredients ?? []),
+      note: note?.trim() ?? null,
+      prepTime: prepTime ? parseInt(prepTime, 10) : null,
+      targetSlotDate: targetSlotDate ?? null,
+      targetSlotType: targetSlotType ?? null,
+      suggestedBy: session.user.id,
     })
-    .returning();
+    .returning()
 
-  await logActivity({
-    householdId,
-    userId: session.user.id,
-    type: "meal_suggested",
-    description: `suggested ${body.meal_name.trim()}`,
-    entityId: suggestion.id,
-    entityType: "meal_suggestion",
-  });
-
-  return Response.json({ suggestion }, { status: 201 });
+  return NextResponse.json({ suggestion }, { status: 201 })
 }

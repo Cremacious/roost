@@ -1,127 +1,105 @@
-"use client";
+'use client'
 
-import { useEffect } from "react";
-import { toast } from "sonner";
-import { THEMES, DEFAULT_THEME, type ThemeKey } from "@/lib/constants/themes";
-import { useThemeStore } from "@/lib/store/themeStore";
+import { createContext, useContext, useState, useCallback, useEffect } from 'react'
 
-const VALID_THEME_KEYS = new Set<string>(['default', 'midnight']);
-const THEME_STORAGE_KEY = "roost-theme";
+const THEMES = {
+  default: {
+    '--roost-bg': '#F9FAFB',
+    '--roost-surface': '#FFFFFF',
+    '--roost-border': '#E5E7EB',
+    '--roost-border-bottom': '#D1D5DB',
+    '--roost-text-primary': '#111827',
+    '--roost-text-secondary': '#374151',
+    '--roost-text-muted': '#6B7280',
+    '--roost-topbar-bg': '#FFFFFF',
+    '--roost-topbar-border': '#E5E7EB',
+    '--roost-weather-bg': 'rgba(0,0,0,0.06)',
+    '--roost-weather-color': '#374151',
+  },
+  midnight: {
+    '--roost-bg': '#111827',
+    '--roost-surface': '#1F2937',
+    '--roost-border': '#374151',
+    '--roost-border-bottom': '#4B5563',
+    '--roost-text-primary': '#F9FAFB',
+    '--roost-text-secondary': '#E5E7EB',
+    '--roost-text-muted': '#9CA3AF',
+    '--roost-topbar-bg': '#1F2937',
+    '--roost-topbar-border': '#374151',
+    '--roost-weather-bg': 'rgba(255,255,255,0.1)',
+    '--roost-weather-color': '#E5E7EB',
+  },
+} as const
 
-function resolveThemeKey(key: string): ThemeKey {
-  return VALID_THEME_KEYS.has(key) ? (key as ThemeKey) : DEFAULT_THEME;
+type ThemeKey = keyof typeof THEMES
+
+function applyTheme(key: ThemeKey) {
+  if (typeof document === 'undefined') return
+  const vars = THEMES[key] ?? THEMES.default
+  const root = document.documentElement
+  for (const [prop, val] of Object.entries(vars)) {
+    root.style.setProperty(prop, val)
+  }
+  root.setAttribute('data-theme', key)
+  root.setAttribute('data-dark', key === 'midnight' ? 'true' : 'false')
+
+  // Shadcn overrides
+  root.style.setProperty('--background', key === 'midnight' ? '222 47% 11%' : '0 0% 100%')
+  root.style.setProperty('--card', key === 'midnight' ? '217 33% 17%' : '0 0% 100%')
+  root.style.setProperty('--card-foreground', key === 'midnight' ? '210 40% 98%' : '222 47% 11%')
+  root.style.setProperty('--foreground', key === 'midnight' ? '210 40% 98%' : '222 47% 11%')
+  root.style.setProperty('--border', key === 'midnight' ? '217 33% 27%' : '214 32% 91%')
+  root.style.setProperty('--input', key === 'midnight' ? '217 33% 27%' : '214 32% 91%')
+  root.style.setProperty('--primary', key === 'midnight' ? '210 40% 90%' : '222 47% 11%')
+  root.style.setProperty('--primary-foreground', key === 'midnight' ? '222 47% 11%' : '210 40% 98%')
+  root.style.setProperty('--muted', key === 'midnight' ? '217 33% 17%' : '210 40% 96%')
+  root.style.setProperty('--muted-foreground', key === 'midnight' ? '215 20% 65%' : '215 16% 47%')
+  root.style.setProperty('--popover', key === 'midnight' ? '217 33% 17%' : '0 0% 100%')
+  root.style.setProperty('--popover-foreground', key === 'midnight' ? '210 40% 98%' : '222 47% 11%')
 }
 
-// ---- Apply theme ------------------------------------------------------------
-
-export function applyTheme(key: ThemeKey) {
-  const theme = THEMES[key];
-  const root = document.documentElement;
-
-  // Roost theme variables
-  root.style.setProperty("--roost-bg", theme.bg);
-  root.style.setProperty("--roost-surface", theme.surface);
-  root.style.setProperty("--roost-border", theme.border);
-  root.style.setProperty("--roost-border-bottom", theme.borderBottom);
-  root.style.setProperty("--roost-text-primary", theme.textPrimary);
-  root.style.setProperty("--roost-text-secondary", theme.textSecondary);
-  root.style.setProperty("--roost-text-muted", theme.textMuted);
-  root.style.setProperty("--roost-topbar-bg", theme.topbarBg);
-  root.style.setProperty("--roost-topbar-border", theme.topbarBorder);
-  root.style.setProperty("--roost-sidebar-bg", theme.sidebarBg);
-  root.style.setProperty("--roost-sidebar-border", theme.sidebarBorder);
-  root.style.setProperty("--roost-sidebar-active-bg", theme.sidebarActiveBg);
-  root.style.setProperty("--roost-sidebar-active-text", theme.sidebarActiveText);
-  root.style.setProperty("--roost-sidebar-inactive-text", theme.sidebarInactiveText);
-  root.style.setProperty("--roost-sidebar-divider", theme.sidebarDivider);
-  root.style.setProperty("--roost-weather-bg", theme.weatherBg);
-  root.style.setProperty("--roost-weather-color", theme.weatherColor);
-
-  // Override shadcn/Tailwind variables so existing classes respond to theme
-  root.style.setProperty("--background", theme.bg);
-  root.style.setProperty("--foreground", theme.textPrimary);
-  root.style.setProperty("--card", theme.surface);
-  root.style.setProperty("--card-foreground", theme.textPrimary);
-  root.style.setProperty("--popover", theme.surface);
-  root.style.setProperty("--popover-foreground", theme.textPrimary);
-  root.style.setProperty("--border", theme.border);
-  root.style.setProperty("--input", theme.border);
-  root.style.setProperty("--muted", theme.surface);
-  root.style.setProperty("--muted-foreground", theme.textMuted);
-  root.style.setProperty("--secondary", theme.surface);
-  root.style.setProperty("--secondary-foreground", theme.textSecondary);
-  root.style.setProperty("--sidebar", theme.sidebarBg);
-  root.style.setProperty("--sidebar-foreground", theme.textPrimary);
-  root.style.setProperty("--sidebar-border", theme.sidebarBorder);
-
-  // Update shadcn --primary so Switch, Checkbox etc. use neutral, not red
-  if (theme.dark) {
-    root.style.setProperty("--primary", "oklch(0.985 0 0)");
-    root.style.setProperty("--primary-foreground", "oklch(0.145 0 0)");
-  } else {
-    root.style.setProperty("--primary", "oklch(0.145 0 0)");
-    root.style.setProperty("--primary-foreground", "oklch(0.985 0 0)");
-  }
-
-  // Data attributes for CSS selectors (e.g. toast dark theme override)
-  root.setAttribute("data-theme", key);
-  root.setAttribute("data-dark", theme.dark ? "true" : "false");
-
-  // Toggle dark class for shadcn dark: Tailwind variants
-  if (theme.dark) {
-    root.classList.add("dark");
-  } else {
-    root.classList.remove("dark");
-  }
+interface ThemeContextValue {
+  theme: ThemeKey
+  setTheme: (key: string) => Promise<void>
 }
 
-// ---- useTheme hook ----------------------------------------------------------
+const ThemeContext = createContext<ThemeContextValue>({
+  theme: 'default',
+  setTheme: async () => {},
+})
 
 export function useTheme() {
-  const { theme, setTheme: setThemeStore } = useThemeStore();
-
-  const setTheme = async (key: ThemeKey) => {
-    applyTheme(key);
-    setThemeStore(key);
-    localStorage.setItem(THEME_STORAGE_KEY, key);
-    try {
-      const res = await fetch("/api/user/theme", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ theme: key }),
-      });
-      if (res.ok) {
-        toast.success("Theme updated");
-      }
-    } catch {
-      // non-critical — theme is already applied visually
-    }
-  };
-
-  return { theme, setTheme };
+  return useContext(ThemeContext)
 }
 
-// ---- Provider ---------------------------------------------------------------
-
-interface ThemeProviderProps {
-  children: React.ReactNode;
-  initialTheme: string;
-}
-
-export default function ThemeProvider({ children, initialTheme }: ThemeProviderProps) {
-  const setThemeStore = useThemeStore((s) => s.setTheme);
+export function ThemeProvider({
+  initialTheme,
+  children,
+}: {
+  initialTheme: string
+  children: React.ReactNode
+}) {
+  const resolved = (THEMES[initialTheme as ThemeKey] ? initialTheme : 'default') as ThemeKey
+  const [theme, setThemeState] = useState<ThemeKey>(resolved)
 
   useEffect(() => {
-    const storedTheme = typeof window !== "undefined"
-      ? window.localStorage.getItem(THEME_STORAGE_KEY)
-      : null;
-    const resolved = resolveThemeKey(storedTheme ?? initialTheme ?? DEFAULT_THEME);
-    setThemeStore(resolved);
-    applyTheme(resolved);
-    if (storedTheme !== resolved) {
-      window.localStorage.setItem(THEME_STORAGE_KEY, resolved);
-    }
-  }, [initialTheme, setThemeStore]);
+    applyTheme(resolved)
+  }, [resolved])
 
-  return <>{children}</>;
+  const setTheme = useCallback(async (key: string) => {
+    const next = (THEMES[key as ThemeKey] ? key : 'default') as ThemeKey
+    applyTheme(next)
+    setThemeState(next)
+    await fetch('/api/user/theme', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ theme: next }),
+    })
+  }, [])
+
+  return (
+    <ThemeContext.Provider value={{ theme, setTheme }}>
+      {children}
+    </ThemeContext.Provider>
+  )
 }

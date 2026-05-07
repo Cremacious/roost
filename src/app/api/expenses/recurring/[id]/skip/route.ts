@@ -1,66 +1,41 @@
-import { NextRequest } from "next/server";
-import { requireSession } from "@/lib/auth/helpers";
-import { db } from "@/lib/db";
-import { recurring_expense_templates, expenses, households } from "@/db/schema";
-import { and, eq, isNull } from "drizzle-orm";
-import { getUserHousehold } from "@/app/api/chores/route";
-import { advanceRecurringDate } from "@/app/api/expenses/recurring/route";
-import { format } from "date-fns";
+import { NextRequest, NextResponse } from 'next/server'
+import { getSession, getUserHousehold } from '@/lib/auth/helpers'
+import { db } from '@/lib/db'
+import { recurringExpenses, expenses } from '@/db/schema'
+import { eq, and, isNull } from 'drizzle-orm'
+import { advanceRecurringDate } from '../../route'
 
-export async function POST(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-): Promise<Response> {
-  let session;
-  try {
-    session = await requireSession(request);
-  } catch (r) {
-    return r as Response;
-  }
+// Admin skips this cycle — deletes draft if exists and advances schedule
+export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params
+  const session = await getSession()
+  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const { id } = await params;
-  const membership = await getUserHousehold(session.user.id);
-  if (!membership) return Response.json({ error: "No household found" }, { status: 404 });
-  if (membership.role !== "admin") return Response.json({ error: "Admin required" }, { status: 403 });
-  const { householdId } = membership;
+  const membership = await getUserHousehold(session.user.id)
+  if (!membership) return NextResponse.json({ error: 'No household' }, { status: 403 })
 
-  const [household] = await db
-    .select({ subscription_status: households.subscription_status })
-    .from(households)
-    .where(eq(households.id, householdId))
-    .limit(1);
-  if (!household || household.subscription_status !== "premium") {
-    return Response.json({ error: "Premium required" }, { status: 403 });
-  }
+  const { householdId, role } = membership
+  if (role !== 'admin') return NextResponse.json({ error: 'Admin only' }, { status: 403 })
 
-  const [template] = await db
+  const template = await db
     .select()
-    .from(recurring_expense_templates)
-    .where(and(eq(recurring_expense_templates.id, id), isNull(recurring_expense_templates.deleted_at)))
-    .limit(1);
+    .from(recurringExpenses)
+    .where(and(eq(recurringExpenses.id, id), eq(recurringExpenses.householdId, householdId), isNull(recurringExpenses.deletedAt)))
+    .then(r => r[0] ?? null)
 
-  if (!template) return Response.json({ error: "Template not found" }, { status: 404 });
-  if (template.household_id !== householdId) return Response.json({ error: "Forbidden" }, { status: 403 });
+  if (!template) return NextResponse.json({ error: 'Not found' }, { status: 404 })
 
-  // Delete any existing draft for this template
+  // soft-delete any pending draft
   await db
-    .delete(expenses)
-    .where(
-      and(
-        eq(expenses.recurring_template_id, id),
-        eq(expenses.is_recurring_draft, true),
-        isNull(expenses.deleted_at)
-      )
-    );
+    .update(expenses)
+    .set({ deletedAt: new Date() })
+    .where(and(eq(expenses.recurringTemplateId, id), eq(expenses.isRecurringDraft, true)))
 
-  // Advance template next_due_date without posting
-  const today = format(new Date(), "yyyy-MM-dd");
-  const nextDue = advanceRecurringDate(template.next_due_date, template.frequency);
-  const [updated] = await db
-    .update(recurring_expense_templates)
-    .set({ next_due_date: nextDue, last_posted_at: today, updated_at: new Date() })
-    .where(eq(recurring_expense_templates.id, id))
-    .returning();
+  const nextDate = advanceRecurringDate(new Date(template.nextDueDate), template.frequency)
+  await db
+    .update(recurringExpenses)
+    .set({ nextDueDate: nextDate })
+    .where(eq(recurringExpenses.id, id))
 
-  return Response.json({ template: updated });
+  return NextResponse.json({ ok: true })
 }

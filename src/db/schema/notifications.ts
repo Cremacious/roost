@@ -1,23 +1,20 @@
-import { boolean, index, pgTable, text, timestamp } from "drizzle-orm/pg-core";
+import { pgTable, text, timestamp, boolean } from 'drizzle-orm/pg-core'
+import { households } from './households'
+import { users } from './users'
 
-export const notification_queue = pgTable(
-  "notification_queue",
-  {
-    id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
-    user_id: text("user_id").notNull(),
-    type: text("type").notNull(),
-    entity_id: text("entity_id"),
-    entity_type: text("entity_type"),
-    title: text("title").notNull(),
-    body: text("body").notNull(),
-    sent: boolean("sent").notNull().default(false),
-    sent_at: timestamp("sent_at"),
-    created_at: timestamp("created_at").defaultNow(),
-  },
-  (t) => ({
-    sentAtIdx: index("notification_queue_sent_at_idx").on(t.sent, t.sent_at),
-  })
-);
-
-export type NotificationQueueItem = typeof notification_queue.$inferSelect;
-export type NewNotificationQueueItem = typeof notification_queue.$inferInsert;
+export const notificationQueue = pgTable('notification_queue', {
+  id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+  householdId: text('household_id')
+    .notNull()
+    .references(() => households.id, { onDelete: 'cascade' }),
+  userId: text('user_id')
+    .notNull()
+    .references(() => users.id),
+  type: text('type').notNull(),
+  title: text('title').notNull(),
+  body: text('body').notNull(),
+  data: text('data').notNull().default('{}'),
+  sent: boolean('sent').notNull().default(false),
+  sentAt: timestamp('sent_at'),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+})

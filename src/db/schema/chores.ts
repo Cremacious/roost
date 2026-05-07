@@ -1,79 +1,59 @@
-import { date, index, integer, pgTable, text, timestamp, unique } from "drizzle-orm/pg-core";
-import { households } from "./households";
-import { chore_categories } from "./choreCategories";
+import { pgTable, text, timestamp, integer } from 'drizzle-orm/pg-core'
+import { households } from './households'
+import { users } from './users'
 
-export const chores = pgTable(
-  "chores",
-  {
-    id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
-    household_id: text("household_id")
-      .references(() => households.id)
-      .notNull(),
-    title: text("title").notNull(),
-    description: text("description"),
-    assigned_to: text("assigned_to"),
-    frequency: text("frequency").notNull(),
-    custom_days: text("custom_days"),
-    category_id: text("category_id")
-      .references(() => chore_categories.id),
-    last_completed_at: timestamp("last_completed_at"),
-    next_due_at: timestamp("next_due_at"),
-    created_by: text("created_by").notNull(),
-    created_at: timestamp("created_at").defaultNow(),
-    updated_at: timestamp("updated_at").defaultNow(),
-    deleted_at: timestamp("deleted_at"),
-  },
-  (t) => ({
-    householdDueIdx: index("chores_household_next_due_idx").on(
-      t.household_id,
-      t.next_due_at
-    ),
-    householdAssignedIdx: index("chores_household_assigned_to_idx").on(
-      t.household_id,
-      t.assigned_to
-    ),
-  })
-);
+export const choreCategories = pgTable('chore_categories', {
+  id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+  householdId: text('household_id')
+    .notNull()
+    .references(() => households.id, { onDelete: 'cascade' }),
+  name: text('name').notNull(),
+  icon: text('icon').notNull().default('Home'),
+  color: text('color').notNull().default('#EF4444'),
+  isDefault: text('is_default').notNull().default('false'),
+  isCustom: text('is_custom').notNull().default('false'),
+  suggestedBy: text('suggested_by').references(() => users.id),
+  status: text('status').notNull().default('active').$type<'active' | 'pending' | 'rejected'>(),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+  deletedAt: timestamp('deleted_at'),
+})
 
-export const chore_completions = pgTable(
-  "chore_completions",
-  {
-    id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
-    chore_id: text("chore_id")
-      .references(() => chores.id)
-      .notNull(),
-    completed_by: text("completed_by").notNull(),
-    completed_at: timestamp("completed_at").defaultNow(),
-    photo_url: text("photo_url"),
-  },
-  (t) => ({
-    choreCompletedAtIdx: index("chore_completions_chore_completed_at_idx").on(
-      t.chore_id,
-      t.completed_at
-    ),
-  })
-);
+export const chores = pgTable('chores', {
+  id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+  householdId: text('household_id')
+    .notNull()
+    .references(() => households.id, { onDelete: 'cascade' }),
+  title: text('title').notNull(),
+  description: text('description'),
+  assignedTo: text('assigned_to').references(() => users.id),
+  categoryId: text('category_id').references(() => choreCategories.id),
+  frequency: text('frequency').notNull().default('weekly').$type<
+    'daily' | 'weekly' | 'biweekly' | 'monthly' | 'custom'
+  >(),
+  customDays: text('custom_days'),
+  nextDueAt: timestamp('next_due_at'),
+  lastCompletedAt: timestamp('last_completed_at'),
+  createdBy: text('created_by')
+    .notNull()
+    .references(() => users.id),
+  snoozedUntil: timestamp('snoozed_until'),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+  updatedAt: timestamp('updated_at').notNull().defaultNow(),
+  deletedAt: timestamp('deleted_at'),
+})
 
-export const chore_streaks = pgTable(
-  "chore_streaks",
-  {
-    id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
-    household_id: text("household_id")
-      .references(() => households.id)
-      .notNull(),
-    user_id: text("user_id").notNull(),
-    current_streak: integer("current_streak").notNull().default(0),
-    longest_streak: integer("longest_streak").notNull().default(0),
-    points: integer("points").notNull().default(0),
-    week_start: date("week_start").notNull(),
-    updated_at: timestamp("updated_at").defaultNow(),
-  },
-  (t) => [unique().on(t.household_id, t.user_id, t.week_start)]
-);
-
-export type Chore = typeof chores.$inferSelect;
-export type NewChore = typeof chores.$inferInsert;
-export type ChoreCompletion = typeof chore_completions.$inferSelect;
-export type NewChoreCompletion = typeof chore_completions.$inferInsert;
-export type ChoreStreak = typeof chore_streaks.$inferSelect;
-export type NewChoreStreak = typeof chore_streaks.$inferInsert;
+export const choreCompletions = pgTable('chore_completions', {
+  id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+  householdId: text('household_id')
+    .notNull()
+    .references(() => households.id, { onDelete: 'cascade' }),
+  choreId: text('chore_id')
+    .notNull()
+    .references(() => chores.id, { onDelete: 'cascade' }),
+  userId: text('user_id')
+    .notNull()
+    .references(() => users.id),
+  completedAt: timestamp('completed_at').notNull().defaultNow(),
+  points: integer('points').notNull().default(10),
+  weekStart: text('week_start').notNull(),
+})

@@ -1,58 +1,38 @@
-import { boolean, index, pgTable, text, timestamp, unique } from "drizzle-orm/pg-core";
-import { households } from "./households";
+import { pgTable, text, timestamp, boolean } from 'drizzle-orm/pg-core'
+import { households } from './households'
+import { users } from './users'
 
-export const reminders = pgTable(
-  "reminders",
-  {
-    id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
-    household_id: text("household_id")
-      .references(() => households.id)
-      .notNull(),
-    created_by: text("created_by").notNull(),
-    title: text("title").notNull(),
-    note: text("note"),
-    remind_at: timestamp("remind_at").notNull(),
-    frequency: text("frequency").notNull().default("once"),
-    custom_days: text("custom_days"), // JSON array of day numbers (0=Sun..6=Sat)
-    notify_type: text("notify_type").notNull().default("self"), // self | specific | household
-    notify_user_ids: text("notify_user_ids"), // JSON array of user ids for 'specific'
-    completed: boolean("completed").notNull().default(false),
-    completed_at: timestamp("completed_at"),
-    completed_by: text("completed_by"),
-    last_sent_at: timestamp("last_sent_at"),
-    next_remind_at: timestamp("next_remind_at"),
-    snoozed_until: timestamp("snoozed_until"), // set on recurring complete, cleared on undo
-    deleted_at: timestamp("deleted_at"),
-    created_at: timestamp("created_at").defaultNow(),
-    updated_at: timestamp("updated_at").defaultNow(),
-  },
-  (t) => ({
-    householdNextReminderIdx: index("reminders_household_next_remind_idx").on(
-      t.household_id,
-      t.next_remind_at
-    ),
-    householdCompletedIdx: index("reminders_household_completed_idx").on(
-      t.household_id,
-      t.completed
-    ),
-  })
-);
+export const reminders = pgTable('reminders', {
+  id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+  householdId: text('household_id')
+    .notNull()
+    .references(() => households.id, { onDelete: 'cascade' }),
+  title: text('title').notNull(),
+  note: text('note'),
+  remindAt: timestamp('remind_at').notNull(),
+  nextRemindAt: timestamp('next_remind_at').notNull(),
+  frequency: text('frequency').$type<'once' | 'daily' | 'weekly' | 'monthly' | 'custom'>(),
+  customDays: text('custom_days'),
+  notifyType: text('notify_type').notNull().default('self').$type<'self' | 'specific' | 'household'>(),
+  notifyUserIds: text('notify_user_ids').notNull().default('[]'),
+  completed: boolean('completed').notNull().default(false),
+  snoozedUntil: timestamp('snoozed_until'),
+  createdBy: text('created_by')
+    .notNull()
+    .references(() => users.id),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+  updatedAt: timestamp('updated_at').notNull().defaultNow(),
+  deletedAt: timestamp('deleted_at'),
+})
 
-export const reminder_receipts = pgTable(
-  "reminder_receipts",
-  {
-    id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
-    reminder_id: text("reminder_id")
-      .references(() => reminders.id)
-      .notNull(),
-    user_id: text("user_id").notNull(),
-    seen: boolean("seen").notNull().default(false),
-    seen_at: timestamp("seen_at"),
-    created_at: timestamp("created_at").defaultNow(),
-  },
-  (t) => [unique().on(t.reminder_id, t.user_id)]
-);
-
-export type Reminder = typeof reminders.$inferSelect;
-export type NewReminder = typeof reminders.$inferInsert;
-export type ReminderReceipt = typeof reminder_receipts.$inferSelect;
+export const reminderReceipts = pgTable('reminder_receipts', {
+  id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+  reminderId: text('reminder_id')
+    .notNull()
+    .references(() => reminders.id, { onDelete: 'cascade' }),
+  userId: text('user_id')
+    .notNull()
+    .references(() => users.id),
+  seen: boolean('seen').notNull().default(false),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+})

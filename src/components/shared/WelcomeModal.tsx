@@ -1,205 +1,234 @@
-"use client";
+// apps/web/src/components/shared/WelcomeModal.tsx
+'use client'
 
-import { useState } from "react";
-import { useQueryClient } from "@tanstack/react-query";
-import { motion } from "framer-motion";
-import { CheckCircle2, Home, Users, ListChecks } from "lucide-react";
+import { useState } from 'react'
+import { motion } from 'framer-motion'
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogTitle,
-} from "@/components/ui/dialog";
+  Users,
+  Baby,
+  CheckSquare,
+  DollarSign,
+  LayoutGrid,
+  Home,
+} from 'lucide-react'
+import * as DialogPrimitive from '@radix-ui/react-dialog'
 
-interface Props {
-  onDismiss: () => void;
-}
-
-const TIPS = [
-  {
-    icon: Home,
-    title: "Your household is ready",
-    body: "Invite your housemates or family with your household code in Settings.",
-  },
+const FEATURES = [
   {
     icon: Users,
-    title: "Child accounts use a PIN",
-    body: "Add child accounts in Settings. They log in with a 4-digit PIN at /child-login.",
+    color: '#EF4444',
+    title: 'Invite your household',
+    body: 'Share your code and family or roommates join instantly.',
   },
   {
-    icon: ListChecks,
-    title: "Start with chores",
-    body: "Create recurring chores, assign them, and track who is keeping up.",
+    icon: Baby,
+    color: '#3B82F6',
+    title: 'Add child accounts',
+    body: 'Kids get a 4-digit PIN login. No email, no finance access.',
   },
-];
+  {
+    icon: CheckSquare,
+    color: '#EF4444',
+    title: 'Chores and rewards',
+    body: 'Assign chores, track who did what, and set up automatic rewards for kids.',
+  },
+  {
+    icon: DollarSign,
+    color: '#22C55E',
+    title: 'Split expenses',
+    body: 'Track shared bills, scan receipts, and settle up.',
+  },
+  {
+    icon: LayoutGrid,
+    color: '#F59E0B',
+    title: 'Meals, grocery, calendar and more',
+    body: 'Everything else your household needs, in one place.',
+  },
+] as const
 
-export default function WelcomeModal({ onDismiss }: Props) {
-  const [open, setOpen] = useState(true);
-  const [dismissing, setDismissing] = useState(false);
-  const queryClient = useQueryClient();
+interface WelcomeModalProps {
+  open: boolean
+  onDismiss: () => void
+}
+
+export default function WelcomeModal({ open, onDismiss }: WelcomeModalProps) {
+  const [dismissing, setDismissing] = useState(false)
 
   async function handleDismiss() {
-    if (dismissing) return;
-    setDismissing(true);
-    try {
-      await fetch("/api/user/dismiss-welcome", { method: "POST" });
-
-      queryClient.setQueryData(
-        ["dashboard-summary"],
-        (current: Record<string, unknown> | undefined) =>
-          current
-            ? {
-                ...current,
-                hasSeenWelcome: true,
-              }
-            : current
-      );
-    } catch {
-      // fire-and-forget
-    }
-    setOpen(false);
-    onDismiss();
+    if (dismissing) return
+    setDismissing(true)
+    // Fire and forget — close immediately, persist in background
+    fetch('/api/user/dismiss-welcome', { method: 'POST' }).catch(() => {})
+    onDismiss()
   }
 
   return (
-    <Dialog open={open} onOpenChange={(v) => !v && handleDismiss()}>
-      <DialogContent
-        className="sm:max-w-md"
-        style={{
-          backgroundColor: "var(--roost-surface)",
-          border: "1.5px solid var(--roost-border)",
-          borderBottom: "4px solid #EF4444",
-          borderRadius: 20,
-          padding: 0,
-          overflow: "hidden",
-        }}
-      >
-        <DialogTitle className="sr-only">Welcome to Roost</DialogTitle>
-        <DialogDescription className="sr-only">
-          A quick overview of how to get started with your household in Roost.
-        </DialogDescription>
-
-        {/* Header */}
-        <div
-          className="px-6 pt-6 pb-4"
-          style={{ borderBottom: "1px solid var(--roost-border)" }}
+    <DialogPrimitive.Root open={open} onOpenChange={(v: boolean) => !v && handleDismiss()}>
+      <DialogPrimitive.Portal>
+        <DialogPrimitive.Overlay
+          style={{
+            position: 'fixed',
+            inset: 0,
+            backgroundColor: 'rgba(0,0,0,0.5)',
+            zIndex: 50,
+          }}
+        />
+        <DialogPrimitive.Content
+          onInteractOutside={(e: Event) => e.preventDefault()}
+          onEscapeKeyDown={(e: KeyboardEvent) => e.preventDefault()}
+          style={{
+            position: 'fixed',
+            top: '50%',
+            left: '50%',
+            transform: 'translate(-50%, -50%)',
+            width: 'min(calc(100vw - 32px), 400px)',
+            backgroundColor: 'var(--roost-surface)',
+            border: 'none',
+            borderBottom: '4px solid #EF4444',
+            borderRadius: 20,
+            padding: 0,
+            overflow: 'hidden',
+            zIndex: 51,
+            outline: 'none',
+          }}
         >
-          <motion.div
-            initial={{ scale: 0.8, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            transition={{ duration: 0.2, delay: 0.05 }}
+          <DialogPrimitive.Title style={{ display: 'none' }}>
+            Welcome to Roost
+          </DialogPrimitive.Title>
+          <DialogPrimitive.Description style={{ display: 'none' }}>
+            A quick overview of what you can do in Roost.
+          </DialogPrimitive.Description>
+
+          {/* Red header */}
+          <div
+            style={{
+              background: '#EF4444',
+              padding: '24px',
+              textAlign: 'center',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              gap: 10,
+            }}
           >
+            {/* Inline logo placeholder until RoostLogo component is available */}
             <div
-              className="mb-3 flex size-12 items-center justify-center rounded-2xl"
               style={{
-                backgroundColor: "#FFF5F5",
-                border: "1.5px solid #F5C5C5",
-                borderBottom: "3px solid #EF4444",
+                width: 48,
+                height: 48,
+                borderRadius: 12,
+                backgroundColor: 'rgba(255,255,255,0.25)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
               }}
             >
-              <Home size={22} style={{ color: "#EF4444" }} />
+              <Home size={28} style={{ color: '#fff' }} />
             </div>
-          </motion.div>
-          <h2
-            style={{
-              fontSize: 22,
-              fontWeight: 900,
-              color: "var(--roost-text-primary)",
-              lineHeight: 1.2,
-              marginBottom: 4,
-            }}
-          >
-            Welcome to Roost.
-          </h2>
-          <p
-            style={{
-              fontSize: 14,
-              fontWeight: 600,
-              color: "var(--roost-text-secondary)",
-            }}
-          >
-            Homes run better with Roost.
-          </p>
-        </div>
-
-        {/* Tips */}
-        <div className="flex flex-col gap-0 px-6 py-4">
-          {TIPS.map((tip, i) => (
-            <motion.div
-              key={tip.title}
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.15, delay: 0.1 + i * 0.06 }}
-              className="flex items-start gap-3 py-3"
+            <p style={{ fontSize: 20, fontWeight: 900, color: '#fff', margin: 0 }}>
+              Welcome to Roost
+            </p>
+            <p
               style={{
-                borderBottom:
-                  i < TIPS.length - 1 ? "1px solid var(--roost-border)" : undefined,
+                fontSize: 13,
+                fontWeight: 600,
+                color: 'rgba(255,255,255,0.75)',
+                margin: 0,
               }}
             >
-              <div
-                className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-xl"
-                style={{
-                  backgroundColor: "#FFF5F5",
-                  border: "1px solid #F5C5C5",
-                }}
-              >
-                <tip.icon size={15} style={{ color: "#EF4444" }} />
-              </div>
-              <div>
-                <p
-                  style={{
-                    fontSize: 14,
-                    fontWeight: 800,
-                    color: "var(--roost-text-primary)",
-                    marginBottom: 1,
-                  }}
-                >
-                  {tip.title}
-                </p>
-                <p
-                  style={{
-                    fontSize: 13,
-                    fontWeight: 600,
-                    color: "var(--roost-text-secondary)",
-                    lineHeight: 1.4,
-                  }}
-                >
-                  {tip.body}
-                </p>
-              </div>
-            </motion.div>
-          ))}
-        </div>
+              Your household, all in one place
+            </p>
+          </div>
 
-        {/* CTA */}
-        <div className="px-6 pb-6">
-          <motion.button
-            type="button"
-            whileTap={{ y: 2 }}
-            onClick={handleDismiss}
-            disabled={dismissing}
+          {/* Feature list */}
+          <div
             style={{
-              width: "100%",
-              height: 52,
-              backgroundColor: "#EF4444",
-              color: "white",
-              fontWeight: 800,
-              fontSize: 15,
-              borderRadius: 14,
-              border: "1.5px solid #EF4444",
-              borderBottom: "3px solid #C93B3B",
-              cursor: "pointer",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              gap: 8,
+              padding: '20px 24px',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 14,
+              background: '#ffffff',
             }}
           >
-            <CheckCircle2 size={17} />
-            Got it, let&apos;s go
-          </motion.button>
-        </div>
-      </DialogContent>
-    </Dialog>
-  );
+            {FEATURES.map((f, i) => (
+              <motion.div
+                key={f.title}
+                initial={{ opacity: 0, y: 6 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.15, delay: 0.05 + i * 0.05 }}
+                style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}
+              >
+                <div
+                  style={{
+                    width: 32,
+                    height: 32,
+                    borderRadius: 8,
+                    backgroundColor: f.color + '1A', // 10% opacity
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flexShrink: 0,
+                  }}
+                >
+                  <f.icon size={16} style={{ color: f.color }} />
+                </div>
+                <div>
+                  <p
+                    style={{
+                      fontSize: 13,
+                      fontWeight: 800,
+                      color: '#111827',
+                      margin: 0,
+                      marginBottom: 2,
+                    }}
+                  >
+                    {f.title}
+                  </p>
+                  <p
+                    style={{
+                      fontSize: 12,
+                      fontWeight: 600,
+                      color: '#6B7280',
+                      margin: 0,
+                      lineHeight: 1.4,
+                    }}
+                  >
+                    {f.body}
+                  </p>
+                </div>
+              </motion.div>
+            ))}
+          </div>
+
+          {/* Button */}
+          <div style={{ padding: '0 24px 24px', background: '#ffffff' }}>
+            <motion.button
+              type="button"
+              whileTap={{ y: 2 }}
+              onClick={handleDismiss}
+              disabled={dismissing}
+              style={{
+                width: '100%',
+                height: 48,
+                backgroundColor: '#EF4444',
+                color: '#fff',
+                fontWeight: 800,
+                fontSize: 14,
+                borderRadius: 12,
+                border: 'none',
+                outline: 'none',
+                borderBottom: '3px solid #C93B3B',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              Got it!
+            </motion.button>
+          </div>
+        </DialogPrimitive.Content>
+      </DialogPrimitive.Portal>
+    </DialogPrimitive.Root>
+  )
 }

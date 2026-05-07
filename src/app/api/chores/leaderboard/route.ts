@@ -1,86 +1,73 @@
-import { NextRequest } from "next/server";
-import { requireSession } from "@/lib/auth/helpers";
-import { db } from "@/lib/db";
-import { chore_streaks, household_members, households, users } from "@/db/schema";
-import { and, desc, eq } from "drizzle-orm";
-import { getUserHousehold } from "../route";
-import { startOfWeek, format } from "date-fns";
+import { NextResponse } from 'next/server'
+import { getSession, getUserHousehold } from '@/lib/auth/helpers'
+import { db } from '@/lib/db'
+import { choreCompletions, householdMembers, users } from '@/db/schema'
+import { eq, and, isNull, sql } from 'drizzle-orm'
 
-export async function GET(request: NextRequest): Promise<Response> {
-  let session;
-  try {
-    session = await requireSession(request);
-  } catch (r) {
-    return r as Response;
-  }
+function getCurrentWeekStart(): string {
+  const d = new Date()
+  const day = d.getDay()
+  const diff = day === 0 ? -6 : 1 - day // Monday
+  d.setDate(d.getDate() + diff)
+  d.setHours(0, 0, 0, 0)
+  return d.toISOString().split('T')[0]
+}
 
-  const membership = await getUserHousehold(session.user.id);
-  if (!membership) {
-    return Response.json({ error: "No household found" }, { status: 404 });
-  }
-  const { householdId } = membership;
+export async function GET() {
+  const session = await getSession()
+  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  // Premium check
-  const [household] = await db
-    .select({ subscription_status: households.subscription_status })
-    .from(households)
-    .where(eq(households.id, householdId))
-    .limit(1);
-  if (household?.subscription_status !== "premium") {
-    return Response.json(
-      { error: "The leaderboard requires premium", code: "LEADERBOARD_PREMIUM" },
-      { status: 403 }
-    );
-  }
+  const membership = await getUserHousehold(session.user.id)
+  if (!membership) return NextResponse.json({ error: 'No household' }, { status: 403 })
 
-  const weekStart = format(
-    startOfWeek(new Date(), { weekStartsOn: 1 }),
-    "yyyy-MM-dd"
-  );
+  const { householdId } = membership
+  const weekStart = getCurrentWeekStart()
 
-  const entries = await db
-    .select({
-      userId: chore_streaks.user_id,
-      currentStreak: chore_streaks.current_streak,
-      longestStreak: chore_streaks.longest_streak,
-      points: chore_streaks.points,
-      name: users.name,
-      avatarColor: users.avatar_color,
-    })
-    .from(chore_streaks)
-    .innerJoin(users, eq(chore_streaks.user_id, users.id))
-    .where(
-      and(
-        eq(chore_streaks.household_id, householdId),
-        eq(chore_streaks.week_start, weekStart)
+  const [members, weekCompletions] = await Promise.all([
+    db
+      .select({
+        userId: householdMembers.userId,
+        name: users.name,
+        avatarColor: users.avatarColor,
+        role: householdMembers.role,
+      })
+      .from(householdMembers)
+      .innerJoin(users, eq(householdMembers.userId, users.id))
+      .where(
+        and(
+          eq(householdMembers.householdId, householdId),
+          isNull(householdMembers.deletedAt),
+        )
+      ),
+
+    db
+      .select({
+        userId: choreCompletions.userId,
+        points: sql<number>`sum(${choreCompletions.points})::int`,
+        completions: sql<number>`count(*)::int`,
+      })
+      .from(choreCompletions)
+      .where(
+        and(
+          eq(choreCompletions.householdId, householdId),
+          eq(choreCompletions.weekStart, weekStart),
+        )
       )
-    )
-    .orderBy(desc(chore_streaks.points));
+      .groupBy(choreCompletions.userId),
+  ])
 
-  // Include members with zero points this week who haven't started yet
-  const allMembers = await db
-    .select({
-      userId: household_members.user_id,
-      name: users.name,
-      avatarColor: users.avatar_color,
-    })
-    .from(household_members)
-    .innerJoin(users, eq(household_members.user_id, users.id))
-    .where(eq(household_members.household_id, householdId));
+  const pointsMap = new Map(weekCompletions.map(r => [r.userId, { points: r.points, completions: r.completions }]))
 
-  const entryUserIds = new Set(entries.map((e) => e.userId));
-  const zeroes = allMembers
-    .filter((m) => !entryUserIds.has(m.userId))
-    .map((m) => ({
+  const leaderboard = members
+    .map(m => ({
       userId: m.userId,
-      currentStreak: 0,
-      longestStreak: 0,
-      points: 0,
-      name: m.name,
+      name: m.name ?? 'Unknown',
       avatarColor: m.avatarColor,
-    }));
+      role: m.role,
+      points: pointsMap.get(m.userId)?.points ?? 0,
+      completions: pointsMap.get(m.userId)?.completions ?? 0,
+    }))
+    .sort((a, b) => b.points - a.points)
 
-  const leaderboard = [...entries, ...zeroes];
-
-  return Response.json({ leaderboard, weekStart, currentUserId: session.user.id });
+  return NextResponse.json({ leaderboard, weekStart })
 }

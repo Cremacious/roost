@@ -1,111 +1,108 @@
-import { NextRequest, NextResponse } from "next/server";
-import { requireSession } from "@/lib/auth/helpers";
-import { db } from "@/lib/db";
-import { user, users, household_members } from "@/db/schema";
-import { hashPassword } from "better-auth/crypto";
-import { getUserHousehold } from "@/app/api/chores/route";
+import { type NextRequest } from 'next/server'
+import { requireSession, getUserHousehold } from '@/lib/auth/helpers'
+import { db } from '@/lib/db'
+import { user as authUser } from '@/db/schema/auth'
+import { users, householdMembers, memberPermissions } from '@/db/schema'
+import { eq, and, isNull } from 'drizzle-orm'
+import { hashPassword } from 'better-auth/crypto'
 
-// ---- POST -------------------------------------------------------------------
+export async function POST(_request: NextRequest): Promise<Response> {
+  const session = await requireSession()
+  const householdData = await getUserHousehold(session.user.id)
 
-export async function POST(request: NextRequest): Promise<Response> {
-  let session;
-  try {
-    session = await requireSession(request);
-  } catch (r) {
-    return r as Response;
+  if (!householdData) {
+    return Response.json({ error: 'No household found' }, { status: 403 })
+  }
+  if (householdData.role !== 'admin') {
+    return Response.json({ error: 'Admin only' }, { status: 403 })
   }
 
-  const membership = await getUserHousehold(session.user.id);
-  if (!membership) {
-    return Response.json({ error: "No household found" }, { status: 404 });
-  }
-  if (membership.role !== "admin") {
-    return Response.json({ error: "Forbidden" }, { status: 403 });
-  }
+  const { householdId, household } = householdData
 
-  const { householdId } = membership;
+  const body = await _request.json()
+  const { name, pin } = body
 
-  let body: { name?: string; pin?: string };
-  try {
-    body = await request.json();
-  } catch {
-    return Response.json({ error: "Invalid request body" }, { status: 400 });
+  if (!name || typeof name !== 'string' || name.trim().length === 0) {
+    return Response.json({ error: 'Name is required' }, { status: 400 })
+  }
+  if (!pin || !/^\d{4}$/.test(pin)) {
+    return Response.json({ error: 'PIN must be exactly 4 digits' }, { status: 400 })
   }
 
-  const name = body.name?.trim();
-  if (!name || name.length > 32) {
-    return Response.json(
-      { error: "Name is required and must be 32 characters or fewer" },
-      { status: 400 }
-    );
+  // Free tier: max 1 child
+  if (household.subscriptionStatus === 'free') {
+    const existingChildren = await db
+      .select({ id: householdMembers.id })
+      .from(householdMembers)
+      .where(
+        and(
+          eq(householdMembers.householdId, householdId),
+          eq(householdMembers.role, 'child'),
+          isNull(householdMembers.deletedAt),
+        )
+      )
+
+    if (existingChildren.length >= 1) {
+      return Response.json(
+        { error: 'Free plan includes 1 child account. Upgrade for more.', code: 'CHILDREN_LIMIT' },
+        { status: 403 }
+      )
+    }
   }
 
-  const rawPin = body.pin;
-  if (!rawPin || !/^\d{4}$/.test(rawPin)) {
-    return Response.json(
-      { error: "PIN must be exactly 4 digits" },
-      { status: 400 }
-    );
-  }
+  const childId = crypto.randomUUID()
+  const hashedPin = await hashPassword(pin)
+  const now = new Date()
+  const placeholderEmail = `child_${childId}@roost.internal`
 
-  try {
-    const hashedPin = await hashPassword(rawPin);
+  // 1. Insert into better-auth user table FIRST (FK constraint)
+  await db.insert(authUser).values({
+    id: childId,
+    name: name.trim(),
+    email: placeholderEmail,
+    emailVerified: true,
+    onboardingCompleted: true,
+    createdAt: now,
+    updatedAt: now,
+  })
 
-    // Generate unique user ID
-    const userId = crypto.randomUUID();
-    const placeholderEmail = `child_${userId}@roost.internal`;
+  // 2. Insert into app users table
+  await db.insert(users).values({
+    id: childId,
+    name: name.trim(),
+    email: placeholderEmail,
+    isChildAccount: true,
+    childOfHouseholdId: householdId,
+  })
 
-    // Insert a minimal row into better-auth's "user" table so the session
-    // FK constraint (session.user_id → user.id) is satisfied when we call
-    // createSession() during child login.
-    await db.insert(user).values({
-      id: userId,
-      name,
-      email: placeholderEmail,
-      emailVerified: false,
-      onboarding_completed: true,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    }).onConflictDoNothing();
+  // 3. Insert household member with hashed PIN
+  await db.insert(householdMembers).values({
+    householdId,
+    userId: childId,
+    role: 'child',
+    pin: hashedPin,
+  })
 
-    // Create the child user record (no email needed)
-    await db.insert(users).values({
-      id: userId,
-      name,
-      email: null,
-      is_child_account: true,
-      child_of_household_id: householdId,
-      onboarding_completed: true, // children already belong to a household
-      timezone: "America/New_York",
-      language: "en",
-      theme: "default",
-      temperature_unit: "fahrenheit",
-      chore_reminders_enabled: false,
-      has_seen_welcome: true, // children skip welcome modal
-      created_at: new Date(),
-      updated_at: new Date(),
-    });
+  // 4. Insert child-safe permissions (no finance access)
+  await db.insert(memberPermissions).values({
+    householdId,
+    userId: childId,
+    expensesView: false,
+    expensesAdd: false,
+    choresAdd: false,
+    choresEdit: false,
+    groceryAdd: true,
+    groceryCreateList: false,
+    calendarAdd: false,
+    calendarEdit: false,
+    tasksAdd: false,
+    notesAdd: false,
+    mealsPlan: false,
+    mealsSuggest: true,
+  })
 
-    // Add as child member with hashed PIN
-    await db.insert(household_members).values({
-      household_id: householdId,
-      user_id: userId,
-      role: "child",
-      pin: hashedPin,
-    });
-
-    return Response.json(
-      {
-        child: { id: userId, name },
-        pin: rawPin,
-      },
-      { status: 201 }
-    );
-  } catch (error) {
-    console.error("add-child error:", error);
-    return NextResponse.json(
-      { error: "Failed to create child account" },
-      { status: 500 }
-    );
-  }
+  return Response.json({
+    child: { id: childId, name: name.trim() },
+    pin,
+  })
 }

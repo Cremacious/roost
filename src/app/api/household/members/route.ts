@@ -1,81 +1,68 @@
 import { NextRequest } from "next/server";
-import { requireCurrentMembership } from "@/lib/auth/helpers";
+import { getSession } from "@/lib/auth/helpers";
 import { db } from "@/lib/db";
-import { household_members, households, user, users } from "@/db/schema";
-import { eq } from "drizzle-orm";
+import { householdMembers, households, users } from "@/db/schema";
+import { and, eq, isNull, desc } from "drizzle-orm";
 
-export async function GET(request: NextRequest): Promise<Response> {
-  let authContext;
-  try {
-    authContext = await requireCurrentMembership(request);
-  } catch (res) {
-    return res as Response;
+export async function GET(_req: NextRequest): Promise<Response> {
+  const session = await getSession();
+  if (!session) return Response.json({ error: "Unauthorized" }, { status: 401 });
+
+  const userId = session.user.id;
+
+  // Find the user's most recent active household membership
+  const [membership] = await db
+    .select({ householdId: householdMembers.householdId, role: householdMembers.role })
+    .from(householdMembers)
+    .where(and(eq(householdMembers.userId, userId), isNull(householdMembers.deletedAt)))
+    .orderBy(desc(householdMembers.createdAt))
+    .limit(1);
+
+  if (!membership) {
+    return Response.json({ error: "No household" }, { status: 404 });
   }
 
-  const {
-    membership: { householdId },
-  } = authContext;
-
   const [household] = await db
-    .select()
+    .select({ id: households.id, name: households.name, code: households.code })
     .from(households)
-    .where(eq(households.id, householdId))
+    .where(and(eq(households.id, membership.householdId), isNull(households.deleted_at)))
     .limit(1);
 
   if (!household) {
     return Response.json({ error: "Household not found" }, { status: 404 });
   }
 
-  // Backfill: ensure every household member has a row in the app users table.
-  // This self-heals cases where the databaseHooks mirror failed on signup.
-  const authMembers = await db
-    .select({ id: user.id, name: user.name, email: user.email })
-    .from(household_members)
-    .innerJoin(user, eq(household_members.user_id, user.id))
-    .where(eq(household_members.household_id, household.id));
-
-  if (authMembers.length > 0) {
-    await db
-      .insert(users)
-      .values(
-        authMembers.map((u) => ({
-          id: u.id,
-          name: u.name,
-          email: u.email ?? undefined,
-          timezone: "America/New_York",
-          language: "en",
-        }))
-      )
-      .onConflictDoNothing()
-      .catch(() => {/* ignore backfill errors */});
-  }
-
-  // Join against the auth `user` table (guaranteed populated) for name/email.
-  // Left-join the app `users` table only for avatar_color, which may be missing
-  // if the mirror hook failed on signup.
   const members = await db
     .select({
-      id: household_members.id,
-      userId: household_members.user_id,
-      role: household_members.role,
-      joinedAt: household_members.joined_at,
-      expiresAt: household_members.expires_at,
-      name: user.name,
-      email: user.email,
-      avatarColor: users.avatar_color,
+      userId: householdMembers.userId,
+      role: householdMembers.role,
+      joinedAt: householdMembers.createdAt,
+      name: users.name,
+      avatarColor: users.avatarColor,
     })
-    .from(household_members)
-    .innerJoin(user, eq(household_members.user_id, user.id))
-    .leftJoin(users, eq(household_members.user_id, users.id))
-    .where(eq(household_members.household_id, household.id));
+    .from(householdMembers)
+    .innerJoin(users, eq(householdMembers.userId, users.id))
+    .where(
+      and(
+        eq(householdMembers.householdId, membership.householdId),
+        isNull(householdMembers.deletedAt),
+      )
+    )
+    .orderBy(householdMembers.createdAt);
 
   return Response.json({
     household: {
       id: household.id,
       name: household.name,
       code: household.code,
-      subscriptionStatus: household.subscription_status,
     },
-    members,
+    role: membership.role,
+    members: members.map((m) => ({
+      userId: m.userId,
+      name: m.name,
+      avatarColor: m.avatarColor,
+      role: m.role,
+      joinedAt: m.joinedAt?.toISOString() ?? null,
+    })),
   });
 }

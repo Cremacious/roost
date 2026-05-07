@@ -1,231 +1,135 @@
-import { log } from "@/lib/utils/logger";
+/**
+ * Environment variable validation.
+ *
+ * Call validateEnv() at server startup (next.config.ts) to fail fast when a
+ * required secret is missing, rather than discovering it at request time via a
+ * cryptic runtime error deep inside a library.
+ *
+ * Rules:
+ * - REQUIRED vars crash the process immediately if absent.
+ * - OPTIONAL vars emit a console.warn so they are visible in deploy logs but
+ *   do not block startup (the feature they power is simply unavailable).
+ *
+ * Keep this file in sync with CLAUDE.md ## Environment Variables.
+ */
 
-const LOCAL_APP_URL = "http://localhost:3000";
-
-const PRODUCTION_REQUIRED_ENV_VARS = [
-  "DATABASE_URL",
-  "BETTER_AUTH_SECRET",
-  "BETTER_AUTH_URL",
-  "NEXT_PUBLIC_APP_URL",
-  "CRON_SECRET",
-] as const;
-
-const PRODUCTION_REQUIRED_ADMIN_ENV_VARS = [
-  "ADMIN_EMAIL",
-  "ADMIN_PASSWORD",
-  "ADMIN_SESSION_SECRET",
-] as const;
-
-let validated = false;
-
-function readEnv(name: string): string | undefined {
-  const value = process.env[name];
-  if (!value) return undefined;
-  const trimmed = value.trim();
-  return trimmed.length > 0 ? trimmed : undefined;
+interface EnvSpec {
+  /** Variable name */
+  name: string
+  /** If true, missing value throws. If false, missing value warns. */
+  required: boolean
+  /** Human-readable description shown in the error/warning. */
+  description: string
 }
 
-function isProduction(): boolean {
-  return process.env.NODE_ENV === "production";
-}
+const ENV_SPEC: EnvSpec[] = [
+  // ── Database ────────────────────────────────────────────────────────────────
+  {
+    name: 'DATABASE_URL',
+    required: true,
+    description: 'Neon PostgreSQL connection string',
+  },
 
-function isPlaceholderValue(value: string | undefined): boolean {
-  if (!value) return true;
-  const normalized = value.trim().toLowerCase();
-  return (
-    normalized.length === 0 ||
-    normalized.includes("placeholder") ||
-    normalized.includes("your_") ||
-    normalized.endsWith("_...") ||
-    normalized === "postgresql://..." ||
-    normalized === "sk_test_..." ||
-    normalized === "whsec_..." ||
-    normalized === "pk_test_..." ||
-    normalized === "price_..."
-  );
-}
+  // ── Auth ────────────────────────────────────────────────────────────────────
+  {
+    name: 'BETTER_AUTH_SECRET',
+    required: true,
+    description: 'Secret key for better-auth session signing (min 32 chars)',
+  },
+  {
+    name: 'BETTER_AUTH_URL',
+    required: true,
+    description: 'Canonical base URL used by better-auth (e.g. https://roost.app)',
+  },
 
-function ensureValidUrl(name: string, value: string): string {
-  try {
-    const parsed = new URL(value);
-    return parsed.toString().replace(/\/$/, "");
-  } catch {
-    throw new Error(`[env] ${name} must be a valid absolute URL`);
-  }
-}
+  // ── App ─────────────────────────────────────────────────────────────────────
+  {
+    name: 'NEXT_PUBLIC_APP_URL',
+    required: true,
+    description: 'Public base URL for invite links and redirects',
+  },
 
-export function getAppUrl(): string {
-  // During `next build`, Next.js sets NEXT_PHASE to "phase-production-build".
-  // Secrets are injected at runtime (Vercel), not at build time, so we fall
-  // back to a placeholder during the build phase to avoid crashing static
-  // generation. The app never serves real traffic with this fallback.
-  const isBuildPhase = process.env.NEXT_PHASE === "phase-production-build";
+  // ── Stripe ──────────────────────────────────────────────────────────────────
+  {
+    name: 'STRIPE_SECRET_KEY',
+    required: true,
+    description: 'Stripe secret key for Checkout and subscription management',
+  },
+  {
+    name: 'STRIPE_WEBHOOK_SECRET',
+    required: true,
+    description: 'Stripe webhook signing secret (from dashboard → webhooks)',
+  },
+  {
+    name: 'NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY',
+    required: true,
+    description: 'Stripe publishable key (safe to expose client-side)',
+  },
 
-  const configured =
-    readEnv("NEXT_PUBLIC_APP_URL") ??
-    readEnv("BETTER_AUTH_URL") ??
-    (!isProduction() || isBuildPhase ? LOCAL_APP_URL : undefined);
+  // ── Cron ────────────────────────────────────────────────────────────────────
+  {
+    name: 'CRON_SECRET',
+    required: true,
+    description: 'Shared secret that Vercel cron jobs send in the Authorization header',
+  },
 
-  if (!configured) {
-    throw new Error("[env] NEXT_PUBLIC_APP_URL is required in production");
-  }
+  // ── Optional integrations ────────────────────────────────────────────────────
+  {
+    name: 'RESEND_API_KEY',
+    required: false,
+    description: 'Resend API key for transactional email (invite links). Missing = emails disabled.',
+  },
+  {
+    name: 'AZURE_DOCUMENT_INTELLIGENCE_KEY',
+    required: false,
+    description: 'Azure Document Intelligence key for receipt OCR. Missing = scanning disabled.',
+  },
+  {
+    name: 'AZURE_DOCUMENT_INTELLIGENCE_ENDPOINT',
+    required: false,
+    description: 'Azure Document Intelligence endpoint URL. Missing = scanning disabled.',
+  },
+  {
+    name: 'EXPO_ACCESS_TOKEN',
+    required: false,
+    description: 'Expo push notification token. Missing = push notifications disabled.',
+  },
+]
 
-  return ensureValidUrl("NEXT_PUBLIC_APP_URL", configured);
-}
+/**
+ * Validate all environment variables defined in ENV_SPEC.
+ *
+ * - Throws an Error listing ALL missing required vars (not just the first one).
+ * - Warns to console for each missing optional var.
+ *
+ * Call this once at startup, not at import time, so it does not interfere with
+ * Edge Runtime module evaluation (which happens before env vars are injected).
+ */
+export function validateEnv(): void {
+  const missing: string[] = []
 
-export function getMetadataBaseUrl(): URL {
-  return new URL(getAppUrl());
-}
+  for (const spec of ENV_SPEC) {
+    const value = process.env[spec.name]
+    const isEmpty = value === undefined || value.trim() === ''
 
-export function getDatabaseUrl(): string {
-  const value = readEnv("DATABASE_URL");
-  if (!value) throw new Error("[env] DATABASE_URL is not configured");
-  return value;
-}
-
-export function getAdminSessionSecret(): string {
-  const value = readEnv("ADMIN_SESSION_SECRET");
-  if (!value) throw new Error("[env] ADMIN_SESSION_SECRET is not configured");
-  return value;
-}
-
-export function getAdminEmail(): string | undefined {
-  return readEnv("ADMIN_EMAIL");
-}
-
-export function getAdminPassword(): string | undefined {
-  return readEnv("ADMIN_PASSWORD");
-}
-
-export function isAdminConfigured(): boolean {
-  return PRODUCTION_REQUIRED_ADMIN_ENV_VARS.every((name) => Boolean(readEnv(name)));
-}
-
-export function getCronSecret(): string | undefined {
-  return readEnv("CRON_SECRET");
-}
-
-export function isStripeConfigured(): boolean {
-  return (
-    !isPlaceholderValue(readEnv("STRIPE_SECRET_KEY")) &&
-    !isPlaceholderValue(readEnv("STRIPE_PRICE_ID"))
-  );
-}
-
-export function isStripeWebhookConfigured(): boolean {
-  return isStripeConfigured() && !isPlaceholderValue(readEnv("STRIPE_WEBHOOK_SECRET"));
-}
-
-export function getStripeSecretKey(): string {
-  const value = readEnv("STRIPE_SECRET_KEY");
-  if (isPlaceholderValue(value)) {
-    throw new Error("[env] STRIPE_SECRET_KEY is not configured");
-  }
-  return value!;
-}
-
-export function getStripePriceId(): string {
-  const value = readEnv("STRIPE_PRICE_ID");
-  if (isPlaceholderValue(value)) {
-    throw new Error("[env] STRIPE_PRICE_ID is not configured");
-  }
-  return value!;
-}
-
-export function getStripeWebhookSecret(): string {
-  const value = readEnv("STRIPE_WEBHOOK_SECRET");
-  if (isPlaceholderValue(value)) {
-    throw new Error("[env] STRIPE_WEBHOOK_SECRET is not configured");
-  }
-  return value!;
-}
-
-export function isAzureReceiptScanningConfigured(): boolean {
-  return (
-    !isPlaceholderValue(readEnv("AZURE_DOCUMENT_INTELLIGENCE_ENDPOINT")) &&
-    !isPlaceholderValue(readEnv("AZURE_DOCUMENT_INTELLIGENCE_KEY"))
-  );
-}
-
-export function getAzureDocumentIntelligenceConfig(): {
-  endpoint: string;
-  key: string;
-} {
-  const endpoint = readEnv("AZURE_DOCUMENT_INTELLIGENCE_ENDPOINT");
-  const key = readEnv("AZURE_DOCUMENT_INTELLIGENCE_KEY");
-
-  if (isPlaceholderValue(endpoint) || isPlaceholderValue(key)) {
-    throw new Error("[env] Azure Document Intelligence is not configured");
-  }
-
-  return {
-    endpoint: ensureValidUrl("AZURE_DOCUMENT_INTELLIGENCE_ENDPOINT", endpoint!),
-    key: key!,
-  };
-}
-
-export function getObservabilityWebhookUrl(): string | undefined {
-  const value = readEnv("OBSERVABILITY_WEBHOOK_URL");
-  return value ? ensureValidUrl("OBSERVABILITY_WEBHOOK_URL", value) : undefined;
-}
-
-export function validateServerEnv(): void {
-  if (validated) return;
-  validated = true;
-
-  const missing = PRODUCTION_REQUIRED_ENV_VARS.filter(
-    (name) => !readEnv(name)
-  );
-
-  const appUrl = getAppUrl();
-  const betterAuthUrl = readEnv("BETTER_AUTH_URL");
-  const billingConfigured = isStripeConfigured();
-  const stripeWebhookConfigured = isStripeWebhookConfigured();
-  const receiptScanningConfigured = isAzureReceiptScanningConfigured();
-  const adminIpRestricted = Boolean(readEnv("ADMIN_ALLOWED_IPS"));
-
-  // During `next build` (NEXT_PHASE=phase-production-build), secrets are not
-  // yet injected (Vercel injects them at deploy/runtime). Only throw at actual
-  // server startup, not at build time.
-  const isBuildPhase = process.env.NEXT_PHASE === "phase-production-build";
-  if (isProduction() && !isBuildPhase && missing.length > 0) {
-    throw new Error(
-      `[env] Missing required environment variables: ${missing.join(", ")}`
-    );
+    if (isEmpty) {
+      if (spec.required) {
+        missing.push(`  • ${spec.name}: ${spec.description}`)
+      } else {
+        // Warn but do not block startup
+        console.warn(
+          `[env] Optional var ${spec.name} is not set — ${spec.description}`
+        )
+      }
+    }
   }
 
   if (missing.length > 0) {
-    log.warn("startup.env_missing", { vars: missing.join(",") });
-  }
-
-  if (
-    betterAuthUrl &&
-    ensureValidUrl("BETTER_AUTH_URL", betterAuthUrl) !== appUrl
-  ) {
-    log.warn("startup.env_url_mismatch", {
-      nextPublicAppUrl: appUrl,
-      betterAuthUrl: ensureValidUrl("BETTER_AUTH_URL", betterAuthUrl),
-    });
-  }
-
-  log.info("startup.env", {
-    nodeEnv: process.env.NODE_ENV ?? "unknown",
-    appUrl,
-    billingConfigured,
-    stripeWebhookConfigured,
-    receiptScanningConfigured,
-    adminIpRestricted,
-  });
-}
-
-export function validateAdminEnv(): void {
-  const missing = PRODUCTION_REQUIRED_ADMIN_ENV_VARS.filter(
-    (name) => !readEnv(name)
-  );
-
-  if (missing.length > 0) {
     throw new Error(
-      `[env] Missing required admin environment variables: ${missing.join(", ")}`
-    );
+      [
+        '[env] Missing required environment variables. Set them in .env.local (dev) or your Vercel project settings (prod).',
+        ...missing,
+      ].join('\n')
+    )
   }
 }

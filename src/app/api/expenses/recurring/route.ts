@@ -1,163 +1,79 @@
-import { NextRequest } from "next/server";
-import { requireSession } from "@/lib/auth/helpers";
-import { db } from "@/lib/db";
-import { recurring_expense_templates, households } from "@/db/schema";
-import { and, eq, isNull } from "drizzle-orm";
-import { getUserHousehold } from "@/app/api/chores/route";
-import { logActivity } from "@/lib/utils/activity";
-import { format } from "date-fns";
+import { NextRequest, NextResponse } from 'next/server'
+import { getSession, getUserHousehold } from '@/lib/auth/helpers'
+import { db } from '@/lib/db'
+import { recurringExpenses } from '@/db/schema'
+import { eq, and, isNull } from 'drizzle-orm'
 
-// ---- Shared helper ----------------------------------------------------------
-
-export function advanceRecurringDate(from: string, frequency: string): string {
-  // Parse as local date to avoid UTC-offset drift
-  const [y, m, d] = from.split("-").map(Number);
-  const date = new Date(y, m - 1, d);
+export function advanceRecurringDate(from: Date, frequency: string): Date {
+  const next = new Date(from)
   switch (frequency) {
-    case "weekly":
-      date.setDate(date.getDate() + 7);
-      break;
-    case "biweekly":
-      date.setDate(date.getDate() + 14);
-      break;
-    case "monthly":
-      date.setMonth(date.getMonth() + 1);
-      break;
-    case "yearly":
-      date.setFullYear(date.getFullYear() + 1);
-      break;
-    default:
-      date.setMonth(date.getMonth() + 1);
+    case 'weekly':   next.setDate(next.getDate() + 7); break
+    case 'biweekly': next.setDate(next.getDate() + 14); break
+    case 'monthly':  next.setMonth(next.getMonth() + 1); break
+    case 'yearly':   next.setFullYear(next.getFullYear() + 1); break
+    default:         next.setMonth(next.getMonth() + 1)
   }
-  return format(date, "yyyy-MM-dd");
+  return next
 }
 
-// ---- GET: list all templates for household ----------------------------------
+export async function GET() {
+  const session = await getSession()
+  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-export async function GET(request: NextRequest): Promise<Response> {
-  let session;
-  try {
-    session = await requireSession(request);
-  } catch (r) {
-    return r as Response;
+  const membership = await getUserHousehold(session.user.id)
+  if (!membership) return NextResponse.json({ error: 'No household' }, { status: 403 })
+
+  const { householdId } = membership
+
+  if (membership.household.subscriptionStatus !== 'premium') {
+    return NextResponse.json({ error: 'Premium required', code: 'RECURRING_EXPENSES_PREMIUM' }, { status: 403 })
   }
 
-  const membership = await getUserHousehold(session.user.id);
-  if (!membership) return Response.json({ error: "No household found" }, { status: 404 });
-  if (membership.role === "child") return Response.json({ error: "Forbidden" }, { status: 403 });
-  const { householdId } = membership;
+  const rows = await db
+    .select()
+    .from(recurringExpenses)
+    .where(and(eq(recurringExpenses.householdId, householdId), isNull(recurringExpenses.deletedAt)))
 
-  const [household] = await db
-    .select({ subscription_status: households.subscription_status })
-    .from(households)
-    .where(eq(households.id, householdId))
-    .limit(1);
-  if (!household || household.subscription_status !== "premium") {
-    return Response.json({ error: "Premium required" }, { status: 403 });
-  }
-
-  const templates = await db
-    .select({
-      id: recurring_expense_templates.id,
-      title: recurring_expense_templates.title,
-      category: recurring_expense_templates.category,
-      notes: recurring_expense_templates.notes,
-      total_amount: recurring_expense_templates.total_amount,
-      frequency: recurring_expense_templates.frequency,
-      next_due_date: recurring_expense_templates.next_due_date,
-      last_posted_at: recurring_expense_templates.last_posted_at,
-      paused: recurring_expense_templates.paused,
-      splits: recurring_expense_templates.splits,
-      created_by: recurring_expense_templates.created_by,
-      created_at: recurring_expense_templates.created_at,
-    })
-    .from(recurring_expense_templates)
-    .where(
-      and(
-        eq(recurring_expense_templates.household_id, householdId),
-        isNull(recurring_expense_templates.deleted_at)
-      )
-    )
-    .orderBy(recurring_expense_templates.created_at);
-
-  return Response.json({ templates });
+  return NextResponse.json(rows)
 }
 
-// ---- POST: create new template ----------------------------------------------
+export async function POST(req: NextRequest) {
+  const session = await getSession()
+  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-export async function POST(request: NextRequest): Promise<Response> {
-  let session;
-  try {
-    session = await requireSession(request);
-  } catch (r) {
-    return r as Response;
+  const membership = await getUserHousehold(session.user.id)
+  if (!membership) return NextResponse.json({ error: 'No household' }, { status: 403 })
+
+  const { householdId, role } = membership
+  if (role !== 'admin') return NextResponse.json({ error: 'Admin only' }, { status: 403 })
+
+  if (membership.household.subscriptionStatus !== 'premium') {
+    return NextResponse.json({ error: 'Premium required', code: 'RECURRING_EXPENSES_PREMIUM' }, { status: 403 })
   }
 
-  const membership = await getUserHousehold(session.user.id);
-  if (!membership) return Response.json({ error: "No household found" }, { status: 404 });
-  if (membership.role !== "admin") return Response.json({ error: "Admin required" }, { status: 403 });
-  const { householdId } = membership;
+  const body = await req.json()
+  const { title, totalAmount, frequency, nextDueDate, categoryId, notes, splits, isBill, dueDay } = body
 
-  const [household] = await db
-    .select({ subscription_status: households.subscription_status })
-    .from(households)
-    .where(eq(households.id, householdId))
-    .limit(1);
-  if (!household || household.subscription_status !== "premium") {
-    return Response.json({ error: "Premium required" }, { status: 403 });
-  }
+  if (!title?.trim()) return NextResponse.json({ error: 'Title required' }, { status: 400 })
+  if (!totalAmount || isNaN(parseFloat(totalAmount))) return NextResponse.json({ error: 'Invalid amount' }, { status: 400 })
+  if (!frequency) return NextResponse.json({ error: 'Frequency required' }, { status: 400 })
+  if (!nextDueDate) return NextResponse.json({ error: 'Next due date required' }, { status: 400 })
 
-  let body: {
-    title?: string;
-    category?: string;
-    notes?: string;
-    totalAmount?: number;
-    frequency?: string;
-    startDate?: string;
-    splits?: { userId: string; amount: number }[];
-  };
-  try {
-    body = await request.json();
-  } catch {
-    return Response.json({ error: "Invalid request body" }, { status: 400 });
-  }
-
-  if (!body.title?.trim()) return Response.json({ error: "Title is required" }, { status: 400 });
-  if (!body.totalAmount || body.totalAmount <= 0) return Response.json({ error: "Amount must be greater than 0" }, { status: 400 });
-  if (!body.frequency || !["weekly", "biweekly", "monthly", "yearly"].includes(body.frequency)) {
-    return Response.json({ error: "Invalid frequency" }, { status: 400 });
-  }
-  if (!body.splits || body.splits.length === 0) return Response.json({ error: "Splits required" }, { status: 400 });
-
-  const startDate = body.startDate ?? format(new Date(), "yyyy-MM-dd");
-
-  const [template] = await db
-    .insert(recurring_expense_templates)
-    .values({
-      household_id: householdId,
-      created_by: session.user.id,
-      title: body.title.trim(),
-      category: body.category?.trim() || null,
-      notes: body.notes?.trim() || null,
-      total_amount: body.totalAmount.toFixed(2),
-      frequency: body.frequency,
-      next_due_date: startDate,
-      splits: body.splits,
-    })
-    .returning();
-
-  const freqLabels: Record<string, string> = {
-    weekly: "weekly", biweekly: "biweekly", monthly: "monthly", yearly: "yearly",
-  };
-
-  await logActivity({
+  const id = crypto.randomUUID()
+  await db.insert(recurringExpenses).values({
+    id,
     householdId,
-    userId: session.user.id,
-    type: "recurring_expense_created",
-    description: `set up recurring ${template.title} (${freqLabels[template.frequency] ?? template.frequency})`,
-    entityId: template.id,
-    entityType: "expense",
-  });
+    title: title.trim(),
+    totalAmount: parseFloat(totalAmount).toFixed(2),
+    frequency,
+    nextDueDate: new Date(nextDueDate),
+    categoryId: categoryId ?? null,
+    notes: notes ?? null,
+    splits: splits ? JSON.stringify(splits) : '[]',
+    isBill: isBill ?? false,
+    dueDay: dueDay ?? null,
+    createdBy: session.user.id,
+  })
 
-  return Response.json({ template }, { status: 201 });
+  return NextResponse.json({ id }, { status: 201 })
 }

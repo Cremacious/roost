@@ -1,253 +1,131 @@
-import { NextRequest } from "next/server";
-import { requireSession } from "@/lib/auth/helpers";
-import { db } from "@/lib/db";
-import { calendar_events, household_members, users } from "@/db/schema";
-import { and, eq, inArray, isNull } from "drizzle-orm";
-import { getUserHousehold } from "@/app/api/chores/route";
-
-// ---- Push notification helper ------------------------------------------------
-
-async function sendEventPushNotifications(
-  notifyMemberIds: string | null,
-  householdId: string,
-  title: string,
-  startTime: Date,
-  location: string | null
-): Promise<void> {
-  if (!notifyMemberIds) return;
-
-  let userIds: string[];
-  if (notifyMemberIds === "all") {
-    const members = await db
-      .select({ userId: household_members.user_id })
-      .from(household_members)
-      .where(eq(household_members.household_id, householdId));
-    userIds = members.map((m) => m.userId);
-  } else {
-    try {
-      userIds = JSON.parse(notifyMemberIds) as string[];
-    } catch {
-      return;
-    }
-  }
-
-  if (userIds.length === 0) return;
-
-  const userRows = await db
-    .select({ pushToken: users.push_token })
-    .from(users)
-    .where(inArray(users.id, userIds));
-
-  const tokens = userRows.map((u) => u.pushToken).filter(Boolean) as string[];
-  if (tokens.length === 0) return;
-
-  const { format } = await import("date-fns");
-  const dateStr = format(startTime, "EEE MMM d 'at' h:mm a");
-  const body = location ? `${dateStr} at ${location}` : dateStr;
-
-  await Promise.allSettled(
-    tokens.map((token) =>
-      fetch("https://exp.host/--/api/v2/push/send", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ to: token, title, body, sound: "default" }),
-      })
-    )
-  );
-}
-
-// ---- PATCH ------------------------------------------------------------------
+import { NextRequest, NextResponse } from 'next/server'
+import { getSession, getUserHousehold } from '@/lib/auth/helpers'
+import { db } from '@/lib/db'
+import { calendarEvents, eventAttendees } from '@/db/schema'
+import { eq, and } from 'drizzle-orm'
 
 export async function PATCH(
-  request: NextRequest,
+  req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
-): Promise<Response> {
-  const { id } = await params;
+) {
+  const session = await getSession()
+  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  let session;
-  try {
-    session = await requireSession(request);
-  } catch (r) {
-    return r as Response;
-  }
+  const membership = await getUserHousehold(session.user.id)
+  if (!membership) return NextResponse.json({ error: 'No household' }, { status: 403 })
 
-  const membership = await getUserHousehold(session.user.id);
-  if (!membership) {
-    return Response.json({ error: "No household found" }, { status: 404 });
-  }
-  if (membership.role === "child") {
-    return Response.json({ error: "Forbidden" }, { status: 403 });
-  }
-  const { householdId, role } = membership;
+  const { householdId, role } = membership
+  const { id } = await params
 
-  const [existing] = await db
+  const existing = await db
     .select()
-    .from(calendar_events)
-    .where(
-      and(
-        eq(calendar_events.id, id),
-        eq(calendar_events.household_id, householdId),
-        isNull(calendar_events.deleted_at)
-      )
-    )
-    .limit(1);
+    .from(calendarEvents)
+    .where(eq(calendarEvents.id, id))
+    .limit(1)
+    .then(r => r[0] ?? null)
 
-  if (!existing) {
-    return Response.json({ error: "Event not found" }, { status: 404 });
-  }
-
-  if (existing.created_by !== session.user.id && role !== "admin") {
-    return Response.json({ error: "Forbidden" }, { status: 403 });
+  if (!existing) return NextResponse.json({ error: 'Not found' }, { status: 404 })
+  if (existing.householdId !== householdId) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  if (existing.createdBy !== session.user.id && role !== 'admin') {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 
   let body: {
-    title?: string;
-    description?: string;
-    start_time?: string;
-    end_time?: string | null;
-    all_day?: boolean;
-    // Recurring fields — editing a recurring template updates ALL instances
-    // since instances are generated dynamically on fetch from this row.
-    recurring?: boolean;
-    frequency?: string | null;
-    repeat_end_type?: string | null;
-    repeat_until?: string | null;
-    repeat_occurrences?: number | null;
-    // V2 fields
-    category?: string | null;
-    location?: string | null;
-    notify_member_ids?: string | string[] | null;
-    rsvp_enabled?: boolean;
-  };
-  try {
-    body = await request.json();
-  } catch (err) {
-    console.error("[PATCH /api/calendar/[id]] Failed to parse body:", err);
-    return Response.json({ error: "Invalid request body" }, { status: 400 });
+    title?: string
+    description?: string
+    startTime?: string
+    endTime?: string
+    allDay?: boolean
+    recurring?: boolean
+    frequency?: string
+    repeatEndType?: string
+    repeatUntil?: string
+    repeatOccurrences?: number
+    category?: string
+    location?: string
+    notifyMemberIds?: string
+    rsvpEnabled?: boolean
+    attendeeIds?: string[]
   }
 
-  if (body.title !== undefined && !body.title.trim()) {
-    return Response.json({ error: "Title is required" }, { status: 400 });
+  try {
+    body = await req.json()
+  } catch {
+    return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 })
   }
+
+  const updates: Partial<typeof existing> = {
+    updatedAt: new Date(),
+  }
+
+  if (body.title !== undefined) updates.title = body.title.trim()
+  if (body.description !== undefined) updates.description = body.description?.trim() || null
+  if (body.startTime !== undefined) updates.startTime = new Date(body.startTime)
+  if (body.endTime !== undefined) updates.endTime = new Date(body.endTime)
+  if (body.allDay !== undefined) updates.allDay = body.allDay
+  if (body.recurring !== undefined) updates.recurring = body.recurring
+  if (body.frequency !== undefined) updates.frequency = body.frequency as typeof existing.frequency
+  if (body.repeatEndType !== undefined) updates.repeatEndType = body.repeatEndType as typeof existing.repeatEndType
+  if (body.repeatUntil !== undefined) updates.repeatUntil = body.repeatUntil ? new Date(body.repeatUntil) : null
+  if (body.repeatOccurrences !== undefined) updates.repeatOccurrences = body.repeatOccurrences
+  if (body.category !== undefined) updates.category = body.category ?? null
+  if (body.location !== undefined) updates.location = body.location?.trim() || null
+  if (body.notifyMemberIds !== undefined) updates.notifyMemberIds = body.notifyMemberIds
+  if (body.rsvpEnabled !== undefined) updates.rsvpEnabled = body.rsvpEnabled
 
   const [updated] = await db
-    .update(calendar_events)
-    .set({
-      title: body.title?.trim() ?? existing.title,
-      description:
-        body.description !== undefined
-          ? body.description?.trim() || null
-          : existing.description,
-      start_time: body.start_time ? new Date(body.start_time) : existing.start_time,
-      end_time:
-        body.end_time !== undefined
-          ? body.end_time ? new Date(body.end_time) : null
-          : existing.end_time,
-      all_day: body.all_day ?? existing.all_day,
-      recurring: body.recurring ?? existing.recurring,
-      frequency: body.recurring !== undefined
-        ? (body.recurring ? (body.frequency ?? existing.frequency) : null)
-        : existing.frequency,
-      repeat_end_type: body.recurring !== undefined
-        ? (body.recurring ? (body.repeat_end_type ?? existing.repeat_end_type ?? "forever") : null)
-        : existing.repeat_end_type,
-      repeat_until: body.repeat_until !== undefined
-        ? (body.repeat_until ? new Date(body.repeat_until) : null)
-        : existing.repeat_until,
-      repeat_occurrences: body.repeat_occurrences !== undefined
-        ? body.repeat_occurrences
-        : existing.repeat_occurrences,
-      // V2 fields
-      category: body.category !== undefined ? (body.category ?? null) : existing.category,
-      location: body.location !== undefined ? (body.location?.trim() || null) : existing.location,
-      notify_member_ids: body.notify_member_ids !== undefined
-        ? (body.notify_member_ids === null
-            ? null
-            : body.notify_member_ids === "all"
-              ? "all"
-              : JSON.stringify(
-                  Array.isArray(body.notify_member_ids)
-                    ? body.notify_member_ids
-                    : [body.notify_member_ids]
-                ))
-        : existing.notify_member_ids,
-      rsvp_enabled: body.rsvp_enabled !== undefined ? body.rsvp_enabled : (existing?.rsvp_enabled ?? false),
-      updated_at: new Date(),
-    })
-    .where(eq(calendar_events.id, id))
-    .returning();
+    .update(calendarEvents)
+    .set(updates)
+    .where(eq(calendarEvents.id, id))
+    .returning()
 
-  // Fire push notifications when start time or location changed
-  const startTimeChanged =
-    body.start_time !== undefined &&
-    body.start_time !== existing?.start_time?.toISOString();
-  const locationChanged =
-    body.location !== undefined &&
-    body.location !== existing?.location;
-
-  if ((startTimeChanged || locationChanged) && updated.notify_member_ids) {
-    await sendEventPushNotifications(
-      updated.notify_member_ids,
-      householdId,
-      updated.title,
-      updated.start_time,
-      updated.location ?? null
-    );
+  // Update attendees if provided
+  if (body.attendeeIds !== undefined) {
+    await db.delete(eventAttendees).where(eq(eventAttendees.eventId, id))
+    if (body.attendeeIds.length > 0) {
+      await db.insert(eventAttendees).values(
+        body.attendeeIds.map(uid => ({
+          eventId: id,
+          userId: uid,
+          rsvpStatus: null,
+        }))
+      )
+    }
   }
 
-  return Response.json({ event: updated });
+  return NextResponse.json({ event: updated })
 }
 
-// ---- DELETE -----------------------------------------------------------------
-
 export async function DELETE(
-  request: NextRequest,
+  req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
-): Promise<Response> {
-  const { id } = await params;
+) {
+  const session = await getSession()
+  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  let session;
-  try {
-    session = await requireSession(request);
-  } catch (r) {
-    return r as Response;
+  const membership = await getUserHousehold(session.user.id)
+  if (!membership) return NextResponse.json({ error: 'No household' }, { status: 403 })
+
+  const { householdId, role } = membership
+  const { id } = await params
+
+  const existing = await db
+    .select()
+    .from(calendarEvents)
+    .where(eq(calendarEvents.id, id))
+    .limit(1)
+    .then(r => r[0] ?? null)
+
+  if (!existing) return NextResponse.json({ error: 'Not found' }, { status: 404 })
+  if (existing.householdId !== householdId) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  if (existing.createdBy !== session.user.id && role !== 'admin') {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 
-  const membership = await getUserHousehold(session.user.id);
-  if (!membership) {
-    return Response.json({ error: "No household found" }, { status: 404 });
-  }
-  if (membership.role === "child") {
-    return Response.json({ error: "Forbidden" }, { status: 403 });
-  }
-  const { householdId, role } = membership;
-
-  const [existing] = await db
-    .select({ id: calendar_events.id, created_by: calendar_events.created_by })
-    .from(calendar_events)
-    .where(
-      and(
-        eq(calendar_events.id, id),
-        eq(calendar_events.household_id, householdId),
-        isNull(calendar_events.deleted_at)
-      )
-    )
-    .limit(1);
-
-  if (!existing) {
-    return Response.json({ error: "Event not found" }, { status: 404 });
-  }
-
-  if (existing.created_by !== session.user.id && role !== "admin") {
-    return Response.json({ error: "Forbidden" }, { status: 403 });
-  }
-
-  // Deleting a recurring event removes all instances since they are generated
-  // dynamically from this template row — no child rows to clean up.
   await db
-    .update(calendar_events)
-    .set({ deleted_at: new Date() })
-    .where(eq(calendar_events.id, id));
+    .update(calendarEvents)
+    .set({ deletedAt: new Date() })
+    .where(eq(calendarEvents.id, id))
 
-  return Response.json({ ok: true });
+  return NextResponse.json({ success: true })
 }

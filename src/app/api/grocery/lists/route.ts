@@ -1,172 +1,81 @@
-import { NextRequest } from "next/server";
-import { requireSession } from "@/lib/auth/helpers";
-import { db } from "@/lib/db";
-import { grocery_lists, grocery_items, households } from "@/db/schema";
-import { and, count, eq, isNull } from "drizzle-orm";
-import { getUserHousehold } from "@/app/api/chores/route";
+import { NextResponse } from 'next/server'
+import { getSession, getUserHousehold } from '@/lib/auth/helpers'
+import { db } from '@/lib/db'
+import { groceryLists, groceryItems } from '@/db/schema'
+import { eq, and, isNull, sql } from 'drizzle-orm'
 
-// ---- GET --------------------------------------------------------------------
+async function getOrCreateDefaultList(householdId: string, userId: string) {
+  const existing = await db
+    .select({ id: groceryLists.id })
+    .from(groceryLists)
+    .where(and(eq(groceryLists.householdId, householdId), isNull(groceryLists.deletedAt)))
+    .limit(1)
+    .then(r => r[0] ?? null)
 
-export async function GET(request: NextRequest): Promise<Response> {
-  let session;
-  try {
-    session = await requireSession(request);
-  } catch (r) {
-    return r as Response;
-  }
+  if (existing) return
 
-  const membership = await getUserHousehold(session.user.id);
-  if (!membership) {
-    return Response.json({ error: "No household found" }, { status: 404 });
-  }
-  const { householdId } = membership;
-
-  const [household] = await db
-    .select({ subscription_status: households.subscription_status })
-    .from(households)
-    .where(eq(households.id, householdId))
-    .limit(1);
-
-  const isPremium = household?.subscription_status === "premium";
-  const isAdmin = membership.role === "admin";
-
-  const listsRaw = await db
-    .select({
-      id: grocery_lists.id,
-      name: grocery_lists.name,
-      is_default: grocery_lists.is_default,
-      created_at: grocery_lists.created_at,
-    })
-    .from(grocery_lists)
-    .where(
-      and(
-        eq(grocery_lists.household_id, householdId),
-        isNull(grocery_lists.deleted_at)
-      )
-    );
-
-  // Auto-create the default list for households that don't have one yet
-  if (listsRaw.length === 0) {
-    const [defaultList] = await db
-      .insert(grocery_lists)
-      .values({
-        household_id: householdId,
-        name: "Shopping List",
-        is_default: true,
-        created_by: session.user.id,
-      })
-      .returning({
-        id: grocery_lists.id,
-        name: grocery_lists.name,
-        is_default: grocery_lists.is_default,
-        created_at: grocery_lists.created_at,
-      });
-
-    return Response.json({
-      lists: [{ ...defaultList, item_count: 0 }],
-      isPremium,
-      isAdmin,
-    });
-  }
-
-  const itemCounts = await db
-    .select({
-      list_id: grocery_items.list_id,
-      item_count: count(grocery_items.id),
-    })
-    .from(grocery_items)
-    .where(
-      and(
-        eq(grocery_items.household_id, householdId),
-        isNull(grocery_items.deleted_at)
-      )
-    )
-    .groupBy(grocery_items.list_id);
-
-  const countMap = new Map(itemCounts.map((c) => [c.list_id, Number(c.item_count)]));
-
-  const lists = listsRaw
-    .map((list) => ({
-      ...list,
-      item_count: countMap.get(list.id) ?? 0,
-    }))
-    .sort((a, b) => {
-      if (a.is_default !== b.is_default) return a.is_default ? -1 : 1;
-      return a.name.localeCompare(b.name);
-    });
-
-  return Response.json({ lists, isPremium, isAdmin });
+  await db.insert(groceryLists).values({
+    householdId,
+    name: 'Shopping List',
+    isDefault: true,
+    createdBy: userId,
+  })
 }
 
-// ---- POST -------------------------------------------------------------------
+export async function GET() {
+  const session = await getSession()
+  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-export async function POST(request: NextRequest): Promise<Response> {
-  let session;
-  try {
-    session = await requireSession(request);
-  } catch (r) {
-    return r as Response;
-  }
+  const membership = await getUserHousehold(session.user.id)
+  if (!membership) return NextResponse.json({ error: 'No household' }, { status: 403 })
 
-  const membership = await getUserHousehold(session.user.id);
-  if (!membership) {
-    return Response.json({ error: "No household found" }, { status: 404 });
-  }
-  const { householdId } = membership;
+  await getOrCreateDefaultList(membership.householdId, session.user.id)
 
-  if (membership.role === "child") {
-    return Response.json({ error: "Forbidden" }, { status: 403 });
-  }
+  const lists = await db
+    .select({
+      id: groceryLists.id,
+      name: groceryLists.name,
+      isDefault: groceryLists.isDefault,
+      createdAt: groceryLists.createdAt,
+      itemCount: sql<number>`count(${groceryItems.id}) filter (where ${groceryItems.deletedAt} is null)`.mapWith(Number),
+    })
+    .from(groceryLists)
+    .leftJoin(
+      groceryItems,
+      and(eq(groceryItems.listId, groceryLists.id), isNull(groceryItems.deletedAt))
+    )
+    .where(
+      and(
+        eq(groceryLists.householdId, membership.householdId),
+        isNull(groceryLists.deletedAt),
+      )
+    )
+    .groupBy(groceryLists.id)
+    .orderBy(groceryLists.createdAt)
 
-  const [household] = await db
-    .select({ subscription_status: households.subscription_status })
-    .from(households)
-    .where(eq(households.id, householdId))
-    .limit(1);
+  return NextResponse.json({ lists })
+}
 
-  if (!household) {
-    return Response.json({ error: "Household not found" }, { status: 404 });
-  }
+export async function POST(request: Request) {
+  const session = await getSession()
+  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  if (household.subscription_status !== "premium") {
-    const [existing] = await db
-      .select({ count: count(grocery_lists.id) })
-      .from(grocery_lists)
-      .where(
-        and(
-          eq(grocery_lists.household_id, householdId),
-          isNull(grocery_lists.deleted_at)
-        )
-      );
-    if (Number(existing?.count ?? 0) >= 1) {
-      return Response.json(
-        { error: "Multiple lists require a premium household" },
-        { status: 403 }
-      );
-    }
-  }
+  const membership = await getUserHousehold(session.user.id)
+  if (!membership) return NextResponse.json({ error: 'No household' }, { status: 403 })
 
-  let body: { name?: string };
-  try {
-    body = await request.json();
-  } catch (err) {
-    console.error("[POST /api/grocery/lists] Failed to parse body:", err);
-    return Response.json({ error: "Invalid request body" }, { status: 400 });
-  }
-
-  if (!body.name?.trim()) {
-    return Response.json({ error: "Name is required" }, { status: 400 });
-  }
+  const body = await request.json()
+  const name = (body.name ?? '').trim()
+  if (!name) return NextResponse.json({ error: 'Name is required' }, { status: 400 })
 
   const [list] = await db
-    .insert(grocery_lists)
+    .insert(groceryLists)
     .values({
-      household_id: householdId,
-      name: body.name.trim(),
-      is_default: false,
-      created_by: session.user.id,
+      householdId: membership.householdId,
+      name,
+      isDefault: false,
+      createdBy: session.user.id,
     })
-    .returning();
+    .returning()
 
-  return Response.json({ list }, { status: 201 });
+  return NextResponse.json({ id: list.id, name: list.name, isDefault: list.isDefault }, { status: 201 })
 }

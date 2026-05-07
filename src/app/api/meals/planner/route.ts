@@ -1,191 +1,95 @@
-import { NextRequest } from "next/server";
-import { requireSession } from "@/lib/auth/helpers";
-import { db } from "@/lib/db";
-import { meal_plan_slots, meals, users, member_permissions } from "@/db/schema";
-import { and, eq, gte, lte } from "drizzle-orm";
-import { getUserHousehold } from "@/app/api/chores/route";
-import { logActivity } from "@/lib/utils/activity";
-import { addDays, format, startOfWeek } from "date-fns";
+import { NextRequest, NextResponse } from 'next/server'
+import { getSession, getUserHousehold } from '@/lib/auth/helpers'
+import { db } from '@/lib/db'
+import { mealPlanSlots, meals, users } from '@/db/schema'
+import { eq, and, gte, lt } from 'drizzle-orm'
 
-// ---- GET --------------------------------------------------------------------
+export async function GET(req: NextRequest) {
+  const session = await getSession()
+  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-export async function GET(request: NextRequest): Promise<Response> {
-  let session;
-  try {
-    session = await requireSession(request);
-  } catch (r) {
-    return r as Response;
-  }
+  const membership = await getUserHousehold(session.user.id)
+  if (!membership) return NextResponse.json({ error: 'No household' }, { status: 403 })
 
-  const membership = await getUserHousehold(session.user.id);
-  if (!membership) {
-    return Response.json({ error: "No household found" }, { status: 404 });
-  }
-  const { householdId } = membership;
+  const { householdId } = membership
+  const url = new URL(req.url)
+  const weekStart = url.searchParams.get('weekStart') ?? new Date().toISOString().slice(0, 10)
 
-  const url = new URL(request.url);
-  const weekStartParam = url.searchParams.get("weekStart");
-
-  const weekStart = weekStartParam
-    ? new Date(weekStartParam + "T00:00:00")
-    : startOfWeek(new Date(), { weekStartsOn: 1 });
-
-  const weekEnd = addDays(weekStart, 6);
-  const weekStartStr = format(weekStart, "yyyy-MM-dd");
-  const weekEndStr = format(weekEnd, "yyyy-MM-dd");
+  // Compute week end (7 days)
+  const startDate = new Date(`${weekStart}T00:00:00`)
+  const endDate = new Date(startDate)
+  endDate.setDate(endDate.getDate() + 7)
 
   const slots = await db
     .select({
-      id: meal_plan_slots.id,
-      slot_date: meal_plan_slots.slot_date,
-      slot_type: meal_plan_slots.slot_type,
-      meal_id: meal_plan_slots.meal_id,
-      custom_meal_name: meal_plan_slots.custom_meal_name,
-      meal_name: meals.name,
-      meal_description: meals.description,
-      meal_ingredients: meals.ingredients,
-      assigned_by: meal_plan_slots.assigned_by,
-      assigned_by_name: users.name,
-      assigned_by_avatar: users.avatar_color,
+      id: mealPlanSlots.id,
+      slotDate: mealPlanSlots.slotDate,
+      slotType: mealPlanSlots.slotType,
+      createdBy: mealPlanSlots.createdBy,
+      mealId: meals.id,
+      mealName: meals.name,
+      mealCategory: meals.category,
+      mealDescription: meals.description,
+      mealPrepTime: meals.prepTime,
+      mealIngredients: meals.ingredients,
+      plannedByName: users.name,
     })
-    .from(meal_plan_slots)
-    .leftJoin(meals, eq(meal_plan_slots.meal_id, meals.id))
-    .leftJoin(users, eq(meal_plan_slots.assigned_by, users.id))
+    .from(mealPlanSlots)
+    .innerJoin(meals, eq(mealPlanSlots.mealId, meals.id))
+    .leftJoin(users, eq(mealPlanSlots.createdBy, users.id))
     .where(
       and(
-        eq(meal_plan_slots.household_id, householdId),
-        gte(meal_plan_slots.slot_date, weekStartStr),
-        lte(meal_plan_slots.slot_date, weekEndStr)
-      )
-    );
-
-  return Response.json({ slots, weekStart: weekStartStr, weekEnd: weekEndStr });
-}
-
-// ---- POST -------------------------------------------------------------------
-
-export async function POST(request: NextRequest): Promise<Response> {
-  let session;
-  try {
-    session = await requireSession(request);
-  } catch (r) {
-    return r as Response;
-  }
-
-  const membership = await getUserHousehold(session.user.id);
-  if (!membership) {
-    return Response.json({ error: "No household found" }, { status: 404 });
-  }
-  if (membership.role === "child") {
-    return Response.json({ error: "Forbidden" }, { status: 403 });
-  }
-  const { householdId } = membership;
-
-  // Check meals.plan permission
-  const [perm] = await db
-    .select()
-    .from(member_permissions)
-    .where(
-      and(
-        eq(member_permissions.household_id, householdId),
-        eq(member_permissions.user_id, session.user.id),
-        eq(member_permissions.permission, "meals.plan")
+        eq(mealPlanSlots.householdId, householdId),
+        gte(mealPlanSlots.slotDate, weekStart),
+        lt(mealPlanSlots.slotDate, endDate.toISOString().slice(0, 10))
       )
     )
-    .limit(1);
 
-  // Permission defaults to enabled if no row exists
-  if (perm && !perm.enabled) {
-    return Response.json({ error: "Forbidden" }, { status: 403 });
+  return NextResponse.json({ slots })
+}
+
+export async function POST(req: NextRequest) {
+  const session = await getSession()
+  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+  const membership = await getUserHousehold(session.user.id)
+  if (!membership) return NextResponse.json({ error: 'No household' }, { status: 403 })
+
+  const { householdId } = membership
+  const body = await req.json()
+  const { mealId, slotDate, slotType } = body
+
+  if (!mealId || !slotDate || !slotType) {
+    return NextResponse.json({ error: 'mealId, slotDate, and slotType are required' }, { status: 400 })
   }
 
-  let body: {
-    slot_date?: string;
-    slot_type?: string;
-    meal_id?: string | null;
-    custom_meal_name?: string | null;
-    // Quick-add path: create meal inline
-    name?: string;
-    savedToBank?: boolean;
-  };
-  try {
-    body = await request.json();
-  } catch {
-    return Response.json({ error: "Invalid request body" }, { status: 400 });
-  }
+  // Delete existing slot for same day+type (upsert behavior)
+  const existing = await db
+    .select({ id: mealPlanSlots.id })
+    .from(mealPlanSlots)
+    .where(
+      and(
+        eq(mealPlanSlots.householdId, householdId),
+        eq(mealPlanSlots.slotDate, slotDate),
+        eq(mealPlanSlots.slotType, slotType)
+      )
+    )
+    .limit(1)
 
-  if (!body.slot_date) {
-    return Response.json({ error: "slot_date is required" }, { status: 400 });
-  }
-  if (!body.slot_type) {
-    return Response.json({ error: "slot_type is required" }, { status: 400 });
-  }
-
-  // Resolve meal_id: either provided directly, or created inline from `name`
-  let resolvedMealId: string | null = body.meal_id ?? null;
-  let mealDisplayName = body.custom_meal_name?.trim() ?? "a meal";
-
-  if (!resolvedMealId && body.name?.trim()) {
-    const savedToBank = body.savedToBank === true;
-    const [newMeal] = await db
-      .insert(meals)
-      .values({
-        household_id: householdId,
-        name: body.name.trim(),
-        category: "dinner",
-        ingredients: null,
-        instructions: null,
-        saved_to_bank: savedToBank,
-        created_by: session.user.id,
-      })
-      .returning();
-    resolvedMealId = newMeal.id;
-    mealDisplayName = newMeal.name;
-  } else if (!resolvedMealId && !body.custom_meal_name?.trim()) {
-    return Response.json({ error: "meal_id, name, or custom_meal_name is required" }, { status: 400 });
-  }
-
-  if (body.meal_id) {
-    const [m] = await db
-      .select({ name: meals.name })
-      .from(meals)
-      .where(and(eq(meals.id, body.meal_id), eq(meals.household_id, householdId)))
-      .limit(1);
-    if (!m) {
-      return Response.json({ error: "Meal not found" }, { status: 404 });
-    }
-    mealDisplayName = m.name;
+  if (existing.length > 0) {
+    await db.delete(mealPlanSlots).where(eq(mealPlanSlots.id, existing[0].id))
   }
 
   const [slot] = await db
-    .insert(meal_plan_slots)
+    .insert(mealPlanSlots)
     .values({
-      household_id: householdId,
-      meal_id: resolvedMealId,
-      custom_meal_name: resolvedMealId ? null : body.custom_meal_name?.trim() || null,
-      slot_date: body.slot_date,
-      slot_type: body.slot_type,
-      assigned_by: session.user.id,
+      householdId,
+      mealId,
+      slotDate,
+      slotType,
+      createdBy: session.user.id,
     })
-    .onConflictDoUpdate({
-      target: [meal_plan_slots.household_id, meal_plan_slots.slot_date, meal_plan_slots.slot_type],
-      set: {
-        meal_id: resolvedMealId,
-        custom_meal_name: resolvedMealId ? null : body.custom_meal_name?.trim() || null,
-        assigned_by: session.user.id,
-      },
-    })
-    .returning();
+    .returning()
 
-  const dayLabel = format(new Date(body.slot_date + "T00:00:00"), "EEEE");
-  await logActivity({
-    householdId,
-    userId: session.user.id,
-    type: "meal_planned",
-    description: `planned ${mealDisplayName} for ${dayLabel}`,
-    entityId: slot.id,
-    entityType: "meal_plan_slot",
-  });
-
-  return Response.json({ slot }, { status: 201 });
+  return NextResponse.json({ slot }, { status: 201 })
 }

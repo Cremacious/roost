@@ -1,267 +1,73 @@
 @import "tailwindcss";
 @import "tw-animate-css";
-@import "shadcn/tailwind.css";
-
-html {
-  scroll-behavior: smooth;
-}
 
 @custom-variant dark (&:is(.dark *));
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-nunito);
-  --font-mono: var(--font-geist-mono);
-  --font-heading: var(--font-nunito);
-  --color-sidebar-ring: var(--sidebar-ring);
-  --color-sidebar-border: var(--sidebar-border);
-  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
-  --color-sidebar-accent: var(--sidebar-accent);
-  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
-  --color-sidebar-primary: var(--sidebar-primary);
-  --color-sidebar-foreground: var(--sidebar-foreground);
-  --color-sidebar: var(--sidebar);
-  --color-chart-5: var(--chart-5);
-  --color-chart-4: var(--chart-4);
-  --color-chart-3: var(--chart-3);
-  --color-chart-2: var(--chart-2);
-  --color-chart-1: var(--chart-1);
-  --color-ring: var(--ring);
-  --color-input: var(--input);
-  --color-border: var(--border);
-  --color-destructive: var(--destructive);
-  --color-accent-foreground: var(--accent-foreground);
-  --color-accent: var(--accent);
-  --color-muted-foreground: var(--muted-foreground);
-  --color-muted: var(--muted);
-  --color-secondary-foreground: var(--secondary-foreground);
-  --color-secondary: var(--secondary);
-  --color-primary-foreground: var(--primary-foreground);
-  --color-primary: var(--primary);
-  --color-popover-foreground: var(--popover-foreground);
-  --color-popover: var(--popover);
-  --color-card-foreground: var(--card-foreground);
-  --color-card: var(--card);
-  --radius-sm: calc(var(--radius) * 0.6);
-  --radius-md: calc(var(--radius) * 0.8);
-  --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) * 1.4);
-  --radius-2xl: calc(var(--radius) * 1.8);
-  --radius-3xl: calc(var(--radius) * 2.2);
-  --radius-4xl: calc(var(--radius) * 2.6);
-}
-
 :root {
-  /* Roost theme variables — default theme values, overridden at runtime by ThemeProvider */
-  --roost-bg: #F9FAFB;
-  --roost-surface: #FFFFFF;
-  --roost-border: #E5E7EB;
-  --roost-border-bottom: #D1D5DB;
+  /* Default (light) theme */
+  --roost-bg: #f9fafb;
+  --roost-surface: #ffffff;
+  --roost-border: #e5e7eb;
+  --roost-border-bottom: #d1d5db;
   --roost-text-primary: #111827;
   --roost-text-secondary: #374151;
-  --roost-text-muted: #6B7280;
-  --roost-topbar-bg: #FFFFFF;
-  --roost-topbar-border: #E5E7EB;
-  --roost-sidebar-bg: #FFFFFF;
-  --roost-sidebar-border: #E5E7EB;
-  --roost-sidebar-active-bg: #F3F4F6;
-  --roost-sidebar-active-text: #111827;
-  --roost-sidebar-inactive-text: #6B7280;
-  --roost-sidebar-divider: #E5E7EB;
+  --roost-text-muted: #6b7280;
+  --roost-topbar-bg: #ffffff;
+  --roost-topbar-border: #e5e7eb;
   --roost-weather-bg: rgba(0,0,0,0.05);
   --roost-weather-color: #374151;
+  /* Sidebar always uses brand red — not theme-driven */
+  --roost-sidebar-bg: #dc2626;
 
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.145 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
-  --radius: 0.625rem;
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
+  /* shadcn compatibility */
+  --background: var(--roost-bg);
+  --foreground: var(--roost-text-primary);
+  --card: var(--roost-surface);
+  --card-foreground: var(--roost-text-primary);
+  --border: var(--roost-border);
+  --input: var(--roost-border);
+  --primary: #111827;
+  --primary-foreground: #ffffff;
+  --muted: #f3f4f6;
+  --muted-foreground: var(--roost-text-muted);
+  --radius: 0.75rem;
 }
 
-.dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
+[data-theme="midnight"] {
+  --roost-bg: #111827;
+  --roost-surface: #1f2937;
+  --roost-border: #374151;
+  --roost-border-bottom: #4b5563;
+  --roost-text-primary: #f9fafb;
+  --roost-text-secondary: #e5e7eb;
+  --roost-text-muted: #9ca3af;
+  --roost-topbar-bg: #1f2937;
+  --roost-topbar-border: #374151;
+  --roost-weather-bg: rgba(255,255,255,0.1);
+  --roost-weather-color: #e5e7eb;
+
+  --background: var(--roost-bg);
+  --foreground: var(--roost-text-primary);
+  --card: var(--roost-surface);
+  --card-foreground: var(--roost-text-primary);
+  --border: var(--roost-border);
+  --input: var(--roost-border);
+  --primary: #f9fafb;
+  --primary-foreground: #111827;
 }
 
-@layer base {
-  * {
-    @apply border-border outline-ring/50;
-  }
-  body {
-    @apply bg-background text-foreground;
-    font-family: var(--font-nunito), sans-serif;
-  }
+* {
+  box-sizing: border-box;
 }
 
-/* ---- Roost toast styles -------------------------------------------------- */
-
-.roost-toast {
-  background: var(--roost-surface) !important;
-  border: 1.5px solid var(--roost-border) !important;
-  border-bottom: 4px solid var(--roost-border-bottom) !important;
-  border-radius: 16px !important;
-  box-shadow: none !important;
-  font-family: var(--font-nunito) !important;
+body {
+  background-color: var(--roost-bg);
+  color: var(--roost-text-primary);
+  font-family: var(--font-nunito), sans-serif;
+  font-weight: 600;
 }
 
-.roost-toast-title {
-  color: var(--roost-text-primary) !important;
-  font-weight: 700 !important;
-  font-size: 14px !important;
-}
-
-.roost-toast-description {
-  color: var(--roost-text-secondary) !important;
-  font-weight: 600 !important;
-  font-size: 13px !important;
-}
-
-.roost-toast-success {
-  border-bottom-color: #159040 !important;
-}
-
-.roost-toast-success [data-icon] {
-  color: #22C55E !important;
-}
-
-.roost-toast-error {
-  border-bottom-color: #C93B3B !important;
-}
-
-.roost-toast-error [data-icon] {
-  color: #EF4444 !important;
-}
-
-.roost-toast-warning {
-  border-bottom-color: #C87D00 !important;
-}
-
-.roost-toast-warning [data-icon] {
-  color: #F59E0B !important;
-}
-
-.roost-toast-info {
-  border-bottom-color: #1A5CB5 !important;
-}
-
-.roost-toast-info [data-icon] {
-  color: #3B82F6 !important;
-}
-
-.roost-toast-action {
-  background: var(--roost-text-primary) !important;
-  color: var(--roost-surface) !important;
-  border: none !important;
-  border-radius: 10px !important;
-  font-family: var(--font-nunito) !important;
-  font-weight: 700 !important;
-  font-size: 12px !important;
-  padding: 6px 12px !important;
-  height: 32px !important;
-}
-
-.roost-toast-action:hover {
-  opacity: 0.85 !important;
-}
-
-.roost-toast-cancel {
-  background: transparent !important;
-  color: var(--roost-text-secondary) !important;
-  border: 1.5px solid var(--roost-border) !important;
-  border-radius: 10px !important;
-  font-family: var(--font-nunito) !important;
-  font-weight: 700 !important;
-  font-size: 12px !important;
-  padding: 6px 12px !important;
-  height: 32px !important;
-}
-
-.roost-toast-close {
-  color: var(--roost-text-muted) !important;
-  opacity: 1 !important;
-}
-
-.roost-toast-close:hover {
-  color: var(--roost-text-primary) !important;
-}
-
-[data-theme="midnight"] .roost-toast {
-  background: var(--roost-surface) !important;
-  border-color: var(--roost-border) !important;
-}
-
-/* ---- Desktop sheet centering ------------------------------------------ */
-
-@media (min-width: 640px) {
-  [data-slot="sheet-content"][data-side="bottom"] {
-    left: 50% !important;
-    right: auto !important;
-    width: 100% !important;
-    max-width: 680px !important;
-    transform: translateX(-50%) !important;
-    border-radius: 16px 16px 0 0 !important;
-  }
-}
-
-/* ---- iOS Safari: prevent auto-zoom on input focus (font-size must be ≥16px) */
-
+/* Prevent iOS Safari auto-zoom on input focus */
 @media (max-width: 768px) {
   input,
   textarea,
@@ -271,207 +77,87 @@ html {
   }
 }
 
-/* ---- Compact calendar (EventSheet desktop right column) ---------------- */
-
-.roost-calendar-compact {
-  --cell-size: 30px;
-  width: 100% !important;
-  max-width: 100% !important;
+/* Tiptap rich text editor */
+.roost-editor-wrap {
+  border: 1.5px solid var(--roost-border);
+  border-bottom: 3px solid var(--roost-border);
+  border-radius: 12px;
+  overflow: hidden;
+  background-color: var(--roost-surface);
 }
 
-.roost-calendar-compact .rdp-month_caption {
-  font-size: 13px;
-  font-weight: 800;
-  padding-bottom: 4px;
+.roost-editor-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--roost-border);
+  flex-wrap: wrap;
 }
 
-.roost-calendar-compact .rdp-weekday {
-  font-size: 10px;
-  font-weight: 700;
-  width: var(--cell-size);
-  height: var(--cell-size);
-}
-
-.roost-calendar-compact .rdp-day {
-  width: var(--cell-size);
-  height: var(--cell-size);
-  font-size: 12px;
-  font-weight: 600;
-}
-
-.roost-calendar-compact .rdp-day_button {
-  width: var(--cell-size);
-  height: var(--cell-size);
-  font-size: 12px;
-}
-
-/* ---- Mobile calendar (EventSheet mobile date picker) ------------------- */
-
-.roost-calendar-mobile {
-  --cell-size: 42px;
-  width: 100% !important;
-  max-width: 100% !important;
-  padding: 12px 10px 10px !important;
-}
-
-.roost-calendar-mobile .rdp-month_caption {
-  font-size: 18px;
-  font-weight: 800;
-  margin-bottom: 6px;
-}
-
-.roost-calendar-mobile .rdp-button_previous,
-.roost-calendar-mobile .rdp-button_next {
-  width: 40px;
-  height: 40px;
-}
-
-.roost-calendar-mobile .rdp-weekday {
-  width: calc(100% / 7);
-  height: 32px;
-  padding: 0;
-  font-size: 12px;
-  font-weight: 700;
-}
-
-.roost-calendar-mobile .rdp-week {
-  margin-top: 6px;
-}
-
-.roost-calendar-mobile .rdp-day {
-  width: calc(100% / 7);
-  height: 46px;
-  font-size: 15px;
-  font-weight: 700;
-}
-
-.roost-calendar-mobile .rdp-day_button {
-  width: 42px;
-  height: 42px;
-  font-size: 15px;
-}
-
-/* ---- Dark theme: feature card border override --------------------------- */
-
-[data-dark="true"] .feature-card {
-  border-color: #2A2D45 !important;
-}
-
-/* ---- Rich text editor (Tiptap / notes module) --------------------------- */
-
-.roost-editor .ProseMirror {
-  min-height: 200px;
-  padding: 14px 16px;
-  font-family: var(--font-nunito), sans-serif;
-  font-size: 15px;
-  font-weight: 600;
-  color: var(--roost-text-primary);
-  outline: none;
+.roost-editor-content {
+  padding: 12px 14px;
+  min-height: 160px;
   cursor: text;
+}
+
+.roost-editor-content .tiptap {
+  outline: none;
+  font-size: 14px;
+  font-weight: 600;
   line-height: 1.6;
-}
-
-.roost-editor .ProseMirror p {
-  margin-bottom: 6px;
-}
-
-.roost-editor .ProseMirror h1 {
-  font-size: 22px;
-  font-weight: 900;
-  margin-bottom: 8px;
   color: var(--roost-text-primary);
-  line-height: 1.3;
 }
 
-.roost-editor .ProseMirror h2 {
-  font-size: 18px;
-  font-weight: 800;
-  margin-bottom: 6px;
-  color: var(--roost-text-primary);
-  line-height: 1.3;
+.roost-editor-content .tiptap p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  float: left;
+  color: var(--roost-text-muted);
+  pointer-events: none;
+  height: 0;
 }
 
-.roost-editor .ProseMirror h3 {
-  font-size: 16px;
-  font-weight: 700;
-  margin-bottom: 4px;
-  color: var(--roost-text-primary);
-  line-height: 1.3;
+.roost-editor-content .tiptap h1 { font-size: 22px; font-weight: 900; margin: 0 0 8px; }
+.roost-editor-content .tiptap h2 { font-size: 18px; font-weight: 800; margin: 0 0 6px; }
+.roost-editor-content .tiptap h3 { font-size: 15px; font-weight: 800; margin: 0 0 4px; }
+.roost-editor-content .tiptap p { margin: 0 0 6px; }
+.roost-editor-content .tiptap p:last-child { margin-bottom: 0; }
+.roost-editor-content .tiptap ul,
+.roost-editor-content .tiptap ol { margin: 0 0 8px; padding-left: 20px; }
+.roost-editor-content .tiptap li { margin-bottom: 2px; }
+.roost-editor-content .tiptap blockquote {
+  border-left: 3px solid var(--roost-border);
+  padding-left: 12px;
+  margin: 8px 0;
+  color: var(--roost-text-secondary);
 }
-
-.roost-editor .ProseMirror ul {
-  list-style-type: disc;
-  padding-left: 20px;
-  margin-bottom: 8px;
+.roost-editor-content .tiptap code {
+  background-color: var(--roost-border);
+  border-radius: 4px;
+  padding: 1px 5px;
+  font-size: 12px;
+  font-family: monospace;
 }
-
-.roost-editor .ProseMirror ol {
-  list-style-type: decimal;
-  padding-left: 20px;
-  margin-bottom: 8px;
+.roost-editor-content .tiptap pre {
+  background-color: var(--roost-border);
+  border-radius: 8px;
+  padding: 10px 14px;
+  margin: 8px 0;
+  overflow-x: auto;
 }
-
-.roost-editor .ProseMirror ul[data-type="taskList"] {
-  list-style: none;
-  padding-left: 4px;
-}
-
-.roost-editor .ProseMirror ul[data-type="taskList"] li {
+.roost-editor-content .tiptap pre code { background: none; padding: 0; }
+.roost-editor-content .tiptap a { color: #3B82F6; text-decoration: underline; }
+.roost-editor-content .tiptap ul[data-type="taskList"] { padding-left: 0; list-style: none; }
+.roost-editor-content .tiptap ul[data-type="taskList"] li {
   display: flex;
   align-items: flex-start;
   gap: 8px;
-  margin-bottom: 4px;
 }
-
-.roost-editor .ProseMirror ul[data-type="taskList"] li > label {
-  margin-top: 2px;
+.roost-editor-content .tiptap ul[data-type="taskList"] li input[type="checkbox"] {
+  margin-top: 3px;
+  width: 14px;
+  height: 14px;
   flex-shrink: 0;
-}
-
-.roost-editor .ProseMirror ul[data-type="taskList"] li input[type="checkbox"] {
-  width: 16px;
-  height: 16px;
+  cursor: pointer;
   accent-color: #A855F7;
-  cursor: pointer;
-  margin-top: 1px;
-}
-
-.roost-editor .ProseMirror ul[data-type="taskList"] li > div {
-  flex: 1;
-}
-
-.roost-editor .ProseMirror blockquote,
-.roost-editor .roost-blockquote {
-  border-left: 3px solid #A855F7;
-  padding-left: 12px;
-  color: var(--roost-text-secondary);
-  font-style: italic;
-  margin: 8px 0;
-}
-
-.roost-editor .roost-code-block {
-  background: var(--roost-bg);
-  border: 1px solid var(--roost-border);
-  border-radius: 8px;
-  padding: 12px;
-  font-family: var(--font-geist-mono), monospace;
-  font-size: 13px;
-  font-weight: 500;
-  overflow-x: auto;
-  margin: 8px 0;
-}
-
-.roost-editor .roost-link {
-  color: #A855F7;
-  text-decoration: underline;
-  cursor: pointer;
-}
-
-.roost-editor .ProseMirror p.is-editor-empty:first-child::before {
-  content: attr(data-placeholder);
-  color: var(--roost-text-muted);
-  pointer-events: none;
-  float: left;
-  height: 0;
-  font-weight: 600;
 }

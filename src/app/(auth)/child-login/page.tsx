@@ -1,649 +1,593 @@
-'use client';
+'use client'
 
-import { useCallback, useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
-import Image from 'next/image';
-import { toast } from 'sonner';
-import { Delete, Loader2 } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
-import MemberAvatar from '@/components/shared/MemberAvatar';
-import {
-  ROOST_BRAND_BG,
-  ROOST_BRAND_CARD_MUTED,
-  ROOST_BRAND_CARD_TEXT,
+import { useState, useEffect, useCallback } from 'react'
+import { useRouter } from 'next/navigation'
+import Link from 'next/link'
+import { Home, ChevronLeft, Loader2 } from 'lucide-react'
+import { motion, AnimatePresence } from 'framer-motion'
 
-  ROOST_BRAND_SOFT_BG,
-  ROOST_BRAND_SURFACE,
-  ROOST_BRAND_TEXT,
-  ROOST_ICON_SRC,
-} from '@/lib/brand';
+// ─── Cookie helpers ───────────────────────────────────────────────────────────
 
-// ---- Cookie helpers ---------------------------------------------------------
-
-const HOUSE_CODE_COOKIE = 'roost_house_code';
-
-function getCookie(name: string): string | null {
-  if (typeof document === 'undefined') return null;
-  const match = document.cookie.match(new RegExp(`(?:^|; )${name}=([^;]*)`));
-  return match ? decodeURIComponent(match[1]) : null;
+function getCookieValue(name: string): string {
+  if (typeof document === 'undefined') return ''
+  const match = document.cookie.match(new RegExp('(?:^|; )' + name + '=([^;]*)'))
+  return match ? decodeURIComponent(match[1]) : ''
 }
 
-function setCookie(name: string, value: string, days: number) {
-  const expires = new Date(Date.now() + days * 864e5).toUTCString();
-  document.cookie = `${name}=${encodeURIComponent(value)}; expires=${expires}; path=/`;
+function setCookie(name: string, value: string, maxAgeSecs: number) {
+  document.cookie = `${name}=${encodeURIComponent(value)}; path=/; max-age=${maxAgeSecs}`
 }
 
-function deleteCookie(name: string) {
-  document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/`;
+function clearCookie(name: string) {
+  document.cookie = `${name}=; path=/; max-age=0`
 }
 
-// ---- Types ------------------------------------------------------------------
+const COOKIE_NAME = 'roost-child-household-code'
 
-interface ChildUser {
-  id: string;
-  name: string;
-  avatar_color: string | null;
+// ─── Types ────────────────────────────────────────────────────────────────────
+
+interface ChildAccount {
+  id: string
+  name: string
+  avatarColor?: string
 }
 
-// ---- PIN pad rows -----------------------------------------------------------
+// ─── Step 1: Household code input ─────────────────────────────────────────────
 
-const PIN_ROWS: string[][] = [
-  ['1', '2', '3'],
-  ['4', '5', '6'],
-  ['7', '8', '9'],
-];
+function Step1({
+  onFound,
+}: {
+  onFound: (code: string, children: ChildAccount[]) => void
+}) {
+  const [code, setCode] = useState('')
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
 
-// ---- Page -------------------------------------------------------------------
-
-export default function ChildLoginPage() {
-  const router = useRouter();
-
-  const [step, setStep] = useState<1 | 2 | 3>(1);
-  const [householdCode, setHouseholdCode] = useState('');
-  const [children, setChildren] = useState<ChildUser[]>([]);
-  const [selectedChild, setSelectedChild] = useState<ChildUser | null>(null);
-  const [pin, setPin] = useState('');
-  const [codeLoading, setCodeLoading] = useState(false);
-  const [loginLoading, setLoginLoading] = useState(false);
-  const [shake, setShake] = useState(false);
-  const [pinError, setPinError] = useState('');
-
-  // Fetch children for a given household code.
-  // isFromCookie distinguishes a manual submit (show toast) from a stale cookie (clear and restart).
-  const fetchChildren = useCallback(
-    async (code: string, isFromCookie = false) => {
-      setCodeLoading(true);
+  const handleSubmit = useCallback(
+    async (submittedCode: string) => {
+      const upper = submittedCode.trim().toUpperCase()
+      if (!upper || upper.length < 6) {
+        setError('Please enter your 6-letter household code.')
+        return
+      }
+      setError('')
+      setLoading(true)
       try {
-        const r = await fetch(
-          `/api/auth/child-login?householdCode=${encodeURIComponent(code)}`,
-        );
-        if (!r.ok) {
-          if (isFromCookie) {
-            // Cookie was saved but code no longer valid — clear and restart
-            deleteCookie(HOUSE_CODE_COOKIE);
-            setHouseholdCode('');
-            setStep(1);
-          } else {
-            toast.error('House code not found.', {
-              description: 'Check the code and try again.',
-            });
-          }
-          return;
+        const res = await fetch(`/api/auth/child-login?householdCode=${encodeURIComponent(upper)}`)
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({}))
+          setError(data.error ?? 'Household not found. Check the code and try again.')
+          return
         }
-        const data = await r.json();
-        const kids: ChildUser[] = data.children ?? [];
-        setChildren(kids);
-        setCookie(HOUSE_CODE_COOKIE, code, 365);
-
-        if (kids.length === 0) {
-          toast.error('No child accounts in this household.', {
-            description: 'Ask a parent to add a child account in Settings.',
-          });
-          return;
+        const data = await res.json()
+        const children: ChildAccount[] = data.children ?? []
+        if (children.length === 0) {
+          setError('No child accounts found in that household.')
+          return
         }
-
-        if (kids.length === 1) {
-          setSelectedChild(kids[0]);
-          setStep(3);
-        } else {
-          setStep(2);
-        }
+        setCookie(COOKIE_NAME, upper, 365 * 24 * 60 * 60)
+        onFound(upper, children)
       } catch {
-        toast.error('Something went wrong.', {
-          description: 'Check your connection and try again.',
-        });
+        setError('Something went wrong. Try again.')
       } finally {
-        setCodeLoading(false);
+        setLoading(false)
       }
     },
-    [],
-  );
+    [onFound]
+  )
 
-  // On mount only: check for saved house code cookie and auto-advance
+  // On mount: check for saved cookie and auto-submit
   useEffect(() => {
-    const saved = getCookie(HOUSE_CODE_COOKIE);
+    const saved = getCookieValue(COOKIE_NAME)
     if (saved) {
-      setHouseholdCode(saved);
-      void fetchChildren(saved, true);
+      setCode(saved)
+      handleSubmit(saved)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  function handleCodeSubmit() {
-    const code = householdCode.trim().toUpperCase();
-    if (code.length !== 6) return;
-    fetchChildren(code, false);
-  }
-
-  function handlePickChild(child: ChildUser) {
-    setSelectedChild(child);
-    setPin('');
-    setStep(3);
-  }
-
-  function handleWrongHouse() {
-    deleteCookie(HOUSE_CODE_COOKIE);
-    setHouseholdCode('');
-    setChildren([]);
-    setSelectedChild(null);
-    setPin('');
-    setStep(1);
-  }
-
-  function handlePinPress(key: string) {
-    if (key === 'del') {
-      setPin((p) => p.slice(0, -1));
-      return;
-    }
-    if (pin.length >= 4) return;
-    setPinError('');
-    const next = pin + key;
-    setPin(next);
-    if (next.length === 4) {
-      submitPin(next);
-    }
-  }
-
-  async function submitPin(enteredPin: string) {
-    if (!selectedChild) return;
-    setLoginLoading(true);
-    try {
-      const r = await fetch('/api/auth/child-login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          householdCode,
-          childId: selectedChild.id,
-          pin: enteredPin,
-        }),
-      });
-      if (!r.ok) {
-        setShake(true);
-        setTimeout(() => setShake(false), 500);
-        setPin('');
-        setPinError('Wrong PIN. Try again.');
-        return;
-      }
-      router.push('/dashboard');
-    } catch {
-      toast.error('Something went wrong.', {
-        description: 'Check your connection and try again.',
-      });
-      setPin('');
-    } finally {
-      setLoginLoading(false);
-    }
-  }
-
-  // ---- STEP 1: House code ---------------------------------------------------
-
-  if (step === 1) {
-    return (
-      <div style={pageStyle}>
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.18 }}
-          style={{
-            width: '100%',
-            maxWidth: 360,
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-          }}
-        >
-          {/* Logo */}
-          {/* <Image
-            src={ROOST_ICON_SRC}
-            alt="Roost"
-            width={56}
-            height={56}
-            style={{ borderRadius: 16, objectFit: "cover", marginBottom: 8 }}
-          /> */}
-          {/* <p style={{ fontWeight: 900, fontSize: 22, color: "white", marginBottom: 20 }}>Roost</p> */}
-
-          <div style={panelStyle}>
-            <div className="flex justify-center mx-auto">
-
-            <Image
-              src={ROOST_ICON_SRC}
-              alt="Roost"
-              width={56}
-              height={56}
-              priority
-              sizes="56px"
-              style={{ borderRadius: 16, objectFit: 'cover', marginBottom: 8, width: 56, height: 'auto' }}
-              />
-              </div>
-            <h1 style={{ ...headingStyle, marginBottom: 6 }}>
-              Hey! Enter your code.
-            </h1>
-            <p style={{ ...subStyle, marginBottom: 28 }}>
-              Your household code and your secret PIN.
-            </p>
-
-            <input
-              type="text"
-              inputMode="text"
-              autoCapitalize="characters"
-              autoComplete="off"
-              autoCorrect="off"
-              spellCheck={false}
-              maxLength={6}
-              value={householdCode}
-              onChange={(e) => setHouseholdCode(e.target.value.toUpperCase())}
-              onKeyDown={(e) =>
-                e.key === 'Enter' &&
-                householdCode.trim().length === 6 &&
-                handleCodeSubmit()
-              }
-              placeholder="XXXXXX"
-              style={codeInputStyle}
-            />
-
-            <motion.button
-              type="button"
-              whileTap={{ y: 2 }}
-              onClick={handleCodeSubmit}
-              disabled={householdCode.trim().length !== 6 || codeLoading}
-              style={{
-                ...slabButtonStyle,
-                opacity: householdCode.trim().length !== 6 ? 0.5 : 1,
-                marginTop: 12,
-              }}
-            >
-              {codeLoading ? (
-                <Loader2 size={18} className="animate-spin" />
-              ) : (
-                'Let me in'
-              )}
-            </motion.button>
-
-            <a
-              href="/login"
-              style={{
-                textAlign: 'center',
-                fontSize: 12,
-                fontWeight: 700,
-                color: '#ffffff',
-                marginTop: 14,
-                textDecoration: 'none',
-                display: 'block',
-              }}
-            >
-              Back to grown-up sign in
-            </a>
-          </div>
-        </motion.div>
-      </div>
-    );
-  }
-
-  // ---- STEP 2: Pick your name -----------------------------------------------
-
-  if (step === 2) {
-    return (
-      <div style={pageStyle}>
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.18 }}
-          style={{ width: '100%', maxWidth: 360, ...panelStyle }}
-        >
-          <h1 style={headingStyle}>Who are you?</h1>
-          <p style={subStyle}>Tap your name to log in.</p>
-
-          <div
-            style={{
-              display: 'flex',
-              flexDirection: 'column',
-              gap: 10,
-              marginBottom: 24,
-            }}
-          >
-            {children.map((child) => (
-              <motion.button
-                key={child.id}
-                type="button"
-                whileTap={{ y: 2, scale: 0.98 }}
-                onClick={() => handlePickChild(child)}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 16,
-                  padding: '16px 20px',
-                  backgroundColor: 'white',
-                  border: '1.5px solid #F5C5C5',
-                  borderBottom: '4px solid #DBADB0',
-                  borderRadius: 18,
-                  cursor: 'pointer',
-                  textAlign: 'left',
-                }}
-              >
-                <MemberAvatar
-                  name={child.name}
-                  avatarColor={child.avatar_color ?? ROOST_BRAND_BG}
-                  size="lg"
-                />
-                <span
-                  style={{
-                    fontSize: 20,
-                    fontWeight: 800,
-                    color: ROOST_BRAND_TEXT,
-                  }}
-                >
-                  {child.name}
-                </span>
-              </motion.button>
-            ))}
-          </div>
-
-          <button
-            type="button"
-            onClick={handleWrongHouse}
-            style={{
-              textAlign: 'center',
-              fontSize: 12,
-              fontWeight: 700,
-              color: 'rgba(255,255,255,0.8)',
-              marginTop: 4,
-              background: 'none',
-              border: 'none',
-              cursor: 'pointer',
-              padding: 0,
-              display: 'block',
-              width: '100%',
-            }}
-          >
-            Wrong house?
-          </button>
-        </motion.div>
-      </div>
-    );
-  }
-
-  // ---- STEP 3: PIN entry ----------------------------------------------------
+  }, [])
 
   return (
-    <div style={pageStyle}>
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.18 }}
-        style={{ width: '100%', maxWidth: 360, ...panelStyle }}
-      >
-        <h1 style={{ ...headingStyle, marginBottom: 4 }}>
-          Enter your PIN
-          {selectedChild ? `, ${selectedChild.name.split(' ')[0]}` : ''}.
-        </h1>
-
-        {/* PIN dot indicators */}
+    <motion.div
+      key="step1"
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -12 }}
+      transition={{ duration: 0.18 }}
+      style={{ width: '100%', maxWidth: 360 }}
+    >
+      {/* Logo block */}
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, marginBottom: 28 }}>
         <div
           style={{
+            width: 48,
+            height: 48,
+            borderRadius: 14,
+            backgroundColor: '#EF4444',
             display: 'flex',
+            alignItems: 'center',
             justifyContent: 'center',
-            gap: 12,
-            marginBottom: 28,
-            marginTop: 16,
           }}
         >
-          {Array.from({ length: 4 }).map((_, i) => (
-            <motion.div
-              key={i}
-              animate={{
-                scale: pin.length === i + 1 ? [1, 1.3, 1] : 1,
-                x: shake ? [0, -6, 6, -4, 4, 0] : 0,
-              }}
-              transition={{ duration: shake ? 0.4 : 0.15 }}
-              style={{
-                width: 18,
-                height: 18,
-                borderRadius: '50%',
-                backgroundColor: i < pin.length ? ROOST_BRAND_BG : '#F5C5C5',
-              }}
-            />
-          ))}
+          <Home size={26} color="#fff" />
         </div>
+        <p style={{ fontSize: 22, fontWeight: 900, color: '#1A0505', margin: 0 }}>Roost</p>
+      </div>
 
-        {/* PIN pad */}
+      <h1 style={{ fontSize: 24, fontWeight: 900, color: '#1A0505', marginBottom: 6 }}>
+        Who lives here?
+      </h1>
+      <p style={{ fontSize: 13, fontWeight: 600, color: '#7A3F3F', marginBottom: 24 }}>
+        Enter your household code to get started.
+      </p>
+
+      <input
+        type="text"
+        value={code}
+        onChange={e => setCode(e.target.value.toUpperCase())}
+        onKeyDown={e => { if (e.key === 'Enter') handleSubmit(code) }}
+        placeholder="XXXXXX"
+        maxLength={8}
+        style={{
+          display: 'block',
+          width: '100%',
+          height: 64,
+          fontSize: 22,
+          fontWeight: 900,
+          letterSpacing: 6,
+          textTransform: 'uppercase',
+          textAlign: 'center',
+          border: '2px solid #F5C5C5',
+          borderBottom: '4px solid #DBADB0',
+          borderRadius: 14,
+          backgroundColor: '#fff',
+          outline: 'none',
+          boxSizing: 'border-box',
+          marginBottom: 12,
+        }}
+      />
+
+      {error && (
+        <p style={{ color: '#EF4444', fontSize: 13, fontWeight: 700, marginBottom: 12 }}>{error}</p>
+      )}
+
+      <button
+        onClick={() => handleSubmit(code)}
+        disabled={loading}
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: 8,
+          width: '100%',
+          height: 56,
+          backgroundColor: '#EF4444',
+          border: 'none',
+          borderBottom: '4px solid #C93B3B',
+          borderRadius: 14,
+          fontSize: 15,
+          fontWeight: 800,
+          color: '#fff',
+          cursor: loading ? 'not-allowed' : 'pointer',
+          opacity: loading ? 0.8 : 1,
+        }}
+      >
+        {loading ? <Loader2 size={18} style={{ animation: 'spin 1s linear infinite' }} /> : 'Find my household'}
+      </button>
+
+      <p style={{ textAlign: 'center', marginTop: 20 }}>
+        <Link href="/login" style={{ fontSize: 12, fontWeight: 700, color: '#9B6060', textDecoration: 'none' }}>
+          Back to sign in
+        </Link>
+      </p>
+    </motion.div>
+  )
+}
+
+// ─── Step 2: Child name picker ────────────────────────────────────────────────
+
+function Step2({
+  code,
+  children,
+  onSelect,
+  onBack,
+}: {
+  code: string
+  children: ChildAccount[]
+  onSelect: (child: ChildAccount) => void
+  onBack: () => void
+}) {
+  function getInitials(name: string) {
+    return name
+      .split(' ')
+      .map(p => p[0])
+      .join('')
+      .slice(0, 2)
+      .toUpperCase()
+  }
+
+  return (
+    <motion.div
+      key="step2"
+      initial={{ opacity: 0, x: 20 }}
+      animate={{ opacity: 1, x: 0 }}
+      exit={{ opacity: 0, x: -20 }}
+      transition={{ duration: 0.18 }}
+      style={{ width: '100%', maxWidth: 360 }}
+    >
+      {/* Logo block */}
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, marginBottom: 28 }}>
         <div
           style={{
+            width: 48,
+            height: 48,
+            borderRadius: 14,
+            backgroundColor: '#EF4444',
             display: 'flex',
-            flexDirection: 'column',
-            gap: 8,
-            marginBottom: 20,
+            alignItems: 'center',
+            justifyContent: 'center',
           }}
         >
-          {PIN_ROWS.map((row, ri) => (
-            <div
-              key={`row-${ri}`}
-              style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(3, 1fr)',
-                gap: 8,
-              }}
-            >
-              {row.map((digit) => (
-                <motion.button
-                  key={`pin-${digit}`}
-                  type="button"
-                  onClick={() => handlePinPress(digit)}
-                  disabled={loginLoading}
-                  whileTap={{ y: 1, scale: 0.97 }}
-                  style={pinButtonStyle}
-                >
-                  {digit}
-                </motion.button>
-              ))}
-            </div>
-          ))}
+          <Home size={26} color="#fff" />
+        </div>
+        <p style={{ fontSize: 22, fontWeight: 900, color: '#1A0505', margin: 0 }}>Roost</p>
+      </div>
 
-          {/* Row 4: 0 + backspace */}
-          <div
+      <h1 style={{ fontSize: 24, fontWeight: 900, color: '#1A0505', marginBottom: 6 }}>
+        Who are you?
+      </h1>
+      <p style={{ fontSize: 13, fontWeight: 600, color: '#7A3F3F', marginBottom: 24 }}>
+        Tap your name to sign in.
+      </p>
+
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: '1fr 1fr',
+          gap: 12,
+        }}
+      >
+        {children.map((child, i) => (
+          <motion.button
+            key={child.id}
+            onClick={() => onSelect(child)}
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: Math.min(i * 0.06, 0.2), duration: 0.15 }}
+            whileTap={{ y: 2 }}
             style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(3, 1fr)',
-              gap: 8,
+              height: 80,
+              borderRadius: 14,
+              backgroundColor: '#fff',
+              border: '1.5px solid #F5C5C5',
+              borderBottom: '3px solid #DBADB0',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 6,
+              cursor: 'pointer',
+              fontSize: 14,
+              fontWeight: 800,
+              color: '#1A0505',
             }}
           >
-            <div />
-            <motion.button
-              type="button"
-              onClick={() => handlePinPress('0')}
-              disabled={loginLoading}
-              whileTap={{ y: 1, scale: 0.97 }}
-              style={pinButtonStyle}
-            >
-              0
-            </motion.button>
-            <motion.button
-              type="button"
-              onClick={() => handlePinPress('del')}
-              disabled={loginLoading}
-              whileTap={{ y: 1, scale: 0.97 }}
-              style={{ ...pinButtonStyle, fontSize: 16 }}
-            >
-              <Delete size={20} />
-            </motion.button>
-          </div>
-        </div>
-
-        <AnimatePresence>
-          {loginLoading && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
+            {/* Avatar circle */}
+            <div
               style={{
+                width: 32,
+                height: 32,
+                borderRadius: '50%',
+                backgroundColor: child.avatarColor ?? '#6366F1',
                 display: 'flex',
+                alignItems: 'center',
                 justifyContent: 'center',
-                marginBottom: 16,
+                fontSize: 12,
+                fontWeight: 800,
+                color: '#fff',
+                flexShrink: 0,
               }}
             >
-              <Loader2
-                size={20}
-                className="animate-spin"
-                style={{ color: '#ffffff' }}
-              />
-            </motion.div>
-          )}
-        </AnimatePresence>
+              {getInitials(child.name)}
+            </div>
+            <span>{child.name}</span>
+          </motion.button>
+        ))}
+      </div>
 
-        <AnimatePresence>
-          {pinError && !loginLoading && (
-            <motion.p
-              initial={{ opacity: 0, y: -4 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -4 }}
-              transition={{ duration: 0.15 }}
-              style={{
-                textAlign: 'center',
-                fontSize: 13,
-                fontWeight: 700,
-                color: '#ffffff',
-                marginBottom: 12,
-              }}
-            >
-              {pinError}
-            </motion.p>
-          )}
-        </AnimatePresence>
-
+      <p style={{ textAlign: 'center', marginTop: 20 }}>
         <button
-          type="button"
-          onClick={
-            children.length > 1
-              ? () => {
-                  setStep(2);
-                  setPin('');
-                }
-              : handleWrongHouse
-          }
+          onClick={() => {
+            clearCookie(COOKIE_NAME)
+            onBack()
+          }}
           style={{
-            textAlign: 'center',
             fontSize: 12,
             fontWeight: 700,
-            color: '#FFFFFF',
-            marginTop: 4,
+            color: '#9B6060',
             background: 'none',
             border: 'none',
             cursor: 'pointer',
             padding: 0,
-            display: 'block',
-            width: '100%',
           }}
         >
-          {children.length > 1 ? 'Not you?' : 'Wrong house?'}
+          Wrong house? (code: {code})
         </button>
-      </motion.div>
-    </div>
-  );
+      </p>
+    </motion.div>
+  )
 }
 
-// ---- Shared styles ----------------------------------------------------------
+// ─── Step 3: PIN pad ──────────────────────────────────────────────────────────
 
-const pageStyle: React.CSSProperties = {
-  minHeight: '100vh',
-  backgroundColor: ROOST_BRAND_SOFT_BG,
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  padding: '40px 24px',
-  fontFamily: 'var(--font-nunito)',
-};
+function Step3({
+  code,
+  child,
+  onBack,
+}: {
+  code: string
+  child: ChildAccount
+  onBack: () => void
+}) {
+  const router = useRouter()
+  const [pin, setPin] = useState('')
+  const [loading, setLoading] = useState(false)
+  const [pinError, setPinError] = useState('')
+  const [shake, setShake] = useState(false)
 
-const panelStyle: React.CSSProperties = {
-  width: '100%',
-  backgroundColor: ROOST_BRAND_SURFACE,
-  borderRadius: 28,
-  padding: '28px 24px',
-  boxShadow: '0 28px 70px rgba(69, 10, 10, 0.24)',
-  border: '1px solid rgba(127, 29, 29, 0.22)',
-};
+  const submitPin = useCallback(
+    async (digits: string) => {
+      if (digits.length !== 4) return
+      setPinError('')
+      setLoading(true)
+      try {
+        const res = await fetch('/api/auth/child-login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ householdCode: code, childId: child.id, pin: digits }),
+        })
+        if (res.ok) {
+          router.replace('/today')
+        } else {
+          const data = await res.json().catch(() => ({}))
+          setShake(true)
+          setPinError(data.error ?? 'Wrong PIN. Try again.')
+          setPin('')
+          setTimeout(() => setShake(false), 400)
+        }
+      } catch {
+        setShake(true)
+        setPinError('Something went wrong. Try again.')
+        setPin('')
+        setTimeout(() => setShake(false), 400)
+      } finally {
+        setLoading(false)
+      }
+    },
+    [code, child.id, router]
+  )
 
-const headingStyle: React.CSSProperties = {
-  fontSize: 26,
-  fontWeight: 900,
-  color: ROOST_BRAND_CARD_TEXT,
-  textAlign: 'center',
-  marginBottom: 8,
-  lineHeight: 1.15,
-  letterSpacing: '-0.5px',
-};
+  function pressKey(key: string) {
+    if (loading) return
+    setPinError('')
+    if (key === 'backspace') {
+      setPin(p => p.slice(0, -1))
+      return
+    }
+    const next = pin + key
+    setPin(next)
+    if (next.length === 4) {
+      submitPin(next)
+    }
+  }
 
-const subStyle: React.CSSProperties = {
-  fontSize: 13,
-  fontWeight: 600,
-  color: ROOST_BRAND_CARD_MUTED,
-  textAlign: 'center',
-  marginBottom: 28,
-  lineHeight: 1.5,
-};
+  const PAD_KEYS = [
+    '1', '2', '3',
+    '4', '5', '6',
+    '7', '8', '9',
+    '', '0', 'backspace',
+  ]
 
-const codeInputStyle: React.CSSProperties = {
-  width: '100%',
-  height: 64,
-  border: '2px solid #F5C5C5',
-  borderBottom: '4px solid #DBADB0',
-  borderRadius: 14,
-  backgroundColor: 'white',
-  fontSize: 22,
-  letterSpacing: '6px',
-  textAlign: 'center',
-  color: ROOST_BRAND_TEXT,
-  fontWeight: 900,
-  outline: 'none',
-  boxSizing: 'border-box',
-  display: 'block',
-};
+  return (
+    <motion.div
+      key="step3"
+      initial={{ opacity: 0, x: 20 }}
+      animate={{ opacity: 1, x: 0 }}
+      exit={{ opacity: 0, x: -20 }}
+      transition={{ duration: 0.18 }}
+      style={{ width: '100%', maxWidth: 360 }}
+    >
+      {/* Logo block */}
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, marginBottom: 28 }}>
+        <div
+          style={{
+            width: 48,
+            height: 48,
+            borderRadius: 14,
+            backgroundColor: '#EF4444',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          <Home size={26} color="#fff" />
+        </div>
+        <p style={{ fontSize: 22, fontWeight: 900, color: '#1A0505', margin: 0 }}>Roost</p>
+      </div>
 
-const slabButtonStyle: React.CSSProperties = {
-  width: '100%',
-  height: 56,
-  backgroundColor: 'white',
-  color: ROOST_BRAND_BG,
-  fontWeight: 800,
-  fontSize: 16,
-  borderRadius: 16,
-  border: 'none',
-  borderBottom: '4px solid #E7B7B7',
-  cursor: 'pointer',
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-};
+      <h1 style={{ fontSize: 24, fontWeight: 900, color: '#1A0505', marginBottom: 24, textAlign: 'center' }}>
+        {child.name}&apos;s PIN
+      </h1>
 
-const pinButtonStyle: React.CSSProperties = {
-  height: 72,
-  backgroundColor: 'white',
-  border: '1.5px solid #F5C5C5',
-  borderBottom: '3px solid #DBADB0',
-  borderRadius: 14,
-  fontSize: 24,
-  fontWeight: 900,
-  color: ROOST_BRAND_TEXT,
-  cursor: 'pointer',
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-};
+      {/* PIN dots */}
+      <motion.div
+        animate={shake ? { x: [0, -6, 6, -4, 4, 0] } : { x: 0 }}
+        transition={{ duration: 0.3 }}
+        style={{
+          display: 'flex',
+          gap: 12,
+          justifyContent: 'center',
+          marginBottom: 8,
+        }}
+      >
+        {[0, 1, 2, 3].map(i => (
+          <div
+            key={i}
+            style={{
+              width: 18,
+              height: 18,
+              borderRadius: '50%',
+              backgroundColor: i < pin.length ? '#EF4444' : '#F5C5C5',
+              transition: 'background-color 0.1s',
+            }}
+          />
+        ))}
+      </motion.div>
+
+      {/* Error or spinner */}
+      <div style={{ minHeight: 24, textAlign: 'center', marginBottom: 20 }}>
+        {loading && (
+          <Loader2 size={18} color="#EF4444" style={{ animation: 'spin 1s linear infinite', display: 'inline-block' }} />
+        )}
+        {!loading && pinError && (
+          <p style={{ color: '#EF4444', fontSize: 13, fontWeight: 700, margin: 0 }}>{pinError}</p>
+        )}
+      </div>
+
+      {/* PIN keypad */}
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: '1fr 1fr 1fr',
+          gap: 10,
+        }}
+      >
+        {PAD_KEYS.map((key, i) => {
+          if (key === '') {
+            return <div key={i} />
+          }
+          return (
+            <motion.button
+              key={key}
+              whileTap={{ y: 1 }}
+              onClick={() => pressKey(key)}
+              disabled={loading}
+              style={{
+                height: 64,
+                backgroundColor: '#fff',
+                border: '1.5px solid #F5C5C5',
+                borderBottom: '3px solid #D4CFC9',
+                borderRadius: 12,
+                fontSize: key === 'backspace' ? 0 : 24,
+                fontWeight: 800,
+                color: '#1A0505',
+                cursor: loading ? 'not-allowed' : 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                opacity: loading ? 0.6 : 1,
+              }}
+            >
+              {key === 'backspace' ? (
+                <ChevronLeft size={22} color="#1A0505" />
+              ) : (
+                key
+              )}
+            </motion.button>
+          )
+        })}
+      </div>
+
+      <p style={{ textAlign: 'center', marginTop: 20 }}>
+        <button
+          onClick={onBack}
+          style={{
+            fontSize: 12,
+            fontWeight: 700,
+            color: '#9B6060',
+            background: 'none',
+            border: 'none',
+            cursor: 'pointer',
+            padding: 0,
+          }}
+        >
+          Back
+        </button>
+      </p>
+    </motion.div>
+  )
+}
+
+// ─── Root page ────────────────────────────────────────────────────────────────
+
+export default function ChildLoginPage() {
+  const [step, setStep] = useState<1 | 2 | 3>(1)
+  const [householdCode, setHouseholdCode] = useState('')
+  const [children, setChildren] = useState<ChildAccount[]>([])
+  const [selectedChild, setSelectedChild] = useState<ChildAccount | null>(null)
+
+  function handleFound(code: string, kids: ChildAccount[]) {
+    setHouseholdCode(code)
+    setChildren(kids)
+    setStep(2)
+  }
+
+  function handleSelectChild(child: ChildAccount) {
+    setSelectedChild(child)
+    setStep(3)
+  }
+
+  function handleBackToStep1() {
+    setStep(1)
+    setHouseholdCode('')
+    setChildren([])
+    setSelectedChild(null)
+  }
+
+  function handleBackToStep2() {
+    setStep(2)
+    setSelectedChild(null)
+  }
+
+  return (
+    <>
+      {/* Global spin keyframe */}
+      <style>{`
+        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+      `}</style>
+
+      <div
+        style={{
+          minHeight: '100dvh',
+          backgroundColor: '#FFF5F5',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: 24,
+        }}
+      >
+        <AnimatePresence mode="wait">
+          {step === 1 && (
+            <Step1 key="step1" onFound={handleFound} />
+          )}
+          {step === 2 && (
+            <Step2
+              key="step2"
+              code={householdCode}
+              children={children}
+              onSelect={handleSelectChild}
+              onBack={handleBackToStep1}
+            />
+          )}
+          {step === 3 && selectedChild && (
+            <Step3
+              key="step3"
+              code={householdCode}
+              child={selectedChild}
+              onBack={handleBackToStep2}
+            />
+          )}
+        </AnimatePresence>
+      </div>
+    </>
+  )
+}

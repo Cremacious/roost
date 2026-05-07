@@ -1,62 +1,37 @@
-import { NextRequest } from "next/server";
-import { requireSession } from "@/lib/auth/helpers";
-import { db } from "@/lib/db";
-import { expense_categories, user } from "@/db/schema";
-import { eq } from "drizzle-orm";
-import { getUserHousehold } from "@/app/api/chores/route";
+import { NextRequest, NextResponse } from 'next/server'
+import { getSession, getUserHousehold } from '@/lib/auth/helpers'
+import { db } from '@/lib/db'
+import { expenseCategories } from '@/db/schema'
 
-export async function POST(request: NextRequest): Promise<Response> {
-  let session;
-  try {
-    session = await requireSession(request);
-  } catch (r) {
-    return r as Response;
+export async function POST(req: NextRequest) {
+  const session = await getSession()
+  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+  const membership = await getUserHousehold(session.user.id)
+  if (!membership) return NextResponse.json({ error: 'No household' }, { status: 403 })
+
+  const { householdId, role } = membership
+  if (role === 'child') return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+
+  if (membership.household.subscriptionStatus !== 'premium') {
+    return NextResponse.json({ error: 'Premium required', code: 'EXPENSE_CATEGORIES_PREMIUM' }, { status: 403 })
   }
 
-  const membership = await getUserHousehold(session.user.id);
-  if (!membership) {
-    return Response.json({ error: "No household found" }, { status: 404 });
-  }
-  const { householdId } = membership;
+  const { name, icon, color } = await req.json()
+  if (!name?.trim()) return NextResponse.json({ error: 'Name required' }, { status: 400 })
 
-  let body: { name?: string; icon?: string; color?: string };
-  try {
-    body = await request.json();
-  } catch {
-    return Response.json({ error: "Invalid request body" }, { status: 400 });
-  }
+  const id = crypto.randomUUID()
+  await db.insert(expenseCategories).values({
+    id,
+    householdId,
+    name: name.trim(),
+    icon: icon ?? 'Tag',
+    color: color ?? '#22C55E',
+    isDefault: false,
+    isCustom: true,
+    suggestedBy: session.user.id,
+    status: 'pending',
+  })
 
-  if (!body.name?.trim()) return Response.json({ error: "Name is required" }, { status: 400 });
-  if (!body.icon?.trim()) return Response.json({ error: "Icon is required" }, { status: 400 });
-  if (!body.color?.trim()) return Response.json({ error: "Color is required" }, { status: 400 });
-
-  const [category] = await db
-    .insert(expense_categories)
-    .values({
-      household_id: householdId,
-      name: body.name.trim(),
-      icon: body.icon.trim(),
-      color: body.color.trim(),
-      is_default: false,
-      is_custom: true,
-      suggested_by: session.user.id,
-      status: "pending",
-    })
-    .returning();
-
-  // Fetch suggester name for notification text (best-effort)
-  try {
-    const [suggester] = await db
-      .select({ name: user.name })
-      .from(user)
-      .where(eq(user.id, session.user.id))
-      .limit(1);
-    // TODO: push notify admin when Expo push is wired up
-    // Notification copy: `${suggester.name} suggested a new category: ${category.name}`
-    void suggester;
-  } catch {
-    // ignore
-  }
-
-  return Response.json({ category }, { status: 201 });
+  return NextResponse.json({ id }, { status: 201 })
 }

@@ -1,417 +1,472 @@
-"use client";
+'use client'
 
-import { useEffect, useRef, useState } from "react";
-import { toast } from "sonner";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { motion } from "framer-motion";
-import DraggableSheet from "@/components/shared/DraggableSheet";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from "@/components/ui/dialog";
-import { Loader2, Trash2 } from "lucide-react";
-import { SECTION_COLORS } from "@/lib/constants/colors";
+import { useState, useEffect } from 'react'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { toast } from 'sonner'
+import { Lock, RefreshCw } from 'lucide-react'
+import { DraggableSheet } from '@/components/shared/DraggableSheet'
+import { SECTION_COLORS } from '@/lib/constants/colors'
+import type { Project } from './TaskTabRow'
 
-const COLOR = SECTION_COLORS.tasks; // #EC4899
-
-// ---- Types ------------------------------------------------------------------
+const COLOR = SECTION_COLORS.tasks.base
+const COLOR_DARK = SECTION_COLORS.tasks.dark
 
 export interface TaskData {
-  id: string;
-  title: string;
-  description: string | null;
-  assigned_to: string | null;
-  due_date: string | null;
-  priority: string;
-  created_by: string;
+  id?: string
+  title: string
+  description: string | null
+  assignedTo: string | null
+  dueDate: string | null
+  dueTime: string | null
+  priority: 'low' | 'medium' | 'high'
+  projectId: string | null
+  recurring: boolean
+  frequency: string | null
+  repeatEndType: string | null
+  repeatUntil: string | null
+  repeatOccurrences: number | null
 }
 
-export interface Member {
-  userId: string;
-  name: string;
-  avatarColor: string | null;
-  role: string;
+interface Member {
+  userId: string
+  name: string
+  avatarColor: string | null
+  role: string
 }
 
 interface TaskSheetProps {
-  open: boolean;
-  onClose: () => void;
-  task?: TaskData | null;
-  householdMembers: Member[];
-  currentUserId: string;
-  isAdmin: boolean;
-  onUpgradeRequired?: (code: string) => void;
+  open: boolean
+  onClose: () => void
+  task?: TaskData | null
+  members: Member[]
+  projects?: Project[]
+  isAdmin: boolean
+  isPremium?: boolean
+  onUpgradeRequired?: (code: string) => void
 }
 
-// ---- Shared input style -----------------------------------------------------
-
-const inputStyle: React.CSSProperties = {
-  backgroundColor: "var(--roost-surface)",
-  border: "1.5px solid #E5E7EB",
-  borderBottom: "3px solid #E5E7EB",
-  color: "var(--roost-text-primary)",
-  fontWeight: 600,
-};
-
-// ---- Priority config --------------------------------------------------------
-
 const PRIORITIES = [
-  { value: "low",    label: "Low",    color: "var(--roost-text-muted)" },
-  { value: "medium", label: "Medium", color: "#F59E0B" },
-  { value: "high",   label: "High",   color: "#EF4444" },
-] as const;
+  { value: 'low', label: 'Low' },
+  { value: 'medium', label: 'Medium' },
+  { value: 'high', label: 'High' },
+] as const
 
-// ---- Component --------------------------------------------------------------
+const FREQUENCIES = [
+  { value: 'daily', label: 'Daily' },
+  { value: 'weekly', label: 'Weekly' },
+  { value: 'biweekly', label: 'Biweekly' },
+  { value: 'monthly', label: 'Monthly' },
+] as const
+
+const LABEL_STYLE: React.CSSProperties = {
+  fontSize: 11,
+  fontWeight: 800,
+  textTransform: 'uppercase',
+  letterSpacing: '0.07em',
+  color: '#374151',
+  marginBottom: 6,
+  display: 'block',
+}
+
+const INPUT_STYLE: React.CSSProperties = {
+  width: '100%',
+  border: '1.5px solid var(--roost-border)',
+  borderBottom: `3px solid var(--roost-border)`,
+  borderRadius: 12,
+  padding: '12px 14px',
+  fontSize: 15,
+  fontWeight: 600,
+  backgroundColor: 'var(--roost-surface)',
+  color: 'var(--roost-text-primary)',
+  outline: 'none',
+  boxSizing: 'border-box',
+}
 
 export default function TaskSheet({
-  open,
-  onClose,
-  task,
-  householdMembers,
-  currentUserId,
-  isAdmin,
-  onUpgradeRequired,
+  open, onClose, task, members, projects = [], isAdmin, isPremium, onUpgradeRequired,
 }: TaskSheetProps) {
-  const queryClient = useQueryClient();
-  const titleRef = useRef<HTMLInputElement>(null);
-  const mode = task ? "edit" : "create";
+  const qc = useQueryClient()
+  const isEditing = !!task?.id
 
-  const [title, setTitle] = useState("");
-  const [description, setDescription] = useState("");
-  const [assignedTo, setAssignedTo] = useState<string>("");
-  const [dueDate, setDueDate] = useState("");
-  const [priority, setPriority] = useState<"low" | "medium" | "high">("medium");
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [title, setTitle] = useState('')
+  const [description, setDescription] = useState('')
+  const [assignedTo, setAssignedTo] = useState('')
+  const [dueDate, setDueDate] = useState('')
+  const [dueTime, setDueTime] = useState('')
+  const [priority, setPriority] = useState<'low' | 'medium' | 'high'>('medium')
+  const [projectId, setProjectId] = useState('')
+  const [recurring, setRecurring] = useState(false)
+  const [frequency, setFrequency] = useState('weekly')
+  const [repeatEndType, setRepeatEndType] = useState<'forever' | 'until_date' | 'after_occurrences'>('forever')
+  const [repeatUntil, setRepeatUntil] = useState('')
+  const [repeatOccurrences, setRepeatOccurrences] = useState('5')
 
-  // Sync fields when task changes or sheet opens
   useEffect(() => {
     if (open) {
-      if (task) {
-        // eslint-disable-next-line react-hooks/set-state-in-effect
-        setTitle(task.title);
-        setDescription(task.description ?? "");
-        setAssignedTo(task.assigned_to ?? "");
-        setDueDate(
-          task.due_date
-            ? new Date(task.due_date).toISOString().split("T")[0]
-            : ""
-        );
-        setPriority((task.priority as "low" | "medium" | "high") ?? "medium");
-      } else {
-        setTitle("");
-        setDescription("");
-        setAssignedTo("");
-        setDueDate("");
-        setPriority("medium");
-      }
-      // Autofocus title
-      setTimeout(() => titleRef.current?.focus(), 100);
+      setTitle(task?.title ?? '')
+      setDescription(task?.description ?? '')
+      setAssignedTo(task?.assignedTo ?? '')
+      setDueDate(task?.dueDate ? task.dueDate.slice(0, 10) : '')
+      setDueTime(task?.dueTime ?? '')
+      setPriority(task?.priority ?? 'medium')
+      setProjectId(task?.projectId ?? '')
+      setRecurring(task?.recurring ?? false)
+      setFrequency(task?.frequency ?? 'weekly')
+      setRepeatEndType((task?.repeatEndType as typeof repeatEndType) ?? 'forever')
+      setRepeatUntil(task?.repeatUntil ? task.repeatUntil.slice(0, 10) : '')
+      setRepeatOccurrences(task?.repeatOccurrences?.toString() ?? '5')
     }
-  }, [open, task]);
+  }, [open, task])
+
+  function handleRepeatToggle() {
+    if (!recurring && !isPremium) {
+      onUpgradeRequired?.('RECURRING_TASKS_PREMIUM')
+      return
+    }
+    setRecurring(v => !v)
+  }
 
   const saveMutation = useMutation({
     mutationFn: async () => {
-      const payload = {
+      const body: Record<string, unknown> = {
         title: title.trim(),
-        description: description.trim() || undefined,
-        assigned_to: assignedTo || null,
-        due_date: dueDate || null,
+        description: description.trim() || null,
+        assignedTo: assignedTo || null,
+        dueDate: dueDate || null,
+        dueTime: dueTime || null,
         priority,
-      };
-      if (mode === "create") {
-        const r = await fetch("/api/tasks", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
-        });
-        if (!r.ok) {
-          const d = await r.json().catch(() => ({}));
-          const err = new Error(d.error ?? "Failed to create task") as Error & { code?: string };
-          err.code = d.code;
-          throw err;
-        }
-        return r.json();
+        projectId: projectId || null,
+        recurring,
+      }
+      if (recurring) {
+        body.frequency = frequency
+        body.repeatEndType = repeatEndType
+        body.repeatUntil = repeatEndType === 'until_date' && repeatUntil ? repeatUntil : null
+        body.repeatOccurrences = repeatEndType === 'after_occurrences' ? parseInt(repeatOccurrences) : null
       } else {
+        body.frequency = null
+        body.repeatEndType = null
+        body.repeatUntil = null
+        body.repeatOccurrences = null
+      }
+
+      if (isEditing) {
         const r = await fetch(`/api/tasks/${task!.id}`, {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
-        });
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body),
+        })
+        if (!r.ok) throw new Error((await r.json()).error ?? 'Failed to update task')
+        return r.json()
+      } else {
+        const r = await fetch('/api/tasks', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body),
+        })
         if (!r.ok) {
-          const d = await r.json().catch(() => ({}));
-          throw new Error(d.error ?? "Failed to update task");
+          const data = await r.json()
+          const err = new Error(data.error ?? 'Failed to create task') as Error & { code?: string }
+          err.code = data.code
+          throw err
         }
-        return r.json();
+        return r.json()
       }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["tasks"] });
-      toast.success(mode === "create" ? "Task added" : "Task updated");
-      onClose();
+      qc.invalidateQueries({ queryKey: ['tasks'] })
+      toast.success(isEditing ? 'Task updated' : 'Task added')
+      onClose()
     },
     onError: (err: Error & { code?: string }) => {
-      if (err.code && onUpgradeRequired) {
-        onUpgradeRequired(err.code);
-      } else {
-        toast.error(err.message);
-      }
+      if (err.code && onUpgradeRequired) { onUpgradeRequired(err.code); return }
+      toast.error(isEditing ? 'Could not update task' : 'Could not add task', {
+        description: err.message,
+      })
     },
-  });
+  })
 
-  const deleteMutation = useMutation({
-    mutationFn: async () => {
-      const r = await fetch(`/api/tasks/${task!.id}`, { method: "DELETE" });
-      if (!r.ok) {
-        const d = await r.json().catch(() => ({}));
-        throw new Error(d.error ?? "Failed to delete task");
-      }
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["tasks"] });
-      toast.success("Task deleted");
-      setDeleteDialogOpen(false);
-      onClose();
-    },
-    onError: (err: Error) => toast.error(err.message),
-  });
-
-  const canDelete =
-    mode === "edit" && task &&
-    (task.created_by === currentUserId || isAdmin);
-
-  function handleSave() {
+  function handleSubmit() {
     if (!title.trim()) {
-      toast.error("Title is required");
-      titleRef.current?.focus();
-      return;
+      toast.error('Title is required', { description: 'Give the task a name.' })
+      return
     }
-    saveMutation.mutate();
+    saveMutation.mutate()
   }
 
+  const nonChildMembers = members.filter(m => m.role !== 'child')
+
   return (
-    <>
-      <DraggableSheet open={open} onOpenChange={(v) => !v && onClose()} featureColor="#EC4899">
-        <div
-          className="px-4 pb-8"
-          style={{ maxHeight: "calc(92dvh - 60px)" }}
-        >
-          <p className="mb-5 text-lg" style={{ color: "var(--roost-text-primary)", fontWeight: 800 }}>
-            {mode === "create" ? "New Task" : "Edit Task"}
-          </p>
+    <DraggableSheet open={open} onOpenChange={v => !v && onClose()} featureColor={COLOR}>
+      <div className="px-4 pb-8">
+        <p className="mb-5 text-lg" style={{ color: 'var(--roost-text-primary)', fontWeight: 800 }}>
+          {isEditing ? 'Edit task' : 'New task'}
+        </p>
 
-          <div className="space-y-4">
-            {/* Title */}
-            <div>
-              <label className="mb-1.5 block text-xs" style={{ color: "#374151", fontWeight: 700 }}>
-                Title
-              </label>
-              <input
-                ref={titleRef}
-                type="text"
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && handleSave()}
-                placeholder="e.g. Call the landlord (again)"
-                className="h-12 w-full rounded-xl px-4 text-sm focus:outline-none"
-                style={inputStyle}
-              />
-            </div>
+        {/* Title */}
+        <div style={{ marginBottom: 16 }}>
+          <label style={LABEL_STYLE}>Title</label>
+          <input
+            style={INPUT_STYLE}
+            placeholder="e.g. Buy a new shower curtain"
+            value={title}
+            onChange={e => setTitle(e.target.value)}
+            onKeyDown={e => e.key === 'Enter' && handleSubmit()}
+          />
+        </div>
 
-            {/* Description */}
-            <div>
-              <label className="mb-1.5 block text-xs" style={{ color: "#374151", fontWeight: 700 }}>
-                Description
-              </label>
-              <textarea
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                placeholder="Any details worth knowing..."
-                rows={3}
-                className="w-full resize-none rounded-xl px-4 py-3 text-sm focus:outline-none"
-                style={inputStyle}
-              />
-            </div>
+        {/* Description */}
+        <div style={{ marginBottom: 16 }}>
+          <label style={LABEL_STYLE}>Notes</label>
+          <textarea
+            style={{ ...INPUT_STYLE, minHeight: 64, resize: 'vertical' }}
+            placeholder="Any extra details..."
+            value={description}
+            onChange={e => setDescription(e.target.value)}
+          />
+        </div>
 
-            {/* Assign to */}
-            <div>
-              <label className="mb-1.5 block text-xs" style={{ color: "#374151", fontWeight: 700 }}>
-                Assign to
-              </label>
-              <select
-                value={assignedTo}
-                onChange={(e) => setAssignedTo(e.target.value)}
-                className="h-12 w-full rounded-xl px-4 text-sm focus:outline-none"
-                style={inputStyle}
-              >
-                <option value="">Unassigned</option>
-                {householdMembers.map((m) => (
-                  <option key={m.userId} value={m.userId}>
-                    {m.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {/* Due date */}
-            <div>
-              <label className="mb-1.5 block text-xs" style={{ color: "#374151", fontWeight: 700 }}>
-                Due date
-              </label>
-              <div className="flex items-center gap-2">
-                <input
-                  type="date"
-                  value={dueDate}
-                  onChange={(e) => setDueDate(e.target.value)}
-                  className="h-12 flex-1 rounded-xl px-4 text-sm focus:outline-none"
-                  style={inputStyle}
-                />
-                {dueDate && (
-                  <button
-                    type="button"
-                    onClick={() => setDueDate("")}
-                    className="h-12 rounded-xl px-4 text-sm"
-                    style={{
-                      border: "1.5px solid #E5E7EB",
-                      borderBottom: "3px solid #E5E7EB",
-                      color: "var(--roost-text-muted)",
-                      fontWeight: 700,
-                    }}
-                  >
-                    Clear
-                  </button>
-                )}
-              </div>
-            </div>
-
-            {/* Priority */}
-            <div>
-              <label className="mb-1.5 block text-xs" style={{ color: "#374151", fontWeight: 700 }}>
-                Priority
-              </label>
-              <div className="flex gap-2">
-                {PRIORITIES.map((p) => {
-                  const active = priority === p.value;
-                  const isHigh = p.value === "high";
-                  const isMedium = p.value === "medium";
-                  return (
-                    <button
-                      key={p.value}
-                      type="button"
-                      onClick={() => setPriority(p.value)}
-                      className="flex h-10 flex-1 items-center justify-center rounded-xl text-sm"
-                      style={{
-                        backgroundColor: active
-                          ? (isHigh ? "#EF4444" : isMedium ? "#F59E0B" : "#E5E7EB")
-                          : "var(--roost-surface)",
-                        border: active
-                          ? `1.5px solid ${isHigh ? "#C93B3B" : isMedium ? "#C87D00" : "#E5E7EB"}`
-                          : "1.5px solid #E5E7EB",
-                        borderBottom: active
-                          ? `3px solid ${isHigh ? "#A63030" : isMedium ? "#A66A00" : "#C5C9CD"}`
-                          : "3px solid #E5E7EB",
-                        color: active
-                          ? (isHigh || isMedium ? "white" : "var(--roost-text-primary)")
-                          : p.color,
-                        fontWeight: active ? 800 : 700,
-                      }}
-                    >
-                      {p.label}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* Save */}
-            <motion.button
-              type="button"
-              onClick={handleSave}
-              disabled={saveMutation.isPending}
-              whileTap={{ y: 2 }}
-              className="mt-2 flex h-12 w-full items-center justify-center gap-2 rounded-xl text-sm text-white"
-              style={{
-                backgroundColor: COLOR,
-                border: `1.5px solid ${COLOR}`,
-                borderBottom: "3px solid #B02878",
-                fontWeight: 800,
-                opacity: saveMutation.isPending ? 0.7 : 1,
-              }}
+        {/* Project */}
+        {projects.length > 0 && (
+          <div style={{ marginBottom: 16 }}>
+            <label style={LABEL_STYLE}>Project</label>
+            <select
+              style={{ ...INPUT_STYLE, appearance: 'none' }}
+              value={projectId}
+              onChange={e => setProjectId(e.target.value)}
             >
-              {saveMutation.isPending ? (
-                <Loader2 className="size-4 animate-spin" />
-              ) : (
-                mode === "create" ? "Add Task" : "Save Changes"
-              )}
-            </motion.button>
+              <option value="">No project</option>
+              {projects.map(p => (
+                <option key={p.id} value={p.id}>{p.name}</option>
+              ))}
+            </select>
+          </div>
+        )}
 
-            {/* Delete (edit mode only) */}
-            {canDelete && (
+        {/* Assign to */}
+        {(isAdmin || nonChildMembers.length > 1) && (
+          <div style={{ marginBottom: 16 }}>
+            <label style={LABEL_STYLE}>Assign to</label>
+            <select
+              style={{ ...INPUT_STYLE, appearance: 'none' }}
+              value={assignedTo}
+              onChange={e => setAssignedTo(e.target.value)}
+            >
+              <option value="">Unassigned</option>
+              {nonChildMembers.map(m => (
+                <option key={m.userId} value={m.userId}>{m.name}</option>
+              ))}
+            </select>
+          </div>
+        )}
+
+        {/* Due date + time */}
+        <div style={{ marginBottom: 16 }}>
+          <label style={LABEL_STYLE}>Due date</label>
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+            <input
+              type="date"
+              style={{ ...INPUT_STYLE, flex: 1 }}
+              value={dueDate}
+              onChange={e => setDueDate(e.target.value)}
+            />
+            {dueDate && (
               <button
                 type="button"
-                onClick={() => setDeleteDialogOpen(true)}
-                className="flex h-11 w-full items-center justify-center gap-2 rounded-xl text-sm"
-                style={{ color: "#EF4444", fontWeight: 700 }}
+                onClick={() => { setDueDate(''); setDueTime('') }}
+                style={{
+                  fontSize: 12, fontWeight: 700, color: 'var(--roost-text-muted)',
+                  background: 'none', border: 'none', cursor: 'pointer', padding: '0 4px', flexShrink: 0,
+                }}
               >
-                <Trash2 className="size-4" />
-                Delete task
+                Clear
               </button>
             )}
           </div>
         </div>
-      </DraggableSheet>
 
-      {/* Delete confirmation */}
-      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle style={{ color: "var(--roost-text-primary)", fontWeight: 800 }}>
-              Delete task?
-            </DialogTitle>
-          </DialogHeader>
-          <DialogDescription className="text-sm" style={{ color: "var(--roost-text-secondary)", fontWeight: 600 }}>
-            {task?.title}
-          </DialogDescription>
-          <DialogFooter className="mt-2 gap-2">
-            <button
-              type="button"
-              onClick={() => setDeleteDialogOpen(false)}
-              className="flex h-11 flex-1 items-center justify-center rounded-xl text-sm"
-              style={{
-                border: "1.5px solid #E5E7EB",
-                borderBottom: "3px solid #E5E7EB",
-                color: "var(--roost-text-primary)",
-                fontWeight: 700,
-              }}
-            >
-              Cancel
-            </button>
-            <motion.button
-              type="button"
-              whileTap={{ y: 1 }}
-              onClick={() => deleteMutation.mutate()}
-              disabled={deleteMutation.isPending}
-              className="flex h-11 flex-1 items-center justify-center rounded-xl text-sm text-white"
-              style={{
-                backgroundColor: "#EF4444",
-                border: "1.5px solid #C93B3B",
-                borderBottom: "3px solid #A63030",
-                fontWeight: 800,
-                opacity: deleteMutation.isPending ? 0.7 : 1,
-              }}
-            >
-              {deleteMutation.isPending ? (
-                <Loader2 className="size-4 animate-spin" />
-              ) : (
-                "Delete"
-              )}
-            </motion.button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </>
-  );
+        {dueDate && (
+          <div style={{ marginBottom: 16 }}>
+            <label style={LABEL_STYLE}>Due time (optional)</label>
+            <input
+              type="time"
+              style={{ ...INPUT_STYLE }}
+              value={dueTime}
+              onChange={e => setDueTime(e.target.value)}
+            />
+          </div>
+        )}
+
+        {/* Priority */}
+        <div style={{ marginBottom: 16 }}>
+          <label style={LABEL_STYLE}>Priority</label>
+          <div style={{ display: 'flex', gap: 8 }}>
+            {PRIORITIES.map(p => {
+              const active = priority === p.value
+              return (
+                <button
+                  key={p.value}
+                  type="button"
+                  onClick={() => setPriority(p.value)}
+                  style={{
+                    flex: 1, padding: '10px 0', borderRadius: 10,
+                    border: '1.5px solid var(--roost-border)',
+                    borderBottom: active ? `3px solid ${COLOR_DARK}` : '3px solid var(--roost-border)',
+                    backgroundColor: active ? COLOR : 'var(--roost-surface)',
+                    color: active ? '#fff' : 'var(--roost-text-secondary)',
+                    fontWeight: 800, fontSize: 13, cursor: 'pointer', transition: 'all 0.1s',
+                  }}
+                >
+                  {p.label}
+                </button>
+              )
+            })}
+          </div>
+        </div>
+
+        {/* Recurring toggle */}
+        <div style={{ marginBottom: recurring ? 16 : 24 }}>
+          <button
+            type="button"
+            onClick={handleRepeatToggle}
+            style={{
+              width: '100%',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 10,
+              padding: '12px 14px',
+              borderRadius: 12,
+              border: '1.5px solid var(--roost-border)',
+              borderBottom: recurring ? `3px solid ${COLOR_DARK}` : '3px solid var(--roost-border)',
+              backgroundColor: recurring ? `${COLOR}10` : 'var(--roost-surface)',
+              cursor: 'pointer',
+            }}
+          >
+            {isPremium
+              ? <RefreshCw size={15} color={recurring ? COLOR : 'var(--roost-text-muted)'} />
+              : <Lock size={15} color="var(--roost-text-muted)" />
+            }
+            <span style={{
+              fontSize: 14, fontWeight: 700,
+              color: recurring ? COLOR : 'var(--roost-text-secondary)',
+              flex: 1, textAlign: 'left',
+            }}>
+              Repeat
+            </span>
+            {!isPremium && (
+              <span style={{
+                fontSize: 10, fontWeight: 800, color: COLOR,
+                backgroundColor: `${COLOR}18`, borderRadius: 20, padding: '2px 8px',
+              }}>
+                Premium
+              </span>
+            )}
+          </button>
+        </div>
+
+        {/* Recurring fields */}
+        {recurring && (
+          <div style={{ marginBottom: 24 }}>
+            <div style={{ marginBottom: 12 }}>
+              <label style={LABEL_STYLE}>Frequency</label>
+              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                {FREQUENCIES.map(f => {
+                  const active = frequency === f.value
+                  return (
+                    <button
+                      key={f.value}
+                      type="button"
+                      onClick={() => setFrequency(f.value)}
+                      style={{
+                        padding: '7px 14px', borderRadius: 20,
+                        border: '1.5px solid var(--roost-border)',
+                        borderBottom: active ? `3px solid ${COLOR_DARK}` : '3px solid var(--roost-border)',
+                        backgroundColor: active ? COLOR : 'var(--roost-surface)',
+                        color: active ? '#fff' : 'var(--roost-text-secondary)',
+                        fontWeight: 700, fontSize: 13, cursor: 'pointer',
+                      }}
+                    >
+                      {f.label}
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+
+            <div style={{ marginBottom: 12 }}>
+              <label style={LABEL_STYLE}>End</label>
+              <div style={{ display: 'flex', gap: 6 }}>
+                {([
+                  { value: 'forever', label: 'Never' },
+                  { value: 'until_date', label: 'On date' },
+                  { value: 'after_occurrences', label: 'After N times' },
+                ] as const).map(opt => {
+                  const active = repeatEndType === opt.value
+                  return (
+                    <button
+                      key={opt.value}
+                      type="button"
+                      onClick={() => setRepeatEndType(opt.value)}
+                      style={{
+                        flex: 1, padding: '8px 0', borderRadius: 10,
+                        border: '1.5px solid var(--roost-border)',
+                        borderBottom: active ? `3px solid ${COLOR_DARK}` : '3px solid var(--roost-border)',
+                        backgroundColor: active ? COLOR : 'var(--roost-surface)',
+                        color: active ? '#fff' : 'var(--roost-text-secondary)',
+                        fontWeight: 700, fontSize: 12, cursor: 'pointer',
+                      }}
+                    >
+                      {opt.label}
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+
+            {repeatEndType === 'until_date' && (
+              <input
+                type="date"
+                style={INPUT_STYLE}
+                value={repeatUntil}
+                onChange={e => setRepeatUntil(e.target.value)}
+                min={dueDate || undefined}
+              />
+            )}
+            {repeatEndType === 'after_occurrences' && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <input
+                  type="number"
+                  min={1}
+                  max={99}
+                  style={{ ...INPUT_STYLE, width: 80 }}
+                  value={repeatOccurrences}
+                  onChange={e => setRepeatOccurrences(e.target.value)}
+                />
+                <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--roost-text-secondary)' }}>
+                  occurrences
+                </span>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Save */}
+        <button
+          type="button"
+          onClick={handleSubmit}
+          disabled={saveMutation.isPending}
+          style={{
+            width: '100%', padding: '14px 0', borderRadius: 14,
+            border: 'none', borderBottom: `3px solid ${COLOR_DARK}`,
+            backgroundColor: COLOR, color: '#fff',
+            fontWeight: 800, fontSize: 15,
+            cursor: saveMutation.isPending ? 'not-allowed' : 'pointer',
+            opacity: saveMutation.isPending ? 0.7 : 1,
+          }}
+        >
+          {saveMutation.isPending ? 'Saving...' : isEditing ? 'Save changes' : 'Add task'}
+        </button>
+      </div>
+    </DraggableSheet>
+  )
 }

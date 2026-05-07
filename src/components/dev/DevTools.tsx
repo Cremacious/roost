@@ -1,154 +1,137 @@
-"use client";
+'use client'
 
-import { useState } from "react";
-import { useQueryClient } from "@tanstack/react-query";
-import { useSession } from "@/lib/auth/client";
-import { useHousehold } from "@/lib/hooks/useHousehold";
-import { Switch } from "@/components/ui/switch";
-import { toast } from "sonner";
+import { useState } from 'react'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 
-export default function DevTools() {
-  const [expanded, setExpanded] = useState(false);
-  const [toggling, setToggling] = useState(false);
-  const queryClient = useQueryClient();
-  const { data: sessionData } = useSession();
-  const { household, role, isPremium, isLoading } = useHousehold();
+export function DevTools() {
+  if (process.env.NODE_ENV !== 'development') return null
 
-  const user = sessionData?.user;
+  return <DevToolsInner />
+}
 
-  async function handleTogglePremium() {
-    if (toggling) return;
-    setToggling(true);
-    try {
-      const res = await fetch("/api/dev/toggle-premium", { method: "POST" });
-      if (!res.ok) throw new Error("Toggle failed");
-      const data = await res.json();
-      await queryClient.invalidateQueries();
-      const newStatus = data.subscription_status;
-      toast.success(newStatus === "premium" ? "Switched to Premium" : "Switched to Free", {
-        description: `Household subscription is now ${newStatus}.`,
-      });
-    } catch {
-      toast.error("Toggle failed", { description: "Could not update subscription status." });
-    } finally {
-      setToggling(false);
-    }
-  }
+function DevToolsInner() {
+  const [open, setOpen] = useState(false)
+  const queryClient = useQueryClient()
+
+  const { data: householdData, isLoading } = useQuery<{ subscription_status: string }>({
+    queryKey: ['dev-household'],
+    queryFn: async () => {
+      const r = await fetch('/api/household/me')
+      if (!r.ok) throw new Error('Failed')
+      const d = await r.json()
+      return d.household
+    },
+    staleTime: 0,
+  })
+
+  const isPremium = householdData?.subscription_status === 'premium'
+
+  const toggleMutation = useMutation({
+    mutationFn: async () => {
+      const r = await fetch('/api/dev/toggle-premium', { method: 'POST' })
+      if (!r.ok) throw new Error('Failed')
+      return r.json()
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['dev-household'] })
+      queryClient.invalidateQueries({ queryKey: ['household'] })
+      queryClient.invalidateQueries({ queryKey: ['rewards'] })
+      queryClient.invalidateQueries({ queryKey: ['rewards-child'] })
+    },
+  })
 
   return (
-    <>
-      {/* Collapsed pill */}
+    <div
+      style={{
+        position: 'fixed',
+        bottom: 80,
+        right: 16,
+        zIndex: 9999,
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'flex-end',
+        gap: 8,
+        fontFamily: 'monospace',
+      }}
+    >
+      {open && (
+        <div
+          style={{
+            backgroundColor: '#1F2937',
+            border: '1px solid #374151',
+            borderRadius: 12,
+            padding: '12px 16px',
+            minWidth: 200,
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 10,
+          }}
+        >
+          <p style={{ fontSize: 11, fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+            Dev Tools
+          </p>
+
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+            <span style={{ fontSize: 13, color: '#F9FAFB', fontWeight: 600 }}>
+              Premium
+            </span>
+            <button
+              type="button"
+              onClick={() => toggleMutation.mutate()}
+              disabled={isLoading || toggleMutation.isPending}
+              data-testid="premium-toggle"
+              style={{
+                width: 44,
+                height: 24,
+                borderRadius: 12,
+                border: 'none',
+                backgroundColor: isPremium ? '#A855F7' : '#374151',
+                cursor: isLoading || toggleMutation.isPending ? 'default' : 'pointer',
+                position: 'relative',
+                transition: 'background-color 0.15s',
+                opacity: isLoading || toggleMutation.isPending ? 0.6 : 1,
+              }}
+            >
+              <span
+                style={{
+                  position: 'absolute',
+                  top: 2,
+                  left: isPremium ? 22 : 2,
+                  width: 20,
+                  height: 20,
+                  borderRadius: '50%',
+                  backgroundColor: '#fff',
+                  transition: 'left 0.15s',
+                }}
+              />
+            </button>
+          </div>
+
+          <p style={{ fontSize: 11, color: isPremium ? '#A855F7' : '#6B7280', fontWeight: 600 }}>
+            {isLoading ? '...' : isPremium ? 'Premium active' : 'Free tier'}
+          </p>
+        </div>
+      )}
+
       <button
         type="button"
-        onClick={() => setExpanded((v) => !v)}
+        onClick={() => setOpen(v => !v)}
         style={{
-          position: "fixed",
-          bottom: 90,
-          left: 16,
-          background: "#F59E0B",
-          borderBottom: "3px solid #C87D00",
-          borderTop: "1.5px solid #F59E0B",
-          borderLeft: "1.5px solid #F59E0B",
-          borderRight: "1.5px solid #F59E0B",
-          borderRadius: 20,
-          padding: "6px 12px",
-          fontFamily: "var(--font-nunito)",
-          fontWeight: 800,
-          fontSize: 12,
-          color: "white",
-          zIndex: 9999,
-          cursor: "pointer",
-          lineHeight: 1,
+          height: 32,
+          paddingLeft: 12,
+          paddingRight: 12,
+          borderRadius: 8,
+          border: '1px solid #374151',
+          backgroundColor: '#111827',
+          color: '#9CA3AF',
+          fontSize: 11,
+          fontWeight: 700,
+          cursor: 'pointer',
+          letterSpacing: '0.04em',
         }}
       >
         DEV
       </button>
-
-      {/* Expanded panel */}
-      {expanded && (
-        <div
-          style={{
-            position: "fixed",
-            bottom: 130,
-            left: 16,
-            width: 220,
-            zIndex: 9999,
-            backgroundColor: "var(--roost-surface)",
-            border: "1.5px solid var(--roost-border)",
-            borderBottom: "4px solid #C87D00",
-            borderRadius: 16,
-            padding: 16,
-          }}
-        >
-          {/* Section: Premium toggle */}
-          <p
-            style={{
-              fontFamily: "var(--font-nunito)",
-              fontWeight: 800,
-              fontSize: 11,
-              color: "#C87D00",
-              marginBottom: 10,
-              textTransform: "uppercase",
-              letterSpacing: "0.05em",
-            }}
-          >
-            Dev Tools
-          </p>
-
-          <div className="flex items-center justify-between" style={{ marginBottom: 12 }}>
-            <span style={{ fontFamily: "var(--font-nunito)", fontWeight: 700, fontSize: 13, color: "var(--roost-text-primary)" }}>
-              Premium
-            </span>
-            <Switch
-              checked={isPremium}
-              onCheckedChange={handleTogglePremium}
-              disabled={toggling || isLoading}
-              data-testid="premium-toggle"
-            />
-          </div>
-
-          <div
-            style={{
-              height: 1,
-              backgroundColor: "var(--roost-border)",
-              marginBottom: 10,
-            }}
-          />
-
-          {/* User info */}
-          <p style={{ fontFamily: "var(--font-nunito)", fontWeight: 800, fontSize: 11, color: "var(--roost-text-muted)", marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.05em" }}>
-            User
-          </p>
-          <p style={{ fontFamily: "var(--font-nunito)", fontWeight: 700, fontSize: 12, color: "var(--roost-text-primary)", marginBottom: 2 }}>
-            {user?.name ?? "Loading..."}
-          </p>
-          <p style={{ fontFamily: "var(--font-nunito)", fontWeight: 600, fontSize: 11, color: "var(--roost-text-muted)", marginBottom: 2 }}>
-            {user?.email ?? ""}
-          </p>
-          <p style={{ fontFamily: "var(--font-nunito)", fontWeight: 600, fontSize: 11, color: "var(--roost-text-muted)", marginBottom: 10 }}>
-            Role: {role ?? "none"}
-          </p>
-
-          <div
-            style={{
-              height: 1,
-              backgroundColor: "var(--roost-border)",
-              marginBottom: 10,
-            }}
-          />
-
-          {/* Household info */}
-          <p style={{ fontFamily: "var(--font-nunito)", fontWeight: 800, fontSize: 11, color: "var(--roost-text-muted)", marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.05em" }}>
-            Household
-          </p>
-          <p style={{ fontFamily: "var(--font-nunito)", fontWeight: 700, fontSize: 12, color: "var(--roost-text-primary)", marginBottom: 2 }}>
-            {household?.name ?? "No household"}
-          </p>
-          <p style={{ fontFamily: "var(--font-nunito)", fontWeight: 600, fontSize: 11, color: "var(--roost-text-muted)" }}>
-            {isPremium ? "Premium" : "Free tier"}
-          </p>
-        </div>
-      )}
-    </>
-  );
+    </div>
+  )
 }

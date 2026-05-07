@@ -1,129 +1,68 @@
-import { NextRequest } from "next/server";
-import { requireSession } from "@/lib/auth/helpers";
-import { db } from "@/lib/db";
-import { recurring_expense_templates, expenses, households } from "@/db/schema";
-import { and, eq, isNull } from "drizzle-orm";
-import { getUserHousehold } from "@/app/api/chores/route";
+import { NextRequest, NextResponse } from 'next/server'
+import { getSession, getUserHousehold } from '@/lib/auth/helpers'
+import { db } from '@/lib/db'
+import { recurringExpenses, expenses } from '@/db/schema'
+import { eq, and, isNull } from 'drizzle-orm'
 
-// ---- PATCH: update template -------------------------------------------------
+export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params
+  const session = await getSession()
+  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-export async function PATCH(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-): Promise<Response> {
-  let session;
-  try {
-    session = await requireSession(request);
-  } catch (r) {
-    return r as Response;
-  }
+  const membership = await getUserHousehold(session.user.id)
+  if (!membership) return NextResponse.json({ error: 'No household' }, { status: 403 })
 
-  const { id } = await params;
-  const membership = await getUserHousehold(session.user.id);
-  if (!membership) return Response.json({ error: "No household found" }, { status: 404 });
-  if (membership.role !== "admin") return Response.json({ error: "Admin required" }, { status: 403 });
-  const { householdId } = membership;
+  const { householdId, role } = membership
+  if (role !== 'admin') return NextResponse.json({ error: 'Admin only' }, { status: 403 })
 
-  const [household] = await db
-    .select({ subscription_status: households.subscription_status })
-    .from(households)
-    .where(eq(households.id, householdId))
-    .limit(1);
-  if (!household || household.subscription_status !== "premium") {
-    return Response.json({ error: "Premium required" }, { status: 403 });
-  }
+  const template = await db
+    .select()
+    .from(recurringExpenses)
+    .where(and(eq(recurringExpenses.id, id), eq(recurringExpenses.householdId, householdId), isNull(recurringExpenses.deletedAt)))
+    .then(r => r[0] ?? null)
 
-  const [existing] = await db
-    .select({ id: recurring_expense_templates.id, household_id: recurring_expense_templates.household_id })
-    .from(recurring_expense_templates)
-    .where(and(eq(recurring_expense_templates.id, id), isNull(recurring_expense_templates.deleted_at)))
-    .limit(1);
+  if (!template) return NextResponse.json({ error: 'Not found' }, { status: 404 })
 
-  if (!existing) return Response.json({ error: "Template not found" }, { status: 404 });
-  if (existing.household_id !== householdId) return Response.json({ error: "Forbidden" }, { status: 403 });
+  const body = await req.json()
+  const updates: Record<string, unknown> = { updatedAt: new Date() }
 
-  let body: {
-    paused?: boolean;
-    title?: string;
-    notes?: string;
-    frequency?: string;
-    totalAmount?: number;
-    nextDueDate?: string;
-    splits?: { userId: string; amount: number }[];
-  };
-  try {
-    body = await request.json();
-  } catch {
-    return Response.json({ error: "Invalid request body" }, { status: 400 });
-  }
+  if (body.title !== undefined) updates.title = body.title.trim()
+  if (body.totalAmount !== undefined) updates.totalAmount = parseFloat(body.totalAmount).toFixed(2)
+  if (body.frequency !== undefined) updates.frequency = body.frequency
+  if (body.nextDueDate !== undefined) updates.nextDueDate = new Date(body.nextDueDate)
+  if (body.categoryId !== undefined) updates.categoryId = body.categoryId ?? null
+  if (body.notes !== undefined) updates.notes = body.notes ?? null
+  if (body.splits !== undefined) updates.splits = JSON.stringify(body.splits)
+  if (body.paused !== undefined) updates.paused = body.paused
+  if (body.isBill !== undefined) updates.isBill = body.isBill
+  if (body.dueDay !== undefined) updates.dueDay = body.dueDay ?? null
 
-  const updates: Partial<typeof recurring_expense_templates.$inferInsert> = {
-    updated_at: new Date(),
-  };
-  if (body.paused !== undefined) updates.paused = body.paused;
-  if (body.title !== undefined) updates.title = body.title.trim();
-  if (body.notes !== undefined) updates.notes = body.notes.trim() || null;
-  if (body.frequency !== undefined && ["weekly", "biweekly", "monthly", "yearly"].includes(body.frequency)) {
-    updates.frequency = body.frequency;
-  }
-  if (body.totalAmount !== undefined && body.totalAmount > 0) {
-    updates.total_amount = body.totalAmount.toFixed(2);
-  }
-  if (body.nextDueDate !== undefined && body.nextDueDate.match(/^\d{4}-\d{2}-\d{2}$/)) {
-    updates.next_due_date = body.nextDueDate;
-  }
-  if (body.splits !== undefined && body.splits.length > 0) {
-    updates.splits = body.splits;
-  }
+  await db.update(recurringExpenses).set(updates).where(eq(recurringExpenses.id, id))
 
-  const [updated] = await db
-    .update(recurring_expense_templates)
-    .set(updates)
-    .where(eq(recurring_expense_templates.id, id))
-    .returning();
-
-  return Response.json({ template: updated });
+  return NextResponse.json({ ok: true })
 }
 
-// ---- DELETE: soft-delete template, unlink expenses --------------------------
+export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params
+  const session = await getSession()
+  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-export async function DELETE(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-): Promise<Response> {
-  let session;
-  try {
-    session = await requireSession(request);
-  } catch (r) {
-    return r as Response;
-  }
+  const membership = await getUserHousehold(session.user.id)
+  if (!membership) return NextResponse.json({ error: 'No household' }, { status: 403 })
 
-  const { id } = await params;
-  const membership = await getUserHousehold(session.user.id);
-  if (!membership) return Response.json({ error: "No household found" }, { status: 404 });
-  if (membership.role !== "admin") return Response.json({ error: "Admin required" }, { status: 403 });
-  const { householdId } = membership;
+  const { householdId, role } = membership
+  if (role !== 'admin') return NextResponse.json({ error: 'Admin only' }, { status: 403 })
 
-  const [existing] = await db
-    .select({ id: recurring_expense_templates.id, household_id: recurring_expense_templates.household_id })
-    .from(recurring_expense_templates)
-    .where(and(eq(recurring_expense_templates.id, id), isNull(recurring_expense_templates.deleted_at)))
-    .limit(1);
-
-  if (!existing) return Response.json({ error: "Template not found" }, { status: 404 });
-  if (existing.household_id !== householdId) return Response.json({ error: "Forbidden" }, { status: 403 });
-
-  // Soft-delete the template
-  await db
-    .update(recurring_expense_templates)
-    .set({ deleted_at: new Date() })
-    .where(eq(recurring_expense_templates.id, id));
-
-  // Unlink expenses from this template (keep history, just remove the link)
+  // unlink expenses but keep history
   await db
     .update(expenses)
-    .set({ recurring_template_id: null })
-    .where(eq(expenses.recurring_template_id, id));
+    .set({ recurringTemplateId: null })
+    .where(eq(expenses.recurringTemplateId, id))
 
-  return Response.json({ success: true });
+  await db
+    .update(recurringExpenses)
+    .set({ deletedAt: new Date() })
+    .where(and(eq(recurringExpenses.id, id), eq(recurringExpenses.householdId, householdId)))
+
+  return NextResponse.json({ ok: true })
 }

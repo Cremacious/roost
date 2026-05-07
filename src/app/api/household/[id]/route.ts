@@ -3,25 +3,23 @@ import { requireHouseholdAdmin } from "@/lib/auth/helpers";
 import { db } from "@/lib/db";
 import {
   households,
-  household_members,
+  householdMembers,
   chores,
-  chore_completions,
-  chore_streaks,
-  grocery_lists,
-  grocery_items,
-  calendar_events,
-  event_attendees,
+  choreCompletions,
+  groceryLists,
+  groceryItems,
+  calendarEvents,
+  eventAttendees,
   notes,
   tasks,
   expenses,
-  expense_splits,
-  meal_plan_slots,
-  meal_suggestions,
-  meal_suggestion_votes,
+  expenseSplits,
+  mealPlanSlots,
+  mealSuggestions,
+  mealSuggestionVotes,
   reminders,
-  reminder_receipts,
-  household_activity,
-  household_join_requests,
+  reminderReceipts,
+  householdActivity,
 } from "@/db/schema";
 import { eq, inArray } from "drizzle-orm";
 
@@ -83,81 +81,77 @@ async function deleteAllHouseholdData(householdId: string) {
   const reminderRows = await db
     .select({ id: reminders.id })
     .from(reminders)
-    .where(eq(reminders.household_id, householdId));
+    .where(eq(reminders.householdId, householdId));
   if (reminderRows.length > 0) {
     const ids = reminderRows.map((r) => r.id);
-    await db.delete(reminder_receipts).where(inArray(reminder_receipts.reminder_id, ids));
-    await db.delete(reminders).where(eq(reminders.household_id, householdId));
+    await db.delete(reminderReceipts).where(inArray(reminderReceipts.reminderId, ids));
+    await db.delete(reminders).where(eq(reminders.householdId, householdId));
   }
 
   // Chores
   const choreRows = await db
     .select({ id: chores.id })
     .from(chores)
-    .where(eq(chores.household_id, householdId));
+    .where(eq(chores.householdId, householdId));
   if (choreRows.length > 0) {
     const ids = choreRows.map((r) => r.id);
-    await db.delete(chore_completions).where(inArray(chore_completions.chore_id, ids));
-    await db.delete(chores).where(eq(chores.household_id, householdId));
+    await db.delete(choreCompletions).where(inArray(choreCompletions.choreId, ids));
+    await db.delete(chores).where(eq(chores.householdId, householdId));
   }
-  await db.delete(chore_streaks).where(eq(chore_streaks.household_id, householdId));
 
   // Grocery
   const listRows = await db
-    .select({ id: grocery_lists.id })
-    .from(grocery_lists)
-    .where(eq(grocery_lists.household_id, householdId));
+    .select({ id: groceryLists.id })
+    .from(groceryLists)
+    .where(eq(groceryLists.householdId, householdId));
   if (listRows.length > 0) {
     const ids = listRows.map((r) => r.id);
-    await db.delete(grocery_items).where(inArray(grocery_items.list_id, ids));
-    await db.delete(grocery_lists).where(eq(grocery_lists.household_id, householdId));
+    await db.delete(groceryItems).where(inArray(groceryItems.listId, ids));
+    await db.delete(groceryLists).where(eq(groceryLists.householdId, householdId));
   }
 
   // Calendar
   const eventRows = await db
-    .select({ id: calendar_events.id })
-    .from(calendar_events)
-    .where(eq(calendar_events.household_id, householdId));
+    .select({ id: calendarEvents.id })
+    .from(calendarEvents)
+    .where(eq(calendarEvents.householdId, householdId));
   if (eventRows.length > 0) {
     const ids = eventRows.map((r) => r.id);
-    await db.delete(event_attendees).where(inArray(event_attendees.event_id, ids));
-    await db.delete(calendar_events).where(eq(calendar_events.household_id, householdId));
+    await db.delete(eventAttendees).where(inArray(eventAttendees.eventId, ids));
+    await db.delete(calendarEvents).where(eq(calendarEvents.householdId, householdId));
   }
 
   // Notes
-  await db.delete(notes).where(eq(notes.household_id, householdId));
+  await db.delete(notes).where(eq(notes.householdId, householdId));
 
   // Tasks
-  await db.delete(tasks).where(eq(tasks.household_id, householdId));
+  await db.delete(tasks).where(eq(tasks.householdId, householdId));
 
   // Expenses
   const expenseRows = await db
     .select({ id: expenses.id })
     .from(expenses)
-    .where(eq(expenses.household_id, householdId));
+    .where(eq(expenses.householdId, householdId));
   if (expenseRows.length > 0) {
     const ids = expenseRows.map((r) => r.id);
-    await db.delete(expense_splits).where(inArray(expense_splits.expense_id, ids));
-    await db.delete(expenses).where(eq(expenses.household_id, householdId));
+    await db.delete(expenseSplits).where(inArray(expenseSplits.expenseId, ids));
+    await db.delete(expenses).where(eq(expenses.householdId, householdId));
   }
 
   // Meals
-  await db.delete(meal_plan_slots).where(eq(meal_plan_slots.household_id, householdId));
+  await db.delete(mealPlanSlots).where(eq(mealPlanSlots.householdId, householdId));
   const suggestionRows = await db
-    .select({ id: meal_suggestions.id })
-    .from(meal_suggestions)
-    .where(eq(meal_suggestions.household_id, householdId));
+    .select({ id: mealSuggestions.id })
+    .from(mealSuggestions)
+    .where(eq(mealSuggestions.householdId, householdId));
   if (suggestionRows.length > 0) {
     const ids = suggestionRows.map((r) => r.id);
-    await db.delete(meal_suggestion_votes).where(inArray(meal_suggestion_votes.suggestion_id, ids));
-    await db.delete(meal_suggestions).where(eq(meal_suggestions.household_id, householdId));
+    await db.delete(mealSuggestionVotes).where(inArray(mealSuggestionVotes.suggestionId, ids));
+    await db.delete(mealSuggestions).where(eq(mealSuggestions.householdId, householdId));
   }
 
   // Activity
-  await db.delete(household_activity).where(eq(household_activity.household_id, householdId));
-  await db
-    .delete(household_join_requests)
-    .where(eq(household_join_requests.household_id, householdId));
+  await db.delete(householdActivity).where(eq(householdActivity.householdId, householdId));
 }
 
 export async function DELETE(
@@ -166,9 +160,8 @@ export async function DELETE(
 ): Promise<Response> {
   const { id } = await params;
 
-  let session;
   try {
-    session = await requireHouseholdAdmin(request, id);
+    await requireHouseholdAdmin(request, id);
   } catch (r) {
     return r as Response;
   }
@@ -176,7 +169,7 @@ export async function DELETE(
   await deleteAllHouseholdData(id);
 
   // Remove all members
-  await db.delete(household_members).where(eq(household_members.household_id, id));
+  await db.delete(householdMembers).where(eq(householdMembers.householdId, id));
 
   // Soft delete household
   await db
@@ -184,6 +177,5 @@ export async function DELETE(
     .set({ deleted_at: new Date(), updated_at: new Date() })
     .where(eq(households.id, id));
 
-  void session; // used for auth check
   return Response.json({ success: true });
 }

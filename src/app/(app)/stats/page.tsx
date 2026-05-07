@@ -5,6 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useHousehold } from "@/lib/hooks/useHousehold";
 import { motion } from "framer-motion";
 import {
+  BarChart2,
   CheckSquare,
   DollarSign,
   ListTodo,
@@ -27,10 +28,42 @@ import {
   AreaChart,
   Area,
 } from "recharts";
-import { PageContainer } from "@/components/layout/PageContainer";
-import { Skeleton } from "@/components/ui/skeleton";
-import PremiumGate from "@/components/shared/PremiumGate";
-import MemberAvatar from "@/components/shared/MemberAvatar";
+import { Skeleton } from "@/components/ui/Skeleton";
+
+function PageContainer({ children }: { children: React.ReactNode }) {
+  return (
+    <div style={{ maxWidth: 896, margin: '0 auto', width: '100%', padding: '0 16px' }}>
+      {children}
+    </div>
+  );
+}
+
+function InlinePremiumGate() {
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '60vh', gap: 16, padding: 32, textAlign: 'center' }}>
+      <div style={{ width: 64, height: 64, borderRadius: 18, backgroundColor: '#6366F118', border: '1.5px solid var(--roost-border)', borderBottom: '4px solid #4F46E5', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <BarChart2 size={28} color="#6366F1" />
+      </div>
+      <div>
+        <p style={{ margin: 0, fontWeight: 900, fontSize: 20, color: 'var(--roost-text-primary)' }}>Stats is a Premium feature</p>
+        <p style={{ margin: '6px 0 0', fontSize: 13, fontWeight: 600, color: 'var(--roost-text-secondary)', maxWidth: 280 }}>See chores, spending, tasks, meals, and grocery trends all in one place.</p>
+      </div>
+      <a href="/settings/billing" style={{ display: 'inline-block', padding: '12px 24px', borderRadius: 14, backgroundColor: '#6366F1', color: '#fff', fontWeight: 800, fontSize: 14, textDecoration: 'none', borderBottom: '3px solid #4F46E5' }}>
+        Upgrade to Premium
+      </a>
+    </div>
+  );
+}
+
+function MemberAvatar({ name, size = 'md' }: { name: string; avatarColor?: string | null; size?: string }) {
+  const initials = name.split(' ').map(p => p[0]).filter(Boolean).join('').slice(0, 2).toUpperCase();
+  const dim = size === 'sm' ? 28 : size === 'lg' ? 40 : 32;
+  return (
+    <div style={{ width: dim, height: dim, borderRadius: 8, backgroundColor: '#6366F118', border: '1px solid #6366F130', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+      <span style={{ fontSize: dim * 0.38, fontWeight: 800, color: '#6366F1' }}>{initials}</span>
+    </div>
+  );
+}
 
 const COLOR = "#6366F1";
 const COLOR_DARK = "#4338CA";
@@ -237,7 +270,7 @@ export default function StatsPage() {
               Powered by your household data.
             </p>
           </div>
-          <PremiumGate feature="stats" trigger="page" />
+          <InlinePremiumGate />
         </div>
       </PageContainer>
     );

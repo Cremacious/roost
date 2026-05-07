@@ -1,59 +1,33 @@
-import { boolean, index, pgTable, text, timestamp } from "drizzle-orm/pg-core";
-import { households } from "./households";
+import { pgTable, text, timestamp, boolean } from 'drizzle-orm/pg-core'
+import { households } from './households'
+import { users } from './users'
 
-export const grocery_lists = pgTable(
-  "grocery_lists",
-  {
-    id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
-    household_id: text("household_id")
-      .references(() => households.id)
-      .notNull(),
-    name: text("name").notNull().default("Shopping List"),
-    is_default: boolean("is_default").notNull().default(false),
-    created_by: text("created_by").notNull(),
-    created_at: timestamp("created_at").defaultNow(),
-    deleted_at: timestamp("deleted_at"),
-  },
-  (t) => ({
-    householdCreatedIdx: index("grocery_lists_household_created_idx").on(
-      t.household_id,
-      t.created_at
-    ),
-  })
-);
+export const groceryLists = pgTable('grocery_lists', {
+  id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+  householdId: text('household_id')
+    .notNull()
+    .references(() => households.id, { onDelete: 'cascade' }),
+  name: text('name').notNull(),
+  isDefault: boolean('is_default').notNull().default(false),
+  createdBy: text('created_by').references(() => users.id),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+  deletedAt: timestamp('deleted_at'),
+})
 
-export const grocery_items = pgTable(
-  "grocery_items",
-  {
-    id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
-    list_id: text("list_id")
-      .references(() => grocery_lists.id)
-      .notNull(),
-    household_id: text("household_id")
-      .references(() => households.id)
-      .notNull(),
-    name: text("name").notNull(),
-    quantity: text("quantity"),
-    added_by: text("added_by").notNull(),
-    checked: boolean("checked").notNull().default(false),
-    checked_by: text("checked_by"),
-    checked_at: timestamp("checked_at"),
-    created_at: timestamp("created_at").defaultNow(),
-    deleted_at: timestamp("deleted_at"),
-  },
-  (t) => ({
-    listCheckedIdx: index("grocery_items_list_checked_idx").on(
-      t.list_id,
-      t.checked
-    ),
-    householdCreatedIdx: index("grocery_items_household_created_idx").on(
-      t.household_id,
-      t.created_at
-    ),
-  })
-);
-
-export type GroceryList = typeof grocery_lists.$inferSelect;
-export type NewGroceryList = typeof grocery_lists.$inferInsert;
-export type GroceryItem = typeof grocery_items.$inferSelect;
-export type NewGroceryItem = typeof grocery_items.$inferInsert;
+export const groceryItems = pgTable('grocery_items', {
+  id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+  listId: text('list_id')
+    .notNull()
+    .references(() => groceryLists.id, { onDelete: 'cascade' }),
+  householdId: text('household_id')
+    .notNull()
+    .references(() => households.id, { onDelete: 'cascade' }),
+  name: text('name').notNull(),
+  quantity: text('quantity'),
+  isChecked: boolean('is_checked').notNull().default(false),
+  checkedBy: text('checked_by').references(() => users.id),
+  checkedAt: timestamp('checked_at'),
+  addedBy: text('added_by').references(() => users.id),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+  deletedAt: timestamp('deleted_at'),
+})

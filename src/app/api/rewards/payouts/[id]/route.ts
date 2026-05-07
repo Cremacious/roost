@@ -1,76 +1,41 @@
-import { NextRequest } from "next/server";
-import { requireSession } from "@/lib/auth/helpers";
-import { db } from "@/lib/db";
-import { reward_payouts, users } from "@/db/schema";
-import { and, eq } from "drizzle-orm";
-import { getUserHousehold } from "@/app/api/chores/route";
-import { logActivity } from "@/lib/utils/activity";
+import { NextResponse } from 'next/server'
+import { getSession, getUserHousehold } from '@/lib/auth/helpers'
+import { db } from '@/lib/db'
+import { rewardPayouts } from '@/db/schema'
+import { eq, and } from 'drizzle-orm'
 
 export async function PATCH(
-  request: NextRequest,
+  _request: Request,
   { params }: { params: Promise<{ id: string }> }
-): Promise<Response> {
-  let session;
-  try {
-    session = await requireSession(request);
-  } catch (r) {
-    return r as Response;
-  }
+) {
+  const { id } = await params
 
-  const { id } = await params;
-  const userId = session.user.id;
+  const session = await getSession()
+  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const membership = await getUserHousehold(userId);
-  if (!membership) {
-    return Response.json({ error: "No household found" }, { status: 404 });
-  }
+  const membership = await getUserHousehold(session.user.id)
+  if (!membership) return NextResponse.json({ error: 'No household' }, { status: 403 })
 
-  // Fetch payout — must belong to current user
-  const [payout] = await db
+  const payout = await db
     .select()
-    .from(reward_payouts)
+    .from(rewardPayouts)
     .where(
       and(
-        eq(reward_payouts.id, id),
-        eq(reward_payouts.user_id, userId),
-        eq(reward_payouts.household_id, membership.householdId)
+        eq(rewardPayouts.id, id),
+        eq(rewardPayouts.householdId, membership.householdId),
+        eq(rewardPayouts.userId, session.user.id),
       )
     )
-    .limit(1);
+    .limit(1)
+    .then(r => r[0] ?? null)
 
-  if (!payout) {
-    return Response.json({ error: "Payout not found" }, { status: 404 });
-  }
-
-  if (payout.acknowledged) {
-    return Response.json({ success: true });
-  }
+  if (!payout) return NextResponse.json({ error: 'Not found' }, { status: 404 })
+  if (!payout.earned) return NextResponse.json({ error: 'Reward was not earned' }, { status: 400 })
 
   await db
-    .update(reward_payouts)
+    .update(rewardPayouts)
     .set({ acknowledged: true })
-    .where(eq(reward_payouts.id, id));
+    .where(eq(rewardPayouts.id, id))
 
-  // Build description for activity log
-  const [userRow] = await db
-    .select({ name: users.name })
-    .from(users)
-    .where(eq(users.id, userId))
-    .limit(1);
-
-  const childName = userRow?.name ?? "Child";
-  const rewardDesc =
-    payout.reward_type === "money" && payout.reward_amount
-      ? `$${parseFloat(String(payout.reward_amount)).toFixed(2)}`
-      : payout.reward_description ?? "reward";
-
-  await logActivity({
-    householdId: membership.householdId,
-    userId,
-    type: "allowance_earned",
-    description: `${childName} claimed their reward: ${rewardDesc}`,
-    entityType: "allowance",
-  });
-
-  return Response.json({ success: true });
+  return NextResponse.json({ ok: true })
 }

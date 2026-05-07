@@ -1,21 +1,16 @@
-import { NextRequest } from "next/server";
-import { requireSession } from "@/lib/auth/helpers";
-import { db } from "@/lib/db";
-import { users } from "@/db/schema";
-import { eq } from "drizzle-orm";
+// apps/web/src/app/api/user/dismiss-welcome/route.ts
+import { requireSession } from '@/lib/auth/helpers'
+import { db } from '@/lib/db'
+import { users } from '@/db/schema'
+import { eq } from 'drizzle-orm'
 
-export async function POST(request: NextRequest): Promise<Response> {
-  let session;
-  try {
-    session = await requireSession(request);
-  } catch (r) {
-    return r as Response;
-  }
+export async function POST(): Promise<Response> {
+  const session = await requireSession()
 
   await db
     .update(users)
-    .set({ has_seen_welcome: true, updated_at: new Date() })
-    .where(eq(users.id, session.user.id));
+    .set({ hasSeenWelcome: true })
+    .where(eq(users.id, session.user.id))
 
-  return Response.json({ ok: true });
+  return Response.json({ ok: true })
 }

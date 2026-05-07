@@ -1,58 +1,58 @@
-import { NextRequest } from "next/server";
-import { requireSession } from "@/lib/auth/helpers";
-import { db } from "@/lib/db";
-import { household_members } from "@/db/schema";
-import { and, eq } from "drizzle-orm";
-import { getUserHousehold } from "@/app/api/chores/route";
+import { type NextRequest } from 'next/server'
+import { requireSession, getUserHousehold } from '@/lib/auth/helpers'
+import { db } from '@/lib/db'
+import { householdMembers } from '@/db/schema'
+import { eq, and, isNull } from 'drizzle-orm'
 
 export async function DELETE(
-  request: NextRequest,
+  _request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ): Promise<Response> {
-  const { id } = await params; // household_members.id
+  const { id } = await params
+  const session = await requireSession()
+  const householdData = await getUserHousehold(session.user.id)
 
-  let session;
-  try {
-    session = await requireSession(request);
-  } catch (r) {
-    return r as Response;
+  if (!householdData) {
+    return Response.json({ error: 'No household' }, { status: 403 })
+  }
+  if (householdData.role !== 'admin') {
+    return Response.json({ error: 'Admin only' }, { status: 403 })
   }
 
-  const membership = await getUserHousehold(session.user.id);
-  if (!membership) {
-    return Response.json({ error: "No household found" }, { status: 404 });
-  }
-  if (membership.role !== "admin") {
-    return Response.json({ error: "Forbidden" }, { status: 403 });
-  }
+  const { householdId } = householdData
 
+  // Find the member to delete
   const [target] = await db
-    .select()
-    .from(household_members)
+    .select({ userId: householdMembers.userId, role: householdMembers.role })
+    .from(householdMembers)
     .where(
       and(
-        eq(household_members.id, id),
-        eq(household_members.household_id, membership.householdId)
+        eq(householdMembers.id, id),
+        eq(householdMembers.householdId, householdId),
+        isNull(householdMembers.deletedAt),
       )
     )
-    .limit(1);
+    .limit(1)
 
   if (!target) {
-    return Response.json({ error: "Member not found" }, { status: 404 });
+    return Response.json({ error: 'Member not found' }, { status: 404 })
   }
 
-  if (target.role === "admin") {
-    return Response.json(
-      { error: "Transfer admin before removing yourself" },
-      { status: 400 }
-    );
+  // Cannot remove yourself (admin removing self)
+  if (target.userId === session.user.id) {
+    return Response.json({ error: 'Cannot remove yourself' }, { status: 400 })
   }
 
-  if (target.user_id === session.user.id) {
-    return Response.json({ error: "Cannot remove yourself" }, { status: 400 });
+  // Cannot remove another admin
+  if (target.role === 'admin') {
+    return Response.json({ error: 'Cannot remove another admin' }, { status: 400 })
   }
 
-  await db.delete(household_members).where(eq(household_members.id, id));
+  // Soft delete
+  await db
+    .update(householdMembers)
+    .set({ deletedAt: new Date() })
+    .where(eq(householdMembers.id, id))
 
-  return Response.json({ success: true });
+  return Response.json({ ok: true })
 }

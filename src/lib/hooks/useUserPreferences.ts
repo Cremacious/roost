@@ -1,52 +1,50 @@
-"use client";
+'use client'
 
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 
-export type UserPreferences = {
-  temperature_unit: "fahrenheit" | "celsius";
-  // Drizzle numeric columns return as strings from Postgres
-  latitude: string | null;
-  longitude: string | null;
-  timezone: string;
-  language: string;
-  theme: string;
-};
+interface UserPreferences {
+  temperatureUnit: string
+  latitude: number | null
+  longitude: number | null
+  timezone: string | null
+  language: string | null
+}
 
 export function useUserPreferences() {
-  const queryClient = useQueryClient();
+  const queryClient = useQueryClient()
 
   const { data, isLoading } = useQuery<UserPreferences>({
-    queryKey: ["user-preferences"],
+    queryKey: ['user-preferences'],
     queryFn: async () => {
-      const res = await fetch("/api/user/preferences");
-      if (!res.ok) throw new Error("Failed to load preferences");
-      return res.json();
+      const r = await fetch('/api/user/preferences')
+      if (!r.ok) throw new Error('Failed to fetch preferences')
+      return r.json()
     },
     staleTime: 60_000,
-    retry: 2,
-  });
+  })
 
-  const updatePreferences = async (
-    updates: Partial<Omit<UserPreferences, "latitude" | "longitude"> & { latitude?: number; longitude?: number }>
-  ): Promise<UserPreferences> => {
-    const res = await fetch("/api/user/preferences", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(updates),
-    });
-    if (!res.ok) throw new Error("Failed to update preferences");
-    const updated: UserPreferences = await res.json();
-    queryClient.setQueryData<UserPreferences>(["user-preferences"], updated);
-    return updated;
-  };
+  const mutation = useMutation({
+    mutationFn: async (updates: Record<string, unknown>) => {
+      const r = await fetch('/api/user/preferences', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updates),
+      })
+      if (!r.ok) throw new Error('Failed to update preferences')
+      return r.json()
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['user-preferences'] })
+    },
+  })
 
   return {
-    preferences: data,
-    temperatureUnit: (data?.temperature_unit ?? "fahrenheit") as "fahrenheit" | "celsius",
-    // Parse numeric strings to numbers for convenience
-    latitude: data?.latitude != null ? parseFloat(data.latitude) : null,
-    longitude: data?.longitude != null ? parseFloat(data.longitude) : null,
+    temperatureUnit: data?.temperatureUnit ?? 'fahrenheit',
+    latitude: data?.latitude ?? null,
+    longitude: data?.longitude ?? null,
+    timezone: data?.timezone ?? null,
+    language: data?.language ?? null,
     isLoading,
-    updatePreferences,
-  };
+    updatePreferences: mutation.mutateAsync,
+  }
 }

@@ -1,49 +1,27 @@
-import { NextRequest } from "next/server";
-import { requireSession } from "@/lib/auth/helpers";
-import { db } from "@/lib/db";
-import { household_members, households } from "@/db/schema";
-import { desc, eq } from "drizzle-orm";
+import { NextResponse } from 'next/server'
+import { getSession, getUserHousehold } from '@/lib/auth/helpers'
+import { db } from '@/lib/db'
+import { households } from '@/db/schema'
+import { eq } from 'drizzle-orm'
 
-export async function POST(request: NextRequest): Promise<Response> {
-  if (process.env.NODE_ENV !== "development") {
-    return Response.json({ error: "Not available in production" }, { status: 403 });
+export async function POST() {
+  if (process.env.NODE_ENV !== 'development') {
+    return NextResponse.json({ error: 'Dev only' }, { status: 403 })
   }
 
-  let session;
-  try {
-    session = await requireSession(request);
-  } catch (res) {
-    return res as Response;
-  }
+  const session = await getSession()
+  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  // Get the user's most recently joined household
-  const [membership] = await db
-    .select({ householdId: household_members.household_id })
-    .from(household_members)
-    .where(eq(household_members.user_id, session.user.id))
-    .orderBy(desc(household_members.joined_at))
-    .limit(1);
+  const membership = await getUserHousehold(session.user.id)
+  if (!membership) return NextResponse.json({ error: 'No household' }, { status: 403 })
 
-  if (!membership) {
-    return Response.json({ error: "No household found" }, { status: 404 });
-  }
-
-  const [household] = await db
-    .select({ subscription_status: households.subscription_status })
-    .from(households)
-    .where(eq(households.id, membership.householdId))
-    .limit(1);
-
-  if (!household) {
-    return Response.json({ error: "Household not found" }, { status: 404 });
-  }
-
-  const newStatus = household.subscription_status === "premium" ? "free" : "premium";
+  const current = membership.household.subscriptionStatus
+  const next = current === 'premium' ? 'free' : 'premium'
 
   await db
     .update(households)
-    .set({ subscription_status: newStatus, updated_at: new Date() })
-    .where(eq(households.id, membership.householdId));
+    .set({ subscription_status: next })
+    .where(eq(households.id, membership.householdId))
 
-  return Response.json({ subscription_status: newStatus });
+  return NextResponse.json({ subscriptionStatus: next })
 }

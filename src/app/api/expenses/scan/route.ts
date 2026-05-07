@@ -1,101 +1,128 @@
-import { NextRequest } from "next/server";
-import { requireSession } from "@/lib/auth/helpers";
-import { db } from "@/lib/db";
-import { households } from "@/db/schema";
-import { eq } from "drizzle-orm";
-import { getUserHousehold } from "@/app/api/chores/route";
-import { parseReceiptImage } from "@/lib/utils/azureReceipts";
-import { log } from "@/lib/utils/logger";
-import { consumeRateLimit } from "@/lib/security/rateLimit";
-import { hashValue } from "@/lib/security/request";
-import { isAzureReceiptScanningConfigured } from "@/lib/env";
+import { NextResponse } from 'next/server'
+import { getSession, getUserHousehold } from '@/lib/auth/helpers'
+import { db } from '@/lib/db'
+import { receiptScanUsage } from '@/db/schema'
+import { eq, and } from 'drizzle-orm'
+import { parseReceiptImage } from '@/lib/utils/azureReceipts'
+import { createRateLimiter } from '@/lib/utils/rateLimit'
 
-// Max base64 length for a 10MB image (10 * 1024 * 1024 / 0.75 ≈ 13,981,013)
-const MAX_BASE64_LENGTH = 14_000_000;
-const RECEIPT_SCAN_LIMIT = 10;
-const RECEIPT_SCAN_WINDOW_MS = 15 * 60 * 1000;
+const MAX_BASE64_LENGTH = 14_000_000 // ~10MB
+const FREE_TIER_SCAN_LIMIT = 75
 
-export async function POST(request: NextRequest): Promise<Response> {
-  let session;
-  try {
-    session = await requireSession(request);
-  } catch (r) {
-    return r as Response;
+// Per-user burst limit: 10 scans per 5 minutes.
+// This protects the Azure OCR quota (500 free scans/month for the whole account)
+// from a single user or automated script hammering the endpoint.
+// The limit is intentionally generous — a human scanning receipts will never hit it.
+const scanLimiter = createRateLimiter({ windowMs: 5 * 60_000, maxRequests: 10 })
+
+export async function POST(request: Request) {
+  const session = await getSession()
+  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+  const membership = await getUserHousehold(session.user.id)
+  if (!membership) return NextResponse.json({ error: 'No household' }, { status: 404 })
+
+  if (membership.role === 'child') {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 
-  const membership = await getUserHousehold(session.user.id);
-  if (!membership) {
-    return Response.json({ error: "No household found" }, { status: 404 });
+  // Burst rate limit: checked before body parsing to fail fast and cheaply
+  const rateCheck = scanLimiter.check(session.user.id)
+  if (!rateCheck.allowed) {
+    const retryAfterSec = Math.ceil(rateCheck.retryAfterMs / 1000)
+    return NextResponse.json(
+      { error: 'Too many scan requests. Please wait a moment and try again.' },
+      {
+        status: 429,
+        headers: {
+          'Retry-After': String(retryAfterSec),
+          'X-RateLimit-Remaining': '0',
+        },
+      }
+    )
   }
 
-  if (membership.role === "child") {
-    return Response.json({ error: "Forbidden" }, { status: 403 });
-  }
-
-  const [household] = await db
-    .select({ subscription_status: households.subscription_status })
-    .from(households)
-    .where(eq(households.id, membership.householdId))
-    .limit(1);
-
-  if (!household || household.subscription_status !== "premium") {
-    return Response.json(
-      { error: "Premium required", code: "RECEIPT_SCAN_PREMIUM" },
-      { status: 403 }
-    );
-  }
-
-  let body: { imageBase64?: string };
-  try {
-    body = await request.json();
-  } catch {
-    return Response.json({ error: "Invalid request body" }, { status: 400 });
-  }
-
-  if (!body.imageBase64) {
-    return Response.json({ error: "Image is required" }, { status: 400 });
-  }
-
-  if (!isAzureReceiptScanningConfigured()) {
-    return Response.json(
-      { error: "Receipt scanning is not configured" },
-      { status: 503 }
-    );
-  }
-
+  const body = await request.json().catch(() => ({})) as { imageBase64?: string }
+  if (!body.imageBase64) return NextResponse.json({ error: 'Image required' }, { status: 400 })
   if (body.imageBase64.length > MAX_BASE64_LENGTH) {
-    return Response.json({ error: "Image must be under 10MB" }, { status: 400 });
+    return NextResponse.json({ error: 'Image must be under 10MB' }, { status: 400 })
   }
 
-  const rateLimitKey = hashValue(`receipt-scan:${membership.householdId}:${session.user.id}`);
-  const { allowed, retryAfterSec } = await consumeRateLimit({
-    scope: "receipt-scan",
-    key: rateLimitKey,
-    limit: RECEIPT_SCAN_LIMIT,
-    windowMs: RECEIPT_SCAN_WINDOW_MS,
-  });
+  const endpoint = process.env.AZURE_DOCUMENT_INTELLIGENCE_ENDPOINT
+  const key = process.env.AZURE_DOCUMENT_INTELLIGENCE_KEY
+  if (!endpoint || !key) {
+    return NextResponse.json({ error: 'Receipt scanning not configured' }, { status: 503 })
+  }
 
-  if (!allowed) {
-    log.warn("receipt.scan.rate_limited", { householdId: membership.householdId, retryAfterSec });
-    return Response.json(
-      { error: "Too many receipt scans. Try again shortly." },
-      { status: 429, headers: { "Retry-After": String(retryAfterSec) } }
-    );
+  // Quota check for free tier (75 scans/month)
+  const isPremium = membership.household.subscriptionStatus === 'premium'
+  if (!isPremium) {
+    const currentMonth = new Date().toISOString().slice(0, 7) // YYYY-MM
+    const [usage] = await db
+      .select({ count: receiptScanUsage.count })
+      .from(receiptScanUsage)
+      .where(
+        and(
+          eq(receiptScanUsage.householdId, membership.householdId),
+          eq(receiptScanUsage.month, currentMonth),
+        )
+      )
+      .limit(1)
+
+    if (usage && usage.count >= FREE_TIER_SCAN_LIMIT) {
+      return NextResponse.json(
+        {
+          error: 'Monthly scan limit reached. Upgrade to premium for unlimited scans.',
+          code: 'SCAN_LIMIT_REACHED',
+          limit: FREE_TIER_SCAN_LIMIT,
+          current: usage.count,
+        },
+        { status: 403 }
+      )
+    }
   }
 
   try {
-    const receipt = await parseReceiptImage(body.imageBase64);
-    const empty = receipt.lineItems.length === 0;
-    log.info("receipt.scan.done", { householdId: membership.householdId, itemCount: receipt.lineItems.length, empty });
-    return Response.json({
-      receipt,
-      warning: empty ? "No items detected. You can add them manually." : undefined,
-    });
+    const receipt = await parseReceiptImage(body.imageBase64)
+
+    // Increment usage counter after successful scan (free tier only)
+    if (!isPremium) {
+      const currentMonth = new Date().toISOString().slice(0, 7)
+      const [existing] = await db
+        .select({ id: receiptScanUsage.id, count: receiptScanUsage.count })
+        .from(receiptScanUsage)
+        .where(
+          and(
+            eq(receiptScanUsage.householdId, membership.householdId),
+            eq(receiptScanUsage.month, currentMonth),
+          )
+        )
+        .limit(1)
+
+      if (existing) {
+        await db
+          .update(receiptScanUsage)
+          .set({ count: existing.count + 1, updatedAt: new Date() })
+          .where(eq(receiptScanUsage.id, existing.id))
+      } else {
+        await db.insert(receiptScanUsage).values({
+          householdId: membership.householdId,
+          month: currentMonth,
+          count: 1,
+        })
+      }
+    }
+
+    if (receipt.lineItems.length === 0) {
+      return NextResponse.json({
+        receipt,
+        warning: 'No items detected. You can add them manually.',
+      })
+    }
+
+    return NextResponse.json({ receipt })
   } catch (err) {
-    log.error("receipt.scan.failed", { householdId: membership.householdId }, err);
-    return Response.json(
-      { error: "Could not read receipt", code: "SCAN_FAILED" },
-      { status: 422 }
-    );
+    console.error('Receipt scan error:', err)
+    return NextResponse.json({ error: 'Scan failed. Try again or enter manually.' }, { status: 500 })
   }
 }

@@ -1,111 +1,73 @@
-import { NextRequest } from "next/server";
-import { requireSession } from "@/lib/auth/helpers";
-import { db } from "@/lib/db";
-import { expenses } from "@/db/schema";
-import { and, eq, isNull } from "drizzle-orm";
-import { getUserHousehold } from "@/app/api/chores/route";
+import { NextRequest, NextResponse } from 'next/server'
+import { getSession, getUserHousehold } from '@/lib/auth/helpers'
+import { db } from '@/lib/db'
+import { expenses } from '@/db/schema'
+import { eq, and, isNull } from 'drizzle-orm'
 
-// ---- PATCH ------------------------------------------------------------------
+export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params
+  const session = await getSession()
+  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-export async function PATCH(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-): Promise<Response> {
-  const { id } = await params;
+  const membership = await getUserHousehold(session.user.id)
+  if (!membership) return NextResponse.json({ error: 'No household' }, { status: 403 })
 
-  let session;
-  try {
-    session = await requireSession(request);
-  } catch (r) {
-    return r as Response;
-  }
+  const { householdId, role } = membership
+  if (role === 'child') return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
-  const membership = await getUserHousehold(session.user.id);
-  if (!membership) {
-    return Response.json({ error: "No household found" }, { status: 404 });
-  }
-  if (membership.role === "child") {
-    return Response.json({ error: "Forbidden" }, { status: 403 });
-  }
-  const { householdId, role } = membership;
-
-  const [existing] = await db
+  const expense = await db
     .select()
     .from(expenses)
-    .where(and(eq(expenses.id, id), eq(expenses.household_id, householdId), isNull(expenses.deleted_at)))
-    .limit(1);
+    .where(and(eq(expenses.id, id), eq(expenses.householdId, householdId), isNull(expenses.deletedAt)))
+    .then(r => r[0] ?? null)
 
-  if (!existing) {
-    return Response.json({ error: "Expense not found" }, { status: 404 });
-  }
-  if (existing.paid_by !== session.user.id && role !== "admin") {
-    return Response.json({ error: "Forbidden" }, { status: 403 });
-  }
+  if (!expense) return NextResponse.json({ error: 'Not found' }, { status: 404 })
 
-  let body: { title?: string; category?: string | null; category_id?: string | null };
-  try {
-    body = await request.json();
-  } catch (err) {
-    console.error("[PATCH /api/expenses/[id]] Failed to parse body:", err);
-    return Response.json({ error: "Invalid request body" }, { status: 400 });
-  }
+  const isCreator = expense.paidBy === session.user.id
+  const isAdmin = role === 'admin'
+  if (!isCreator && !isAdmin) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
-  if (body.title !== undefined && !body.title.trim()) {
-    return Response.json({ error: "Title is required" }, { status: 400 });
-  }
+  const body = await req.json()
+  const updates: Partial<typeof expense> = {}
 
-  const [updated] = await db
+  if (body.title !== undefined) updates.title = body.title.trim()
+  if (body.categoryId !== undefined) updates.categoryId = body.categoryId ?? null
+  if (body.notes !== undefined) updates.notes = body.notes ?? null
+
+  if (!Object.keys(updates).length) return NextResponse.json({ ok: true })
+
+  await db
     .update(expenses)
-    .set({
-      title: body.title?.trim() ?? existing.title,
-      category: body.category !== undefined ? (body.category?.trim() || null) : existing.category,
-      category_id: body.category_id !== undefined ? body.category_id : existing.category_id,
-      updated_at: new Date(),
-    })
+    .set({ ...updates, updatedAt: new Date() })
     .where(eq(expenses.id, id))
-    .returning();
 
-  return Response.json({ expense: updated });
+  return NextResponse.json({ ok: true })
 }
 
-// ---- DELETE -----------------------------------------------------------------
+export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params
+  const session = await getSession()
+  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-export async function DELETE(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-): Promise<Response> {
-  const { id } = await params;
+  const membership = await getUserHousehold(session.user.id)
+  if (!membership) return NextResponse.json({ error: 'No household' }, { status: 403 })
 
-  let session;
-  try {
-    session = await requireSession(request);
-  } catch (r) {
-    return r as Response;
-  }
+  const { householdId, role } = membership
+  if (role === 'child') return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
-  const membership = await getUserHousehold(session.user.id);
-  if (!membership) {
-    return Response.json({ error: "No household found" }, { status: 404 });
-  }
-  if (membership.role === "child") {
-    return Response.json({ error: "Forbidden" }, { status: 403 });
-  }
-  const { householdId, role } = membership;
-
-  const [existing] = await db
-    .select({ id: expenses.id, paid_by: expenses.paid_by })
+  const expense = await db
+    .select({ id: expenses.id, paidBy: expenses.paidBy })
     .from(expenses)
-    .where(and(eq(expenses.id, id), eq(expenses.household_id, householdId), isNull(expenses.deleted_at)))
-    .limit(1);
+    .where(and(eq(expenses.id, id), eq(expenses.householdId, householdId), isNull(expenses.deletedAt)))
+    .then(r => r[0] ?? null)
 
-  if (!existing) {
-    return Response.json({ error: "Expense not found" }, { status: 404 });
-  }
-  if (existing.paid_by !== session.user.id && role !== "admin") {
-    return Response.json({ error: "Forbidden" }, { status: 403 });
-  }
+  if (!expense) return NextResponse.json({ error: 'Not found' }, { status: 404 })
 
-  await db.update(expenses).set({ deleted_at: new Date() }).where(eq(expenses.id, id));
+  const isCreator = expense.paidBy === session.user.id
+  const isAdmin = role === 'admin'
+  if (!isCreator && !isAdmin) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
-  return Response.json({ ok: true });
+  await db.update(expenses).set({ deletedAt: new Date() }).where(eq(expenses.id, id))
+
+  return NextResponse.json({ ok: true })
 }

@@ -1,93 +1,74 @@
-import { boolean, date, index, integer, pgTable, text, timestamp, unique } from "drizzle-orm/pg-core";
-import { households } from "./households";
+import { pgTable, text, timestamp, integer, boolean } from 'drizzle-orm/pg-core'
+import { households } from './households'
+import { users } from './users'
 
-export const meals = pgTable(
-  "meals",
-  {
-    id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
-    household_id: text("household_id")
-      .references(() => households.id)
-      .notNull(),
-    name: text("name").notNull(),
-    description: text("description"),
-    category: text("category").notNull().default("dinner"),
-    ingredients: text("ingredients"), // JSON array of strings
-    instructions: text("instructions"), // nullable JSON array of step strings
-    saved_to_bank: boolean("saved_to_bank").notNull().default(true),
-    prep_time: integer("prep_time"),
-    created_by: text("created_by").notNull(),
-    created_at: timestamp("created_at").defaultNow(),
-    updated_at: timestamp("updated_at").defaultNow(),
-    deleted_at: timestamp("deleted_at"),
-  },
-  (t) => ({
-    householdCreatedIdx: index("meals_household_created_idx").on(
-      t.household_id,
-      t.created_at
-    ),
-  })
-);
+export const meals = pgTable('meals', {
+  id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+  householdId: text('household_id')
+    .notNull()
+    .references(() => households.id, { onDelete: 'cascade' }),
+  name: text('name').notNull(),
+  category: text('category').$type<'breakfast' | 'lunch' | 'dinner' | 'snack'>(),
+  description: text('description'),
+  prepTime: integer('prep_time'),
+  ingredients: text('ingredients').notNull().default('[]'),
+  rotation: boolean('rotation').notNull().default(false),
+  createdBy: text('created_by')
+    .notNull()
+    .references(() => users.id),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+  updatedAt: timestamp('updated_at').notNull().defaultNow(),
+  deletedAt: timestamp('deleted_at'),
+})
 
-export const meal_plan_slots = pgTable(
-  "meal_plan_slots",
-  {
-    id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
-    household_id: text("household_id")
-      .references(() => households.id)
-      .notNull(),
-    meal_id: text("meal_id").references(() => meals.id),
-    custom_meal_name: text("custom_meal_name"),
-    slot_date: date("slot_date").notNull(),
-    slot_type: text("slot_type").notNull(),
-    assigned_by: text("assigned_by").notNull(),
-    created_at: timestamp("created_at").defaultNow(),
-  },
-  (t) => ({
-    householdSlotDateIdx: index("meal_plan_slots_household_slot_date_idx").on(
-      t.household_id,
-      t.slot_date
-    ),
-    householdSlotUnique: unique().on(t.household_id, t.slot_date, t.slot_type),
-  })
-);
+export const mealPlanSlots = pgTable('meal_plan_slots', {
+  id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+  householdId: text('household_id')
+    .notNull()
+    .references(() => households.id, { onDelete: 'cascade' }),
+  mealId: text('meal_id')
+    .notNull()
+    .references(() => meals.id, { onDelete: 'cascade' }),
+  slotDate: text('slot_date').notNull(),
+  slotType: text('slot_type').notNull().$type<'breakfast' | 'lunch' | 'dinner' | 'snack'>(),
+  createdBy: text('created_by')
+    .notNull()
+    .references(() => users.id),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+})
 
-export const meal_suggestions = pgTable("meal_suggestions", {
-  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
-  household_id: text("household_id")
-    .references(() => households.id)
-    .notNull(),
-  suggested_by: text("suggested_by").notNull(),
-  meal_name: text("meal_name").notNull(),
-  note: text("note"),
-  category: text("category").notNull().default("dinner"),
-  prep_time: integer("prep_time"),
-  ingredients: text("ingredients"), // JSON array of strings
-  target_slot_date: date("target_slot_date"),
-  target_slot_type: text("target_slot_type").default("dinner"),
-  status: text("status").notNull().default("suggested"),
-  responded_by: text("responded_by"),
-  responded_at: timestamp("responded_at"),
-  accepted_meal_id: text("accepted_meal_id").references(() => meals.id),
-  accepted_slot_id: text("accepted_slot_id").references(() => meal_plan_slots.id),
-  created_at: timestamp("created_at").defaultNow(),
-  updated_at: timestamp("updated_at").defaultNow(),
-});
+export const mealSuggestions = pgTable('meal_suggestions', {
+  id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+  householdId: text('household_id')
+    .notNull()
+    .references(() => households.id, { onDelete: 'cascade' }),
+  name: text('name').notNull(),
+  ingredients: text('ingredients').notNull().default('[]'),
+  note: text('note'),
+  prepTime: integer('prep_time'),
+  targetSlotDate: text('target_slot_date'),
+  targetSlotType: text('target_slot_type').$type<'breakfast' | 'lunch' | 'dinner' | 'snack'>(),
+  status: text('status').notNull().default('suggested').$type<
+    'suggested' | 'in_bank' | 'accepted' | 'rejected'
+  >(),
+  respondedBy: text('responded_by').references(() => users.id),
+  respondedAt: timestamp('responded_at'),
+  acceptedMealId: text('accepted_meal_id'),
+  acceptedSlotId: text('accepted_slot_id'),
+  suggestedBy: text('suggested_by')
+    .notNull()
+    .references(() => users.id),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+})
 
-export const meal_suggestion_votes = pgTable(
-  "meal_suggestion_votes",
-  {
-    id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
-    suggestion_id: text("suggestion_id")
-      .references(() => meal_suggestions.id)
-      .notNull(),
-    user_id: text("user_id").notNull(),
-    vote: text("vote").notNull(),
-    created_at: timestamp("created_at").defaultNow(),
-  },
-  (t) => [unique().on(t.suggestion_id, t.user_id)]
-);
-
-export type Meal = typeof meals.$inferSelect;
-export type MealPlanSlot = typeof meal_plan_slots.$inferSelect;
-export type MealSuggestion = typeof meal_suggestions.$inferSelect;
-export type MealSuggestionVote = typeof meal_suggestion_votes.$inferSelect;
+export const mealSuggestionVotes = pgTable('meal_suggestion_votes', {
+  id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+  suggestionId: text('suggestion_id')
+    .notNull()
+    .references(() => mealSuggestions.id, { onDelete: 'cascade' }),
+  userId: text('user_id')
+    .notNull()
+    .references(() => users.id),
+  voteType: text('vote_type').notNull().$type<'up' | 'down'>(),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+})

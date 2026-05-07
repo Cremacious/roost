@@ -1,419 +1,163 @@
-"use client";
+'use client'
 
-import { useState } from "react";
-import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { useState } from 'react'
+import Link from 'next/link'
+import { usePathname, useRouter } from 'next/navigation'
 import {
-  BarChart2,
-  Bell,
-  Calendar,
-  ChevronRight,
-  CheckCircle2,
-  CheckSquare,
-  DollarSign,
-  FileText,
   Home,
-  House,
-  Lock,
-  Loader2,
-  LogOut,
-  MoreHorizontal,
-  Settings,
-  ShoppingCart,
+  Users,
   UtensilsCrossed,
-  User,
-} from "lucide-react";
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-} from "@/components/ui/sheet";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from "@/components/ui/dialog";
-import { motion } from "framer-motion";
-import { signOut } from "@/lib/auth/client";
-import { useHouseholds } from "@/lib/hooks/useHouseholds";
-import { applyTheme } from "@/components/providers/ThemeProvider";
-import { DEFAULT_THEME } from "@/lib/constants/themes";
+  Wallet,
+  MoreHorizontal,
+  ShoppingCart,
+  CheckSquare,
+  Calendar,
+  CheckCircle2,
+  Bell,
+  FileText,
+  BarChart2,
+  Settings,
+} from 'lucide-react'
+import { DraggableSheet } from '@/components/shared/DraggableSheet'
 
-interface NavItem {
-  label: string;
-  href: string;
-  icon: React.ElementType;
-  activeColor: string;
-}
-
-const NAV_ITEMS: NavItem[] = [
-  { label: "Home",     href: "/dashboard", icon: Home,        activeColor: "#EF4444" },
-  { label: "Chores",   href: "/chores",    icon: CheckSquare, activeColor: "#EF4444" },
-  { label: "Grocery",  href: "/grocery",   icon: ShoppingCart, activeColor: "#F59E0B" },
-  { label: "Calendar", href: "/calendar",  icon: Calendar,    activeColor: "#3B82F6" },
-];
+const TABS = [
+  { href: '/today',     label: 'Today',     icon: Home,           activeColor: '#EF4444' },
+  { href: '/household', label: 'Household', icon: Users,          activeColor: '#3B82F6' },
+  { href: '/meals',     label: 'Meals',     icon: UtensilsCrossed, activeColor: '#F97316' },
+  { href: '/money',     label: 'Money',     icon: Wallet,         activeColor: '#22C55E' },
+]
 
 const MORE_ITEMS = [
-  { label: "Tasks",     href: "/tasks",     icon: CheckCircle2,    color: "#EC4899" },
-  { label: "Notes",     href: "/notes",     icon: FileText,        color: "#A855F7" },
-  { label: "Expenses",  href: "/expenses",  icon: DollarSign,      color: "#22C55E" },
-  { label: "Meals",     href: "/meals",     icon: UtensilsCrossed, color: "#F97316" },
-  { label: "Reminders", href: "/reminders", icon: Bell,            color: "#06B6D4" },
-  { label: "Stats",     href: "/stats",     icon: BarChart2,       color: "#6366F1" },
-  { label: "Profile",   href: "/profile",   icon: User,            color: "#8B5CF6" },
-  { label: "Settings",  href: "/settings",  icon: Settings,        color: "#6B7280" },
-];
+  { href: '/lists',      label: 'Shopping',  icon: ShoppingCart,  color: '#F59E0B' },
+  { href: '/chores',     label: 'Chores',    icon: CheckSquare,   color: '#EF4444' },
+  { href: '/calendar',   label: 'Calendar',  icon: Calendar,      color: '#3B82F6' },
+  { href: '/tasks',      label: 'Tasks',     icon: CheckCircle2,  color: '#EC4899' },
+  { href: '/reminders',  label: 'Reminders', icon: Bell,          color: '#06B6D4' },
+  { href: '/notes',      label: 'Notes',     icon: FileText,      color: '#A855F7' },
+  { href: '/stats',      label: 'Stats',     icon: BarChart2,     color: '#6366F1' },
+  { href: '/settings',   label: 'Settings',  icon: Settings,      color: '#9CA3AF' },
+]
 
-interface BottomNavProps {
-  hasIncompleteChores?: boolean;
-}
+export function BottomNav() {
+  const pathname = usePathname()
+  const router = useRouter()
+  const [moreOpen, setMoreOpen] = useState(false)
 
-export default function BottomNav({ hasIncompleteChores = false }: BottomNavProps) {
-  const pathname = usePathname();
-  const router = useRouter();
-  const [moreOpen, setMoreOpen] = useState(false);
-  const [householdsOpen, setHouseholdsOpen] = useState(false);
-  const [confirmSignOut, setConfirmSignOut] = useState(false);
-  const [signingOut, setSigningOut] = useState(false);
-  const {
-    activeHousehold,
-    canSwitchHouseholds,
-    hasPremiumAccess,
-    households,
-    isLoading: householdsLoading,
-    isSwitcherLocked,
-    isSwitching,
-    switchHousehold,
-  } = useHouseholds();
+  const moreActive = MORE_ITEMS.some(item => pathname === item.href || pathname.startsWith(item.href + '/'))
 
-  async function handleSignOut() {
-    setSigningOut(true);
-    applyTheme(DEFAULT_THEME);
-    await signOut();
-    router.push("/login");
-  }
-
-  async function handleSwitchHousehold(householdId: string) {
-    if (householdId === activeHousehold?.id) return;
-
-    await switchHousehold(householdId);
-    setHouseholdsOpen(false);
-    router.push("/dashboard");
-    router.refresh();
+  function handleMoreItemClick(href: string) {
+    setMoreOpen(false)
+    router.push(href)
   }
 
   return (
     <>
       <nav
-        className="fixed bottom-0 left-0 right-0 z-40 flex h-16 border-t md:hidden"
+        className="flex md:hidden"
         style={{
-          backgroundColor: "var(--roost-sidebar-bg)",
-          borderTopColor: "var(--roost-sidebar-border)",
+          position: 'fixed',
+          bottom: 0,
+          left: 0,
+          right: 0,
+          height: 56,
+          backgroundColor: 'var(--roost-surface)',
+          borderTop: '1px solid var(--roost-border)',
+          zIndex: 50,
         }}
       >
-        {NAV_ITEMS.map((item) => {
-          const isActive = pathname === item.href || pathname.startsWith(item.href + "/");
-          const Icon = item.icon;
+        {TABS.map(({ href, label, icon: Icon, activeColor }) => {
+          const active = pathname === href || pathname.startsWith(href + '/')
+          const color = active ? activeColor : '#9CA3AF'
           return (
             <Link
-              key={item.href}
-              href={item.href}
-              className="relative flex flex-1 flex-col items-center justify-center gap-0.5 min-h-12"
+              key={href}
+              href={href}
+              style={{
+                flex: 1,
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 3,
+                textDecoration: 'none',
+              }}
             >
-              <div className="relative">
-                <Icon
-                  className="size-5"
-                  style={{ color: isActive ? item.activeColor : "var(--roost-sidebar-inactive-text)" }}
-                />
-                {item.label === "Chores" && hasIncompleteChores && (
-                  <span className="absolute -right-1 -top-1 size-2 rounded-full bg-[#EF4444]" />
-                )}
-              </div>
-              <span
-                className="text-[10px]"
-                style={{
-                  color: isActive ? item.activeColor : "var(--roost-text-muted)",
-                  fontWeight: 600,
-                }}
-              >
-                {item.label}
-              </span>
+              <Icon size={20} color={color} strokeWidth={active ? 2.5 : 2} />
+              <span style={{ fontSize: 10, fontWeight: 700, color }}>{label}</span>
             </Link>
-          );
+          )
         })}
 
-        {/* More tab */}
+        {/* More button */}
         <button
-          type="button"
           onClick={() => setMoreOpen(true)}
-          className="relative flex flex-1 flex-col items-center justify-center gap-0.5 min-h-12"
+          style={{
+            flex: 1,
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 3,
+            background: 'none',
+            border: 'none',
+            cursor: 'pointer',
+            padding: 0,
+          }}
         >
-          <MoreHorizontal
-            className="size-5"
-            style={{ color: "var(--roost-sidebar-inactive-text)" }}
-          />
-          <span
-            className="text-[10px]"
-            style={{ color: "var(--roost-sidebar-inactive-text)", fontWeight: 600 }}
-          >
-            More
-          </span>
+          <MoreHorizontal size={20} color={moreActive ? '#EF4444' : '#9CA3AF'} strokeWidth={moreActive ? 2.5 : 2} />
+          <span style={{ fontSize: 10, fontWeight: 700, color: moreActive ? '#EF4444' : '#9CA3AF' }}>More</span>
         </button>
       </nav>
 
       {/* More sheet */}
-      <Sheet open={moreOpen} onOpenChange={setMoreOpen}>
-        <SheetContent
-          side="bottom"
-          className="rounded-t-2xl px-4 pb-8 pt-2"
-          style={{ backgroundColor: "var(--roost-surface)" }}
-        >
-          {/* Drag handle */}
-          <div className="mx-auto mb-4 h-1 w-10 rounded-full" style={{ backgroundColor: "var(--roost-border)" }} />
-          <SheetHeader className="mb-3 text-left">
-            <SheetTitle style={{ color: "var(--roost-text-primary)", fontWeight: 800 }}>
-              More
-            </SheetTitle>
-          </SheetHeader>
-          <button
-            type="button"
-            disabled={householdsLoading || isSwitching || isSwitcherLocked}
-            onClick={() => {
-              setMoreOpen(false);
-              setHouseholdsOpen(true);
-            }}
-            className="mb-3 flex h-14 w-full items-center gap-3 rounded-xl px-4 disabled:opacity-70"
-            style={{
-              backgroundColor: "var(--roost-bg)",
-              border: "1.5px solid var(--roost-border)",
-              borderBottom: "3px solid var(--roost-border-bottom)",
-            }}
-          >
-            <House className="size-4 shrink-0" style={{ color: "#EF4444" }} />
-            <div className="min-w-0 flex-1 text-left">
-              <p
-                className="truncate text-sm"
-                style={{ color: "var(--roost-text-primary)", fontWeight: 700 }}
-              >
-                {activeHousehold?.name ?? "Households"}
-              </p>
-              <p
-                className="truncate text-xs"
-                style={{ color: "var(--roost-text-muted)", fontWeight: 600 }}
-              >
-                {isSwitcherLocked
-                  ? "Premium unlocks switching"
-                  : canSwitchHouseholds
-                    ? `${households.length} households available`
-                    : "No other households yet"}
-              </p>
-            </div>
-            {isSwitcherLocked ? (
-              <Lock className="size-3.5" style={{ color: "var(--roost-text-muted)" }} />
-            ) : (
-              <ChevronRight className="size-4" style={{ color: "var(--roost-text-muted)" }} />
-            )}
-          </button>
-          <div className="grid grid-cols-2 gap-2">
-            {MORE_ITEMS.map((item, i) => {
-              const Icon = item.icon;
-              const isActive = pathname === item.href || pathname.startsWith(item.href + "/");
+      <DraggableSheet open={moreOpen} onOpenChange={v => !v && setMoreOpen(false)}>
+        <div style={{ padding: '0 16px 32px' }}>
+          <p style={{ fontSize: 18, fontWeight: 800, color: 'var(--roost-text-primary)', marginBottom: 16 }}>
+            More
+          </p>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+            {MORE_ITEMS.map(({ href, label, icon: Icon, color }) => {
+              const active = pathname === href || pathname.startsWith(href + '/')
               return (
-                <motion.div
-                  key={item.href}
-                  initial={{ opacity: 0, y: 8 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: i * 0.04, duration: 0.15 }}
+                <button
+                  key={href}
+                  onClick={() => handleMoreItemClick(href)}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 12,
+                    background: 'var(--roost-surface)',
+                    border: '1.5px solid var(--roost-border)',
+                    borderBottom: active ? `3px solid ${color}` : '3px solid var(--roost-border-bottom)',
+                    borderRadius: 12,
+                    padding: '14px 14px',
+                    cursor: 'pointer',
+                    textAlign: 'left',
+                  }}
                 >
-                  <Link
-                    href={item.href}
-                    onClick={() => setMoreOpen(false)}
-                    className="flex h-14 items-center gap-3 rounded-xl px-4"
+                  <div
                     style={{
-                      backgroundColor: isActive ? item.color + "18" : "var(--roost-bg)",
-                      border: "1.5px solid var(--roost-border)",
-                      borderBottom: `3px solid ${isActive ? item.color + "40" : "var(--roost-border-bottom)"}`,
+                      width: 36,
+                      height: 36,
+                      borderRadius: 9,
+                      backgroundColor: color + '18',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      flexShrink: 0,
                     }}
                   >
-                    <Icon className="size-4 shrink-0" style={{ color: item.color }} />
-                    <span
-                      className="text-sm"
-                      style={{ color: "var(--roost-text-primary)", fontWeight: 700 }}
-                    >
-                      {item.label}
-                    </span>
-                  </Link>
-                </motion.div>
-              );
+                    <Icon size={18} color={color} strokeWidth={2} />
+                  </div>
+                  <span style={{ fontSize: 13, fontWeight: 800, color: 'var(--roost-text-primary)' }}>
+                    {label}
+                  </span>
+                </button>
+              )
             })}
           </div>
-
-          {/* Divider + Sign out */}
-          <div
-            className="mt-4 pt-4"
-            style={{ borderTop: "1.5px solid var(--roost-border)" }}
-          >
-            <button
-              type="button"
-              onClick={() => {
-                setMoreOpen(false);
-                setConfirmSignOut(true);
-              }}
-              className="flex h-14 w-full items-center gap-3 rounded-xl px-4"
-              style={{
-                backgroundColor: "var(--roost-bg)",
-                border: "1.5px solid var(--roost-border)",
-                borderBottom: "3px solid var(--roost-border-bottom)",
-                color: "var(--roost-text-muted)",
-              }}
-            >
-              <LogOut className="size-4 shrink-0" style={{ color: "var(--roost-text-muted)" }} />
-              <span className="text-sm" style={{ color: "var(--roost-text-primary)", fontWeight: 700 }}>
-                Sign out
-              </span>
-            </button>
-          </div>
-        </SheetContent>
-      </Sheet>
-
-      <Sheet open={householdsOpen} onOpenChange={setHouseholdsOpen}>
-        <SheetContent
-          side="bottom"
-          className="rounded-t-2xl px-4 pb-8 pt-2"
-          style={{ backgroundColor: "var(--roost-surface)" }}
-        >
-          <div className="mx-auto mb-4 h-1 w-10 rounded-full" style={{ backgroundColor: "var(--roost-border)" }} />
-          <SheetHeader className="mb-3 text-left">
-            <SheetTitle style={{ color: "var(--roost-text-primary)", fontWeight: 800 }}>
-              Households
-            </SheetTitle>
-          </SheetHeader>
-          <div className="space-y-2">
-            {households.map((household) => (
-              <button
-                key={household.id}
-                type="button"
-                disabled={isSwitching || household.isActive}
-                onClick={() => handleSwitchHousehold(household.id)}
-                className="flex min-h-14 w-full items-center gap-3 rounded-xl px-4 py-3 text-left disabled:opacity-70"
-                style={{
-                  backgroundColor: household.isActive ? "#EF444412" : "var(--roost-bg)",
-                  border: "1.5px solid var(--roost-border)",
-                  borderBottom: `3px solid ${household.isActive ? "#EF444440" : "var(--roost-border-bottom)"}`,
-                }}
-              >
-                <House className="size-4 shrink-0" style={{ color: household.isActive ? "#EF4444" : "var(--roost-text-muted)" }} />
-                <div className="min-w-0 flex-1">
-                  <p
-                    className="truncate text-sm"
-                    style={{ color: "var(--roost-text-primary)", fontWeight: 700 }}
-                  >
-                    {household.name}
-                  </p>
-                  <p
-                    className="truncate text-xs"
-                    style={{ color: "var(--roost-text-muted)", fontWeight: 600 }}
-                  >
-                    {household.isPremium ? "Premium" : "Free"} · {household.role}
-                  </p>
-                </div>
-                {household.isActive ? (
-                  <span
-                    className="rounded-md px-2 py-0.5 text-[11px]"
-                    style={{
-                      backgroundColor: "#22C55E20",
-                      color: "#15803D",
-                      fontWeight: 800,
-                    }}
-                  >
-                    Active
-                  </span>
-                ) : (
-                  <ChevronRight className="size-4" style={{ color: "var(--roost-text-muted)" }} />
-                )}
-              </button>
-            ))}
-            {!canSwitchHouseholds && hasPremiumAccess && (
-              <div
-                className="rounded-xl px-4 py-3"
-                style={{
-                  backgroundColor: "var(--roost-bg)",
-                  border: "1.5px solid var(--roost-border)",
-                  borderBottom: "3px solid var(--roost-border-bottom)",
-                }}
-              >
-                <p
-                  className="text-sm"
-                  style={{ color: "var(--roost-text-primary)", fontWeight: 700 }}
-                >
-                  No other households yet
-                </p>
-                <p
-                  className="mt-1 text-xs"
-                  style={{ color: "var(--roost-text-muted)", fontWeight: 600 }}
-                >
-                  When you join or create another household, you can switch here.
-                </p>
-              </div>
-            )}
-          </div>
-        </SheetContent>
-      </Sheet>
-
-      {/* Sign out confirmation dialog */}
-      <Dialog open={confirmSignOut} onOpenChange={setConfirmSignOut}>
-        <DialogContent style={{ backgroundColor: "var(--roost-surface)" }}>
-          <DialogHeader>
-            <DialogTitle
-              style={{ color: "var(--roost-text-primary)", fontWeight: 900 }}
-            >
-              Sign out?
-            </DialogTitle>
-          </DialogHeader>
-          <DialogDescription
-            className="text-sm"
-            style={{ color: "var(--roost-text-secondary)", fontWeight: 600 }}
-          >
-            You will need to sign back in to access your household.
-          </DialogDescription>
-          <DialogFooter className="mt-2 flex gap-2">
-            <motion.button
-              type="button"
-              onClick={() => setConfirmSignOut(false)}
-              whileTap={{ y: 1 }}
-              className="flex h-11 flex-1 items-center justify-center rounded-xl text-sm py-2"
-              style={{
-                backgroundColor: "var(--roost-bg)",
-                border: "1.5px solid var(--roost-border)",
-                borderBottom: "3px solid var(--roost-border-bottom)",
-                color: "var(--roost-text-secondary)",
-                fontWeight: 700,
-              }}
-            >
-              Cancel
-            </motion.button>
-            <motion.button
-              type="button"
-              onClick={handleSignOut}
-              disabled={signingOut}
-              whileTap={{ y: 1 }}
-              className="flex h-11 flex-1 items-center justify-center rounded-xl text-sm text-white disabled:opacity-50 py-2"
-              style={{
-                backgroundColor: "#EF4444",
-                border: "1.5px solid #EF4444",
-                borderBottom: "3px solid #C93B3B",
-                fontWeight: 800,
-              }}
-            >
-              {signingOut ? <Loader2 className="size-4 animate-spin" /> : "Sign out"}
-            </motion.button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+        </div>
+      </DraggableSheet>
     </>
-  );
+  )
 }

@@ -1,124 +1,65 @@
-import { NextRequest } from "next/server";
-import { requireSession } from "@/lib/auth/helpers";
-import { db } from "@/lib/db";
-import { expense_categories, expenses } from "@/db/schema";
-import { and, eq, isNull } from "drizzle-orm";
-import { getUserHousehold } from "@/app/api/chores/route";
+import { NextRequest, NextResponse } from 'next/server'
+import { getSession, getUserHousehold } from '@/lib/auth/helpers'
+import { db } from '@/lib/db'
+import { expenseCategories, expenses } from '@/db/schema'
+import { eq, and, isNull } from 'drizzle-orm'
 
-// ---- PATCH ------------------------------------------------------------------
+export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params
+  const session = await getSession()
+  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-export async function PATCH(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-): Promise<Response> {
-  let session;
-  try {
-    session = await requireSession(request);
-  } catch (r) {
-    return r as Response;
-  }
+  const membership = await getUserHousehold(session.user.id)
+  if (!membership) return NextResponse.json({ error: 'No household' }, { status: 403 })
 
-  const membership = await getUserHousehold(session.user.id);
-  if (!membership) return Response.json({ error: "No household found" }, { status: 404 });
-  if (membership.role !== "admin") return Response.json({ error: "Admin only" }, { status: 403 });
-  const { householdId } = membership;
-  const { id } = await params;
+  const { householdId, role } = membership
+  if (role !== 'admin') return NextResponse.json({ error: 'Admin only' }, { status: 403 })
 
-  const [existing] = await db
+  const cat = await db
     .select()
-    .from(expense_categories)
-    .where(and(eq(expense_categories.id, id), eq(expense_categories.household_id, householdId)))
-    .limit(1);
+    .from(expenseCategories)
+    .where(and(eq(expenseCategories.id, id), eq(expenseCategories.householdId, householdId), isNull(expenseCategories.deletedAt)))
+    .then(r => r[0] ?? null)
 
-  if (!existing) return Response.json({ error: "Category not found" }, { status: 404 });
+  if (!cat) return NextResponse.json({ error: 'Not found' }, { status: 404 })
 
-  let body: { name?: string; icon?: string; color?: string; status?: string };
-  try {
-    body = await request.json();
-  } catch {
-    return Response.json({ error: "Invalid request body" }, { status: 400 });
-  }
+  const body = await req.json()
+  const updates: Record<string, unknown> = {}
 
-  const updates: Partial<typeof expense_categories.$inferInsert> = {};
-  if (body.name !== undefined) updates.name = body.name.trim();
-  if (body.icon !== undefined) updates.icon = body.icon.trim();
-  if (body.color !== undefined) updates.color = body.color.trim();
-  if (body.status !== undefined) updates.status = body.status;
+  if (body.name !== undefined) updates.name = body.name.trim()
+  if (body.icon !== undefined) updates.icon = body.icon
+  if (body.color !== undefined) updates.color = body.color
+  if (body.status !== undefined) updates.status = body.status  // approve/reject
 
-  const [updated] = await db
-    .update(expense_categories)
-    .set(updates)
-    .where(eq(expense_categories.id, id))
-    .returning();
+  await db.update(expenseCategories).set(updates).where(eq(expenseCategories.id, id))
 
-  // TODO: notify suggester when status changes to active/rejected (Expo push)
-  // If status === 'active': 'Your category [name] was approved!'
-  // If status === 'rejected': 'Your category suggestion [name] was not approved.'
-
-  return Response.json({ category: updated });
+  return NextResponse.json({ ok: true })
 }
 
-// ---- DELETE -----------------------------------------------------------------
+export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params
+  const session = await getSession()
+  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-export async function DELETE(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-): Promise<Response> {
-  let session;
-  try {
-    session = await requireSession(request);
-  } catch (r) {
-    return r as Response;
-  }
+  const membership = await getUserHousehold(session.user.id)
+  if (!membership) return NextResponse.json({ error: 'No household' }, { status: 403 })
 
-  const membership = await getUserHousehold(session.user.id);
-  if (!membership) return Response.json({ error: "No household found" }, { status: 404 });
-  if (membership.role !== "admin") return Response.json({ error: "Admin only" }, { status: 403 });
-  const { householdId } = membership;
-  const { id } = await params;
+  const { householdId, role } = membership
+  if (role !== 'admin') return NextResponse.json({ error: 'Admin only' }, { status: 403 })
 
-  const [existing] = await db
-    .select()
-    .from(expense_categories)
-    .where(and(eq(expense_categories.id, id), eq(expense_categories.household_id, householdId)))
-    .limit(1);
+  const cat = await db
+    .select({ isDefault: expenseCategories.isDefault })
+    .from(expenseCategories)
+    .where(and(eq(expenseCategories.id, id), eq(expenseCategories.householdId, householdId), isNull(expenseCategories.deletedAt)))
+    .then(r => r[0] ?? null)
 
-  if (!existing) return Response.json({ error: "Category not found" }, { status: 404 });
-  if (existing.is_default) {
-    return Response.json({ error: "Cannot delete default categories" }, { status: 400 });
-  }
+  if (!cat) return NextResponse.json({ error: 'Not found' }, { status: 404 })
+  if (cat.isDefault) return NextResponse.json({ error: 'Cannot delete default categories' }, { status: 400 })
 
-  // Find the 'Other' category for this household to reassign expenses
-  const [otherCat] = await db
-    .select({ id: expense_categories.id })
-    .from(expense_categories)
-    .where(
-      and(
-        eq(expense_categories.household_id, householdId),
-        eq(expense_categories.name, "Other"),
-        eq(expense_categories.is_default, true)
-      )
-    )
-    .limit(1);
+  // unlink expenses that use this category
+  await db.update(expenses).set({ categoryId: null }).where(eq(expenses.categoryId, id))
 
-  // Reassign any expenses using this category
-  let movedCount = 0;
-  if (otherCat) {
-    const result = await db
-      .update(expenses)
-      .set({ category_id: otherCat.id })
-      .where(
-        and(
-          eq(expenses.household_id, householdId),
-          eq(expenses.category_id, id),
-          isNull(expenses.deleted_at)
-        )
-      )
-      .returning({ id: expenses.id });
-    movedCount = result.length;
-  }
+  await db.update(expenseCategories).set({ deletedAt: new Date() }).where(eq(expenseCategories.id, id))
 
-  await db.delete(expense_categories).where(eq(expense_categories.id, id));
-
-  return Response.json({ success: true, moved: movedCount });
+  return NextResponse.json({ ok: true })
 }

@@ -1,53 +1,42 @@
-import { boolean, index, pgTable, text, timestamp, unique } from "drizzle-orm/pg-core";
-import { households } from "./households";
+import { pgTable, text, timestamp, boolean } from 'drizzle-orm/pg-core'
+import { households } from './households'
+import { users } from './users'
 
-export const household_members = pgTable(
-  "household_members",
-  {
-    id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
-    household_id: text("household_id")
-      .references(() => households.id)
-      .notNull(),
-    user_id: text("user_id").notNull(),
-    role: text("role").notNull().default("member"),
-    pin: text("pin"),
-    expires_at: timestamp("expires_at"),
-    joined_at: timestamp("joined_at").defaultNow(),
-  },
-  (t) => ({
-    householdUserUnique: unique().on(t.household_id, t.user_id),
-    userJoinedIdx: index("household_members_user_joined_idx").on(
-      t.user_id,
-      t.joined_at
-    ),
-  })
-);
+export const householdMembers = pgTable('household_members', {
+  id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+  householdId: text('household_id')
+    .notNull()
+    .references(() => households.id, { onDelete: 'cascade' }),
+  userId: text('user_id')
+    .notNull()
+    .references(() => users.id, { onDelete: 'cascade' }),
+  role: text('role').notNull().default('member').$type<'admin' | 'member' | 'guest' | 'child'>(),
+  pin: text('pin'),
+  expiresAt: timestamp('expires_at'),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+  deletedAt: timestamp('deleted_at'),
+})
 
-export const member_permissions = pgTable(
-  "member_permissions",
-  {
-    id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
-    household_id: text("household_id")
-      .references(() => households.id)
-      .notNull(),
-    user_id: text("user_id").notNull(),
-    permission: text("permission").notNull(),
-    enabled: boolean("enabled").notNull().default(true),
-  },
-  (t) => ({
-    householdUserPermissionUnique: unique().on(
-      t.household_id,
-      t.user_id,
-      t.permission
-    ),
-    userPermissionIdx: index("member_permissions_user_permission_idx").on(
-      t.user_id,
-      t.permission
-    ),
-  })
-);
-
-export type HouseholdMember = typeof household_members.$inferSelect;
-export type NewHouseholdMember = typeof household_members.$inferInsert;
-export type MemberPermission = typeof member_permissions.$inferSelect;
-export type NewMemberPermission = typeof member_permissions.$inferInsert;
+export const memberPermissions = pgTable('member_permissions', {
+  id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+  householdId: text('household_id')
+    .notNull()
+    .references(() => households.id, { onDelete: 'cascade' }),
+  userId: text('user_id')
+    .notNull()
+    .references(() => users.id, { onDelete: 'cascade' }),
+  expensesView: boolean('expenses_view').notNull().default(true),
+  expensesAdd: boolean('expenses_add').notNull().default(true),
+  choresAdd: boolean('chores_add').notNull().default(false),
+  choresEdit: boolean('chores_edit').notNull().default(false),
+  groceryAdd: boolean('grocery_add').notNull().default(true),
+  groceryCreateList: boolean('grocery_create_list').notNull().default(false),
+  calendarAdd: boolean('calendar_add').notNull().default(true),
+  calendarEdit: boolean('calendar_edit').notNull().default(false),
+  tasksAdd: boolean('tasks_add').notNull().default(true),
+  notesAdd: boolean('notes_add').notNull().default(true),
+  mealsPlan: boolean('meals_plan').notNull().default(true),
+  mealsSuggest: boolean('meals_suggest').notNull().default(true),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+  updatedAt: timestamp('updated_at').notNull().defaultNow(),
+})

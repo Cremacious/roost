@@ -1,123 +1,87 @@
-"use client";
+'use client'
 
-import * as React from "react";
-import { Sheet, SheetContent } from "@/components/ui/sheet";
+import { useRef, useCallback } from 'react'
+import {
+  Sheet,
+  SheetContent,
+  SheetPortal,
+  SheetOverlay,
+} from '@/components/ui/sheet'
+import * as DialogPrimitive from '@radix-ui/react-dialog'
+import * as VisuallyHidden from '@radix-ui/react-visually-hidden'
 
 interface DraggableSheetProps {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  children: React.ReactNode;
-  featureColor?: string;
-  desktopMaxWidth?: number;
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  children: React.ReactNode
+  featureColor?: string
+  desktopMaxWidth?: number
 }
 
-export default function DraggableSheet({
+export function DraggableSheet({
   open,
   onOpenChange,
   children,
-  featureColor,
+  featureColor = '#E5E7EB',
   desktopMaxWidth = 680,
 }: DraggableSheetProps) {
-  const sheetRef = React.useRef<HTMLDivElement>(null);
-  const dragStartY = React.useRef<number | null>(null);
-  const dragCurrentY = React.useRef<number>(0);
-  const isDraggingHandle = React.useRef<boolean>(false);
+  const startY = useRef<number | null>(null)
+  const isDragging = useRef(false)
 
-  function onTouchStart(e: React.TouchEvent) {
-    const target = e.target as HTMLElement;
-    const isHandle = target.closest("[data-drag-handle]");
-    if (!isHandle) return;
-    isDraggingHandle.current = true;
-    dragStartY.current = e.touches[0].clientY;
-    dragCurrentY.current = 0;
-    if (sheetRef.current) {
-      sheetRef.current.style.transition = "none";
-    }
-  }
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    const handle = (e.target as HTMLElement).closest('[data-drag-handle]')
+    if (!handle) return
+    startY.current = e.touches[0].clientY
+    isDragging.current = true
+  }, [])
 
-  function onTouchMove(e: React.TouchEvent) {
-    if (!isDraggingHandle.current || dragStartY.current === null) return;
-    const delta = e.touches[0].clientY - dragStartY.current;
-    if (delta < 0) return; // prevent dragging up
-    dragCurrentY.current = delta;
-    if (sheetRef.current) {
-      sheetRef.current.style.transform = `translateX(-50%) translateY(${delta}px)`;
-    }
-  }
-
-  function onTouchEnd() {
-    if (!isDraggingHandle.current) return;
-    isDraggingHandle.current = false;
-    dragStartY.current = null;
-    if (sheetRef.current) {
-      sheetRef.current.style.transition = "transform 0.3s ease";
-    }
-    if (dragCurrentY.current > 120) {
-      onOpenChange(false);
-      if (sheetRef.current) {
-        sheetRef.current.style.transform = "translateX(-50%) translateY(100%)";
-      }
-    } else {
-      if (sheetRef.current) {
-        sheetRef.current.style.transform = "translateX(-50%) translateY(0)";
-      }
-    }
-    dragCurrentY.current = 0;
-  }
+  const handleTouchEnd = useCallback(
+    (e: React.TouchEvent) => {
+      if (!isDragging.current || startY.current === null) return
+      const delta = e.changedTouches[0].clientY - startY.current
+      if (delta > 120) onOpenChange(false)
+      startY.current = null
+      isDragging.current = false
+    },
+    [onOpenChange]
+  )
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent
-        ref={sheetRef}
-        side="bottom"
-        showCloseButton={false}
-        onOpenAutoFocus={(e) => e.preventDefault()}
-        onTouchStart={onTouchStart}
-        onTouchMove={onTouchMove}
-        onTouchEnd={onTouchEnd}
-        style={{
-          backgroundColor: "var(--roost-surface)",
-          borderRadius: "20px 20px 0 0",
-          maxHeight: "96dvh",
-          overflowY: "auto",
-          padding: 0,
-          gap: 0,
-          maxWidth: desktopMaxWidth,
-          width: "100%",
-          left: "50%",
-          right: "auto",
-          transform: "translateX(-50%)",
-          border: "none",
-          outline: "none",
-          paddingBottom: "env(safe-area-inset-bottom)",
-        }}
-      >
-        {/* Handle pill — drag target */}
-        <div
-          data-drag-handle="true"
+      <SheetPortal>
+        <SheetOverlay />
+        <SheetContent
+          side="bottom"
+          onOpenAutoFocus={e => e.preventDefault()}
+          onTouchStart={handleTouchStart}
+          onTouchEnd={handleTouchEnd}
           style={{
-            display: "flex",
-            justifyContent: "center",
-            alignItems: "center",
-            paddingTop: 12,
-            paddingBottom: 12,
-            cursor: "grab",
-            touchAction: "none",
+            left: '50%',
+            right: 'auto',
+            transform: 'translateX(-50%)',
+            maxWidth: desktopMaxWidth,
+            width: '100%',
+            borderRadius: '20px 20px 0 0',
+            backgroundColor: 'var(--roost-surface)',
+            border: '1.5px solid var(--roost-border)',
+            borderBottom: 'none',
+            maxHeight: '96dvh',
+            overflowY: 'auto',
+            paddingBottom: 'env(safe-area-inset-bottom)',
           }}
         >
-          <div
-            style={{
-              width: 40,
-              height: 4,
-              borderRadius: 9999,
-              background: featureColor ?? "var(--roost-border)",
-              opacity: 0.7,
-              pointerEvents: "none",
-            }}
-          />
-        </div>
-        {children}
-      </SheetContent>
+          <VisuallyHidden.Root>
+            <DialogPrimitive.Title>Sheet</DialogPrimitive.Title>
+          </VisuallyHidden.Root>
+          <div className="flex justify-center pt-3 pb-1" data-drag-handle>
+            <div
+              className="h-1 w-10 rounded-full"
+              style={{ backgroundColor: featureColor }}
+            />
+          </div>
+          {children}
+        </SheetContent>
+      </SheetPortal>
     </Sheet>
-  );
+  )
 }

@@ -1,73 +1,33 @@
-import type { Metadata } from 'next';
-import { Nunito } from 'next/font/google';
-import Image from 'next/image';
-import Link from 'next/link';
-import { redirect } from 'next/navigation';
-import { headers } from 'next/headers';
-import { Bell, CalendarDays, CheckSquare, DollarSign, GraduationCap, Home, ShoppingCart, Users, UtensilsCrossed } from 'lucide-react';
-import StructuredDataScript from '@/components/marketing/StructuredDataScript';
-import { auth } from '@/lib/auth';
-import { ROOST_ICON_SRC } from '@/lib/brand';
-import { homepageResourceLinks } from '@/lib/seo-content';
-import { buildPublicMetadata, getHomepageJsonLd } from '@/lib/seo';
+import Link from 'next/link'
+import { getSession } from '@/lib/auth/helpers'
+import { redirect } from 'next/navigation'
+import {
+  Bell,
+  CalendarDays,
+  CheckSquare,
+  DollarSign,
+  ShoppingCart,
+  UtensilsCrossed,
+} from 'lucide-react'
+import { SECTION_COLORS } from '@/lib/constants/colors'
 
-const nunito = Nunito({
-  subsets: ['latin'],
-  weight: ['600', '700', '800', '900'],
-  display: 'swap',
-});
-
-export const metadata: Metadata = buildPublicMetadata({
-  title: 'Household Management App for Families and Roommates',
-  description:
-    'Roost is a household management app for families and roommates with chores, grocery lists, bill splitting, reminders, meal planning, allowances, and a shared calendar.',
-  path: '/',
-  keywords: [
-    'household management app',
-    'family organizer app',
-    'roommate app',
-    'shared grocery list app',
-    'roommate chore app',
-    'split bills for roommates',
-  ],
-});
-
-const homepageFaqs = [
-  {
-    question: 'What is Roost?',
-    answer:
-      'Roost is a household management app for families and roommates that combines chores, grocery lists, bills, reminders, calendars, meals, and allowances in one place.',
-  },
-  {
-    question: 'Is Roost for roommates or families?',
-    answer:
-      'Both. Roost is designed for shared homes, so it fits roommates, families, college houses, and other households that need a shared operating system.',
-  },
-  {
-    question: 'Why not just use separate apps for chores, groceries, and bills?',
-    answer:
-      'Separate apps create more switching, more missed handoffs, and more household context trapped in different tools. Roost keeps those workflows connected in one place.',
-  },
-];
-
+// ─── Mini mockups for tall bento cards ───────────────────────────────────────
 
 function ChoresMockup() {
   const items = [
-    { name: 'Take out trash', detail: '7 day streak', checked: true },
-    { name: 'Unload dishwasher', detail: '3 day streak', checked: true },
-    { name: 'Wipe counters', detail: '12 day streak', checked: true },
-    { name: 'Vacuum living room', detail: 'Alex', checked: false },
-    { name: 'Clean bathroom', detail: 'Jordan', checked: false },
-  ];
+    { name: 'Take out trash', person: 'Sam', done: true },
+    { name: 'Unload dishwasher', person: 'Alex', done: true },
+    { name: 'Vacuum living room', person: 'Jordan', done: false },
+    { name: 'Clean bathroom', person: 'Sam', done: false },
+  ]
   return (
     <div
       style={{
-        backgroundColor: 'white',
-        borderRadius: 16,
-        border: '1.5px solid #fecaca',
+        backgroundColor: '#fff',
+        borderRadius: 12,
+        border: '1.5px solid #FECACA',
         borderBottom: '4px solid #EF4444',
-        padding: 16,
-        maxWidth: 300,
+        padding: 14,
         width: '100%',
       }}
     >
@@ -76,14 +36,14 @@ function ChoresMockup() {
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
-          marginBottom: 12,
+          marginBottom: 10,
         }}
       >
-        <span style={{ fontSize: 12, fontWeight: 800, color: '#374151' }}>
+        <span style={{ fontSize: 11, fontWeight: 800, color: '#374151', fontFamily: 'var(--font-nunito)' }}>
           Today&apos;s chores
         </span>
-        <span style={{ fontSize: 12, fontWeight: 800, color: '#EF4444' }}>
-          3 of 5 done
+        <span style={{ fontSize: 11, fontWeight: 800, color: '#EF4444', fontFamily: 'var(--font-nunito)' }}>
+          2 of 4 done
         </span>
       </div>
       {items.map((item) => (
@@ -93,682 +53,235 @@ function ChoresMockup() {
             display: 'flex',
             alignItems: 'center',
             gap: 8,
-            padding: '7px 0',
-            borderBottom: '1px solid #fef2f2',
+            padding: '6px 0',
+            borderBottom: '1px solid #FEF2F2',
           }}
         >
           <div
             style={{
-              width: 18,
-              height: 18,
-              borderRadius: 5,
-              backgroundColor: item.checked ? '#EF4444' : 'transparent',
-              border: item.checked ? 'none' : '2px solid #fecaca',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
+              width: 16,
+              height: 16,
+              borderRadius: '50%',
               flexShrink: 0,
+              backgroundColor: item.done ? '#EF4444' : 'transparent',
+              border: item.done ? 'none' : '2px solid #EF4444',
             }}
-          >
-            {item.checked && (
-              <span
-                style={{
-                  color: 'white',
-                  fontSize: 10,
-                  fontWeight: 900,
-                  lineHeight: 1,
-                }}
-              >
-                &#10003;
-              </span>
-            )}
-          </div>
+          />
           <span
             style={{
-              flex: 1,
-              fontSize: 12,
+              fontSize: 11,
               fontWeight: 700,
-              color: item.checked ? '#9CA3AF' : '#374151',
-              textDecoration: item.checked ? 'line-through' : 'none',
+              color: item.done ? '#9CA3AF' : '#374151',
+              textDecoration: item.done ? 'line-through' : 'none',
+              flex: 1,
+              fontFamily: 'var(--font-nunito)',
             }}
           >
             {item.name}
           </span>
-          <span
-            style={{
-              fontSize: 10,
-              fontWeight: 700,
-              color: item.checked ? '#EF4444' : '#9CA3AF',
-            }}
-          >
-            {item.detail}
+          <span style={{ fontSize: 10, fontWeight: 600, color: '#9CA3AF', fontFamily: 'var(--font-nunito)' }}>
+            {item.person}
           </span>
         </div>
       ))}
-      <div
-        style={{
-          marginTop: 12,
-          height: 8,
-          backgroundColor: '#fef2f2',
-          borderRadius: 99,
-          overflow: 'hidden',
-        }}
-      >
-        <div
-          style={{
-            width: '72%',
-            height: '100%',
-            backgroundColor: '#EF4444',
-            borderRadius: 99,
-          }}
-        />
-      </div>
-      <div
-        style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          marginTop: 6,
-        }}
-      >
-        <span style={{ fontSize: 11, fontWeight: 700, color: '#EF4444' }}>
-          Alex leading with 72 pts
-        </span>
-        <span style={{ fontSize: 11, fontWeight: 700, color: '#EF4444' }}>
-          Week resets Sun
-        </span>
-      </div>
     </div>
-  );
+  )
 }
 
 function MealsMockup() {
-  const days = [
-    { day: 'MON', meal: 'Spaghetti carbonara', votes: '3 votes', empty: false },
-    { day: 'TUE', meal: 'Chicken tacos', votes: '2 votes', empty: false },
-    { day: 'WED', meal: 'Stir fry + rice', votes: '1 vote', empty: false },
-    { day: 'THU', meal: 'No plan yet', votes: '', empty: true },
-    { day: 'FRI', meal: 'Pizza night', votes: '5 votes', empty: false },
-  ];
+  const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri']
+  const meals = ['Pasta', 'Tacos', '', 'Stir Fry', 'Pizza']
   return (
     <div
       style={{
-        backgroundColor: 'white',
-        borderRadius: 16,
-        border: '1.5px solid #fed7aa',
-        borderBottom: '4px solid #EA580C',
-        padding: 16,
-        maxWidth: 300,
+        backgroundColor: '#fff',
+        borderRadius: 12,
+        border: '1.5px solid #FED7AA',
+        borderBottom: '4px solid #F97316',
+        padding: 14,
         width: '100%',
       }}
     >
-      <div
-        style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          marginBottom: 12,
-        }}
-      >
-        <span style={{ fontSize: 12, fontWeight: 800, color: '#374151' }}>
-          This week&apos;s meals
-        </span>
-        <span style={{ fontSize: 11, fontWeight: 700, color: '#EA580C' }}>
-          Tap to add to list
-        </span>
-      </div>
-      {days.map((d) => (
-        <div
-          key={d.day}
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 8,
-            padding: '7px 0',
-            borderBottom: '1px solid #fff7ed',
-          }}
-        >
-          <span
+      <span style={{ fontSize: 11, fontWeight: 800, color: '#374151', fontFamily: 'var(--font-nunito)', display: 'block', marginBottom: 10 }}>
+        This week
+      </span>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+        {days.map((day, i) => (
+          <div
+            key={day}
             style={{
-              fontSize: 9,
-              fontWeight: 800,
-              color: '#EA580C',
-              minWidth: 26,
-              flexShrink: 0,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 8,
             }}
           >
-            {d.day}
-          </span>
-          <span
-            style={{
-              flex: 1,
-              fontSize: 12,
-              fontWeight: 700,
-              color: d.empty ? '#9CA3AF' : '#374151',
-              fontStyle: d.empty ? 'italic' : 'normal',
-            }}
-          >
-            {d.meal}
-          </span>
-          {!d.empty && (
-            <span
+            <span style={{ fontSize: 10, fontWeight: 800, color: '#9CA3AF', width: 28, fontFamily: 'var(--font-nunito)' }}>
+              {day}
+            </span>
+            <div
               style={{
-                fontSize: 10,
-                fontWeight: 800,
-                color: '#EA580C',
-                flexShrink: 0,
+                flex: 1,
+                height: 26,
+                borderRadius: 6,
+                backgroundColor: meals[i] ? 'rgba(249,115,22,0.08)' : 'transparent',
+                border: meals[i] ? '1px solid rgba(249,115,22,0.2)' : '1px dashed #E5E7EB',
+                display: 'flex',
+                alignItems: 'center',
+                padding: '0 8px',
               }}
             >
-              {d.votes}
-            </span>
-          )}
-        </div>
-      ))}
-      <div
-        style={{
-          marginTop: 10,
-          display: 'flex',
-          gap: 5,
-          flexWrap: 'wrap' as const,
-        }}
-      >
-        {['Alex voted', 'Sam voted', 'Jordan voted'].map((v) => (
-          <span
-            key={v}
-            style={{
-              fontSize: 10,
-              fontWeight: 800,
-              color: '#EA580C',
-              backgroundColor: '#fff7ed',
-              padding: '2px 8px',
-              borderRadius: 99,
-            }}
-          >
-            {v}
-          </span>
+              <span
+                style={{
+                  fontSize: 10,
+                  fontWeight: 700,
+                  color: meals[i] ? '#C4581A' : '#D1D5DB',
+                  fontFamily: 'var(--font-nunito)',
+                }}
+              >
+                {meals[i] || 'Tap to plan'}
+              </span>
+            </div>
+          </div>
         ))}
       </div>
     </div>
-  );
+  )
 }
 
-// ---------------------------------------------------------------------------
-// Comparison table
-// ---------------------------------------------------------------------------
+// ─── Comparison table data ────────────────────────────────────────────────────
 
-const TABLE_ROWS = [
-  {
-    feature: 'Chores + assignment',
-    roost: 'check',
-    split: 'cross',
-    cozi: 'check',
-    ourhome: 'check',
-  },
-  {
-    feature: 'Chore streaks + leaderboard',
-    roost: 'check',
-    split: 'cross',
-    cozi: 'cross',
-    ourhome: 'Basic',
-  },
-  {
-    feature: 'Bill splitting + debt tracking',
-    roost: 'check',
-    split: 'check',
-    cozi: 'cross',
-    ourhome: 'cross',
-  },
-  {
-    feature: 'Receipt scanning (item split)',
-    roost: 'check',
-    split: 'Paid',
-    cozi: 'cross',
-    ourhome: 'cross',
-  },
-  {
-    feature: 'Shared grocery lists',
-    roost: 'check',
-    split: 'cross',
-    cozi: 'check',
-    ourhome: 'check',
-  },
-  {
-    feature: 'Multiple grocery lists',
-    roost: 'check',
-    split: 'cross',
-    cozi: 'cross',
-    ourhome: 'cross',
-  },
-  {
-    feature: 'Shared household calendar',
-    roost: 'check',
-    split: 'cross',
-    cozi: 'check',
-    ourhome: 'Basic',
-  },
-  {
-    feature: 'Reminders (recurring)',
-    roost: 'check',
-    split: 'cross',
-    cozi: 'Basic',
-    ourhome: 'check',
-  },
-  {
-    feature: 'Meal planning + voting',
-    roost: 'check',
-    split: 'cross',
-    cozi: 'Basic',
-    ourhome: 'cross',
-  },
-  {
-    feature: 'Child accounts + allowances',
-    roost: 'check',
-    split: 'cross',
-    cozi: 'cross',
-    ourhome: 'Basic',
-  },
-  {
-    feature: 'Spending insights + budgets',
-    roost: 'check',
-    split: 'Paid',
-    cozi: 'cross',
-    ourhome: 'cross',
-  },
-  {
-    feature: 'Notes + household tasks',
-    roost: 'check',
-    split: 'cross',
-    cozi: 'cross',
-    ourhome: 'Basic',
-  },
-  {
-    feature: 'iOS + Android app',
-    roost: 'Soon',
-    split: 'check',
-    cozi: 'check',
-    ourhome: 'check',
-  },
-];
+const compRows: Array<{ feature: string; roost: string; splitwise: string; cozi: string; ourHome: string }> = [
+  { feature: 'Chore tracking + rewards', roost: '✓', splitwise: '✗', cozi: '✗', ourHome: '✓' },
+  { feature: 'Grocery lists',            roost: '✓', splitwise: '✗', cozi: '✓', ourHome: '✓' },
+  { feature: 'Bill splitting',           roost: '✓', splitwise: '✓', cozi: '✗', ourHome: '✗' },
+  { feature: 'Receipt scanning',         roost: '✓', splitwise: '✗', cozi: '✗', ourHome: '✗' },
+  { feature: 'Meal planning',            roost: '✓', splitwise: '✗', cozi: '~', ourHome: '✗' },
+  { feature: 'Shared calendar',          roost: '✓', splitwise: '✗', cozi: '✓', ourHome: '✓' },
+  { feature: 'Child accounts',           roost: '✓', splitwise: '✗', cozi: '✗', ourHome: '~' },
+  { feature: 'Reminders',               roost: '✓', splitwise: '✗', cozi: '✓', ourHome: '✗' },
+  { feature: 'Notes',                   roost: '✓', splitwise: '✗', cozi: '✗', ourHome: '✗' },
+]
 
-function CellValue({ value }: { value: string }) {
-  if (value === 'check')
-    return (
-      <span style={{ color: '#16A34A', fontWeight: 800, fontSize: 15 }}>
-        &#10003;
-      </span>
-    );
-  if (value === 'cross')
-    return (
-      <span style={{ color: '#dc2626', fontWeight: 700, fontSize: 14 }}>
-        &#10007;
-      </span>
-    );
-  if (value === 'Soon')
-    return (
-      <span style={{ color: '#D97706', fontWeight: 800, fontSize: 11 }}>
-        Soon
-      </span>
-    );
-  if (value === 'Paid')
-    return (
-      <span style={{ color: '#D97706', fontWeight: 800, fontSize: 11 }}>
-        Paid
-      </span>
-    );
-  if (value === 'Basic')
-    return (
-      <span style={{ color: '#D97706', fontWeight: 700, fontSize: 11 }}>
-        Basic
-      </span>
-    );
-  return (
-    <span style={{ color: '#9CA3AF', fontWeight: 600, fontSize: 12 }}>
-      {value}
-    </span>
-  );
+function cellColor(val: string) {
+  if (val === '✓') return '#22C55E'
+  if (val === '✗') return '#EF4444'
+  return '#9CA3AF'
 }
 
-// ---------------------------------------------------------------------------
-// Page
-// ---------------------------------------------------------------------------
+function cellWeight(val: string) {
+  return val === '✓' ? 800 : 600
+}
+
+// ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default async function HomePage() {
-  const session = await auth.api.getSession({ headers: await headers() });
-  if (session) {
-    redirect('/dashboard');
-  }
+  const session = await getSession()
+  if (session) redirect('/today')
 
-  const ff = nunito.style.fontFamily;
-  const brandBg = '#B91C1C';
-  const brandAccent = '#EF4444';
-  const brandTint = '#FFF1F2';
+  const C = SECTION_COLORS
 
   return (
     <>
-      {getHomepageJsonLd().map((item, index) => (
-        <StructuredDataScript key={index} data={item} />
-      ))}
-      <StructuredDataScript
-        data={{
-          '@context': 'https://schema.org',
-          '@type': 'FAQPage',
-          mainEntity: homepageFaqs.map((faq) => ({
-            '@type': 'Question',
-            name: faq.question,
-            acceptedAnswer: {
-              '@type': 'Answer',
-              text: faq.answer,
-            },
-          })),
-        }}
-      />
-      <main
-        style={{
-          fontFamily: ff,
-          margin: 0,
-          padding: 0,
-          backgroundColor: brandBg,
-        }}
-      >
       <style>{`
-        .landing-nav {
-          background: ${brandBg};
-          min-height: 72px;
-          padding: 12px 40px;
+        .hp-hero-btns {
           display: flex;
-          align-items: center;
-          justify-content: space-between;
-          gap: 20px;
-          position: sticky;
-          top: 0;
-          z-index: 50;
-        }
-        .landing-brand {
-          display: flex;
-          align-items: center;
-          text-decoration: none;
-          min-width: 0;
-          flex-shrink: 1;
-        }
-        .landing-brand-mark {
-          font-weight: 900;
-          font-size: 30px;
-          color: white;
-          letter-spacing: -0.3px;
-          line-height: 1;
-          white-space: nowrap;
-        }
-        .landing-nav-actions {
-          display: flex;
-          align-items: center;
-          justify-content: flex-end;
-          gap: 20px;
-          flex-wrap: nowrap;
-          flex-shrink: 0;
-        }
-        .landing-nav-link {
-          font-size: 14px;
-          font-weight: 700;
-          color: rgba(255,255,255,0.86);
-          text-decoration: none;
-          white-space: nowrap;
-        }
-        .landing-nav-cta {
-          background: white;
-          color: ${brandBg};
-          font-weight: 800;
-          font-size: 13px;
-          padding: 8px 18px;
-          border-radius: 999px;
-          text-decoration: none;
-          box-shadow: 0 10px 24px rgba(127, 29, 29, 0.22);
-          white-space: nowrap;
-        }
-        .hero-actions, .cta-actions {
-          display: flex;
-          flex-wrap: wrap;
           gap: 12px;
           justify-content: center;
+          flex-wrap: wrap;
         }
-        .hero-primary, .cta-primary {
-          background: white;
-          color: ${brandBg};
+        .hp-btn-primary {
+          display: inline-block;
+          background: #fff;
+          color: #EF4444;
           font-weight: 800;
           font-size: 15px;
-          padding: 12px 28px;
-          border-radius: 999px;
+          padding: 14px 28px;
+          border-radius: 12px;
+          border: none;
+          border-bottom: 3px solid #D1D5DB;
           text-decoration: none;
-          border-bottom: 3px solid rgba(0,0,0,0.12);
-          box-shadow: 0 12px 28px rgba(127, 29, 29, 0.2);
+          font-family: var(--font-nunito);
         }
-        .hero-secondary, .cta-secondary {
-          background: rgba(255,255,255,0.08);
-          color: white;
-          font-weight: 700;
+        .hp-btn-secondary {
+          display: inline-block;
+          background: transparent;
+          color: #fff;
+          font-weight: 800;
           font-size: 15px;
-          padding: 12px 28px;
-          border-radius: 999px;
+          padding: 14px 28px;
+          border-radius: 12px;
+          border: 2px solid rgba(255,255,255,0.5);
           text-decoration: none;
-          border: 2px solid rgba(252, 165, 165, 0.65);
+          font-family: var(--font-nunito);
         }
-        .feat-inner {
-          max-width: 1100px;
-          margin: 0 auto;
-          display: flex;
-          align-items: center;
-          min-height: 300px;
-        }
-        .feat-copy { flex: 1; padding: 48px 44px; }
-        .feat-ui {
-          flex: 1; padding: 32px;
-          display: flex; align-items: center; justify-content: center;
-        }
-        .feat-ui-left .feat-copy { order: 2; }
-        .feat-ui-left .feat-ui { order: 1; }
+        .hp-bento-row-a { display: grid; grid-template-columns: 2fr 1fr; gap: 16px; }
+        .hp-bento-row-b { display: grid; grid-template-columns: 1fr 2fr; gap: 16px; margin-top: 16px; }
+        .hp-bento-row-c { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 16px; }
+        .hp-comp-table { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+        .hp-footer-inner { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px; }
+        .hp-footer-links { display: flex; gap: 20px; }
         @media (max-width: 640px) {
-          .landing-nav {
-            padding: 12px 16px !important;
-            min-height: 0 !important;
-            gap: 16px !important;
-          }
-          .landing-brand {
-            max-width: none;
-            flex: 1 1 auto;
-          }
-          .landing-brand-mark {
-            font-size: 22px !important;
-            letter-spacing: -0.5px !important;
-          }
-          .landing-nav-actions {
-            gap: 12px !important;
-            flex: 0 0 auto;
-          }
-          .landing-nav-link {
-            font-size: 12px !important;
-          }
-          .landing-nav-cta {
-            font-size: 12px !important;
-            padding: 8px 12px !important;
-          }
-          .nav-features { display: none !important; }
-          .feat-inner { flex-direction: column; }
-          .feat-copy { order: 1 !important; padding: 32px 20px 16px; width: 100%; box-sizing: border-box; }
-          .feat-ui { order: 2 !important; padding: 16px 20px 32px; width: 100%; box-sizing: border-box; }
-          .hero-copy { max-width: 320px !important; margin-bottom: 24px !important; }
-          .hero-actions, .cta-actions {
-            flex-direction: column;
-            align-items: center;
-          }
-          .hero-primary, .hero-secondary, .cta-primary, .cta-secondary {
-            width: min(100%, 280px);
-            text-align: center;
-            box-sizing: border-box;
-          }
-          .problem-section { padding: 48px 20px !important; }
-          .comp-section { padding: 48px 16px !important; }
-          .comp-grid { border-radius: 10px !important; }
-          .comp-feat { font-size: 11px !important; padding: 8px 10px !important; }
-          .comp-val { font-size: 11px !important; padding: 8px 5px !important; }
-          .personas-section { padding: 48px 20px !important; }
-          .personas-grid { grid-template-columns: 1fr !important; }
-          .cta-section { padding: 52px 20px !important; }
-          .footer-inner { flex-direction: column !important; align-items: center !important; text-align: center !important; gap: 12px !important; }
-          .footer-links { gap: 12px !important; flex-wrap: wrap; justify-content: center; }
-          .teaser-bar {
-            padding: 10px 16px !important;
-            flex-direction: column !important;
-            gap: 6px !important;
-            text-align: center !important;
-          }
-          .bento-row-a,
-          .bento-row-b,
-          .bento-row-c {
-            grid-template-columns: 1fr !important;
-          }
+          .hp-hero-btns { flex-direction: column; align-items: center; }
+          .hp-btn-primary, .hp-btn-secondary { width: min(100%, 280px); text-align: center; box-sizing: border-box; }
+          .hp-bento-row-a, .hp-bento-row-b, .hp-bento-row-c { grid-template-columns: 1fr !important; }
+          .hp-footer-inner { flex-direction: column; align-items: center; text-align: center; }
+          .hp-footer-links { justify-content: center; }
         }
       `}</style>
 
-      {/* 1. NAV */}
-      <nav className="landing-nav">
-        <Link href="/" className="landing-brand">
-          <span className="landing-brand-mark" style={{ fontFamily: ff }}>
-            Roost
-          </span>
-        </Link>
-        <div className="landing-nav-actions">
-          <a
-            href="#features"
-            className="nav-features landing-nav-link"
-            style={{ fontFamily: ff }}
-          >
-            Features
-          </a>
-          <Link
-            href="/login"
-            className="landing-nav-link"
-            style={{ fontFamily: ff }}
-          >
-            Sign in
-          </Link>
-          <Link
-            href="/signup"
-            className="landing-nav-cta"
-            style={{ fontFamily: ff }}
-          >
-            Get started free
-          </Link>
-        </div>
-      </nav>
-
-      {/* 2. TEASER BAR */}
-      <div
-        className="teaser-bar"
+      {/* ── 1. HERO ─────────────────────────────────────────────────────── */}
+      <section
         style={{
-          backgroundColor: brandAccent,
-          padding: '10px 40px',
+          backgroundColor: C.chores.base,
+          minHeight: '87vh',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          gap: 10,
+          textAlign: 'center',
+          padding: '60px 24px',
         }}
       >
-        <span
-          style={{
-            backgroundColor: 'rgba(255,255,255,0.18)',
-            color: 'white',
-            fontSize: 10,
-            fontWeight: 800,
-            padding: '3px 10px',
-            borderRadius: 99,
-            fontFamily: ff,
-          }}
-        >
-          COMING SOON
-        </span>
-        <span
-          style={{
-            fontSize: 12,
-            fontWeight: 700,
-            color: 'rgba(255,255,255,0.85)',
-            fontFamily: ff,
-          }}
-        >
-          iOS and Android apps are on the way
-        </span>
-      </div>
+        <div style={{ maxWidth: 560 }}>
+          {/* Logo placeholder */}
+          <div
+            style={{
+              width: 96,
+              height: 96,
+              backgroundColor: 'rgba(255,255,255,0.18)',
+              borderRadius: 24,
+              margin: '0 auto 28px',
+            }}
+            className="hp-logo"
+          />
 
-      {/* 3.  HERO */}
-      <section
-        className="hero-section px-6 pt-10 pb-13 md:px-10 md:pt-16 md:pb-18 text-center"
-        style={{ backgroundColor: brandBg }}
-      >
-        <Image
-          src={ROOST_ICON_SRC}
-          alt="Roost"
-          width={120}
-          height={120}
-          className="block mx-auto mb-4 md:mb-5 w-18 h-18 md:w-30 md:h-30 rounded-[20px] md:rounded-[32px]"
-          priority
-          sizes="(max-width: 768px) 72px, 120px"
-        />
+          <h1
+            style={{
+              fontSize: 52,
+              fontWeight: 900,
+              color: '#fff',
+              letterSpacing: '-1px',
+              margin: '0 0 14px',
+              lineHeight: 1.1,
+              fontFamily: 'var(--font-nunito)',
+            }}
+            className="hp-h1"
+          >
+            One App, Zero Excuses
+          </h1>
 
-        <p
-          className="text-[44px] md:text-[56px] font-black"
-          style={{
-            color: 'white',
-            letterSpacing: '-1.5px',
-            lineHeight: 1,
-            maxWidth: 600,
-            margin: '0 auto 16px',
-            fontFamily: ff,
-          }}
-        >
-          Roost
-        </p>
-        <h1
-          className="hero-h1 text-[28px] md:text-[40px] font-black"
-          style={{
-            color: 'white',
-            letterSpacing: '-1px',
-            lineHeight: 1.06,
-            maxWidth: 760,
-            margin: '0 auto 16px',
-            fontFamily: ff,
-          }}
-        >
-          One App, Zero Excuses
-        </h1>
-        <p
-          className="hero-copy text-[14px] md:text-[16px]"
-          style={{
-            fontWeight: 600,
-            color: 'rgba(255,255,255,0.85)',
-            lineHeight: 1.6,
-            maxWidth: 700,
-            margin: '0 auto 30px',
-            fontFamily: ff,
-          }}
-        >
-          Chores. Groceries. Bills. Meals. One place, everyone on the same page.
-        </p>
-        <div className="hero-actions">
-          <Link
-            href="/signup"
-            className="hero-primary"
-            style={{ fontFamily: ff }}
-          >
-            Get started free
-          </Link>
-          <Link
-            href="/login"
-            className="hero-secondary"
-            style={{ fontFamily: ff }}
-          >
-            Sign in
-          </Link>
+          <div className="hp-hero-btns" style={{ marginBottom: 16 }}>
+            <Link href="/signup" className="hp-btn-primary">
+              Get started free
+            </Link>
+            <Link href="/login" className="hp-btn-secondary">
+              Sign in
+            </Link>
+          </div>
+
         </div>
       </section>
 
-      {/* BENTO GRID */}
+      {/* ── 2. BENTO GRID ───────────────────────────────────────────────── */}
       <section style={{ backgroundColor: '#ffffff', padding: '80px 40px' }}>
         <div style={{ maxWidth: 1100, margin: '0 auto' }}>
           <p
@@ -779,7 +292,7 @@ export default async function HomePage() {
               letterSpacing: '0.08em',
               color: '#9CA3AF',
               marginBottom: 48,
-              fontFamily: ff,
+              fontFamily: 'var(--font-nunito)',
               textTransform: 'uppercase',
             }}
           >
@@ -787,14 +300,14 @@ export default async function HomePage() {
           </p>
 
           {/* Row 1: Chores (2/3) + Grocery (1/3) */}
-          <div className="bento-row-a" style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 16 }}>
+          <div className="hp-bento-row-a">
             {/* Chores — tall with mockup */}
             <div
               style={{
                 background: '#fff',
                 borderRadius: 16,
                 border: '1.5px solid #E5E7EB',
-                borderBottom: '4px solid #C93B3B',
+                borderBottom: `4px solid ${C.chores.dark}`,
                 padding: 28,
                 display: 'flex',
                 flexDirection: 'column',
@@ -807,20 +320,20 @@ export default async function HomePage() {
                     width: 36,
                     height: 36,
                     borderRadius: 10,
-                    backgroundColor: 'rgba(239,68,68,0.12)',
+                    backgroundColor: `${C.chores.base}1F`,
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
                     marginBottom: 12,
                   }}
                 >
-                  <CheckSquare size={18} color="#EF4444" />
+                  <CheckSquare size={18} color={C.chores.base} />
                 </div>
-                <p style={{ fontSize: 16, fontWeight: 900, color: '#111827', margin: '0 0 6px', fontFamily: ff }}>
+                <p style={{ fontSize: 16, fontWeight: 900, color: '#111827', margin: '0 0 6px', fontFamily: 'var(--font-nunito)' }}>
                   Chores
                 </p>
-                <p style={{ fontSize: 13, fontWeight: 600, color: '#6B7280', lineHeight: 1.55, margin: 0, fontFamily: ff }}>
-                  Assign it. Track it. Nobody gets away with &ldquo;I forgot.&rdquo; Kids earn rewards for finishing theirs.
+                <p style={{ fontSize: 13, fontWeight: 600, color: '#6B7280', lineHeight: 1.6, margin: 0, fontFamily: 'var(--font-nunito)' }}>
+                  Assign chores to anyone in the household and track who has done what. Kids earn points and rewards when they hit their weekly completion goal, so you&apos;re not the one doing the nagging. Streaks and a leaderboard keep everyone honest.
                 </p>
               </div>
               <ChoresMockup />
@@ -832,7 +345,7 @@ export default async function HomePage() {
                 background: '#fff',
                 borderRadius: 16,
                 border: '1.5px solid #E5E7EB',
-                borderBottom: '4px solid #C87D00',
+                borderBottom: `4px solid ${C.grocery.dark}`,
                 padding: 24,
               }}
             >
@@ -841,33 +354,33 @@ export default async function HomePage() {
                   width: 36,
                   height: 36,
                   borderRadius: 10,
-                  backgroundColor: 'rgba(245,158,11,0.12)',
+                  backgroundColor: `${C.grocery.base}1F`,
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
                   marginBottom: 12,
                 }}
               >
-                <ShoppingCart size={18} color="#F59E0B" />
+                <ShoppingCart size={18} color={C.grocery.base} />
               </div>
-              <p style={{ fontSize: 16, fontWeight: 900, color: '#111827', margin: '0 0 6px', fontFamily: ff }}>
+              <p style={{ fontSize: 16, fontWeight: 900, color: '#111827', margin: '0 0 6px', fontFamily: 'var(--font-nunito)' }}>
                 Grocery
               </p>
-              <p style={{ fontSize: 13, fontWeight: 600, color: '#6B7280', lineHeight: 1.55, margin: 0, fontFamily: ff }}>
-                One list everyone adds to. No more &ldquo;I thought you got the milk.&rdquo;
+              <p style={{ fontSize: 13, fontWeight: 600, color: '#6B7280', lineHeight: 1.6, margin: 0, fontFamily: 'var(--font-nunito)' }}>
+                One shared list that everyone can add to from anywhere. Items auto-sort by store section so you&apos;re not zigzagging across the store. Check things off as you shop, and clear the cart when you&apos;re done.
               </p>
             </div>
           </div>
 
           {/* Row 2: Expenses (1/3) + Meals (2/3) */}
-          <div className="bento-row-b" style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: 16, marginTop: 16 }}>
+          <div className="hp-bento-row-b">
             {/* Expenses — small */}
             <div
               style={{
                 background: '#fff',
                 borderRadius: 16,
                 border: '1.5px solid #E5E7EB',
-                borderBottom: '4px solid #159040',
+                borderBottom: `4px solid ${C.expenses.dark}`,
                 padding: 24,
               }}
             >
@@ -876,20 +389,20 @@ export default async function HomePage() {
                   width: 36,
                   height: 36,
                   borderRadius: 10,
-                  backgroundColor: 'rgba(34,197,94,0.12)',
+                  backgroundColor: `${C.expenses.base}1F`,
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
                   marginBottom: 12,
                 }}
               >
-                <DollarSign size={18} color="#22C55E" />
+                <DollarSign size={18} color={C.expenses.base} />
               </div>
-              <p style={{ fontSize: 16, fontWeight: 900, color: '#111827', margin: '0 0 6px', fontFamily: ff }}>
+              <p style={{ fontSize: 16, fontWeight: 900, color: '#111827', margin: '0 0 6px', fontFamily: 'var(--font-nunito)' }}>
                 Expenses
               </p>
-              <p style={{ fontSize: 13, fontWeight: 600, color: '#6B7280', lineHeight: 1.55, margin: 0, fontFamily: ff }}>
-                Split bills three ways, scan a receipt, settle up. No spreadsheets.
+              <p style={{ fontSize: 13, fontWeight: 600, color: '#6B7280', lineHeight: 1.6, margin: 0, fontFamily: 'var(--font-nunito)' }}>
+                Track shared bills and split them equally, by custom amounts, or by line item. Snap a photo of a receipt and Roost reads the items for you. See who owes what, settle up, and move on.
               </p>
             </div>
 
@@ -899,7 +412,7 @@ export default async function HomePage() {
                 background: '#fff',
                 borderRadius: 16,
                 border: '1.5px solid #E5E7EB',
-                borderBottom: '4px solid #C4581A',
+                borderBottom: `4px solid ${C.meals.dark}`,
                 padding: 28,
                 display: 'flex',
                 flexDirection: 'column',
@@ -912,20 +425,20 @@ export default async function HomePage() {
                     width: 36,
                     height: 36,
                     borderRadius: 10,
-                    backgroundColor: 'rgba(249,115,22,0.12)',
+                    backgroundColor: `${C.meals.base}1F`,
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
                     marginBottom: 12,
                   }}
                 >
-                  <UtensilsCrossed size={18} color="#F97316" />
+                  <UtensilsCrossed size={18} color={C.meals.base} />
                 </div>
-                <p style={{ fontSize: 16, fontWeight: 900, color: '#111827', margin: '0 0 6px', fontFamily: ff }}>
+                <p style={{ fontSize: 16, fontWeight: 900, color: '#111827', margin: '0 0 6px', fontFamily: 'var(--font-nunito)' }}>
                   Meals
                 </p>
-                <p style={{ fontSize: 13, fontWeight: 600, color: '#6B7280', lineHeight: 1.55, margin: 0, fontFamily: ff }}>
-                  Plan the week, vote on dinners, push ingredients straight to your grocery list.
+                <p style={{ fontSize: 13, fontWeight: 600, color: '#6B7280', lineHeight: 1.6, margin: 0, fontFamily: 'var(--font-nunito)' }}>
+                  Plan the week&apos;s meals together, let everyone vote on what sounds good, and push ingredients straight to the grocery list with one tap. Save your household favorites to a meal bank and schedule them again whenever you want.
                 </p>
               </div>
               <MealsMockup />
@@ -933,14 +446,14 @@ export default async function HomePage() {
           </div>
 
           {/* Row 3: Calendar (1/2) + Reminders (1/2) */}
-          <div className="bento-row-c" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginTop: 16 }}>
+          <div className="hp-bento-row-c">
             {/* Calendar */}
             <div
               style={{
                 background: '#fff',
                 borderRadius: 16,
                 border: '1.5px solid #E5E7EB',
-                borderBottom: '4px solid #1A5CB5',
+                borderBottom: `4px solid ${C.calendar.dark}`,
                 padding: 24,
               }}
             >
@@ -949,20 +462,20 @@ export default async function HomePage() {
                   width: 36,
                   height: 36,
                   borderRadius: 10,
-                  backgroundColor: 'rgba(59,130,246,0.12)',
+                  backgroundColor: `${C.calendar.base}1F`,
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
                   marginBottom: 12,
                 }}
               >
-                <CalendarDays size={18} color="#3B82F6" />
+                <CalendarDays size={18} color={C.calendar.base} />
               </div>
-              <p style={{ fontSize: 16, fontWeight: 900, color: '#111827', margin: '0 0 6px', fontFamily: ff }}>
+              <p style={{ fontSize: 16, fontWeight: 900, color: '#111827', margin: '0 0 6px', fontFamily: 'var(--font-nunito)' }}>
                 Calendar
               </p>
-              <p style={{ fontSize: 13, fontWeight: 600, color: '#6B7280', lineHeight: 1.55, margin: 0, fontFamily: ff }}>
-                Household events everyone can see. School pickups, dentist, game night.
+              <p style={{ fontSize: 13, fontWeight: 600, color: '#6B7280', lineHeight: 1.6, margin: 0, fontFamily: 'var(--font-nunito)' }}>
+                A shared calendar for the whole household, from school pickups and dentist appointments to game nights and grocery runs. Everyone sees the same events. Set recurring events once and never think about them again.
               </p>
             </div>
 
@@ -972,7 +485,7 @@ export default async function HomePage() {
                 background: '#fff',
                 borderRadius: 16,
                 border: '1.5px solid #E5E7EB',
-                borderBottom: '4px solid #0891B2',
+                borderBottom: `4px solid ${C.reminders.dark}`,
                 padding: 24,
               }}
             >
@@ -981,613 +494,322 @@ export default async function HomePage() {
                   width: 36,
                   height: 36,
                   borderRadius: 10,
-                  backgroundColor: 'rgba(6,182,212,0.12)',
+                  backgroundColor: `${C.reminders.base}1F`,
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
                   marginBottom: 12,
                 }}
               >
-                <Bell size={18} color="#06B6D4" />
+                <Bell size={18} color={C.reminders.base} />
               </div>
-              <p style={{ fontSize: 16, fontWeight: 900, color: '#111827', margin: '0 0 6px', fontFamily: ff }}>
+              <p style={{ fontSize: 16, fontWeight: 900, color: '#111827', margin: '0 0 6px', fontFamily: 'var(--font-nunito)' }}>
                 Reminders
               </p>
-              <p style={{ fontSize: 13, fontWeight: 600, color: '#6B7280', lineHeight: 1.55, margin: 0, fontFamily: ff }}>
-                Nag the right people at the right time, so you don&apos;t have to.
+              <p style={{ fontSize: 13, fontWeight: 600, color: '#6B7280', lineHeight: 1.6, margin: 0, fontFamily: 'var(--font-nunito)' }}>
+                Set a reminder for yourself or anyone in the household, once or on a recurring schedule. Roost sends a push notification to the right person at the right time, so you don&apos;t have to be the one following up.
               </p>
             </div>
           </div>
         </div>
       </section>
 
-      {/* 6. COMPARISON TABLE */}
-      <section
-        className="comp-section"
-        style={{ backgroundColor: '#F9FAFB', padding: '56px 40px' }}
-      >
-        <div style={{ textAlign: 'center', marginBottom: 40 }}>
-          <p
-            style={{
-              fontSize: 11,
-              fontWeight: 800,
-              letterSpacing: '0.08em',
-              color: '#9CA3AF',
-              marginBottom: 12,
-              fontFamily: ff,
-              textTransform: 'uppercase',
-            }}
-          >
-            Why Roost?
-          </p>
-          <h2
-            style={{
-              fontSize: 32,
-              fontWeight: 900,
-              color: '#111827',
-              letterSpacing: '-0.7px',
-              margin: 0,
-              fontFamily: ff,
-            }}
-          >
-            Everything they don&apos;t have. Nothing you don&apos;t need.
-          </h2>
-        </div>
-        <div
-          className="comp-grid"
-          style={{
-            maxWidth: 720,
-            margin: '0 auto',
-            borderRadius: 16,
-            overflow: 'hidden',
-            border: '1.5px solid #FECACA',
-          }}
-        >
+      {/* ── 3. COMPARISON TABLE ─────────────────────────────────────────── */}
+      <section style={{ backgroundColor: '#F9FAFB', padding: '80px 40px' }}>
+        <div style={{ maxWidth: 1100, margin: '0 auto' }}>
+          <div style={{ textAlign: 'center', marginBottom: 40 }}>
+            <p
+              style={{
+                fontSize: 11,
+                fontWeight: 800,
+                letterSpacing: '0.08em',
+                color: '#9CA3AF',
+                marginBottom: 12,
+                fontFamily: 'var(--font-nunito)',
+                textTransform: 'uppercase',
+              }}
+            >
+              Why Roost?
+            </p>
+            <h2
+              style={{
+                fontSize: 32,
+                fontWeight: 900,
+                color: '#111827',
+                letterSpacing: '-0.7px',
+                margin: 0,
+                fontFamily: 'var(--font-nunito)',
+              }}
+            >
+              Everything they don&apos;t have. Nothing you don&apos;t need.
+            </h2>
+          </div>
+
+          {/* Table card */}
           <div
+            className="hp-comp-table"
             style={{
-              display: 'grid',
-              gridTemplateColumns: '2fr 1fr 1fr 1fr 1fr',
+              backgroundColor: '#fff',
+              borderRadius: 16,
+              border: '1.5px solid #E5E7EB',
+              borderBottom: `4px solid ${C.chores.base}`,
+              overflow: 'hidden',
             }}
           >
-            <div
-              className="comp-feat"
-              style={{
-                backgroundColor: '#f9fafb',
-                padding: '12px 16px',
-                borderBottom: '1px solid #FECACA',
-              }}
-            >
-              <span
-                style={{
-                  fontSize: 12,
-                  fontWeight: 800,
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.5px',
-                  color: '#666',
-                  fontFamily: ff,
-                }}
-              >
-                Feature
-              </span>
-            </div>
-            <div
-              className="comp-val"
-              style={{
-                backgroundColor: brandBg,
-                padding: '12px 8px',
-                textAlign: 'center',
-                borderBottom: '1px solid #991B1B',
-              }}
-            >
-              <span
-                style={{
-                  fontSize: 13,
-                  fontWeight: 800,
-                  color: 'white',
-                  fontFamily: ff,
-                }}
-              >
-                Roost
-              </span>
-            </div>
-            {['Splitwise', 'Cozi', 'OurHome'].map((h) => (
-              <div
-                key={h}
-                className="comp-val"
-                style={{
-                  backgroundColor: '#f3f4f6',
-                  padding: '12px 8px',
-                  textAlign: 'center',
-                  borderBottom: '1px solid #e5e7eb',
-                }}
-              >
-                <span
-                  style={{
-                    fontSize: 12,
-                    fontWeight: 700,
-                    color: '#888',
-                    fontFamily: ff,
-                  }}
-                >
-                  {h}
-                </span>
-              </div>
-            ))}
-          </div>
-          {TABLE_ROWS.map((row, i) => (
-            <div
-              key={row.feature}
-              style={{
-                display: 'grid',
-                gridTemplateColumns: '2fr 1fr 1fr 1fr 1fr',
-                backgroundColor: i % 2 === 0 ? 'white' : '#fafafa',
-              }}
-            >
-              <div
-                className="comp-feat"
-                style={{
-                  padding: '11px 16px',
-                  borderBottom: '1px solid #fef2f2',
-                }}
-              >
-                <span
-                  style={{
-                    fontSize: 12,
-                    fontWeight: 700,
-                    color: '#1a1a1a',
-                    fontFamily: ff,
-                  }}
-                >
-                  {row.feature}
-                </span>
-              </div>
-              <div
-                className="comp-val"
-                style={{
-                  padding: '11px 8px',
-                  textAlign: 'center',
-                  backgroundColor: '#FFE4E6',
-                  borderBottom: '1px solid rgba(239,68,68,0.1)',
-                }}
-              >
-                <CellValue value={row.roost} />
-              </div>
-              <div
-                className="comp-val"
-                style={{
-                  padding: '11px 8px',
-                  textAlign: 'center',
-                  borderBottom: '1px solid #fef2f2',
-                }}
-              >
-                <CellValue value={row.split} />
-              </div>
-              <div
-                className="comp-val"
-                style={{
-                  padding: '11px 8px',
-                  textAlign: 'center',
-                  borderBottom: '1px solid #fef2f2',
-                }}
-              >
-                <CellValue value={row.cozi} />
-              </div>
-              <div
-                className="comp-val"
-                style={{
-                  padding: '11px 8px',
-                  textAlign: 'center',
-                  borderBottom: '1px solid #fef2f2',
-                }}
-              >
-                <CellValue value={row.ourhome} />
-              </div>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* 7. WHO IS IT FOR */}
-      <section
-        className="personas-section"
-        style={{
-          backgroundColor: 'white',
-          padding: '56px 40px',
-          borderTop: '1px solid #E5E7EB',
-        }}
-      >
-        <h2
-          style={{
-            fontSize: 26,
-            fontWeight: 900,
-            color: '#1a1a1a',
-            letterSpacing: '-0.7px',
-            textAlign: 'center',
-            margin: '0 0 28px',
-            fontFamily: ff,
-          }}
-        >
-          Built for any household
-        </h2>
-        <div
-          className="personas-grid"
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(3, 1fr)',
-            gap: 16,
-            maxWidth: 880,
-            margin: '0 auto',
-          }}
-        >
-          {[
-            {
-              Icon: Users,
-              title: 'Families',
-              body: 'Manage chores, allowances, and a shared calendar that the whole family can see, kids earn their allowance, parents keep their sanity.',
-            },
-            {
-              Icon: Home,
-              title: 'Roommates',
-              body: 'Split rent, utilities, and groceries without the awkward texts, everyone sees what they owe and nobody gets to pretend they forgot about the electric bill.',
-            },
-            {
-              Icon: GraduationCap,
-              title: 'College houses',
-              body: 'Five people, one fridge, and nobody wants to be the house manager, Roost handles the boring stuff so you can handle everything else.',
-            },
-          ].map(({ Icon, title, body }) => (
-            <div
-              key={title}
-              style={{
-                borderRadius: 16,
-                border: '1.5px solid #e5e7eb',
-                borderBottom: `4px solid ${brandAccent}`,
-                padding: 20,
-              }}
-            >
-              <div
-                style={{
-                  width: 40,
-                  height: 40,
-                  borderRadius: 10,
-                  backgroundColor: brandTint,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  marginBottom: 12,
-                }}
-              >
-                <Icon size={20} color={brandAccent} />
-              </div>
-              <div
-                style={{
-                  fontSize: 15,
-                  fontWeight: 900,
-                  color: '#1a1a1a',
-                  marginBottom: 6,
-                  fontFamily: ff,
-                }}
-              >
-                {title}
-              </div>
-              <div
-                style={{
-                  fontSize: 13,
-                  fontWeight: 600,
-                  color: '#666',
-                  lineHeight: 1.55,
-                  fontFamily: ff,
-                }}
-              >
-                {body}
-              </div>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      <section
-        style={{
-          backgroundColor: '#FFF7F7',
-          padding: '56px 40px',
-          borderTop: '1px solid #FEE2E2',
-        }}
-      >
-        <div style={{ maxWidth: 1040, margin: '0 auto' }}>
-          <h2
-            style={{
-              fontSize: 28,
-              fontWeight: 900,
-              color: '#1a1a1a',
-              letterSpacing: '-0.7px',
-              margin: '0 0 10px',
-              textAlign: 'center',
-              fontFamily: ff,
-            }}
-          >
-            Explore Roost by use case
-          </h2>
-          <p
-            style={{
-              fontSize: 15,
-              fontWeight: 700,
-              color: '#666',
-              margin: '0 auto 24px',
-              maxWidth: 760,
-              textAlign: 'center',
-              lineHeight: 1.7,
-              fontFamily: ff,
-            }}
-          >
-            These pages are built around the problems people actually search
-            for, from roommate chores and shared grocery lists to family
-            organization and allowances.
-          </p>
-          <div
-            style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
-              gap: 16,
-              maxWidth: 880,
-              margin: '0 auto',
-            }}
-          >
-            {homepageResourceLinks.map((link) => (
-              <Link
-                key={link.href}
-                href={link.href}
-                style={{
-                  display: 'block',
-                  borderRadius: 18,
-                  border: '1.5px solid #FECACA',
-                  borderBottom: `4px solid ${brandAccent}`,
-                  backgroundColor: 'white',
-                  padding: 20,
-                  textDecoration: 'none',
-                }}
-              >
-                <div
-                  style={{
-                    color: '#1a1a1a',
-                    fontSize: 18,
-                    fontWeight: 900,
-                    lineHeight: 1.25,
-                    marginBottom: 8,
-                    fontFamily: ff,
-                  }}
-                >
-                  {link.label}
-                </div>
-                <div
-                  style={{
-                    color: '#666',
-                    fontSize: 14,
-                    lineHeight: 1.65,
-                    fontWeight: 600,
-                    fontFamily: ff,
-                  }}
-                >
-                  {link.description}
-                </div>
-              </Link>
-            ))}
+            <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 500 }}>
+              <thead>
+                <tr>
+                  <th
+                    style={{
+                      padding: '14px 18px',
+                      textAlign: 'left',
+                      fontSize: 12,
+                      fontWeight: 800,
+                      color: '#6B7280',
+                      fontFamily: 'var(--font-nunito)',
+                      borderBottom: '1.5px solid #E5E7EB',
+                      width: '40%',
+                    }}
+                  >
+                    Feature
+                  </th>
+                  <th
+                    style={{
+                      padding: '14px 18px',
+                      textAlign: 'center',
+                      fontSize: 12,
+                      fontWeight: 900,
+                      color: C.chores.base,
+                      fontFamily: 'var(--font-nunito)',
+                      borderBottom: '1.5px solid #E5E7EB',
+                      backgroundColor: `${C.chores.base}0D`,
+                    }}
+                  >
+                    Roost
+                  </th>
+                  <th
+                    style={{
+                      padding: '14px 18px',
+                      textAlign: 'center',
+                      fontSize: 12,
+                      fontWeight: 800,
+                      color: '#6B7280',
+                      fontFamily: 'var(--font-nunito)',
+                      borderBottom: '1.5px solid #E5E7EB',
+                    }}
+                  >
+                    Splitwise
+                  </th>
+                  <th
+                    style={{
+                      padding: '14px 18px',
+                      textAlign: 'center',
+                      fontSize: 12,
+                      fontWeight: 800,
+                      color: '#6B7280',
+                      fontFamily: 'var(--font-nunito)',
+                      borderBottom: '1.5px solid #E5E7EB',
+                    }}
+                  >
+                    Cozi
+                  </th>
+                  <th
+                    style={{
+                      padding: '14px 18px',
+                      textAlign: 'center',
+                      fontSize: 12,
+                      fontWeight: 800,
+                      color: '#6B7280',
+                      fontFamily: 'var(--font-nunito)',
+                      borderBottom: '1.5px solid #E5E7EB',
+                    }}
+                  >
+                    OurHome
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {compRows.map((row, i) => (
+                  <tr key={row.feature}>
+                    <td
+                      style={{
+                        padding: '12px 18px',
+                        fontSize: 13,
+                        fontWeight: 700,
+                        color: '#374151',
+                        fontFamily: 'var(--font-nunito)',
+                        borderBottom: i < compRows.length - 1 ? '1px solid #F3F4F6' : 'none',
+                      }}
+                    >
+                      {row.feature}
+                    </td>
+                    <td
+                      style={{
+                        padding: '12px 18px',
+                        textAlign: 'center',
+                        fontSize: 15,
+                        fontWeight: cellWeight(row.roost),
+                        color: cellColor(row.roost),
+                        fontFamily: 'var(--font-nunito)',
+                        borderBottom: i < compRows.length - 1 ? '1px solid #F3F4F6' : 'none',
+                        backgroundColor: `${C.chores.base}06`,
+                      }}
+                    >
+                      {row.roost}
+                    </td>
+                    <td
+                      style={{
+                        padding: '12px 18px',
+                        textAlign: 'center',
+                        fontSize: 15,
+                        fontWeight: cellWeight(row.splitwise),
+                        color: cellColor(row.splitwise),
+                        fontFamily: 'var(--font-nunito)',
+                        borderBottom: i < compRows.length - 1 ? '1px solid #F3F4F6' : 'none',
+                      }}
+                    >
+                      {row.splitwise}
+                    </td>
+                    <td
+                      style={{
+                        padding: '12px 18px',
+                        textAlign: 'center',
+                        fontSize: 15,
+                        fontWeight: cellWeight(row.cozi),
+                        color: cellColor(row.cozi),
+                        fontFamily: 'var(--font-nunito)',
+                        borderBottom: i < compRows.length - 1 ? '1px solid #F3F4F6' : 'none',
+                      }}
+                    >
+                      {row.cozi}
+                    </td>
+                    <td
+                      style={{
+                        padding: '12px 18px',
+                        textAlign: 'center',
+                        fontSize: 15,
+                        fontWeight: cellWeight(row.ourHome),
+                        color: cellColor(row.ourHome),
+                        fontFamily: 'var(--font-nunito)',
+                        borderBottom: i < compRows.length - 1 ? '1px solid #F3F4F6' : 'none',
+                      }}
+                    >
+                      {row.ourHome}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         </div>
       </section>
 
+      {/* ── 4. BOTTOM CTA ───────────────────────────────────────────────── */}
       <section
         style={{
-          backgroundColor: 'white',
-          padding: '56px 40px',
-          borderTop: '1px solid #F3F4F6',
-        }}
-      >
-        <div style={{ maxWidth: 920, margin: '0 auto' }}>
-          <h2
-            style={{
-              fontSize: 28,
-              fontWeight: 900,
-              color: '#1a1a1a',
-              letterSpacing: '-0.7px',
-              margin: '0 0 22px',
-              textAlign: 'center',
-              fontFamily: ff,
-            }}
-          >
-            Frequently asked questions
-          </h2>
-          <div style={{ display: 'grid', gap: 12 }}>
-            {homepageFaqs.map((faq) => (
-              <details
-                key={faq.question}
-                style={{
-                  border: '1.5px solid #FECACA',
-                  borderRadius: 16,
-                  padding: '16px 18px',
-                  backgroundColor: '#FFF7F7',
-                }}
-              >
-                <summary
-                  style={{
-                    cursor: 'pointer',
-                    color: '#7F1D1D',
-                    fontWeight: 800,
-                    lineHeight: 1.5,
-                    fontFamily: ff,
-                  }}
-                >
-                  {faq.question}
-                </summary>
-                <p
-                  style={{
-                    margin: '12px 0 0',
-                    color: '#4B5563',
-                    fontSize: 15,
-                    lineHeight: 1.75,
-                    fontWeight: 600,
-                    fontFamily: ff,
-                  }}
-                >
-                  {faq.answer}
-                </p>
-              </details>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* 8. BOTTOM CTA */}
-      <section
-        className="cta-section"
-        style={{
-          backgroundColor: brandBg,
-          padding: '72px 40px',
+          backgroundColor: C.chores.base,
+          padding: '80px 40px',
           textAlign: 'center',
         }}
       >
         <h2
           style={{
-            fontSize: 38,
+            fontSize: 40,
             fontWeight: 900,
-            color: 'white',
+            color: '#fff',
             letterSpacing: '-0.8px',
-            margin: '0 0 10px',
-            fontFamily: ff,
+            margin: '0 0 12px',
+            fontFamily: 'var(--font-nunito)',
           }}
+          className="hp-cta-h2"
         >
           Your house runs better. Starting today.
         </h2>
-        <p
+        <Link
+          href="/signup"
           style={{
-            fontSize: 16,
-            fontWeight: 700,
-            color: 'rgba(255,255,255,0.7)',
-            margin: '0 0 28px',
-            fontFamily: ff,
+            display: 'inline-block',
+            backgroundColor: '#fff',
+            color: C.chores.base,
+            fontWeight: 800,
+            fontSize: 15,
+            padding: '16px 36px',
+            borderRadius: 12,
+            border: 'none',
+            borderBottom: `3px solid ${C.chores.dark}`,
+            textDecoration: 'none',
+            fontFamily: 'var(--font-nunito)',
           }}
         >
-          Free to start. $4/month when you&apos;re ready for more.
-        </p>
-        <div className="cta-actions">
-          <Link
-            href="/signup"
-            className="cta-primary"
-            style={{ fontFamily: ff }}
-          >
-            Get started free
-          </Link>
-        </div>
+          Get started free
+        </Link>
       </section>
 
-      {/* 9. FOOTER */}
-      <footer
-        style={{
-          backgroundColor: brandBg,
-          padding: '28px 40px',
-          borderTop: '1px solid rgba(255,255,255,0.2)',
-        }}
-      >
-        <div
-          className="footer-inner"
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            flexWrap: 'wrap',
-            gap: 16,
-          }}
-        >
-          <Link
-            href="/"
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 8,
-              textDecoration: 'none',
-            }}
-          >
-            <Image
-              src={ROOST_ICON_SRC}
-              alt="Roost"
-              width={28}
-              height={28}
-              sizes="28px"
-              style={{ borderRadius: 8, objectFit: 'cover', width: 28, height: 'auto' }}
-            />
+      {/* ── 5. FOOTER ───────────────────────────────────────────────────── */}
+      <footer style={{ backgroundColor: C.chores.base, padding: '32px 40px' }}>
+        <div style={{ maxWidth: 1100, margin: '0 auto' }}>
+          <div className="hp-footer-inner">
             <span
               style={{
+                fontSize: 18,
                 fontWeight: 900,
-                color: 'white',
-                fontSize: 15,
-                fontFamily: ff,
+                color: '#fff',
+                letterSpacing: '-0.5px',
+                fontFamily: 'var(--font-nunito)',
               }}
             >
               Roost
             </span>
-          </Link>
-          <span
+            <div className="hp-footer-links">
+              <Link
+                href="/privacy"
+                style={{
+                  fontSize: 13,
+                  fontWeight: 700,
+                  color: 'rgba(255,255,255,0.7)',
+                  textDecoration: 'none',
+                  fontFamily: 'var(--font-nunito)',
+                }}
+              >
+                Privacy
+              </Link>
+              <Link
+                href="/terms"
+                style={{
+                  fontSize: 13,
+                  fontWeight: 700,
+                  color: 'rgba(255,255,255,0.7)',
+                  textDecoration: 'none',
+                  fontFamily: 'var(--font-nunito)',
+                }}
+              >
+                Terms
+              </Link>
+            </div>
+          </div>
+          <p
             style={{
-              fontSize: 13,
-              fontWeight: 700,
-              color: 'rgba(255,255,255,0.6)',
-              fontFamily: ff,
+              fontSize: 12,
+              fontWeight: 600,
+              color: 'rgba(255,255,255,0.5)',
+              textAlign: 'center',
+              margin: '20px 0 0',
+              fontFamily: 'var(--font-nunito)',
             }}
           >
             &copy; 2026 Roost. Built for families and roommates who share a home.
-          </span>
-          <div className="footer-links" style={{ display: 'flex', gap: 20 }}>
-            <Link
-              href="/login"
-              style={{
-                fontSize: 12,
-                fontWeight: 700,
-                color: 'rgba(255,255,255,0.65)',
-                textDecoration: 'none',
-                fontFamily: ff,
-              }}
-            >
-              Sign in
-            </Link>
-            <Link
-              href="/signup"
-              style={{
-                fontSize: 12,
-                fontWeight: 700,
-                color: 'rgba(255,255,255,0.65)',
-                textDecoration: 'none',
-                fontFamily: ff,
-              }}
-            >
-              Sign up
-            </Link>
-            <Link
-              href="/privacy"
-              style={{
-                fontSize: 12,
-                fontWeight: 700,
-                color: 'rgba(255,255,255,0.65)',
-                textDecoration: 'none',
-                fontFamily: ff,
-              }}
-            >
-              Privacy
-            </Link>
-            <Link
-              href="/terms"
-              style={{
-                fontSize: 12,
-                fontWeight: 700,
-                color: 'rgba(255,255,255,0.65)',
-                textDecoration: 'none',
-                fontFamily: ff,
-              }}
-            >
-              Terms
-            </Link>
-          </div>
+          </p>
         </div>
       </footer>
-      </main>
+
+      <style>{`
+        @media (max-width: 640px) {
+          .hp-h1 { font-size: 36px !important; }
+          .hp-tagline { font-size: 16px !important; }
+          .hp-logo { width: 72px !important; height: 72px !important; }
+          .hp-cta-h2 { font-size: 28px !important; }
+        }
+      `}</style>
     </>
-  );
+  )
 }

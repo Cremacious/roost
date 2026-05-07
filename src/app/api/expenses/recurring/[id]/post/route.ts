@@ -1,150 +1,67 @@
-import { NextRequest } from "next/server";
-import { requireSession } from "@/lib/auth/helpers";
-import { db } from "@/lib/db";
-import { recurring_expense_templates, expenses, expense_splits, households, household_members, notification_queue } from "@/db/schema";
-import { and, eq, isNull } from "drizzle-orm";
-import { getUserHousehold } from "@/app/api/chores/route";
-import { logActivity } from "@/lib/utils/activity";
-import { advanceRecurringDate } from "@/app/api/expenses/recurring/route";
-import { format } from "date-fns";
+import { NextRequest, NextResponse } from 'next/server'
+import { getSession, getUserHousehold } from '@/lib/auth/helpers'
+import { db } from '@/lib/db'
+import { recurringExpenses, expenses, expenseSplits } from '@/db/schema'
+import { eq, and, isNull } from 'drizzle-orm'
+import { advanceRecurringDate } from '../../route'
 
-export async function POST(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-): Promise<Response> {
-  let session;
-  try {
-    session = await requireSession(request);
-  } catch (r) {
-    return r as Response;
-  }
+// Admin confirms a recurring draft — converts to real expense and advances schedule
+export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params
+  const session = await getSession()
+  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const { id } = await params;
-  const membership = await getUserHousehold(session.user.id);
-  if (!membership) return Response.json({ error: "No household found" }, { status: 404 });
-  if (membership.role !== "admin") return Response.json({ error: "Admin required" }, { status: 403 });
-  const { householdId } = membership;
+  const membership = await getUserHousehold(session.user.id)
+  if (!membership) return NextResponse.json({ error: 'No household' }, { status: 403 })
 
-  const [household] = await db
-    .select({ subscription_status: households.subscription_status })
-    .from(households)
-    .where(eq(households.id, householdId))
-    .limit(1);
-  if (!household || household.subscription_status !== "premium") {
-    return Response.json({ error: "Premium required" }, { status: 403 });
-  }
+  const { householdId, role } = membership
+  if (role !== 'admin') return NextResponse.json({ error: 'Admin only' }, { status: 403 })
 
-  const [template] = await db
+  const template = await db
     .select()
-    .from(recurring_expense_templates)
-    .where(and(eq(recurring_expense_templates.id, id), isNull(recurring_expense_templates.deleted_at)))
-    .limit(1);
+    .from(recurringExpenses)
+    .where(and(eq(recurringExpenses.id, id), eq(recurringExpenses.householdId, householdId), isNull(recurringExpenses.deletedAt)))
+    .then(r => r[0] ?? null)
 
-  if (!template) return Response.json({ error: "Template not found" }, { status: 404 });
-  if (template.household_id !== householdId) return Response.json({ error: "Forbidden" }, { status: 403 });
+  if (!template) return NextResponse.json({ error: 'Not found' }, { status: 404 })
 
-  let body: { totalAmount?: number; adjustedSplits?: { userId: string; amount: number }[] } = {};
-  try {
-    body = await request.json();
-  } catch {
-    // empty body is fine
-  }
+  const body = await req.json().catch(() => ({}))
+  const paidBy: string = body.paidBy ?? session.user.id
 
-  const totalAmount = body.totalAmount ?? parseFloat(template.total_amount ?? "0");
-  const splitsToUse = body.adjustedSplits ?? (template.splits as { userId: string; amount: number }[]);
+  const expenseId = crypto.randomUUID()
+  const splits: Array<{ userId: string; amount: string }> = JSON.parse(template.splits ?? '[]')
 
-  // Check for an existing draft to convert, otherwise create fresh
-  const [existingDraft] = await db
-    .select({ id: expenses.id })
-    .from(expenses)
-    .where(
-      and(
-        eq(expenses.recurring_template_id, id),
-        eq(expenses.is_recurring_draft, true),
-        isNull(expenses.deleted_at)
-      )
-    )
-    .limit(1);
+  await db.transaction(async (tx) => {
+    await tx.insert(expenses).values({
+      id: expenseId,
+      householdId,
+      title: template.title,
+      amount: template.totalAmount,
+      categoryId: template.categoryId,
+      notes: template.notes,
+      paidBy,
+      isRecurringDraft: false,
+      recurringTemplateId: template.id,
+    })
 
-  let expense: typeof expenses.$inferSelect;
-  if (existingDraft) {
-    // Convert existing draft to a real expense
-    [expense] = await db
-      .update(expenses)
-      .set({
-        is_recurring_draft: false,
-        total_amount: totalAmount.toFixed(2),
-        updated_at: new Date(),
-      })
-      .where(eq(expenses.id, existingDraft.id))
-      .returning();
-
-    // If splits were adjusted, delete old ones and re-insert
-    if (body.adjustedSplits) {
-      await db.delete(expense_splits).where(eq(expense_splits.expense_id, expense.id));
-      await db.insert(expense_splits).values(
-        splitsToUse.map((s) => ({
-          expense_id: expense.id,
-          user_id: s.userId,
-          amount: s.amount.toFixed(2),
+    if (splits.length > 0) {
+      await tx.insert(expenseSplits).values(
+        splits.map(s => ({
+          id: crypto.randomUUID(),
+          expenseId,
+          householdId,
+          userId: s.userId,
+          amount: s.amount,
         }))
-      );
+      )
     }
-  } else {
-    // Create fresh expense from template
-    [expense] = await db
-      .insert(expenses)
-      .values({
-        household_id: householdId,
-        title: template.title,
-        total_amount: totalAmount.toFixed(2),
-        paid_by: template.created_by,
-        category: template.category,
-        recurring_template_id: id,
-        is_recurring_draft: false,
-      })
-      .returning();
 
-    await db.insert(expense_splits).values(
-      splitsToUse.map((s) => ({
-        expense_id: expense.id,
-        user_id: s.userId,
-        amount: s.amount.toFixed(2),
-      }))
-    );
-  }
+    const nextDate = advanceRecurringDate(new Date(template.nextDueDate), template.frequency)
+    await tx
+      .update(recurringExpenses)
+      .set({ nextDueDate: nextDate, lastPostedAt: new Date() })
+      .where(eq(recurringExpenses.id, id))
+  })
 
-  // Advance template next_due_date
-  const today = format(new Date(), "yyyy-MM-dd");
-  const nextDue = advanceRecurringDate(template.next_due_date, template.frequency);
-  await db
-    .update(recurring_expense_templates)
-    .set({ next_due_date: nextDue, last_posted_at: today, updated_at: new Date() })
-    .where(eq(recurring_expense_templates.id, id));
-
-  await logActivity({
-    householdId,
-    userId: session.user.id,
-    type: "recurring_expense_posted",
-    description: `posted recurring ${template.title} ($${totalAmount.toFixed(2)})`,
-    entityId: expense.id,
-    entityType: "expense",
-  });
-
-  // Notify all household members
-  const members = await db
-    .select({ user_id: household_members.user_id })
-    .from(household_members)
-    .where(eq(household_members.household_id, householdId));
-
-  for (const m of members) {
-    await db.insert(notification_queue).values({
-      user_id: m.user_id,
-      type: "recurring_expense_posted",
-      title: "New expense posted",
-      body: `${template.title} ($${totalAmount.toFixed(2)}) has been added and split between you.`,
-    }).catch(() => {});
-  }
-
-  return Response.json({ expense });
+  return NextResponse.json({ expenseId })
 }

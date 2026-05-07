@@ -1,89 +1,74 @@
-import { NextRequest } from "next/server";
-import { requireSession } from "@/lib/auth/helpers";
-import { db } from "@/lib/db";
-import { calendar_events, event_attendees } from "@/db/schema";
-import { and, eq, isNull } from "drizzle-orm";
-import { getUserHousehold } from "@/app/api/chores/route";
-
-const VALID_STATUSES = ["attending", "not_attending", "maybe"] as const;
-type RsvpStatus = (typeof VALID_STATUSES)[number];
+import { NextRequest, NextResponse } from 'next/server'
+import { getSession, getUserHousehold } from '@/lib/auth/helpers'
+import { db } from '@/lib/db'
+import { calendarEvents, eventAttendees } from '@/db/schema'
+import { eq, and } from 'drizzle-orm'
 
 export async function PATCH(
-  request: NextRequest,
+  req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
-): Promise<Response> {
-  const { id } = await params;
+) {
+  const session = await getSession()
+  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  let session;
+  const membership = await getUserHousehold(session.user.id)
+  if (!membership) return NextResponse.json({ error: 'No household' }, { status: 403 })
+
+  const { householdId } = membership
+  const { id } = await params
+
+  let body: { status: 'going' | 'maybe' | 'not_going' }
   try {
-    session = await requireSession(request);
-  } catch (r) {
-    return r as Response;
-  }
-
-  const membership = await getUserHousehold(session.user.id);
-  if (!membership) {
-    return Response.json({ error: "No household found" }, { status: 404 });
-  }
-
-  const [event] = await db
-    .select({ id: calendar_events.id, rsvpEnabled: calendar_events.rsvp_enabled })
-    .from(calendar_events)
-    .where(
-      and(
-        eq(calendar_events.id, id),
-        eq(calendar_events.household_id, membership.householdId),
-        isNull(calendar_events.deleted_at)
-      )
-    )
-    .limit(1);
-
-  if (!event) {
-    return Response.json({ error: "Event not found" }, { status: 404 });
-  }
-  if (!event.rsvpEnabled) {
-    return Response.json({ error: "RSVP is not enabled for this event" }, { status: 400 });
-  }
-
-  const [attendee] = await db
-    .select({ id: event_attendees.id })
-    .from(event_attendees)
-    .where(
-      and(
-        eq(event_attendees.event_id, id),
-        eq(event_attendees.user_id, session.user.id)
-      )
-    )
-    .limit(1);
-
-  if (!attendee) {
-    return Response.json({ error: "You are not an attendee of this event" }, { status: 403 });
-  }
-
-  let body: { rsvp_status?: string };
-  try {
-    body = await request.json();
+    body = await req.json()
   } catch {
-    return Response.json({ error: "Invalid request body" }, { status: 400 });
+    return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 })
   }
 
-  if (!body.rsvp_status || !VALID_STATUSES.includes(body.rsvp_status as RsvpStatus)) {
-    return Response.json(
-      { error: "rsvp_status must be one of: attending, not_attending, maybe" },
-      { status: 400 }
-    );
+  if (!['going', 'maybe', 'not_going'].includes(body.status)) {
+    return NextResponse.json({ error: 'Invalid status' }, { status: 400 })
   }
 
-  const [updated] = await db
-    .update(event_attendees)
-    .set({ rsvp_status: body.rsvp_status })
+  // Verify event exists and belongs to household
+  const event = await db
+    .select({ id: calendarEvents.id, rsvpEnabled: calendarEvents.rsvpEnabled })
+    .from(calendarEvents)
+    .where(eq(calendarEvents.id, id))
+    .limit(1)
+    .then(r => r[0] ?? null)
+
+  if (!event) return NextResponse.json({ error: 'Not found' }, { status: 404 })
+  if (!event.rsvpEnabled) return NextResponse.json({ error: 'RSVP not enabled for this event' }, { status: 400 })
+
+  // Check if user is an attendee
+  const existingAttendee = await db
+    .select()
+    .from(eventAttendees)
     .where(
       and(
-        eq(event_attendees.event_id, id),
-        eq(event_attendees.user_id, session.user.id)
+        eq(eventAttendees.eventId, id),
+        eq(eventAttendees.userId, session.user.id),
       )
     )
-    .returning();
+    .limit(1)
+    .then(r => r[0] ?? null)
 
-  return Response.json({ attendee: updated });
+  if (existingAttendee) {
+    await db
+      .update(eventAttendees)
+      .set({ rsvpStatus: body.status })
+      .where(
+        and(
+          eq(eventAttendees.eventId, id),
+          eq(eventAttendees.userId, session.user.id),
+        )
+      )
+  } else {
+    await db.insert(eventAttendees).values({
+      eventId: id,
+      userId: session.user.id,
+      rsvpStatus: body.status,
+    })
+  }
+
+  return NextResponse.json({ success: true })
 }

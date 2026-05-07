@@ -1,305 +1,169 @@
-"use client";
+'use client'
 
-import { useState } from "react";
-import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
-import { motion } from "framer-motion";
-import { useQuery } from "@tanstack/react-query";
-import { useSession } from "@/lib/auth/client";
-import { signOut } from "@/lib/auth/client";
-import { useHousehold } from "@/lib/hooks/useHousehold";
-import { useIsClient } from "@/lib/hooks/useIsClient";
-import RoostLogo from "@/components/shared/RoostLogo";
-import MemberAvatar from "@/components/shared/MemberAvatar";
-import { applyTheme } from "@/components/providers/ThemeProvider";
-import { DEFAULT_THEME } from "@/lib/constants/themes";
+import Link from 'next/link'
+import { usePathname, useRouter } from 'next/navigation'
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from "@/components/ui/dialog";
-import {
-  BarChart2,
-  Bell,
-  Calendar,
-  CheckSquare,
-  DollarSign,
-  FileText,
   Home,
-  LogOut,
-  Settings,
+  Users,
   ShoppingCart,
-  UtensilsCrossed,
+  Wallet,
+  CheckSquare,
+  Calendar,
   CheckCircle2,
-  Loader2,
-} from "lucide-react";
+  FileText,
+  UtensilsCrossed,
+  Bell,
+  BarChart2,
+  Settings,
+  LogOut,
+} from 'lucide-react'
+import { useSession, signOut } from '@/lib/auth/client'
+import { useQuery } from '@tanstack/react-query'
+import { HouseholdSwitcher } from './HouseholdSwitcher'
 
-interface NavItem {
-  label: string;
-  href: string;
-  icon: React.ElementType;
-}
+const NAV_ITEMS = [
+  { href: '/today',      label: 'Today',      icon: Home },
+  { href: '/household',  label: 'Household',  icon: Users },
+  { href: '/lists',      label: 'Shopping',   icon: ShoppingCart },
+  { href: '/money',      label: 'Money',      icon: Wallet },
+  { href: '/meals',      label: 'Meals',      icon: UtensilsCrossed },
+  { href: '/chores',     label: 'Chores',     icon: CheckSquare },
+  { href: '/calendar',   label: 'Calendar',   icon: Calendar },
+  { href: '/tasks',      label: 'Tasks',      icon: CheckCircle2 },
+  { href: '/reminders',  label: 'Reminders',  icon: Bell },
+  { href: '/notes',      label: 'Notes',      icon: FileText },
+  { href: '/stats',      label: 'Stats',      icon: BarChart2 },
+  { href: '/settings',   label: 'Settings',   icon: Settings },
+]
 
-const NAV_ITEMS: NavItem[] = [
-  { label: "Dashboard", href: "/dashboard",  icon: Home          },
-  { label: "Chores",    href: "/chores",      icon: CheckSquare   },
-  { label: "Grocery",   href: "/grocery",     icon: ShoppingCart  },
-  { label: "Calendar",  href: "/calendar",    icon: Calendar      },
-  { label: "Expenses",  href: "/expenses",    icon: DollarSign    },
-  { label: "Tasks",     href: "/tasks",       icon: CheckCircle2  },
-  { label: "Notes",     href: "/notes",       icon: FileText      },
-  { label: "Meals",     href: "/meals",       icon: UtensilsCrossed },
-  { label: "Reminders", href: "/reminders",   icon: Bell          },
-  { label: "Stats",     href: "/stats",       icon: BarChart2     },
-];
+export function Sidebar() {
+  const pathname = usePathname()
+  const router = useRouter()
+  const { data: session } = useSession()
+  const name = session?.user?.name ?? ''
+  const initials = name
+    .split(' ')
+    .map((p: string) => p[0])
+    .filter(Boolean)
+    .join('')
+    .slice(0, 2)
+    .toUpperCase()
 
-export default function Sidebar() {
-  const pathname = usePathname();
-  const router = useRouter();
-  const { data: sessionData } = useSession();
-  const { role } = useHousehold();
-  const isClient = useIsClient();
-
-  const [confirmSignOut, setConfirmSignOut] = useState(false);
-  const [signingOut, setSigningOut] = useState(false);
-  const [hoverSignOut, setHoverSignOut] = useState(false);
-
-  // avatar_color lives in the custom users table, not in better-auth's session.
-  // Read it from the same ["user-profile"] query that settings/page.tsx invalidates on save.
-  const { data: profileData } = useQuery<{ user: { avatar_color?: string | null } }>({
-    queryKey: ["user-profile"],
+  const { data: profileData } = useQuery<{ user: { avatar_color: string | null } }>({
+    queryKey: ['user-profile'],
     queryFn: async () => {
-      const r = await fetch("/api/user/profile");
-      if (!r.ok) return { user: {} };
-      return r.json();
+      const r = await fetch('/api/user/profile')
+      if (!r.ok) throw new Error('Failed')
+      return r.json()
     },
     staleTime: 60_000,
-  });
-
-  const userName = sessionData?.user?.name ?? "";
-  const avatarColor = profileData?.user?.avatar_color ?? "#2563EB";
-  const displayUserName = isClient ? userName : "";
-  const displayRole = isClient ? role : undefined;
-
-  async function handleSignOut() {
-    setSigningOut(true);
-    applyTheme(DEFAULT_THEME);
-    await signOut();
-    router.push("/login");
-  }
+  })
+  const avatarColor = profileData?.user?.avatar_color ?? 'rgba(255,255,255,0.18)'
 
   return (
-    <>
-      <aside
-        className="fixed left-0 top-0 bottom-0 z-40 hidden w-55 flex-col py-4 md:flex"
+    <aside
+      className="hidden md:flex flex-col flex-shrink-0"
+      style={{
+        width: 180,
+        backgroundColor: '#DC2626',
+        height: '100dvh',
+        position: 'sticky',
+        top: 0,
+      }}
+    >
+      {/* Logo block */}
+      <div
         style={{
-          backgroundColor: "#DC2626",
-          borderRight: "1.5px solid rgba(255,255,255,0.1)",
+          padding: '18px 14px 12px',
+          display: 'flex',
+          alignItems: 'center',
+          gap: 9,
+          borderBottom: '1px solid rgba(255,255,255,0.12)',
         }}
       >
-        {/* Logo */}
-        <div className="px-4 pb-4 pt-2">
-          <RoostLogo size="md" variant="white" />
-        </div>
-
-        {/* Nav */}
-        <div className="flex flex-1 flex-col gap-0.5 overflow-y-auto px-2">
-          {NAV_ITEMS.map((item) => {
-            const isActive =
-              pathname === item.href || pathname.startsWith(item.href + "/");
-            const Icon = item.icon;
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                className="flex h-10 items-center gap-3 rounded-xl px-3 transition-colors"
-                style={
-                  isActive
-                    ? { backgroundColor: "rgba(255,255,255,0.22)" }
-                    : undefined
-                }
-              >
-                <Icon
-                  className="size-4 shrink-0"
-                  style={{
-                    color: isActive
-                      ? "#ffffff"
-                      : "rgba(255,255,255,0.75)",
-                  }}
-                />
-                <span
-                  className="text-sm truncate"
-                  style={{
-                    color: isActive
-                      ? "#ffffff"
-                      : "rgba(255,255,255,0.8)",
-                    fontWeight: isActive ? 700 : 600,
-                  }}
-                >
-                  {item.label}
-                </span>
-              </Link>
-            );
-          })}
-        </div>
-
-        {/* Bottom: user block + sign out */}
         <div
-          className="px-2 pt-3"
-          style={{ borderTop: "1.5px solid rgba(255,255,255,0.15)" }}
-        >
-          {/* Clickable user block — navigates to Settings */}
-          <button
-            type="button"
-            onClick={() => router.push("/settings")}
-            className="flex w-full items-center gap-2.5 transition-colors"
-            style={{
-              padding: "10px 8px",
-              borderRadius: 14,
-              background: pathname === "/settings" ? "rgba(255,255,255,0.22)" : "transparent",
-              border: "none",
-              cursor: "pointer",
-            }}
-            onMouseEnter={(e) => {
-              if (pathname !== "/settings") {
-                (e.currentTarget as HTMLButtonElement).style.background = "rgba(255,255,255,0.12)";
-              }
-            }}
-            onMouseLeave={(e) => {
-              if (pathname !== "/settings") {
-                (e.currentTarget as HTMLButtonElement).style.background = "transparent";
-              }
-            }}
-          >
-            <MemberAvatar
-              name={displayUserName || "?"}
-              avatarColor={avatarColor}
-              size="sm"
-            />
-            <div className="min-w-0 flex-1 text-left">
-              {displayUserName && (
-                <p
-                  className="truncate text-[13px]"
-                  style={{ color: "#ffffff", fontWeight: 800 }}
-                  suppressHydrationWarning
-                >
-                  {displayUserName}
-                </p>
-              )}
-              {displayRole && (
-                <p
-                  className="truncate text-[11px] capitalize"
-                  style={{ color: "rgba(255,255,255,0.65)", fontWeight: 600 }}
-                  suppressHydrationWarning
-                >
-                  {displayRole}
-                </p>
-              )}
-            </div>
-            <Settings
-              style={{
-                width: 15,
-                height: 15,
-                flexShrink: 0,
-                color: pathname === "/settings"
-                  ? "#ffffff"
-                  : "rgba(255,255,255,0.75)",
-              }}
-            />
-          </button>
+          style={{
+            width: 30,
+            height: 30,
+            borderRadius: 8,
+            backgroundColor: 'rgba(255,255,255,0.18)',
+            flexShrink: 0,
+          }}
+        />
+        <span style={{ color: '#fff', fontWeight: 800, fontSize: 15, letterSpacing: '-0.3px' }}>
+          Roost
+        </span>
+      </div>
 
-          {/* Sign out button */}
-          <button
-            type="button"
-            data-testid="sign-out-btn"
-            onClick={() => setConfirmSignOut(true)}
-            onMouseEnter={() => setHoverSignOut(true)}
-            onMouseLeave={() => setHoverSignOut(false)}
-            className="mt-1 flex w-full items-center gap-2 rounded-[10px] px-2.5"
+      {/* Household switcher */}
+      <HouseholdSwitcher />
+
+      {/* Nav items */}
+      <nav style={{ padding: '10px 8px', display: 'flex', flexDirection: 'column', gap: 2, flex: 1 }}>
+        {NAV_ITEMS.map(({ href, label, icon: Icon }) => {
+          const active = pathname === href || pathname.startsWith(href + '/')
+          return (
+            <Link
+              key={href}
+              href={href}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 9,
+                padding: '9px 10px',
+                borderRadius: 9,
+                backgroundColor: active ? 'rgba(255,255,255,0.22)' : 'transparent',
+                textDecoration: 'none',
+              }}
+            >
+              <Icon
+                size={16}
+                color={active ? '#fff' : 'rgba(255,255,255,0.6)'}
+                strokeWidth={active ? 2.5 : 2}
+              />
+              <span
+                style={{
+                  color: active ? '#fff' : 'rgba(255,255,255,0.6)',
+                  fontWeight: 700,
+                  fontSize: 13,
+                }}
+              >
+                {label}
+              </span>
+            </Link>
+          )
+        })}
+      </nav>
+
+      {/* User block */}
+      <div style={{ padding: '10px 8px', borderTop: '1px solid rgba(255,255,255,0.12)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 10px', borderRadius: 9 }}>
+          <div
             style={{
-              height: 34,
-              background: hoverSignOut ? "rgba(0,0,0,0.25)" : "rgba(0,0,0,0.15)",
-              color: hoverSignOut ? "#ffffff" : "rgba(255,255,255,0.8)",
-              fontWeight: 700,
-              fontSize: 12,
-              cursor: "pointer",
-              border: hoverSignOut ? "1px solid rgba(255,255,255,0.25)" : "1px solid rgba(255,255,255,0.15)",
+              width: 28,
+              height: 28,
+              borderRadius: '50%',
+              backgroundColor: avatarColor,
+              flexShrink: 0,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
             }}
           >
-            <LogOut
-              style={{
-                width: 13,
-                height: 13,
-                flexShrink: 0,
-                color: hoverSignOut ? "#ffffff" : "rgba(255,255,255,0.8)",
-              }}
-            />
-            Sign out
+            <span style={{ color: '#fff', fontSize: 10, fontWeight: 800 }}>{initials}</span>
+          </div>
+          <p style={{ flex: 1, color: '#fff', fontSize: 12, fontWeight: 700, margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            {name}
+          </p>
+          <button
+            onClick={async () => { await signOut(); router.push('/login') }}
+            title="Sign out"
+            style={{ width: 28, height: 28, borderRadius: 7, backgroundColor: 'transparent', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, padding: 0 }}
+          >
+            <LogOut size={14} color="rgba(255,255,255,0.7)" />
           </button>
         </div>
-      </aside>
-
-      {/* Sign out confirmation dialog */}
-      <Dialog open={confirmSignOut} onOpenChange={setConfirmSignOut}>
-        <DialogContent style={{ backgroundColor: "var(--roost-surface)" }}>
-          <DialogHeader>
-            <DialogTitle
-              style={{ color: "var(--roost-text-primary)", fontWeight: 900 }}
-            >
-              Sign out?
-            </DialogTitle>
-          </DialogHeader>
-          <DialogDescription
-            className="text-sm"
-            style={{ color: "var(--roost-text-secondary)", fontWeight: 600 }}
-          >
-            You will need to sign back in to access your household.
-          </DialogDescription>
-          <DialogFooter className="mt-2 flex gap-2">
-            <motion.button
-              type="button"
-              onClick={() => setConfirmSignOut(false)}
-              whileTap={{ y: 1 }}
-              className="flex flex-1 items-center justify-center"
-              style={{
-                height: 52,
-                width: "100%",
-                borderRadius: 14,
-                fontSize: 16,
-                backgroundColor: "var(--roost-bg)",
-                border: "1.5px solid var(--roost-border)",
-                borderBottom: "3px solid var(--roost-border-bottom)",
-                color: "var(--roost-text-secondary)",
-                fontWeight: 800,
-              }}
-            >
-              Cancel
-            </motion.button>
-            <motion.button
-              type="button"
-              onClick={handleSignOut}
-              disabled={signingOut}
-              whileTap={{ y: 1 }}
-              className="flex flex-1 items-center justify-center text-white disabled:opacity-50"
-              style={{
-                height: 52,
-                width: "100%",
-                borderRadius: 14,
-                fontSize: 16,
-                backgroundColor: "#EF4444",
-                border: "1.5px solid #EF4444",
-                borderBottom: "3px solid #C93B3B",
-                fontWeight: 800,
-              }}
-            >
-              {signingOut ? <Loader2 className="size-4 animate-spin" /> : "Sign out"}
-            </motion.button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </>
-  );
+      </div>
+    </aside>
+  )
 }

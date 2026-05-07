@@ -1,203 +1,173 @@
-"use client";
+'use client'
 
-import { useQuery } from "@tanstack/react-query";
-import { motion } from "framer-motion";
-import DraggableSheet from "@/components/shared/DraggableSheet";
-import { SECTION_COLORS } from "@/lib/constants/colors";
+import { useQuery } from '@tanstack/react-query'
+import { Trophy, Medal, Star } from 'lucide-react'
+import { DraggableSheet } from '@/components/shared/DraggableSheet'
+import { SECTION_COLORS } from '@/lib/constants/colors'
 
-const COLOR = SECTION_COLORS.chores;
-
-// ---- Types ------------------------------------------------------------------
+const COLOR = SECTION_COLORS.chores.base
+const COLOR_DARK = SECTION_COLORS.chores.dark
 
 interface LeaderboardEntry {
-  userId: string;
-  name: string;
-  avatarColor: string | null;
-  currentStreak: number;
-  longestStreak: number;
-  points: number;
+  userId: string
+  name: string
+  avatarColor: string | null
+  role: string
+  points: number
+  completions: number
 }
 
-interface LeaderboardResponse {
-  leaderboard: LeaderboardEntry[];
-  weekStart: string;
-  currentUserId: string;
-}
-
-// ---- Helpers ----------------------------------------------------------------
-
-function initials(name: string): string {
-  return name
-    .split(" ")
+function Avatar({ name, color, size = 36 }: { name: string; color: string | null; size?: number }) {
+  const bg = color ?? '#EF4444'
+  const initials = name
+    .split(' ')
+    .map(w => w[0])
     .slice(0, 2)
-    .map((w) => w[0])
-    .join("")
-    .toUpperCase();
+    .join('')
+    .toUpperCase()
+  return (
+    <div
+      style={{
+        width: size,
+        height: size,
+        borderRadius: '50%',
+        backgroundColor: bg,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        flexShrink: 0,
+      }}
+    >
+      <span style={{ color: '#fff', fontWeight: 800, fontSize: size * 0.38 }}>{initials}</span>
+    </div>
+  )
 }
 
-const RANK_COLORS: Record<number, { text: string; bg: string; border: string }> = {
-  0: { text: "#F59E0B", bg: "#F59E0B18", border: "#F59E0B40" }, // gold
-  1: { text: "#9CA3AF", bg: "#9CA3AF18", border: "#9CA3AF40" }, // silver
-  2: { text: "#B45309", bg: "#B4530918", border: "#B4530940" }, // bronze
-};
-
-const RANK_LABELS = ["1st", "2nd", "3rd"];
-
-// ---- Component --------------------------------------------------------------
+function RankIcon({ rank }: { rank: number }) {
+  if (rank === 1) return <Trophy size={18} style={{ color: '#F59E0B' }} />
+  if (rank === 2) return <Medal size={18} style={{ color: '#9CA3AF' }} />
+  if (rank === 3) return <Star size={18} style={{ color: '#CD7C2F' }} />
+  return (
+    <span style={{ fontSize: 13, fontWeight: 800, color: 'var(--roost-text-muted)', minWidth: 18, textAlign: 'center' }}>
+      {rank}
+    </span>
+  )
+}
 
 interface LeaderboardSheetProps {
-  open: boolean;
-  onClose: () => void;
+  open: boolean
+  onClose: () => void
 }
 
 export default function LeaderboardSheet({ open, onClose }: LeaderboardSheetProps) {
-  const { data, isLoading } = useQuery<LeaderboardResponse>({
-    queryKey: ["chores-leaderboard"],
-    queryFn: () => fetch("/api/chores/leaderboard").then((r) => r.json()),
+  const { data, isLoading } = useQuery({
+    queryKey: ['chores-leaderboard'],
+    queryFn: async () => {
+      const r = await fetch('/api/chores/leaderboard')
+      if (!r.ok) throw new Error('Failed to load leaderboard')
+      return r.json() as Promise<{ leaderboard: LeaderboardEntry[]; weekStart: string }>
+    },
     enabled: open,
     staleTime: 30_000,
-  });
-
-  const entries = data?.leaderboard ?? [];
-  const currentUserId = data?.currentUserId;
+  })
 
   return (
-    <DraggableSheet open={open} onOpenChange={(v) => !v && onClose()} featureColor={COLOR}>
-      <div className="px-4 pb-8" style={{ maxHeight: "calc(80dvh - 60px)" }}>
-        <p className="mb-5 text-lg" style={{ color: "var(--roost-text-primary)", fontWeight: 900 }}>
-          Weekly Leaderboard
-        </p>
+    <DraggableSheet open={open} onOpenChange={v => !v && onClose()} featureColor={COLOR}>
+      <div style={{ padding: '4px 16px 32px' }}>
+        <div style={{ marginBottom: 4 }}>
+          <p style={{ fontSize: 18, fontWeight: 800, color: 'var(--roost-text-primary)' }}>
+            Weekly Leaderboard
+          </p>
+          <p style={{ fontSize: 12, fontWeight: 600, color: 'var(--roost-text-muted)', marginTop: 2 }}>
+            Points reset every Monday
+          </p>
+        </div>
 
-        {isLoading && (
-          <div
-            className="flex items-center justify-center py-12 text-sm"
-            style={{ color: "var(--roost-text-muted)", fontWeight: 600 }}
-          >
-            Loading...
+        {isLoading ? (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 16 }}>
+            {[1, 2, 3].map(i => (
+              <div
+                key={i}
+                style={{
+                  height: 64,
+                  borderRadius: 14,
+                  backgroundColor: 'var(--roost-border)',
+                  opacity: 0.5,
+                }}
+              />
+            ))}
           </div>
-        )}
-
-        {!isLoading && entries.length === 0 && (
-          <div className="flex flex-col items-center gap-2 py-12 text-center">
-            <p
-              className="text-sm"
-              style={{ color: "var(--roost-text-secondary)", fontWeight: 700 }}
-            >
+        ) : !data || data.leaderboard.length === 0 ? (
+          <div
+            style={{
+              marginTop: 20,
+              padding: '32px 16px',
+              textAlign: 'center',
+              border: '2px dashed var(--roost-border)',
+              borderRadius: 16,
+            }}
+          >
+            <Trophy size={32} style={{ color: 'var(--roost-text-muted)', margin: '0 auto 12px' }} />
+            <p style={{ fontWeight: 800, color: 'var(--roost-text-primary)', fontSize: 15 }}>
               No activity this week yet.
             </p>
-            <p
-              className="text-sm"
-              style={{ color: "var(--roost-text-muted)", fontWeight: 600 }}
-            >
+            <p style={{ fontSize: 13, color: 'var(--roost-text-muted)', marginTop: 4 }}>
               Complete chores to earn points and claim your spot.
             </p>
           </div>
-        )}
-
-        <div className="space-y-2">
-          {entries.map((entry, i) => {
-            const isMe = entry.userId === currentUserId;
-            const rank = RANK_COLORS[i];
-            const rankLabel = i < 3 ? RANK_LABELS[i] : `${i + 1}th`;
-
-            return (
-              <motion.div
-                key={entry.userId}
-                initial={{ opacity: 0, y: 6 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: Math.min(i * 0.05, 0.25), duration: 0.15 }}
-                className="flex min-h-16 items-center gap-3 rounded-2xl px-4"
-                style={{
-                  backgroundColor: isMe ? COLOR + "10" : "var(--roost-surface)",
-                  border: isMe
-                    ? `1.5px solid ${COLOR}30`
-                    : "1.5px solid var(--roost-border)",
-                  borderBottom: isMe
-                    ? `4px solid ${COLOR}40`
-                    : rank
-                    ? `4px solid ${rank.border}`
-                    : "4px solid #C93B3B",
-                }}
-              >
-                {/* Rank badge */}
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 16 }}>
+            {data.leaderboard.map((entry, i) => {
+              const rank = i + 1
+              const isFirst = rank === 1 && entry.points > 0
+              return (
                 <div
-                  className="flex h-8 w-10 shrink-0 items-center justify-center rounded-lg text-xs"
-                  style={
-                    rank
-                      ? {
-                          backgroundColor: rank.bg,
-                          border: `1px solid ${rank.border}`,
-                          color: rank.text,
-                          fontWeight: 800,
-                        }
-                      : {
-                          backgroundColor: "var(--roost-bg)",
-                          border: "1px solid var(--roost-border)",
-                          color: "var(--roost-text-muted)",
-                          fontWeight: 700,
-                        }
-                  }
-                >
-                  {rankLabel}
-                </div>
-
-                {/* Avatar */}
-                <div
-                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-xs text-white"
+                  key={entry.userId}
                   style={{
-                    backgroundColor: entry.avatarColor ?? COLOR,
-                    fontWeight: 700,
+                    backgroundColor: 'var(--roost-surface)',
+                    border: `1.5px solid ${isFirst ? COLOR + '40' : 'var(--roost-border)'}`,
+                    borderBottom: `4px solid ${isFirst ? COLOR_DARK : 'var(--roost-border-bottom)'}`,
+                    borderRadius: 14,
+                    padding: '12px 14px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 12,
                   }}
                 >
-                  {initials(entry.name)}
-                </div>
+                  <div style={{ width: 24, display: 'flex', justifyContent: 'center' }}>
+                    <RankIcon rank={entry.points > 0 ? rank : 99} />
+                  </div>
 
-                {/* Name + streak */}
-                <div className="min-w-0 flex-1">
-                  <p
-                    className="truncate text-sm"
-                    style={{ color: "var(--roost-text-primary)", fontWeight: 700 }}
-                  >
-                    {entry.name}
-                    {isMe && (
-                      <span
-                        className="ml-2 text-xs"
-                        style={{ color: "var(--roost-text-muted)", fontWeight: 600 }}
-                      >
-                        you
-                      </span>
-                    )}
-                  </p>
-                  <p
-                    className="text-xs"
-                    style={{ color: "var(--roost-text-muted)", fontWeight: 600 }}
-                  >
-                    {entry.currentStreak > 0
-                      ? `${entry.currentStreak} day streak`
-                      : "No streak yet"}
-                  </p>
-                </div>
+                  <Avatar name={entry.name} color={entry.avatarColor} size={36} />
 
-                {/* Points */}
-                <div className="shrink-0 text-right">
-                  <p
-                    className="text-base tabular-nums"
-                    style={{ color: COLOR, fontWeight: 800 }}
-                  >
-                    {entry.points}
-                  </p>
-                  <p
-                    className="text-[10px]"
-                    style={{ color: "var(--roost-text-muted)", fontWeight: 600 }}
-                  >
-                    pts
-                  </p>
+                  <div style={{ flex: 1 }}>
+                    <p style={{ fontWeight: 800, fontSize: 14, color: 'var(--roost-text-primary)' }}>
+                      {entry.name}
+                    </p>
+                    <p style={{ fontSize: 12, color: 'var(--roost-text-muted)', marginTop: 1 }}>
+                      {entry.completions} chore{entry.completions !== 1 ? 's' : ''} completed
+                    </p>
+                  </div>
+
+                  <div style={{ textAlign: 'right' }}>
+                    <p
+                      style={{
+                        fontSize: 20,
+                        fontWeight: 900,
+                        color: isFirst ? COLOR : 'var(--roost-text-primary)',
+                        lineHeight: 1,
+                      }}
+                    >
+                      {entry.points}
+                    </p>
+                    <p style={{ fontSize: 11, fontWeight: 700, color: 'var(--roost-text-muted)' }}>pts</p>
+                  </div>
                 </div>
-              </motion.div>
-            );
-          })}
-        </div>
+              )
+            })}
+          </div>
+        )}
       </div>
     </DraggableSheet>
-  );
+  )
 }

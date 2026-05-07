@@ -1,177 +1,103 @@
-import { NextRequest } from "next/server";
-import { requireSession } from "@/lib/auth/helpers";
-import { db } from "@/lib/db";
-import { expense_budgets, expense_categories, expenses, households } from "@/db/schema";
-import { and, eq, gte, sql } from "drizzle-orm";
-import { getUserHousehold } from "@/app/api/chores/route";
-import { startOfMonth, format } from "date-fns";
+import { NextRequest, NextResponse } from 'next/server'
+import { getSession, getUserHousehold } from '@/lib/auth/helpers'
+import { db } from '@/lib/db'
+import { expenseBudgets, expenseCategories, expenses } from '@/db/schema'
+import { eq, and, gte } from 'drizzle-orm'
 
-// ---- GET --------------------------------------------------------------------
+export async function GET() {
+  const session = await getSession()
+  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-export async function GET(request: NextRequest): Promise<Response> {
-  let session;
-  try {
-    session = await requireSession(request);
-  } catch (r) {
-    return r as Response;
+  const membership = await getUserHousehold(session.user.id)
+  if (!membership) return NextResponse.json({ error: 'No household' }, { status: 403 })
+
+  const { householdId } = membership
+
+  if (membership.household.subscriptionStatus !== 'premium') {
+    return NextResponse.json({ error: 'Premium required', code: 'BUDGET_PREMIUM' }, { status: 403 })
   }
 
-  const membership = await getUserHousehold(session.user.id);
-  if (!membership) return Response.json({ error: "No household found" }, { status: 404 });
-  const { householdId } = membership;
+  const now = new Date()
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1)
+  const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 1)
 
-  // Premium gate
-  const [household] = await db
-    .select({ subscription_status: households.subscription_status })
-    .from(households)
-    .where(eq(households.id, householdId))
-    .limit(1);
-  if (!household || household.subscription_status !== "premium") {
-    return Response.json({ error: "Premium required", code: "BUDGETS_PREMIUM" }, { status: 403 });
+  const [budgetRows, expenseRows] = await Promise.all([
+    db
+      .select({
+        id: expenseBudgets.id,
+        categoryId: expenseBudgets.categoryId,
+        amount: expenseBudgets.amount,
+        warningThreshold: expenseBudgets.warningThreshold,
+        categoryName: expenseCategories.name,
+        categoryIcon: expenseCategories.icon,
+        categoryColor: expenseCategories.color,
+      })
+      .from(expenseBudgets)
+      .leftJoin(expenseCategories, eq(expenseBudgets.categoryId, expenseCategories.id))
+      .where(eq(expenseBudgets.householdId, householdId)),
+
+    db
+      .select({ categoryId: expenses.categoryId, amount: expenses.amount })
+      .from(expenses)
+      .where(
+        and(
+          eq(expenses.householdId, householdId),
+          gte(expenses.createdAt, monthStart)
+        )
+      ),
+  ])
+
+  // sum spending per category this month
+  const spendByCategory = new Map<string, number>()
+  for (const e of expenseRows) {
+    if (!e.categoryId) continue
+    spendByCategory.set(e.categoryId, (spendByCategory.get(e.categoryId) ?? 0) + parseFloat(e.amount))
   }
 
-  // Fetch budgets with category info
-  const budgetRows = await db
-    .select({
-      id: expense_budgets.id,
-      household_id: expense_budgets.household_id,
-      category_id: expense_budgets.category_id,
-      amount: expense_budgets.amount,
-      reset_type: expense_budgets.reset_type,
-      warning_threshold: expense_budgets.warning_threshold,
-      period_start: expense_budgets.period_start,
-      last_reset_at: expense_budgets.last_reset_at,
-      created_at: expense_budgets.created_at,
-      cat_name: expense_categories.name,
-      cat_icon: expense_categories.icon,
-      cat_color: expense_categories.color,
-    })
-    .from(expense_budgets)
-    .leftJoin(expense_categories, eq(expense_budgets.category_id, expense_categories.id))
-    .where(eq(expense_budgets.household_id, householdId));
+  const budgets = budgetRows.map(b => {
+    const spent = spendByCategory.get(b.categoryId) ?? 0
+    const cap = parseFloat(b.amount)
+    const pct = cap > 0 ? Math.round((spent / cap) * 100) : 0
+    return {
+      ...b,
+      spent: Math.round(spent * 100) / 100,
+      pct,
+      status: pct >= 100 ? 'over' : pct >= (b.warningThreshold ?? 70) ? 'warning' : 'ok',
+    }
+  })
 
-  // Calculate current_spent for each budget fresh from expenses
-  const now = new Date();
+  const totalCap = budgets.reduce((s, b) => s + parseFloat(b.amount), 0)
+  const totalSpent = budgets.reduce((s, b) => s + b.spent, 0)
 
-  const enriched = await Promise.all(
-    budgetRows.map(async (budget) => {
-      const periodStart = new Date(`${budget.period_start}T00:00:00`);
-
-      const [spentRow] = await db
-        .select({ total: sql<string>`COALESCE(SUM(${expenses.total_amount}), 0)` })
-        .from(expenses)
-        .where(
-          and(
-            eq(expenses.household_id, householdId),
-            eq(expenses.category_id, budget.category_id),
-            gte(expenses.created_at, periodStart),
-            sql`${expenses.deleted_at} IS NULL`,
-            sql`${expenses.is_recurring_draft} = false`
-          )
-        );
-
-      const spent = parseFloat(spentRow?.total ?? "0");
-      const limit = parseFloat(budget.amount);
-      const percentage = limit > 0 ? Math.round((spent / limit) * 100) : 0;
-      const threshold = budget.warning_threshold ?? 80;
-      const status: "ok" | "warning" | "over" =
-        percentage >= 100 ? "over" : percentage >= threshold ? "warning" : "ok";
-
-      // Days until reset (for monthly)
-      let daysUntilReset: number | null = null;
-      if (budget.reset_type === "monthly") {
-        const nextReset = new Date(now.getFullYear(), now.getMonth() + 1, 1);
-        daysUntilReset = Math.ceil((nextReset.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
-      }
-
-      return {
-        id: budget.id,
-        category_id: budget.category_id,
-        category: {
-          name: budget.cat_name ?? "Unknown",
-          icon: budget.cat_icon ?? "Receipt",
-          color: budget.cat_color ?? "#6B7280",
-        },
-        amount: limit,
-        reset_type: budget.reset_type,
-        warning_threshold: threshold,
-        period_start: budget.period_start,
-        last_reset_at: budget.last_reset_at,
-        current_spent: spent,
-        percentage,
-        status,
-        daysUntilReset,
-      };
-    })
-  );
-
-  // Sort: over first, warning next, ok last
-  const sorted = enriched.sort((a, b) => {
-    const order = { over: 0, warning: 1, ok: 2 };
-    return order[a.status] - order[b.status];
-  });
-
-  const totalBudgeted = enriched.reduce((acc, b) => acc + b.amount, 0);
-  const totalSpent = enriched.reduce((acc, b) => acc + b.current_spent, 0);
-
-  return Response.json({ budgets: sorted, totalBudgeted, totalSpent });
+  return NextResponse.json({ budgets, totalCap: Math.round(totalCap * 100) / 100, totalSpent: Math.round(totalSpent * 100) / 100 })
 }
 
-// ---- POST -------------------------------------------------------------------
+export async function POST(req: NextRequest) {
+  const session = await getSession()
+  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-export async function POST(request: NextRequest): Promise<Response> {
-  let session;
-  try {
-    session = await requireSession(request);
-  } catch (r) {
-    return r as Response;
+  const membership = await getUserHousehold(session.user.id)
+  if (!membership) return NextResponse.json({ error: 'No household' }, { status: 403 })
+
+  const { householdId, role } = membership
+  if (role !== 'admin') return NextResponse.json({ error: 'Admin only' }, { status: 403 })
+
+  if (membership.household.subscriptionStatus !== 'premium') {
+    return NextResponse.json({ error: 'Premium required', code: 'BUDGET_PREMIUM' }, { status: 403 })
   }
 
-  const membership = await getUserHousehold(session.user.id);
-  if (!membership) return Response.json({ error: "No household found" }, { status: 404 });
-  if (membership.role !== "admin") return Response.json({ error: "Admin only" }, { status: 403 });
-  const { householdId } = membership;
+  const { categoryId, amount, warningThreshold } = await req.json()
+  if (!categoryId) return NextResponse.json({ error: 'categoryId required' }, { status: 400 })
+  if (!amount || isNaN(parseFloat(amount))) return NextResponse.json({ error: 'Invalid amount' }, { status: 400 })
 
-  const [household] = await db
-    .select({ subscription_status: households.subscription_status })
-    .from(households)
-    .where(eq(households.id, householdId))
-    .limit(1);
-  if (!household || household.subscription_status !== "premium") {
-    return Response.json({ error: "Premium required", code: "BUDGETS_PREMIUM" }, { status: 403 });
-  }
+  const id = crypto.randomUUID()
+  await db.insert(expenseBudgets).values({
+    id,
+    householdId,
+    categoryId,
+    amount: parseFloat(amount).toFixed(2),
+    warningThreshold: warningThreshold ?? 70,
+  })
 
-  let body: { categoryId?: string; amount?: number; resetType?: string; warningThreshold?: number };
-  try {
-    body = await request.json();
-  } catch {
-    return Response.json({ error: "Invalid request body" }, { status: 400 });
-  }
-
-  if (!body.categoryId) return Response.json({ error: "Category is required" }, { status: 400 });
-  if (!body.amount || body.amount <= 0) return Response.json({ error: "Amount must be greater than 0" }, { status: 400 });
-
-  // Check category belongs to this household
-  const [cat] = await db
-    .select({ id: expense_categories.id })
-    .from(expense_categories)
-    .where(and(eq(expense_categories.id, body.categoryId), eq(expense_categories.household_id, householdId)))
-    .limit(1);
-  if (!cat) return Response.json({ error: "Category not found" }, { status: 404 });
-
-  const periodStart = format(startOfMonth(new Date()), "yyyy-MM-dd");
-
-  const [budget] = await db
-    .insert(expense_budgets)
-    .values({
-      household_id: householdId,
-      category_id: body.categoryId,
-      amount: body.amount.toFixed(2),
-      reset_type: body.resetType ?? "monthly",
-      warning_threshold: body.warningThreshold ?? 80,
-      period_start: periodStart,
-    })
-    .returning();
-
-  return Response.json({ budget }, { status: 201 });
+  return NextResponse.json({ id }, { status: 201 })
 }

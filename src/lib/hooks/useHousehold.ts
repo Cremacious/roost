@@ -28,10 +28,8 @@ interface HouseholdData {
     subscription_status: string;
     stripe_customer_id: string | null;
     stripe_subscription_id: string | null;
-    stripe_price_id: string | null;
     premium_expires_at: string | null;
     stats_visibility: string | null;
-    created_by: string | null;
   };
   role: string;
   permissions: string[];

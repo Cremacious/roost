@@ -1,450 +1,304 @@
-'use client';
+'use client'
 
-import { useEffect, useRef, useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useSession } from '@/lib/auth/client';
-import { toast } from 'sonner';
-import { motion } from 'framer-motion';
-import { FileText, Loader2, Plus, StickyNote } from 'lucide-react';
-import { relativeTime } from '@/lib/utils/time';
-import PageHeader from '@/components/shared/PageHeader';
-import EmptyState from '@/components/shared/EmptyState';
-import ErrorState from '@/components/shared/ErrorState';
-import { Skeleton } from '@/components/ui/skeleton';
-import MemberAvatar from '@/components/shared/MemberAvatar';
-import NoteSheet, { type NoteData } from '@/components/notes/NoteSheet';
-import PremiumGate from '@/components/shared/PremiumGate';
-import { SECTION_COLORS } from '@/lib/constants/colors';
-import { PageContainer } from '@/components/layout/PageContainer';
+import { useState } from 'react'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { motion } from 'framer-motion'
+import { Plus, Pencil, Trash2, FileText } from 'lucide-react'
+import { toast } from 'sonner'
+import { useSession } from '@/lib/auth/client'
+import { SECTION_COLORS } from '@/lib/constants/colors'
+import { SlabCard } from '@/components/ui/SlabCard'
+import NoteSheet, { type NoteData } from '@/components/notes/NoteSheet'
 
-const COLOR = SECTION_COLORS.notes; // #A855F7
-const COLOR_DARK = '#7C28C8';
+const COLOR = SECTION_COLORS.notes.base
+const COLOR_DARK = SECTION_COLORS.notes.dark
 
-const PLACEHOLDERS = [
-  'Leave a note for the household...',
-  'Plumber coming Tuesday...',
-  'Someone ate my leftovers again...',
-  'Dog needs a walk at 5pm...',
-];
-
-// ---- Types ------------------------------------------------------------------
-
-interface NoteRow {
-  id: string;
-  title: string | null;
-  content: string;
-  created_by: string;
-  created_at: string | null;
-  updated_at: string | null;
-  creator_name: string | null;
-  creator_avatar: string | null;
+const INPUT_STYLE: React.CSSProperties = {
+  width: '100%',
+  border: '1.5px solid var(--roost-border)',
+  borderBottom: '3px solid var(--roost-border)',
+  borderRadius: 12,
+  padding: '12px 14px',
+  fontSize: 15,
+  fontWeight: 600,
+  backgroundColor: 'var(--roost-surface)',
+  color: 'var(--roost-text-primary)',
+  outline: 'none',
+  boxSizing: 'border-box',
 }
 
-interface NotesResponse {
-  notes: NoteRow[];
+interface Note extends NoteData {
+  createdAt: string
+  updatedAt: string
+  creatorName: string | null
+  creatorAvatar: string | null
 }
 
-interface MembersResponse {
-  household: { id: string; name: string };
-  members: {
-    userId: string;
-    name: string;
-    avatarColor: string | null;
-    role: string;
-  }[];
+function detectHtml(content: string) {
+  return /<[a-z][\s\S]*>/i.test(content)
 }
 
-// ---- Helpers ----------------------------------------------------------------
-
-function stripHtml(html: string): string {
-  return html
-    .replace(/<[^>]*>/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim();
+function stripHtml(html: string) {
+  return html.replace(/<[^>]+>/g, '').replace(/&nbsp;/g, ' ').trim()
 }
-
-function detectHtml(content: string): boolean {
-  return (
-    content.startsWith('<') ||
-    content.includes('<p>') ||
-    content.includes('<h1') ||
-    content.includes('<h2') ||
-    content.includes('<h3') ||
-    content.includes('<ul') ||
-    content.includes('<ol')
-  );
-}
-
-// ---- Note card --------------------------------------------------------------
 
 function NoteCard({
-  note,
-  index,
-  onOpen,
+  note, canModify, onEdit, onDelete,
 }: {
-  note: NoteRow;
-  index: number;
-  onOpen: () => void;
+  note: Note; canModify: boolean; onEdit: (note: Note) => void; onDelete: (id: string) => void
 }) {
-  const [expanded, setExpanded] = useState(false);
-  const CHAR_LIMIT = 200;
-  const isHtml = detectHtml(note.content);
-  const plainText = isHtml ? stripHtml(note.content) : note.content;
-  const isLong = plainText.length > CHAR_LIMIT;
-  const displayContent =
-    expanded || !isLong ? plainText : plainText.slice(0, CHAR_LIMIT) + '…';
-  const borderColor = COLOR_DARK;
+  const isHtml = note.isRichText || detectHtml(note.content)
+  const preview = isHtml ? stripHtml(note.content).slice(0, 180) : note.content.slice(0, 180)
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 8 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: Math.min(index * 0.04, 0.2), duration: 0.15 }}
-      className="flex flex-col gap-3 rounded-2xl p-4"
-      style={{
-        backgroundColor: 'var(--roost-surface)',
-        border: '1.5px solid var(--roost-border)',
-        borderBottom: `4px solid ${borderColor}`,
-        cursor: 'pointer',
-      }}
-      onClick={onOpen}
-      role="button"
-      tabIndex={0}
-      onKeyDown={(e) => e.key === 'Enter' && onOpen()}
-    >
-      {/* Title */}
-      {note.title && (
-        <p
-          className="text-[15px] leading-snug"
-          style={{ color: 'var(--roost-text-primary)', fontWeight: 800 }}
-        >
-          {note.title}
-        </p>
-      )}
-
-      {/* Content preview */}
-      <p
-        className="text-sm leading-relaxed whitespace-pre-wrap"
-        style={{ color: 'var(--roost-text-primary)', fontWeight: 600 }}
-        onClick={(e) => e.stopPropagation()}
-      >
-        {displayContent}
-      </p>
-
-      {/* Read more */}
-      {isLong && !expanded && (
-        <button
-          type="button"
-          onClick={(e) => {
-            e.stopPropagation();
-            setExpanded(true);
-          }}
-          className="self-start text-xs"
-          style={{ color: COLOR, fontWeight: 700 }}
-        >
-          Read more
-        </button>
-      )}
-
-      {/* Footer */}
-      <div className="flex items-center justify-between gap-2">
-        <div className="flex items-center gap-1.5">
-          {note.creator_name && (
-            <MemberAvatar
-              name={note.creator_name}
-              avatarColor={note.creator_avatar}
-              size="sm"
-            />
+    <SlabCard color={COLOR} style={{ breakInside: 'avoid', marginBottom: 12 }}>
+      <div style={{ padding: 16 }}>
+        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8, marginBottom: note.title ? 6 : 0 }}>
+          {note.title && (
+            <p style={{ margin: 0, fontWeight: 800, fontSize: 15, color: 'var(--roost-text-primary)', flex: 1 }}>
+              {note.title}
+            </p>
           )}
-          <span
-            className="text-xs"
-            style={{ color: 'var(--roost-text-muted)', fontWeight: 600 }}
-          >
-            {note.creator_name?.split(' ')[0] ?? 'Someone'}
-          </span>
-        </div>
-        <div className="flex items-center gap-2">
-          {isHtml && (
-            <span
-              className="flex items-center gap-1 rounded-md px-1.5 py-0.5 text-xs"
-              style={{
-                backgroundColor: `${COLOR}15`,
-                color: COLOR,
-                fontWeight: 700,
-              }}
-            >
-              <FileText className="size-3" />
+          {note.isRichText && (
+            <span style={{
+              fontSize: 10,
+              fontWeight: 800,
+              color: COLOR,
+              backgroundColor: `${COLOR}18`,
+              borderRadius: 20,
+              padding: '2px 7px',
+              flexShrink: 0,
+              alignSelf: 'center',
+            }}>
               Rich
             </span>
           )}
-          <span
-            className="text-xs"
-            style={{ color: 'var(--roost-text-muted)', fontWeight: 600 }}
-          >
-            {note.created_at ? relativeTime(note.created_at) : ''}
+        </div>
+        {preview && (
+          <p style={{
+            margin: 0, fontSize: 13, fontWeight: 600, color: 'var(--roost-text-secondary)',
+            lineHeight: 1.5, whiteSpace: 'pre-wrap', wordBreak: 'break-word',
+          }}>
+            {preview}{(isHtml ? stripHtml(note.content) : note.content).length > 180 ? '...' : ''}
+          </p>
+        )}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 12 }}>
+          <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--roost-text-muted)' }}>
+            {note.creatorName?.split(' ')[0] ?? 'Unknown'}
           </span>
+          {canModify && (
+            <div style={{ display: 'flex', gap: 4 }}>
+              <button
+                type="button" onClick={() => onEdit(note)}
+                style={{ width: 30, height: 30, borderRadius: 8, border: 'none', backgroundColor: 'var(--roost-bg)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+              >
+                <Pencil size={13} color="var(--roost-text-secondary)" />
+              </button>
+              <button
+                type="button" onClick={() => onDelete(note.id)}
+                style={{ width: 30, height: 30, borderRadius: 8, border: 'none', backgroundColor: 'var(--roost-bg)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+              >
+                <Trash2 size={13} color="#EF4444" />
+              </button>
+            </div>
+          )}
         </div>
       </div>
-    </motion.div>
-  );
+    </SlabCard>
+  )
 }
-
-// ---- Loading skeleton -------------------------------------------------------
-
-function NotesSkeleton() {
-  // Heights: [120, 80, 60, 120, 60, 80] — gives variety
-  const heights = [120, 80, 60, 120, 60, 80];
-  return (
-    <div className="columns-1 gap-3 md:columns-3">
-      {heights.map((h, i) => (
-        <div key={i} className="mb-3 break-inside-avoid">
-          <Skeleton className="w-full rounded-2xl" style={{ height: h }} />
-        </div>
-      ))}
-    </div>
-  );
-}
-
-// ---- Page -------------------------------------------------------------------
 
 export default function NotesPage() {
-  const { data: sessionData } = useSession();
-  const currentUserId = sessionData?.user?.id ?? '';
-  const queryClient = useQueryClient();
-  const quickAddRef = useRef<HTMLInputElement>(null);
+  const { data: session } = useSession()
+  const currentUserId = session?.user?.id ?? ''
+  const qc = useQueryClient()
 
-  const [quickText, setQuickText] = useState('');
-  const [placeholderIdx, setPlaceholderIdx] = useState(0);
-  const [upgradeCode, setUpgradeCode] = useState<string | null>(null);
-  const [sheetOpen, setSheetOpen] = useState(false);
-  const [sheetMode, setSheetMode] = useState<'create' | 'edit' | 'view'>(
-    'create',
-  );
-  const [selectedNote, setSelectedNote] = useState<NoteData | null>(null);
+  const [sheetOpen, setSheetOpen] = useState(false)
+  const [editNote, setEditNote] = useState<Note | null>(null)
+  const [quickTitle, setQuickTitle] = useState('')
+  const [upgradeCode, setUpgradeCode] = useState<string | null>(null)
 
-  useEffect(() => {
-    const id = setInterval(() => {
-      setPlaceholderIdx((i) => (i + 1) % PLACEHOLDERS.length);
-    }, 3000);
-    return () => clearInterval(id);
-  }, []);
-
-  // ---- Queries ---------------------------------------------------------------
-
-  const {
-    data: notesData,
-    isLoading,
-    isError,
-    refetch,
-  } = useQuery<NotesResponse>({
+  const { data, isLoading, isError } = useQuery({
     queryKey: ['notes'],
     queryFn: async () => {
-      const r = await fetch('/api/notes');
-      if (!r.ok) {
-        const d = await r.json().catch(() => ({}));
-        throw new Error(d.error ?? 'Failed to load notes');
-      }
-      return r.json();
+      const r = await fetch('/api/notes')
+      if (!r.ok) throw new Error('Failed')
+      return r.json() as Promise<{ notes: Note[] }>
     },
     staleTime: 10_000,
-    retry: 2,
-  });
+    refetchInterval: 10_000,
+  })
 
-  const { data: membersData } = useQuery<MembersResponse>({
-    queryKey: ['household-members'],
+  const { data: householdData } = useQuery({
+    queryKey: ['household-me'],
     queryFn: async () => {
-      const r = await fetch('/api/household/members');
-      if (!r.ok) return { household: null, members: [] };
-      return r.json();
+      const r = await fetch('/api/household/me')
+      if (!r.ok) throw new Error('Failed')
+      return r.json()
     },
-    staleTime: 10_000,
-    retry: 2,
-  });
+    staleTime: 60_000,
+  })
+  const myRole = householdData?.role ?? 'member'
+  const isAdmin = myRole === 'admin'
+  const isPremium = householdData?.household?.subscriptionStatus === 'premium'
 
-  // ---- Quick add mutation ----------------------------------------------------
+  function handleUpgradeRequired(code: string) {
+    setUpgradeCode(code)
+    if (code === 'NOTES_LIMIT') {
+      toast.error('Note limit reached', {
+        description: 'Free accounts are limited to 10 notes. Upgrade to Premium for unlimited notes.',
+      })
+    } else if (code === 'RICH_TEXT_NOTES_PREMIUM') {
+      toast.error('Rich text is a Premium feature', {
+        description: 'Upgrade to Premium to use headings, checklists, and formatting in your notes.',
+      })
+    } else {
+      toast.error('Premium required', {
+        description: 'Upgrade to Premium to unlock this feature.',
+      })
+    }
+  }
 
-  const quickAddMutation = useMutation({
-    mutationFn: async (content: string) => {
+  const deleteMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const r = await fetch(`/api/notes/${id}`, { method: 'DELETE' })
+      if (!r.ok) throw new Error('Failed')
+    },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['notes'] }); toast.success('Note deleted') },
+    onError: () => toast.error('Could not delete note', { description: 'Please try again.' }),
+  })
+
+  async function handleQuickAdd() {
+    if (!quickTitle.trim()) return
+    try {
       const r = await fetch('/api/notes', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ content }),
-      });
+        body: JSON.stringify({ title: quickTitle.trim(), content: '' }),
+      })
+      const data = await r.json()
       if (!r.ok) {
-        const d = await r.json().catch(() => ({}));
-        const err = new Error(d.error ?? 'Failed to save note') as Error & {
-          code?: string;
-        };
-        err.code = d.code;
-        throw err;
+        if (data.code) { handleUpgradeRequired(data.code); return }
+        throw new Error(data.error ?? 'Failed')
       }
-      return r.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['notes'] });
-      toast.success('Note left');
-      setQuickText('');
-      quickAddRef.current?.focus();
-    },
-    onError: (err: Error & { code?: string }) => {
-      if (err.code) {
-        setUpgradeCode(err.code);
-        return;
-      }
-      toast.error('Could not save note', { description: err.message });
-    },
-  });
-
-  function handleQuickAdd() {
-    if (!quickText.trim()) return;
-    quickAddMutation.mutate(quickText.trim());
+      qc.invalidateQueries({ queryKey: ['notes'] })
+      setQuickTitle('')
+      toast.success('Note added')
+    } catch (e) {
+      toast.error('Could not add note', { description: (e as Error).message })
+    }
   }
 
-  // ---- Derived ---------------------------------------------------------------
+  const notes = data?.notes ?? []
 
-  const allNotes = notesData?.notes ?? [];
-  const members = membersData?.members ?? [];
-  const currentMember = members.find((m) => m.userId === currentUserId);
-  const isAdmin = currentMember?.role === 'admin';
-
-  function openView(note: NoteRow) {
-    setSelectedNote(note as NoteData);
-    setSheetMode('view');
-    setSheetOpen(true);
+  if (isLoading) {
+    return (
+      <div style={{ padding: '20px 16px', display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 12 }}>
+        {[1, 2, 3].map(i => (
+          <div key={i} style={{ height: 120, borderRadius: 16, backgroundColor: 'var(--roost-surface)', border: '1.5px solid var(--roost-border)', borderBottom: '4px solid var(--roost-border)' }} />
+        ))}
+      </div>
+    )
   }
 
-  function openCreate() {
-    setSelectedNote(null);
-    setSheetMode('create');
-    setSheetOpen(true);
+  if (isError) {
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '50vh', gap: 12, padding: 24 }}>
+        <p style={{ fontWeight: 800, fontSize: 16, color: 'var(--roost-text-primary)', margin: 0 }}>Something went wrong.</p>
+        <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--roost-text-muted)', margin: 0 }}>Could not load notes. Please refresh.</p>
+      </div>
+    )
   }
-
-  // ---- Render ----------------------------------------------------------------
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 12 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.18, ease: 'easeOut' }}
-      className="py-4 pb-24 md:py-6"
-      style={{ backgroundColor: 'var(--roost-bg)' }}
-    >
-      <PageContainer className="flex flex-col gap-4">
+    <>
+      <motion.div
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.18 }}
+        style={{ padding: '20px 16px 100px', maxWidth: 896, margin: '0 auto' }}
+      >
         {/* Header */}
-        <PageHeader
-          title="Notes"
-          badge={allNotes.length}
-          color={COLOR}
-          action={
-            <motion.button
-              type="button"
-              onClick={openCreate}
-              whileTap={{ y: 1 }}
-              className="flex h-10 w-10 items-center justify-center rounded-xl"
-              style={{
-                backgroundColor: COLOR,
-                border: `1.5px solid ${COLOR}`,
-                borderBottom: `3px solid ${COLOR_DARK}`,
-              }}
-              aria-label="New note"
-            >
-              <Plus className="size-4 text-white" />
-            </motion.button>
-          }
-        />
-
-        {/* Quick add bar */}
-        <div
-          className="flex h-14 items-center gap-2 overflow-hidden rounded-xl"
-          onClick={() => quickAddRef.current?.focus()}
-          style={{
-            border: `1.5px solid ${COLOR}50`,
-            borderBottom: `3px solid ${COLOR_DARK}50`,
-            backgroundColor: 'var(--roost-surface)',
-            cursor: 'text',
-          }}
-        >
-          <input
-            ref={quickAddRef}
-            type="text"
-            value={quickText}
-            onChange={(e) => setQuickText(e.target.value.slice(0, 1000))}
-            onKeyDown={(e) => e.key === 'Enter' && handleQuickAdd()}
-            placeholder={PLACEHOLDERS[placeholderIdx]}
-            className="h-full flex-1 bg-transparent px-4 text-sm focus:outline-none"
-            style={{ color: 'var(--roost-text-primary)', fontWeight: 600 }}
-          />
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              handleQuickAdd();
-            }}
-            disabled={!quickText.trim() || quickAddMutation.isPending}
-            className="flex h-full w-14 shrink-0 items-center justify-center disabled:opacity-40"
-            style={{ color: COLOR }}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+          <div>
+            <h1 style={{ margin: 0, fontWeight: 900, fontSize: 26, color: 'var(--roost-text-primary)', letterSpacing: '-0.3px' }}>Notes</h1>
+            <p style={{ margin: '2px 0 0', fontSize: 13, fontWeight: 600, color: 'var(--roost-text-muted)' }}>{notes.length} {notes.length === 1 ? 'note' : 'notes'}</p>
+          </div>
+          <motion.button
+            whileTap={{ y: 2 }} type="button"
+            onClick={() => { setEditNote(null); setSheetOpen(true) }}
+            style={{ width: 40, height: 40, borderRadius: 12, backgroundColor: COLOR, border: 'none', borderBottom: `3px solid ${COLOR_DARK}`, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0 }}
           >
-            {quickAddMutation.isPending ? (
-              <Loader2 className="size-4 animate-spin" />
-            ) : (
-              <Plus className="size-5" strokeWidth={2.5} />
-            )}
-          </button>
+            <Plus size={20} color="#fff" />
+          </motion.button>
         </div>
 
-        {/* Loading */}
-        {isLoading && <NotesSkeleton />}
-
-        {/* Error */}
-        {isError && !isLoading && <ErrorState onRetry={refetch} />}
-
-        {/* Empty state */}
-        {!isLoading && !isError && allNotes.length === 0 && (
-          <EmptyState
-            icon={StickyNote}
-            title="Quiet in here."
-            body="No notes yet. Leave one for the household before something important gets forgotten."
-            color={COLOR}
+        {/* Quick add */}
+        <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
+          <input
+            style={{ ...INPUT_STYLE, flex: 1 }}
+            placeholder="Quick note..."
+            value={quickTitle}
+            onChange={e => setQuickTitle(e.target.value)}
+            onKeyDown={e => e.key === 'Enter' && handleQuickAdd()}
           />
-        )}
+          <motion.button
+            whileTap={{ y: 1 }} type="button" onClick={handleQuickAdd}
+            style={{ padding: '0 18px', borderRadius: 12, backgroundColor: COLOR, border: 'none', borderBottom: `3px solid ${COLOR_DARK}`, color: '#fff', fontWeight: 800, fontSize: 14, cursor: 'pointer', flexShrink: 0 }}
+          >
+            Add
+          </motion.button>
+        </div>
 
-        {/* Notes grid (masonry via CSS columns) */}
-        {!isLoading && !isError && allNotes.length > 0 && (
-          <div className="columns-1 gap-3 sm:columns-2 lg:columns-3">
-            {allNotes.map((note, i) => (
-              <div key={note.id} className="mb-3 break-inside-avoid">
-                <NoteCard note={note} index={i} onOpen={() => openView(note)} />
-              </div>
+        {/* Notes masonry grid */}
+        {notes.length === 0 ? (
+          <div style={{
+            backgroundColor: 'var(--roost-surface)', border: '2px dashed var(--roost-border)',
+            borderBottom: '4px dashed var(--roost-border-bottom)', borderRadius: 16,
+            padding: '32px 24px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10, textAlign: 'center',
+          }}>
+            <div style={{ width: 52, height: 52, borderRadius: 14, backgroundColor: 'var(--roost-surface)', border: '1.5px solid var(--roost-border)', borderBottom: `4px solid ${COLOR}`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <FileText size={24} color={COLOR} />
+            </div>
+            <p style={{ margin: 0, fontWeight: 800, fontSize: 16, color: 'var(--roost-text-primary)' }}>Blank slate.</p>
+            <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: 'var(--roost-text-secondary)' }}>
+              No notes yet. Write something down before you forget it.
+            </p>
+            <motion.button
+              whileTap={{ y: 2 }} type="button" onClick={() => { setEditNote(null); setSheetOpen(true) }}
+              style={{ marginTop: 8, padding: '11px 20px', borderRadius: 12, border: 'none', borderBottom: `3px solid ${COLOR_DARK}`, backgroundColor: COLOR, color: '#fff', fontWeight: 800, fontSize: 14, cursor: 'pointer' }}
+            >
+              New note
+            </motion.button>
+          </div>
+        ) : (
+          <div style={{ columns: '260px', gap: 12 }}>
+            {notes.map((note, i) => (
+              <motion.div
+                key={note.id}
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: Math.min(i * 0.04, 0.2), duration: 0.15 }}
+              >
+                <NoteCard
+                  note={note}
+                  canModify={isAdmin || note.createdBy === currentUserId}
+                  onEdit={n => { setEditNote(n); setSheetOpen(true) }}
+                  onDelete={id => deleteMutation.mutate(id)}
+                />
+              </motion.div>
             ))}
           </div>
         )}
+      </motion.div>
 
-        {/* Note sheet */}
-        <NoteSheet
-          open={sheetOpen}
-          onClose={() => {
-            setSheetOpen(false);
-            setSelectedNote(null);
-          }}
-          mode={sheetMode}
-          note={selectedNote}
-          currentUserId={currentUserId}
-          isAdmin={isAdmin}
-          onUpgradeRequired={(code) => {
-            setSheetOpen(false);
-            setUpgradeCode(code);
-          }}
-        />
-
-        {/* Upgrade prompt */}
-        {!!upgradeCode && (
-          <PremiumGate
-            feature="notes"
-            trigger="sheet"
-            onClose={() => setUpgradeCode(null)}
-          />
-        )}
-      </PageContainer>
-    </motion.div>
-  );
+      <NoteSheet
+        open={sheetOpen}
+        onClose={() => { setSheetOpen(false); setEditNote(null); setUpgradeCode(null) }}
+        note={editNote}
+        isPremium={isPremium}
+        onUpgradeRequired={handleUpgradeRequired}
+      />
+    </>
+  )
 }

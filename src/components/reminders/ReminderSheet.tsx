@@ -1,499 +1,343 @@
-"use client";
+'use client'
 
-import { useEffect, useRef, useState } from "react";
-import { toast } from "sonner";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { motion } from "framer-motion";
-import DraggableSheet from "@/components/shared/DraggableSheet";
-import { Loader2, Lock, Home, User, Users } from "lucide-react";
-import { format } from "date-fns";
-import MemberAvatar from "@/components/shared/MemberAvatar";
+import { useEffect, useState } from 'react'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { toast } from 'sonner'
+import { useSession } from '@/lib/auth/client'
+import { SECTION_COLORS } from '@/lib/constants/colors'
+import { DraggableSheet } from '@/components/shared/DraggableSheet'
 
-const COLOR = "#06B6D4";
-const COLOR_DARK = "#0891B2";
+const COLOR = SECTION_COLORS.reminders.base
+const COLOR_DARK = SECTION_COLORS.reminders.dark
 
-// ---- Types ------------------------------------------------------------------
+const LABEL_STYLE: React.CSSProperties = {
+  fontSize: 11,
+  fontWeight: 800,
+  textTransform: 'uppercase',
+  letterSpacing: '0.07em',
+  color: '#374151',
+  marginBottom: 6,
+  display: 'block',
+}
+
+const INPUT_STYLE: React.CSSProperties = {
+  width: '100%',
+  border: '1.5px solid var(--roost-border)',
+  borderBottom: '3px solid var(--roost-border)',
+  borderRadius: 12,
+  padding: '12px 14px',
+  fontSize: 15,
+  fontWeight: 600,
+  backgroundColor: 'var(--roost-surface)',
+  color: 'var(--roost-text-primary)',
+  outline: 'none',
+  boxSizing: 'border-box',
+}
+
+const FREQUENCIES = [
+  { value: 'once', label: 'Once' },
+  { value: 'daily', label: 'Daily' },
+  { value: 'weekly', label: 'Weekly' },
+  { value: 'monthly', label: 'Monthly' },
+]
+
+const NOTIFY_TYPES = [
+  { value: 'self', label: 'Just me' },
+  { value: 'household', label: 'Everyone' },
+  { value: 'specific', label: 'Specific people' },
+]
 
 export interface ReminderData {
-  id: string;
-  title: string;
-  note: string | null;
-  remind_at: string;
-  frequency: string;
-  custom_days: string | null;
-  notify_type: string;
-  notify_user_ids: string | null;
-  completed: boolean;
-  next_remind_at: string | null;
-  snoozed_until: string | null;
-  created_by: string;
+  id: string
+  title: string
+  note: string | null
+  remindAt: string
+  frequency: string | null
+  notifyType: string
+  notifyUserIds: string
+  createdBy: string
 }
 
 export interface Member {
-  userId: string;
-  name: string;
-  avatarColor: string | null;
-  role: string;
+  userId: string
+  name: string
+  avatarColor: string | null
 }
 
 interface ReminderSheetProps {
-  open: boolean;
-  onClose: () => void;
-  mode: "create" | "edit";
-  reminder?: ReminderData | null;
-  householdMembers: Member[];
-  isPremium?: boolean;
-  onUpgradeRequired?: (code: string) => void;
+  open: boolean
+  onClose: () => void
+  reminder?: ReminderData | null
+  members: Member[]
 }
 
-// ---- Constants --------------------------------------------------------------
+export function ReminderSheet({ open, onClose, reminder, members }: ReminderSheetProps) {
+  const { data: session } = useSession()
+  const currentUserId = session?.user?.id ?? ''
+  const qc = useQueryClient()
 
-const PREMIUM_NOTIFY_TYPES = ["household", "specific"] as const;
+  const [title, setTitle] = useState('')
+  const [note, setNote] = useState('')
+  const [remindAt, setRemindAt] = useState('')
+  const [frequency, setFrequency] = useState('once')
+  const [notifyType, setNotifyType] = useState('self')
+  const [notifyUserIds, setNotifyUserIds] = useState<string[]>([])
 
-const FREQUENCIES = [
-  { value: "once", label: "Once" },
-  { value: "daily", label: "Daily" },
-  { value: "weekly", label: "Weekly" },
-  { value: "monthly", label: "Monthly" },
-  { value: "custom", label: "Custom" },
-] as const;
-
-const PREMIUM_FREQUENCIES = ["daily", "weekly", "monthly", "custom"] as const;
-
-const DAYS = [
-  { value: 1, label: "Mon" },
-  { value: 2, label: "Tue" },
-  { value: 3, label: "Wed" },
-  { value: 4, label: "Thu" },
-  { value: 5, label: "Fri" },
-  { value: 6, label: "Sat" },
-  { value: 0, label: "Sun" },
-];
-
-// ---- Input style ------------------------------------------------------------
-
-const inputStyle: React.CSSProperties = {
-  backgroundColor: "var(--roost-surface)",
-  border: "1.5px solid #E5E7EB",
-  borderBottom: "3px solid #E5E7EB",
-  color: "var(--roost-text-primary)",
-  fontWeight: 600,
-};
-
-// ---- Component --------------------------------------------------------------
-
-export default function ReminderSheet({
-  open,
-  onClose,
-  mode,
-  reminder,
-  householdMembers,
-  isPremium = false,
-  onUpgradeRequired,
-}: ReminderSheetProps) {
-  const queryClient = useQueryClient();
-  const titleRef = useRef<HTMLInputElement>(null);
-  const [showCalendar, setShowCalendar] = useState(false);
-
-  function buildInitialForm(m: "create" | "edit") {
-    if (m === "create") {
-      const tomorrow = new Date();
-      tomorrow.setDate(tomorrow.getDate() + 1);
-      return {
-        title: "",
-        note: "",
-        dateStr: tomorrow.toISOString().slice(0, 10),
-        timeStr: "09:00",
-        frequency: "once",
-        customDays: [] as number[],
-        notifyType: "self" as "self" | "specific" | "household",
-        specificUserIds: [] as string[],
-      };
-    }
-    if (reminder) {
-      const remindDate = new Date(reminder.remind_at);
-      let parsedCustomDays: number[] = [];
-      try { parsedCustomDays = reminder.custom_days ? (JSON.parse(reminder.custom_days) as number[]) : []; } catch { /* */ }
-      let parsedUserIds: string[] = [];
-      try { parsedUserIds = reminder.notify_user_ids ? (JSON.parse(reminder.notify_user_ids) as string[]) : []; } catch { /* */ }
-      return {
-        title: reminder.title,
-        note: reminder.note ?? "",
-        dateStr: remindDate.toISOString().slice(0, 10),
-        timeStr: `${String(remindDate.getHours()).padStart(2, "0")}:${String(remindDate.getMinutes()).padStart(2, "0")}`,
-        frequency: reminder.frequency,
-        customDays: parsedCustomDays,
-        notifyType: (reminder.notify_type as "self" | "specific" | "household") ?? "self",
-        specificUserIds: parsedUserIds,
-      };
-    }
-    return { title: "", note: "", dateStr: "", timeStr: "09:00", frequency: "once", customDays: [] as number[], notifyType: "self" as const, specificUserIds: [] as string[] };
-  }
-
-  const [form, setForm] = useState(() => buildInitialForm(mode));
-
-  // Single setState call per open — no cascading renders
   useEffect(() => {
-    if (!open) return;
-    setForm(buildInitialForm(mode));
-    setShowCalendar(false);
-    if (mode === "create") {
-      setTimeout(() => titleRef.current?.focus(), 100);
+    if (open) {
+      setTitle(reminder?.title ?? '')
+      setNote(reminder?.note ?? '')
+      setRemindAt(reminder?.remindAt ? new Date(reminder.remindAt).toISOString().slice(0, 16) : '')
+      setFrequency(reminder?.frequency ?? 'once')
+      setNotifyType(reminder?.notifyType ?? 'self')
+      setNotifyUserIds(JSON.parse(reminder?.notifyUserIds ?? '[]') as string[])
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, mode, reminder]);
-
-  function set<K extends keyof typeof form>(key: K, value: typeof form[K]) {
-    setForm((prev) => ({ ...prev, [key]: value }));
-  }
-
-  const { title, note, dateStr, timeStr, frequency, customDays, notifyType, specificUserIds } = form;
-
-  function toggleDay(day: number) {
-    set("customDays", customDays.includes(day)
-      ? customDays.filter((d) => d !== day)
-      : [...customDays, day]
-    );
-  }
-
-  function toggleSpecificUser(userId: string) {
-    set("specificUserIds", specificUserIds.includes(userId)
-      ? specificUserIds.filter((id) => id !== userId)
-      : [...specificUserIds, userId]
-    );
-  }
-
-  function buildRemindAt(): Date {
-    const [y, m, d] = dateStr.split("-").map(Number);
-    const [h, min] = timeStr.split(":").map(Number);
-    return new Date(y, m - 1, d, h, min);
-  }
-
-  function invalidate() {
-    queryClient.invalidateQueries({ queryKey: ["reminders"] });
-    queryClient.invalidateQueries({ queryKey: ["reminders-due"] });
-  }
+  }, [open, reminder])
 
   const saveMutation = useMutation({
     mutationFn: async () => {
-      if (!title.trim()) throw new Error("Title is required");
-      if (!dateStr) throw new Error("Date is required");
-
-      const remindAt = buildRemindAt();
-      const payload = {
-        title: title.trim(),
-        note: note.trim() || undefined,
-        remind_at: remindAt.toISOString(),
-        frequency,
-        custom_days: frequency === "custom" ? customDays : undefined,
-        notify_type: notifyType,
-        notify_user_ids: notifyType === "specific" ? specificUserIds : undefined,
-      };
-
-      if (mode === "create") {
-        const r = await fetch("/api/reminders", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
-        });
-        if (!r.ok) {
-          const d = await r.json().catch(() => ({}));
-          const err = new Error(d.error ?? "Failed to save reminder") as Error & { code?: string };
-          err.code = d.code;
-          throw err;
-        }
-        return r.json();
-      } else {
-        const r = await fetch(`/api/reminders/${reminder!.id}`, {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
-        });
-        if (!r.ok) {
-          const d = await r.json().catch(() => ({}));
-          throw new Error(d.error ?? "Failed to update reminder");
-        }
-        return r.json();
+      const url = reminder ? `/api/reminders/${reminder.id}` : '/api/reminders'
+      const method = reminder ? 'PATCH' : 'POST'
+      const r = await fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: title.trim(),
+          note: note.trim() || null,
+          remindAt: new Date(remindAt).toISOString(),
+          frequency,
+          notifyType,
+          notifyUserIds,
+        }),
+      })
+      if (!r.ok) {
+        const data = await r.json()
+        const err = new Error(data.error ?? 'Failed to save reminder') as Error & { code?: string }
+        err.code = data.code
+        throw err
       }
+      return r.json()
     },
     onSuccess: () => {
-      invalidate();
-      toast.success(mode === "create" ? "Reminder set" : "Reminder updated");
-      onClose();
+      qc.invalidateQueries({ queryKey: ['reminders'] })
+      toast.success(reminder ? 'Reminder updated' : 'Reminder set')
+      onClose()
     },
-    onError: (err: Error & { code?: string }) => {
-      if (err.code && onUpgradeRequired) {
-        onUpgradeRequired(err.code);
-      } else {
-        toast.error(err.message);
-      }
+    onError: (err: Error) => {
+      toast.error('Could not save reminder', { description: err.message })
     },
-  });
+  })
 
-  const displayDate = dateStr
-    ? format(new Date(dateStr + "T12:00:00"), "EEE, MMM d")
-    : "Pick a date";
+  function handleSave() {
+    if (!title.trim()) {
+      toast.error('Title is required', { description: 'Name your reminder before saving.' })
+      return
+    }
+    if (!remindAt) {
+      toast.error('Date is required', { description: 'Pick when you want to be reminded.' })
+      return
+    }
+    saveMutation.mutate()
+  }
+
+  function toggleMember(userId: string) {
+    setNotifyUserIds(prev =>
+      prev.includes(userId) ? prev.filter(id => id !== userId) : [...prev, userId]
+    )
+  }
+
+  const otherMembers = members.filter(m => m.userId !== currentUserId)
 
   return (
-    <DraggableSheet open={open} onOpenChange={(v) => !v && onClose()} featureColor="#06B6D4">
-      <div className="px-4 pb-8" style={{ maxHeight: "calc(92dvh - 60px)" }}>
-        <p className="mb-5 text-lg" style={{ color: "var(--roost-text-primary)", fontWeight: 800 }}>
-          {mode === "create" ? "Set a Reminder" : "Edit Reminder"}
+    <DraggableSheet open={open} onOpenChange={v => !v && onClose()} featureColor={COLOR}>
+      <div className="px-4 pb-8">
+        <p className="mb-5 text-lg" style={{ color: 'var(--roost-text-primary)', fontWeight: 800 }}>
+          {reminder ? 'Edit reminder' : 'New reminder'}
         </p>
 
-        <div className="space-y-5">
-          {/* Title */}
-          <div>
-            <label className="mb-1.5 block text-xs" style={{ color: "#374151", fontWeight: 700 }}>
-              What do you need to remember?
-            </label>
-            <input
-              ref={titleRef}
-              type="text"
-              value={title}
-              onChange={(e) => set("title", e.target.value)}
-              placeholder="Pay rent, call the vet, buy birthday card..."
-              className="h-12 w-full rounded-xl px-4 text-sm focus:outline-none"
-              style={inputStyle}
-            />
+        <div style={{ marginBottom: 16 }}>
+          <label style={LABEL_STYLE}>Title</label>
+          <input
+            style={INPUT_STYLE}
+            placeholder="What do you need to remember?"
+            value={title}
+            onChange={e => setTitle(e.target.value)}
+          />
+        </div>
+
+        <div style={{ marginBottom: 16 }}>
+          <label style={LABEL_STYLE}>Note</label>
+          <textarea
+            style={{ ...INPUT_STYLE, minHeight: 72, resize: 'vertical' }}
+            placeholder="Any extra details..."
+            value={note}
+            onChange={e => setNote(e.target.value)}
+          />
+        </div>
+
+        <div style={{ marginBottom: 16 }}>
+          <label style={LABEL_STYLE}>Remind at</label>
+          <input
+            type="datetime-local"
+            style={INPUT_STYLE}
+            value={remindAt}
+            onChange={e => setRemindAt(e.target.value)}
+          />
+        </div>
+
+        <div style={{ marginBottom: 16 }}>
+          <label style={LABEL_STYLE}>Repeat</label>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            {FREQUENCIES.map(f => {
+              const active = frequency === f.value
+              return (
+                <button
+                  key={f.value}
+                  type="button"
+                  onClick={() => setFrequency(f.value)}
+                  style={{
+                    flex: '1 1 80px',
+                    padding: '10px 0',
+                    borderRadius: 10,
+                    border: '1.5px solid var(--roost-border)',
+                    borderBottom: active ? `3px solid ${COLOR_DARK}` : '3px solid var(--roost-border)',
+                    backgroundColor: active ? COLOR : 'var(--roost-surface)',
+                    color: active ? '#fff' : 'var(--roost-text-secondary)',
+                    fontWeight: 800,
+                    fontSize: 13,
+                    cursor: 'pointer',
+                  }}
+                >
+                  {f.label}
+                </button>
+              )
+            })}
+          </div>
+        </div>
+
+        <div style={{ marginBottom: 24 }}>
+          <label style={LABEL_STYLE}>Notify</label>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: notifyType === 'specific' ? 12 : 0 }}>
+            {NOTIFY_TYPES.map(n => {
+              const active = notifyType === n.value
+              return (
+                <button
+                  key={n.value}
+                  type="button"
+                  onClick={() => setNotifyType(n.value)}
+                  style={{
+                    flex: '1 1 100px',
+                    padding: '10px 0',
+                    borderRadius: 10,
+                    border: '1.5px solid var(--roost-border)',
+                    borderBottom: active ? `3px solid ${COLOR_DARK}` : '3px solid var(--roost-border)',
+                    backgroundColor: active ? COLOR : 'var(--roost-surface)',
+                    color: active ? '#fff' : 'var(--roost-text-secondary)',
+                    fontWeight: 800,
+                    fontSize: 13,
+                    cursor: 'pointer',
+                  }}
+                >
+                  {n.label}
+                </button>
+              )
+            })}
           </div>
 
-          {/* Note */}
-          <div>
-            <label className="mb-1.5 block text-xs" style={{ color: "#374151", fontWeight: 700 }}>
-              Note (optional)
-            </label>
-            <textarea
-              value={note}
-              onChange={(e) => set("note", e.target.value)}
-              placeholder="Any extra context..."
-              rows={2}
-              className="w-full resize-none rounded-xl px-4 py-3 text-sm focus:outline-none"
-              style={inputStyle}
-            />
-          </div>
-
-          {/* Date and time */}
-          <div>
-            <label className="mb-1.5 block text-xs" style={{ color: "#374151", fontWeight: 700 }}>
-              When?
-            </label>
-            <div className="flex gap-2">
-              {/* Date picker button */}
-              <button
-                type="button"
-                onClick={() => setShowCalendar((v) => !v)}
-                className="flex h-12 flex-1 items-center rounded-xl px-4 text-sm"
-                style={{
-                  ...inputStyle,
-                  borderBottom: showCalendar ? `3px solid ${COLOR}` : inputStyle.borderBottom,
-                  color: dateStr ? "var(--roost-text-primary)" : "var(--roost-text-muted)",
-                }}
-              >
-                {displayDate}
-              </button>
-
-              {/* Time input */}
-              <input
-                type="time"
-                value={timeStr}
-                onChange={(e) => set("timeStr", e.target.value)}
-                className="h-12 w-32 rounded-xl px-3 text-sm focus:outline-none"
-                style={inputStyle}
-              />
-            </div>
-
-            {/* Inline date input when calendar toggled */}
-            {showCalendar && (
-              <input
-                type="date"
-                value={dateStr}
-                onChange={(e) => { set("dateStr", e.target.value); setShowCalendar(false); }}
-                className="mt-2 h-12 w-full rounded-xl px-4 text-sm focus:outline-none"
-                style={inputStyle}
-              />
-            )}
-          </div>
-
-          {/* Frequency */}
-          <div>
-            <label className="mb-1.5 block text-xs" style={{ color: "#374151", fontWeight: 700 }}>
-              Repeat
-            </label>
-            <div className="flex gap-2 flex-wrap">
-              {FREQUENCIES.map((f) => {
-                const active = frequency === f.value;
-                const isLocked = (PREMIUM_FREQUENCIES as readonly string[]).includes(f.value) && !isPremium;
+          {notifyType === 'specific' && otherMembers.length > 0 && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 12 }}>
+              {otherMembers.map(m => {
+                const selected = notifyUserIds.includes(m.userId)
                 return (
                   <button
-                    key={f.value}
+                    key={m.userId}
                     type="button"
-                    onClick={() => {
-                      if (isLocked) { onUpgradeRequired?.("RECURRING_REMINDERS_PREMIUM"); return; }
-                      set("frequency", f.value);
-                    }}
-                    className="flex h-10 flex-1 items-center justify-center gap-1 rounded-xl text-sm"
+                    onClick={() => toggleMember(m.userId)}
                     style={{
-                      border: active ? `1.5px solid ${COLOR}` : "1.5px solid #E5E7EB",
-                      borderBottom: active ? `3px solid ${COLOR_DARK}` : "3px solid #E5E7EB",
-                      backgroundColor: active ? `${COLOR}18` : "transparent",
-                      color: isLocked ? "var(--roost-text-muted)" : active ? COLOR : "var(--roost-text-secondary)",
-                      fontWeight: 700,
-                    }}
-                  >
-                    {isLocked && <Lock className="size-3" style={{ color: "var(--roost-text-muted)" }} />}
-                    {f.label}
-                  </button>
-                );
-              })}
-            </div>
-
-            {/* Custom day toggles */}
-            {frequency === "custom" && (
-              <div className="mt-3 flex gap-2">
-                {DAYS.map((d) => {
-                  const active = customDays.includes(d.value);
-                  return (
-                    <button
-                      key={d.value}
-                      type="button"
-                      onClick={() => toggleDay(d.value)}
-                      className="flex h-9 flex-1 items-center justify-center rounded-xl text-xs"
-                      style={{
-                        border: active ? `1.5px solid ${COLOR}` : "1.5px solid #E5E7EB",
-                        borderBottom: active ? `3px solid ${COLOR_DARK}` : "3px solid #E5E7EB",
-                        backgroundColor: active ? `${COLOR}18` : "transparent",
-                        color: active ? COLOR : "var(--roost-text-muted)",
-                        fontWeight: 700,
-                      }}
-                    >
-                      {d.label}
-                    </button>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-
-          {/* Who to remind */}
-          <div>
-            <label className="mb-1.5 block text-xs" style={{ color: "#374151", fontWeight: 700 }}>
-              Who to remind
-            </label>
-            <div className="space-y-2">
-              {(
-                [
-                  { value: "self" as const, icon: User, label: "Just me", desc: "Only you will be notified" },
-                  { value: "household" as const, icon: Home, label: "Whole household", desc: "Everyone gets notified" },
-                  { value: "specific" as const, icon: Users, label: "Specific people", desc: "Choose who gets notified" },
-                ] as const
-              ).map(({ value, icon: Icon, label, desc }) => {
-                const active = notifyType === value;
-                const isLocked = (PREMIUM_NOTIFY_TYPES as readonly string[]).includes(value) && !isPremium;
-                return (
-                  <button
-                    key={value}
-                    type="button"
-                    onClick={() => {
-                      if (isLocked) { onUpgradeRequired?.("REMINDER_NOTIFY_PREMIUM"); return; }
-                      set("notifyType", value);
-                    }}
-                    className="flex w-full items-center gap-3 rounded-xl px-4 py-3 text-left"
-                    style={{
-                      border: active ? `1.5px solid ${COLOR}` : "1.5px solid #E5E7EB",
-                      borderBottom: active ? `3px solid ${COLOR_DARK}` : "3px solid #E5E7EB",
-                      backgroundColor: active ? `${COLOR}18` : "transparent",
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 10,
+                      padding: '10px 14px',
+                      borderRadius: 12,
+                      border: '1.5px solid var(--roost-border)',
+                      borderBottom: selected ? `3px solid ${COLOR_DARK}` : '3px solid var(--roost-border)',
+                      backgroundColor: selected ? `${COLOR}14` : 'var(--roost-surface)',
+                      cursor: 'pointer',
+                      minHeight: 48,
+                      textAlign: 'left',
                     }}
                   >
                     <div
-                      className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl"
-                      style={{ backgroundColor: isLocked ? "#F3F4F6" : active ? `${COLOR}30` : "#F3F4F6" }}
+                      style={{
+                        width: 28,
+                        height: 28,
+                        borderRadius: '50%',
+                        backgroundColor: m.avatarColor ?? COLOR,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        flexShrink: 0,
+                      }}
                     >
-                      {isLocked
-                        ? <Lock className="size-4" style={{ color: "var(--roost-text-muted)" }} />
-                        : <Icon className="size-4" style={{ color: active ? COLOR : "var(--roost-text-muted)" }} />
-                      }
+                      <span style={{ fontSize: 11, fontWeight: 800, color: '#fff' }}>
+                        {m.name.charAt(0).toUpperCase()}
+                      </span>
                     </div>
-                    <div>
-                      <p className="text-sm" style={{ color: isLocked ? "var(--roost-text-muted)" : "var(--roost-text-primary)", fontWeight: 700 }}>
-                        {label}
-                      </p>
-                      <p className="text-xs" style={{ color: "var(--roost-text-muted)", fontWeight: 600 }}>
-                        {isLocked ? "Premium only" : desc}
-                      </p>
-                    </div>
-                  </button>
-                );
-              })}
-
-              {/* Specific people list */}
-              {notifyType === "specific" && (
-                <div className="mt-2 space-y-1 pl-1">
-                  {householdMembers.map((m) => {
-                    const checked = specificUserIds.includes(m.userId);
-                    return (
-                      <button
-                        key={m.userId}
-                        type="button"
-                        onClick={() => toggleSpecificUser(m.userId)}
-                        className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5"
+                    <span
+                      style={{
+                        fontSize: 14,
+                        fontWeight: 700,
+                        color: selected ? COLOR : 'var(--roost-text-primary)',
+                        flex: 1,
+                      }}
+                    >
+                      {m.name}
+                    </span>
+                    {selected && (
+                      <div
                         style={{
-                          border: checked ? `1.5px solid ${COLOR}40` : "1.5px solid #E5E7EB",
-                          borderBottom: checked ? `3px solid ${COLOR_DARK}40` : "3px solid #E5E7EB",
-                          backgroundColor: checked ? `${COLOR}10` : "transparent",
+                          width: 16,
+                          height: 16,
+                          borderRadius: '50%',
+                          backgroundColor: COLOR,
+                          flexShrink: 0,
                         }}
-                      >
-                        <MemberAvatar name={m.name} avatarColor={m.avatarColor} size="sm" />
-                        <span className="flex-1 text-sm text-left" style={{ color: "var(--roost-text-primary)", fontWeight: 700 }}>
-                          {m.name}
-                        </span>
-                        <div
-                          className="flex h-5 w-5 items-center justify-center rounded"
-                          style={{
-                            backgroundColor: checked ? COLOR : "transparent",
-                            border: checked ? `1.5px solid ${COLOR}` : "1.5px solid var(--roost-border)",
-                          }}
-                        >
-                          {checked && <span className="text-[10px] text-white font-bold">✓</span>}
-                        </div>
-                      </button>
-                    );
-                  })}
-                </div>
-              )}
+                      />
+                    )}
+                  </button>
+                )
+              })}
             </div>
-          </div>
+          )}
 
-          {/* Save */}
-          <motion.button
-            type="button"
-            onClick={() => saveMutation.mutate()}
-            disabled={saveMutation.isPending || !title.trim() || !dateStr}
-            whileTap={{ y: 2 }}
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-xl text-sm text-white"
-            style={{
-              backgroundColor: COLOR,
-              border: `1.5px solid ${COLOR}`,
-              borderBottom: `3px solid ${COLOR_DARK}`,
-              fontWeight: 800,
-              opacity: (saveMutation.isPending || !title.trim() || !dateStr) ? 0.6 : 1,
-            }}
-          >
-            {saveMutation.isPending
-              ? <Loader2 className="size-4 animate-spin" />
-              : mode === "create" ? "Set Reminder" : "Save Changes"}
-          </motion.button>
-
-          <button
-            type="button"
-            onClick={onClose}
-            className="flex h-11 w-full items-center justify-center rounded-xl text-sm"
-            style={{ color: "#374151", fontWeight: 700 }}
-          >
-            Cancel
-          </button>
+          {notifyType === 'specific' && otherMembers.length === 0 && (
+            <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--roost-text-muted)', marginTop: 8 }}>
+              No other members to notify.
+            </p>
+          )}
         </div>
+
+        <button
+          type="button"
+          onClick={handleSave}
+          disabled={saveMutation.isPending}
+          style={{
+            width: '100%',
+            padding: '14px 0',
+            borderRadius: 14,
+            border: 'none',
+            borderBottom: `3px solid ${COLOR_DARK}`,
+            backgroundColor: COLOR,
+            color: '#fff',
+            fontWeight: 800,
+            fontSize: 15,
+            cursor: saveMutation.isPending ? 'not-allowed' : 'pointer',
+            opacity: saveMutation.isPending ? 0.7 : 1,
+          }}
+        >
+          {saveMutation.isPending ? 'Saving...' : reminder ? 'Save changes' : 'Set reminder'}
+        </button>
       </div>
     </DraggableSheet>
-  );
+  )
 }

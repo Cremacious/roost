@@ -1,26 +1,26 @@
-import { db } from "@/lib/db";
-import { household_activity } from "@/db/schema";
+import { db } from '@/lib/db'
+import { householdActivity } from '@/db/schema'
 
 interface LogActivityParams {
-  householdId: string;
-  userId: string;
-  type: string;
-  description: string;
-  entityId?: string;
-  entityType?: string;
+  householdId: string
+  userId: string
+  type: string
+  entityId?: string
+  entityType?: string
+  description: string
 }
 
-export async function logActivity(params: LogActivityParams): Promise<void> {
+export async function logActivity(params: LogActivityParams) {
   try {
-    await db.insert(household_activity).values({
-      household_id: params.householdId,
-      user_id: params.userId,
+    await db.insert(householdActivity).values({
+      householdId: params.householdId,
+      userId: params.userId,
       type: params.type,
+      entityId: params.entityId ?? null,
+      entityType: params.entityType ?? null,
       description: params.description,
-      entity_id: params.entityId,
-      entity_type: params.entityType,
-    });
+    })
   } catch {
-    // Activity logging must never break the main flow
+    // Activity logging is non-critical — never throw
   }
 }

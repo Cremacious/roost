@@ -1,84 +1,50 @@
-import { NextRequest } from "next/server";
-import { requireSession } from "@/lib/auth/helpers";
-import { db } from "@/lib/db";
-import { expense_budgets } from "@/db/schema";
-import { and, eq } from "drizzle-orm";
-import { getUserHousehold } from "@/app/api/chores/route";
+import { NextRequest, NextResponse } from 'next/server'
+import { getSession, getUserHousehold } from '@/lib/auth/helpers'
+import { db } from '@/lib/db'
+import { expenseBudgets } from '@/db/schema'
+import { eq, and } from 'drizzle-orm'
 
-// ---- PATCH ------------------------------------------------------------------
+export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params
+  const session = await getSession()
+  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-export async function PATCH(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-): Promise<Response> {
-  let session;
-  try {
-    session = await requireSession(request);
-  } catch (r) {
-    return r as Response;
-  }
+  const membership = await getUserHousehold(session.user.id)
+  if (!membership) return NextResponse.json({ error: 'No household' }, { status: 403 })
 
-  const membership = await getUserHousehold(session.user.id);
-  if (!membership) return Response.json({ error: "No household found" }, { status: 404 });
-  if (membership.role !== "admin") return Response.json({ error: "Admin only" }, { status: 403 });
-  const { householdId } = membership;
-  const { id } = await params;
+  const { householdId, role } = membership
+  if (role !== 'admin') return NextResponse.json({ error: 'Admin only' }, { status: 403 })
 
-  const [existing] = await db
+  const budget = await db
     .select()
-    .from(expense_budgets)
-    .where(and(eq(expense_budgets.id, id), eq(expense_budgets.household_id, householdId)))
-    .limit(1);
-  if (!existing) return Response.json({ error: "Budget not found" }, { status: 404 });
+    .from(expenseBudgets)
+    .where(and(eq(expenseBudgets.id, id), eq(expenseBudgets.householdId, householdId)))
+    .then(r => r[0] ?? null)
 
-  let body: { amount?: number; resetType?: string; warningThreshold?: number };
-  try {
-    body = await request.json();
-  } catch {
-    return Response.json({ error: "Invalid request body" }, { status: 400 });
-  }
+  if (!budget) return NextResponse.json({ error: 'Not found' }, { status: 404 })
 
-  const updates: Partial<typeof expense_budgets.$inferInsert> = {};
-  if (body.amount !== undefined) updates.amount = body.amount.toFixed(2);
-  if (body.resetType !== undefined) updates.reset_type = body.resetType;
-  if (body.warningThreshold !== undefined) updates.warning_threshold = body.warningThreshold;
+  const body = await req.json()
+  const updates: Record<string, unknown> = { updatedAt: new Date() }
+  if (body.amount !== undefined) updates.amount = parseFloat(body.amount).toFixed(2)
+  if (body.warningThreshold !== undefined) updates.warningThreshold = body.warningThreshold
 
-  const [updated] = await db
-    .update(expense_budgets)
-    .set(updates)
-    .where(eq(expense_budgets.id, id))
-    .returning();
+  await db.update(expenseBudgets).set(updates).where(eq(expenseBudgets.id, id))
 
-  return Response.json({ budget: updated });
+  return NextResponse.json({ ok: true })
 }
 
-// ---- DELETE -----------------------------------------------------------------
+export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params
+  const session = await getSession()
+  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-export async function DELETE(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-): Promise<Response> {
-  let session;
-  try {
-    session = await requireSession(request);
-  } catch (r) {
-    return r as Response;
-  }
+  const membership = await getUserHousehold(session.user.id)
+  if (!membership) return NextResponse.json({ error: 'No household' }, { status: 403 })
 
-  const membership = await getUserHousehold(session.user.id);
-  if (!membership) return Response.json({ error: "No household found" }, { status: 404 });
-  if (membership.role !== "admin") return Response.json({ error: "Admin only" }, { status: 403 });
-  const { householdId } = membership;
-  const { id } = await params;
+  const { householdId, role } = membership
+  if (role !== 'admin') return NextResponse.json({ error: 'Admin only' }, { status: 403 })
 
-  const [existing] = await db
-    .select({ id: expense_budgets.id })
-    .from(expense_budgets)
-    .where(and(eq(expense_budgets.id, id), eq(expense_budgets.household_id, householdId)))
-    .limit(1);
-  if (!existing) return Response.json({ error: "Budget not found" }, { status: 404 });
+  await db.delete(expenseBudgets).where(and(eq(expenseBudgets.id, id), eq(expenseBudgets.householdId, householdId)))
 
-  await db.delete(expense_budgets).where(eq(expense_budgets.id, id));
-
-  return Response.json({ success: true });
+  return NextResponse.json({ ok: true })
 }

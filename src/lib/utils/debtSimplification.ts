@@ -1,56 +1,90 @@
-export interface Balance {
-  fromUserId: string;
-  toUserId: string;
-  amount: number;
+export interface RawSplit {
+  creditorId: string  // who is owed money (expense paidBy)
+  debtorId: string    // who owes money
+  amount: number
+  splitId: string
+  settled: boolean
+  settledByPayer: boolean
+  settledByPayee: boolean
+  settlementDisputed: boolean
+  settlementLastRemindedAt: Date | null
+  settledAt: Date | null
 }
 
-/**
- * Simplify a list of pairwise debts into the minimum number of transactions.
- * Uses the greedy net-balance algorithm: compute each person's net position,
- * then match the largest creditor with the largest debtor until settled.
- */
-export function simplifyDebts(balances: Balance[]): Balance[] {
-  // Compute net balance per person (+= owed to them, -= they owe)
-  const net = new Map<string, number>();
+export interface DebtItem {
+  from: string        // debtor userId
+  to: string          // creditor userId
+  amount: number
+  splitIds: string[]  // underlying splits (for settlement)
+  pendingClaim?: {
+    splitId: string
+    settledByPayer: boolean
+    settledByPayee: boolean
+    settlementDisputed: boolean
+    lastRemindedAt: Date | null
+  } | null
+}
 
-  for (const { fromUserId, toUserId, amount } of balances) {
-    net.set(fromUserId, (net.get(fromUserId) ?? 0) - amount);
-    net.set(toUserId, (net.get(toUserId) ?? 0) + amount);
+export function simplifyDebts(splits: RawSplit[]): DebtItem[] {
+  // build net balance map: positive = owed to this person, negative = this person owes
+  const unsettled = splits.filter(s => !s.settled)
+  const net = new Map<string, number>()
+
+  for (const s of unsettled) {
+    net.set(s.creditorId, (net.get(s.creditorId) ?? 0) + s.amount)
+    net.set(s.debtorId, (net.get(s.debtorId) ?? 0) - s.amount)
   }
 
-  const creditors: Array<{ id: string; amount: number }> = [];
-  const debtors: Array<{ id: string; amount: number }> = [];
+  // collect creditors and debtors
+  const creditors: Array<{ id: string; amount: number }> = []
+  const debtors: Array<{ id: string; amount: number }> = []
 
-  for (const [id, balance] of net.entries()) {
-    if (balance > 0.005) creditors.push({ id, amount: balance });
-    else if (balance < -0.005) debtors.push({ id, amount: -balance });
+  for (const [id, balance] of net) {
+    if (balance > 0.005) creditors.push({ id, amount: balance })
+    else if (balance < -0.005) debtors.push({ id, amount: -balance })
   }
 
-  creditors.sort((a, b) => b.amount - a.amount);
-  debtors.sort((a, b) => b.amount - a.amount);
+  creditors.sort((a, b) => b.amount - a.amount)
+  debtors.sort((a, b) => b.amount - a.amount)
 
-  const result: Balance[] = [];
+  const debts: DebtItem[] = []
 
-  let ci = 0;
-  let di = 0;
-
+  let ci = 0
+  let di = 0
   while (ci < creditors.length && di < debtors.length) {
-    const creditor = creditors[ci];
-    const debtor = debtors[di];
+    const c = creditors[ci]
+    const d = debtors[di]
+    const amount = Math.min(c.amount, d.amount)
 
-    const settled = Math.min(creditor.amount, debtor.amount);
-    result.push({
-      fromUserId: debtor.id,
-      toUserId: creditor.id,
-      amount: parseFloat(settled.toFixed(2)),
-    });
+    // find matching raw split IDs (for settlement)
+    const matchingSplits = unsettled.filter(
+      s => s.creditorId === c.id && s.debtorId === d.id
+    )
 
-    creditor.amount -= settled;
-    debtor.amount -= settled;
+    // check for a pending two-sided claim
+    const pendingSplit = matchingSplits.find(s => s.settledByPayer && !s.settled)
 
-    if (creditor.amount < 0.005) ci++;
-    if (debtor.amount < 0.005) di++;
+    debts.push({
+      from: d.id,
+      to: c.id,
+      amount: Math.round(amount * 100) / 100,
+      splitIds: matchingSplits.map(s => s.splitId),
+      pendingClaim: pendingSplit
+        ? {
+            splitId: pendingSplit.splitId,
+            settledByPayer: pendingSplit.settledByPayer,
+            settledByPayee: pendingSplit.settledByPayee,
+            settlementDisputed: pendingSplit.settlementDisputed,
+            lastRemindedAt: pendingSplit.settlementLastRemindedAt,
+          }
+        : null,
+    })
+
+    c.amount -= amount
+    d.amount -= amount
+    if (c.amount < 0.005) ci++
+    if (d.amount < 0.005) di++
   }
 
-  return result;
+  return debts
 }

@@ -1,537 +1,159 @@
-'use client';
+'use client'
 
-import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
-import Link from 'next/link';
-import Image from 'next/image';
-import { toast } from 'sonner';
-import { signIn } from '@/lib/auth/client';
-import { GoogleAuthButton } from '@/components/auth/GoogleAuthButton';
-import {
-  consumePendingInviteRedirect,
-  getPostAuthRedirect,
-  persistPendingInviteToken,
-} from '@/lib/auth/client-redirects';
-import {
-  ROOST_BRAND_BG,
-  ROOST_BRAND_CARD_MUTED,
-  ROOST_BRAND_CARD_TEXT,
-  ROOST_BRAND_MUTED,
-  ROOST_BRAND_SOFT_BG,
-  ROOST_BRAND_SURFACE,
-  ROOST_BRAND_TEXT,
-  ROOST_ICON_SRC,
-} from '@/lib/brand';
-import {
-  CalendarDays,
-  CheckSquare,
-  Coffee,
-  DollarSign,
-  Eye,
-  EyeOff,
-  Loader2,
-  PiggyBank,
-  ShoppingCart,
-} from 'lucide-react';
-import { motion } from 'framer-motion';
+import { useState, Suspense } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
+import Link from 'next/link'
+import { signIn } from '@/lib/auth/client'
+import { Input } from '@/components/ui/Input'
+import { Button } from '@/components/ui/Button'
+import { CheckSquare, ShoppingCart, DollarSign, CalendarDays, UtensilsCrossed, Bell } from 'lucide-react'
 
 const FEATURES = [
-  {
-    icon: CheckSquare,
-    title: 'Chores',
-    desc: 'Assign them. Track them. Stop nagging.',
-  },
-  {
-    icon: ShoppingCart,
-    title: 'Groceries',
-    desc: 'One list. No more 3 versions of the same milk.',
-  },
-  {
-    icon: DollarSign,
-    title: 'Expenses',
-    desc: 'Split the bills. Keep the friends.',
-  },
-  {
-    icon: CalendarDays,
-    title: 'Calendar',
-    desc: "Everyone's schedule. One place. No excuses.",
-  },
-  {
-    icon: Coffee,
-    title: 'Meals',
-    desc: 'Plan the week. Skip the "what\'s for dinner" panic.',
-  },
-  {
-    icon: PiggyBank,
-    title: 'Allowances',
-    desc: 'Kids earn it. You approve it. Everyone learns.',
-  },
-];
+  { icon: CheckSquare,     title: 'Chores',    desc: 'Track who does what and keep score' },
+  { icon: ShoppingCart,    title: 'Grocery',   desc: 'One shared list, no duplicate buys' },
+  { icon: DollarSign,      title: 'Expenses',  desc: 'Split bills and settle up fairly' },
+  { icon: CalendarDays,    title: 'Calendar',  desc: 'Household events everyone can see' },
+  { icon: UtensilsCrossed, title: 'Meals',     desc: 'Plan the week so nobody asks what\'s for dinner' },
+  { icon: Bell,            title: 'Reminders', desc: 'Nag the right people at the right time' },
+]
 
-const labelStyle: React.CSSProperties = {
-  display: 'block',
-  fontSize: 11,
-  fontWeight: 800,
-  textTransform: 'uppercase',
-  letterSpacing: '0.07em',
-  color: ROOST_BRAND_CARD_TEXT,
-  marginBottom: 6,
-};
+function LoginForm() {
+  const router = useRouter()
+  const params = useSearchParams()
+  const callbackUrl = params.get('callbackUrl') ?? '/today'
 
-const inputStyle: React.CSSProperties = {
-  border: '1.5px solid #F5C5C5',
-  borderBottom: '3px solid #DBADB0',
-  color: ROOST_BRAND_TEXT,
-  fontWeight: 600,
-  backgroundColor: 'white',
-  borderRadius: 12,
-  width: '100%',
-  height: 48,
-  padding: '0 16px',
-  fontSize: 14,
-  outline: 'none',
-  boxSizing: 'border-box',
-};
-
-export default function LoginPage() {
-  const router = useRouter();
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [inviteHouseholdName, setInviteHouseholdName] = useState<string | null>(null);
-
-  useEffect(() => {
-    persistPendingInviteToken(new URLSearchParams(window.location.search));
-  }, []);
-
-  useEffect(() => {
-    const inviteToken = new URLSearchParams(window.location.search).get('invite');
-    if (!inviteToken) return;
-
-    fetch(`/api/invite/${inviteToken}`)
-      .then(async (response) => {
-        if (!response.ok) return null;
-        return response.json();
-      })
-      .then((data) => {
-        if (data?.household_name) {
-          setInviteHouseholdName(data.household_name);
-        }
-      })
-      .catch(() => {});
-  }, []);
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [error, setError] = useState('')
+  const [loading, setLoading] = useState(false)
 
   async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    setLoading(true);
-    const { error } = await signIn.email({ email, password });
-    if (error) {
-      toast.error(error.message ?? 'Sign in failed', {
-        description: 'Check your email and password and try again.',
-      });
-      setLoading(false);
-      return;
+    e.preventDefault()
+    setError('')
+    setLoading(true)
+    try {
+      const result = await signIn.email({ email, password })
+      if (result.error) {
+        setError(result.error.message ?? 'Invalid email or password')
+      } else {
+        router.push(callbackUrl)
+      }
+    } catch {
+      setError('Something went wrong. Try again.')
+    } finally {
+      setLoading(false)
     }
-
-    const params = new URLSearchParams(window.location.search);
-    router.push(
-      consumePendingInviteRedirect() ??
-        getPostAuthRedirect(params, '/dashboard'),
-    );
   }
 
   return (
-    <div
-      style={{
-        display: 'flex',
-        minHeight: '100vh',
-        fontFamily: 'var(--font-nunito)',
-        backgroundColor: ROOST_BRAND_SOFT_BG,
-      }}
-    >
-      {/* Left panel — desktop only */}
+    <div style={{ display: 'flex', minHeight: '100dvh' }}>
+      {/* Red left panel (desktop only) */}
       <div
         className="hidden md:flex"
         style={{
           width: '40%',
-          backgroundColor: ROOST_BRAND_BG,
+          backgroundColor: '#EF4444',
           flexDirection: 'column',
-          justifyContent: 'flex-start',
-          alignItems: 'center',
-          padding: '48px 40px',
+          justifyContent: 'center',
+          padding: '40px 36px',
         }}
       >
-        {/* Brand block */}
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 10,
-            marginBottom: 8,
-          }}
-        >
-          <Image
-            src={ROOST_ICON_SRC}
-            alt="Roost"
-            width={52}
-            height={52}
-            className="rounded-xl"
-            priority
-            sizes="52px"
-            style={{ objectFit: 'cover', width: 52, height: 'auto' }}
-          />
-          <span
-            style={{
-              fontWeight: 900,
-              fontSize: 34,
-              color: 'white',
-              letterSpacing: '-1px',
-            }}
-          >
-            Roost
-          </span>
+        <div style={{ marginBottom: 36 }}>
+          <div style={{ width: 42, height: 42, backgroundColor: 'rgba(255,255,255,0.18)', borderRadius: 12, marginBottom: 12 }} />
+          <p style={{ color: '#fff', fontWeight: 900, fontSize: 26, letterSpacing: '-0.5px', margin: 0 }}>Roost</p>
+          <p style={{ color: 'rgba(255,255,255,0.7)', fontWeight: 700, fontSize: 13, marginTop: 4 }}>Home, sorted.</p>
         </div>
-        <p
-          style={{
-            fontWeight: 700,
-            fontSize: 15,
-            color: 'rgba(255,255,255,0.7)',
-            marginBottom: 40,
-          }}
-        >
-          Homes run better with Roost.
-        </p>
 
         {/* Feature list */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 22 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
           {FEATURES.map(({ icon: Icon, title, desc }) => (
-            <div
-              key={title}
-              style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}
-            >
-              <div
-                style={{
-                  width: 40,
-                  height: 40,
-                  borderRadius: '50%',
-                  backgroundColor: 'rgba(255,255,255,0.18)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  flexShrink: 0,
-                }}
-              >
-                <Icon size={18} color="white" />
+            <div key={title} style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
+              <div style={{ width: 28, height: 28, borderRadius: '50%', backgroundColor: 'rgba(255,255,255,0.18)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 1 }}>
+                <Icon size={13} color="#fff" />
               </div>
               <div>
-                <p
-                  style={{
-                    fontWeight: 800,
-                    fontSize: 15,
-                    color: 'white',
-                    marginBottom: 3,
-                  }}
-                >
-                  {title}
-                </p>
-                <p
-                  style={{
-                    fontWeight: 600,
-                    fontSize: 13,
-                    color: 'rgba(255,255,255,0.62)',
-                    lineHeight: 1.35,
-                  }}
-                >
-                  {desc}
-                </p>
+                <p style={{ fontSize: 12, fontWeight: 800, color: '#fff', margin: 0 }}>{title}</p>
+                <p style={{ fontSize: 11, fontWeight: 600, color: 'rgba(255,255,255,0.62)', margin: '2px 0 0', lineHeight: 1.35 }}>{desc}</p>
               </div>
             </div>
           ))}
         </div>
       </div>
 
-      {/* Right panel — form */}
+      {/* Form panel */}
       <div
-        className="px-6 py-10 md:px-9"
         style={{
           flex: 1,
-          backgroundColor: ROOST_BRAND_SOFT_BG,
+          backgroundColor: '#FFF5F5',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          minHeight: '100vh',
+          padding: '24px',
         }}
       >
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.18, ease: 'easeOut' }}
-          style={{
-            width: '100%',
-            maxWidth: 420,
-            backgroundColor: ROOST_BRAND_SURFACE,
-            borderRadius: 28,
-            padding: '28px 24px',
-            boxShadow: '0 28px 70px rgba(69, 10, 10, 0.24)',
-            border: '1px solid rgba(127, 29, 29, 0.22)',
-          }}
-        >
-          {/* Mobile-only logo */}
-          <div
-            className="flex md:hidden"
-            style={{
-              flexDirection: 'column',
-              alignItems: 'center',
-              gap: 8,
-              marginBottom: 24,
-            }}
-          >
-            <Image
-              src={ROOST_ICON_SRC}
-              alt="Roost"
-              width={64}
-              height={64}
-              priority
-              sizes="64px"
-              style={{
-                borderRadius: 16,
-                objectFit: 'cover',
-                width: 64,
-                height: 'auto',
-              }}
-            />
-            <span
-              style={{
-                fontWeight: 900,
-                fontSize: 28,
-                color: ROOST_BRAND_CARD_TEXT,
-                letterSpacing: '-0.5px',
-                lineHeight: 1,
-              }}
-            >
-              Roost
-            </span>
-          </div>
-
-          <h1
-            className="text-center"
-            style={{
-              fontSize: 28,
-              fontWeight: 900,
-              color: ROOST_BRAND_CARD_TEXT,
-              marginBottom: 4,
-              letterSpacing: '-0.5px',
-            }}
-          >
-            Welcome back.
+        <div style={{ width: '100%', maxWidth: 400 }}>
+          <h1 style={{ color: '#1A0505', fontWeight: 900, fontSize: 28, letterSpacing: '-0.5px', marginBottom: 4 }}>
+            Welcome back
           </h1>
-          <p
-            className="text-center"
-            style={{
-              fontSize: 14,
-              fontWeight: 600,
-              color: ROOST_BRAND_CARD_MUTED,
-              marginBottom: 28,
-            }}
-          >
-            Your household is waiting.
+          <p style={{ color: '#7A3F3F', fontWeight: 700, fontSize: 14, marginBottom: 28 }}>
+            Sign in to your household
           </p>
-          {inviteHouseholdName && (
-            <div
-              className="mb-5 rounded-2xl px-4 py-3"
-              style={{
-                backgroundColor: 'rgba(255,255,255,0.1)',
-                border: '1px solid rgba(255,255,255,0.18)',
-              }}
-            >
-              <p
-                className="text-center"
-                style={{ fontSize: 12, fontWeight: 800, color: '#FFE4E6' }}
-              >
-                Joining household
-              </p>
-              <p
-                className="mt-1 text-center"
-                style={{ fontSize: 15, fontWeight: 800, color: 'white' }}
-              >
-                {inviteHouseholdName}
-              </p>
-            </div>
-          )}
 
-          <div style={{ marginBottom: 20 }}>
-            <GoogleAuthButton disabled={loading} mode="login" />
-          </div>
-
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 12,
-              margin: '0 0 20px',
-            }}
-          >
-            <div
-              style={{
-                flex: 1,
-                height: 1,
-                backgroundColor: 'rgba(255,255,255,0.22)',
-              }}
-            />
-            <span
-              style={{
-                fontSize: 13,
-                fontWeight: 700,
-                color: ROOST_BRAND_CARD_MUTED,
-              }}
-            >
-              or
-            </span>
-            <div
-              style={{
-                flex: 1,
-                height: 1,
-                backgroundColor: 'rgba(255,255,255,0.22)',
-              }}
-            />
-          </div>
-
-          <form
-            onSubmit={handleSubmit}
-            style={{ display: 'flex', flexDirection: 'column', gap: 16 }}
-          >
-            {/* Email */}
+          <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
             <div>
-              <label style={labelStyle}>Email</label>
-              <input
+              <label style={{ display: 'block', fontSize: 11, fontWeight: 800, letterSpacing: '0.07em', color: '#7A3F3F', marginBottom: 6 }}>
+                EMAIL
+              </label>
+              <Input
                 type="email"
-                autoComplete="email"
-                required
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                onChange={e => setEmail(e.target.value)}
                 placeholder="you@example.com"
-                style={inputStyle}
+                required
+                autoComplete="email"
+                style={{ border: '1.5px solid #F5C5C5', borderBottom: '3px solid #DBADB0' }}
+              />
+            </div>
+            <div>
+              <label style={{ display: 'block', fontSize: 11, fontWeight: 800, letterSpacing: '0.07em', color: '#7A3F3F', marginBottom: 6 }}>
+                PASSWORD
+              </label>
+              <Input
+                type="password"
+                value={password}
+                onChange={e => setPassword(e.target.value)}
+                placeholder="••••••••"
+                required
+                autoComplete="current-password"
+                style={{ border: '1.5px solid #F5C5C5', borderBottom: '3px solid #DBADB0' }}
               />
             </div>
 
-            {/* Password */}
-            <div>
-              <div style={{ marginBottom: 6 }}>
-                <label style={labelStyle}>Password</label>
-              </div>
-              <div style={{ position: 'relative' }}>
-                <input
-                  type={showPassword ? 'text' : 'password'}
-                  autoComplete="current-password"
-                  required
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Your password"
-                  style={{ ...inputStyle, paddingRight: 44 }}
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword((v) => !v)}
-                  tabIndex={-1}
-                  style={{
-                    position: 'absolute',
-                    right: 12,
-                    top: '50%',
-                    transform: 'translateY(-50%)',
-                    color: ROOST_BRAND_MUTED,
-                    background: 'none',
-                    border: 'none',
-                    cursor: 'pointer',
-                  }}
-                >
-                  {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-                </button>
-              </div>
-              <div
-                style={{
-                  display: 'flex',
-                  justifyContent: 'flex-end',
-                  marginTop: 8,
-                }}
-              >
-                <Link
-                  href="/forgot-password"
-                  style={{
-                    fontSize: 12,
-                    fontWeight: 700,
-                    color: ROOST_BRAND_CARD_MUTED,
-                    textDecoration: 'none',
-                  }}
-                >
-                  Forgot password?
-                </Link>
-              </div>
-            </div>
+            {error && (
+              <p style={{ color: '#EF4444', fontSize: 13, fontWeight: 700 }}>{error}</p>
+            )}
 
-            {/* Submit */}
-            <motion.button
-              type="submit"
-              data-testid="login-submit"
-              disabled={loading}
-              whileTap={{ y: 2 }}
-              style={{
-                width: '100%',
-                height: 50,
-                backgroundColor: 'white',
-                color: ROOST_BRAND_BG,
-                fontWeight: 800,
-                fontSize: 14,
-                borderRadius: 14,
-                border: 'none',
-                borderBottom: '3px solid #E7B7B7',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                opacity: loading ? 0.7 : 1,
-                marginTop: 4,
-              }}
-            >
-              {loading ? (
-                <Loader2 size={18} className="animate-spin" />
-              ) : (
-                'Sign in'
-              )}
-            </motion.button>
+            <Button type="submit" loading={loading} color="#EF4444" darkColor="#C93B3B" size="lg">
+              Sign in
+            </Button>
           </form>
 
-          {/* Footer links */}
-          <div style={{ textAlign: 'center' }}>
-            <Link
-              className="mt-4"
-              href="/signup"
-              style={{
-                fontSize: 13,
-                fontWeight: 700,
-                color: 'white',
-                textDecoration: 'none',
-                display: 'block',
-              }}
-            >
-              New here? Create an account
+          <p style={{ marginTop: 20, textAlign: 'center', fontSize: 13, fontWeight: 700, color: '#7A3F3F' }}>
+            New here?{' '}
+            <Link href="/signup" style={{ color: '#EF4444' }}>
+              Create an account
             </Link>
-            <Link
-              href="/child-login"
-              style={{
-                fontSize: 12,
-                fontWeight: 600,
-                color: ROOST_BRAND_CARD_MUTED,
-                textDecoration: 'none',
-                display: 'block',
-                marginTop: 10,
-              }}
-            >
-              Sign in as a child
-            </Link>
-          </div>
-        </motion.div>
+          </p>
+        </div>
       </div>
     </div>
-  );
+  )
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense>
+      <LoginForm />
+    </Suspense>
+  )
 }

@@ -1,441 +1,227 @@
-import { NextRequest } from "next/server";
-import { requireSession } from "@/lib/auth/helpers";
-import { db } from "@/lib/db";
-import { expenses, expense_splits, expense_categories, expense_budgets, user, users, households, recurring_expense_templates } from "@/db/schema";
-import { and, desc, eq, gte, inArray, isNull, sql } from "drizzle-orm";
-import { getUserHousehold } from "@/app/api/chores/route";
-import { logActivity } from "@/lib/utils/activity";
-import { startOfMonth, endOfMonth } from "date-fns";
+import { NextRequest, NextResponse } from 'next/server'
+import { getSession, getUserHousehold } from '@/lib/auth/helpers'
+import { db } from '@/lib/db'
+import {
+  expenses,
+  expenseSplits,
+  expenseCategories,
+  users,
+  householdMembers,
+} from '@/db/schema'
+import { eq, and, isNull, desc, inArray } from 'drizzle-orm'
+import { simplifyDebts, type RawSplit } from '@/lib/utils/debtSimplification'
 
-// ---- Debt simplification ----------------------------------------------------
+export async function GET(req: NextRequest) {
+  const session = await getSession()
+  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-interface Balance {
-  userId: string;
-  name: string;
-  avatarColor: string | null;
-  net: number; // positive = owed money, negative = owes money
-}
+  const membership = await getUserHousehold(session.user.id)
+  if (!membership) return NextResponse.json({ error: 'No household' }, { status: 403 })
 
-interface Debt {
-  fromUserId: string;
-  fromName: string;
-  toUserId: string;
-  toName: string;
-  amount: number;
-}
+  const { householdId, role } = membership
+  if (role === 'child') return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
-function simplifyDebts(balances: Balance[]): Debt[] {
-  const debts: Debt[] = [];
-  const creditors = balances.filter((b) => b.net > 0.005).map((b) => ({ ...b }));
-  const debtors = balances.filter((b) => b.net < -0.005).map((b) => ({ ...b }));
+  const isPremium = membership.household.subscriptionStatus === 'premium'
 
-  let ci = 0;
-  let di = 0;
-
-  while (ci < creditors.length && di < debtors.length) {
-    const creditor = creditors[ci];
-    const debtor = debtors[di];
-    const amount = Math.min(creditor.net, -debtor.net);
-
-    debts.push({
-      fromUserId: debtor.userId,
-      fromName: debtor.name,
-      toUserId: creditor.userId,
-      toName: creditor.name,
-      amount: Math.round(amount * 100) / 100,
-    });
-
-    creditor.net -= amount;
-    debtor.net += amount;
-
-    if (Math.abs(creditor.net) < 0.005) ci++;
-    if (Math.abs(debtor.net) < 0.005) di++;
-  }
-
-  return debts;
-}
-
-// ---- GET --------------------------------------------------------------------
-
-export async function GET(request: NextRequest): Promise<Response> {
-  let session;
-  try {
-    session = await requireSession(request);
-  } catch (r) {
-    return r as Response;
-  }
-
-  const membership = await getUserHousehold(session.user.id);
-  if (!membership) {
-    return Response.json({ error: "No household found" }, { status: 404 });
-  }
-  if (membership.role === "child") {
-    return Response.json({ error: "Forbidden" }, { status: 403 });
-  }
-  const { householdId } = membership;
-
-  // Check premium
-  const [household] = await db
-    .select({ subscription_status: households.subscription_status })
-    .from(households)
-    .where(eq(households.id, householdId))
-    .limit(1);
-
-  const isPremium = household?.subscription_status === "premium";
-
-  // Fetch non-draft expenses with payer info + category join
-  const expenseRows = await db
-    .select({
-      id: expenses.id,
-      title: expenses.title,
-      total_amount: expenses.total_amount,
-      paid_by: expenses.paid_by,
-      category: expenses.category,
-      category_id: expenses.category_id,
-      receipt_data: expenses.receipt_data,
-      recurring_template_id: expenses.recurring_template_id,
-      is_recurring_draft: expenses.is_recurring_draft,
-      created_at: expenses.created_at,
-      updated_at: expenses.updated_at,
-      payer_name: user.name,
-      payer_avatar: users.avatar_color,
-      cat_name: expense_categories.name,
-      cat_icon: expense_categories.icon,
-      cat_color: expense_categories.color,
-    })
-    .from(expenses)
-    .leftJoin(user, eq(expenses.paid_by, user.id))
-    .leftJoin(users, eq(expenses.paid_by, users.id))
-    .leftJoin(expense_categories, eq(expenses.category_id, expense_categories.id))
-    .where(
-      and(
-        eq(expenses.household_id, householdId),
-        isNull(expenses.deleted_at),
-        eq(expenses.is_recurring_draft, false)
-      )
-    )
-    .orderBy(desc(expenses.created_at));
-
-  // Fetch recurring drafts (pending admin confirmation) with template info
-  const draftRows = isPremium
-    ? await db
-        .select({
-          id: expenses.id,
-          title: expenses.title,
-          total_amount: expenses.total_amount,
-          paid_by: expenses.paid_by,
-          category: expenses.category,
-          recurring_template_id: expenses.recurring_template_id,
-          created_at: expenses.created_at,
-          template_frequency: recurring_expense_templates.frequency,
-          template_splits: recurring_expense_templates.splits,
-        })
-        .from(expenses)
-        .leftJoin(
-          recurring_expense_templates,
-          eq(expenses.recurring_template_id, recurring_expense_templates.id)
-        )
-        .where(
-          and(
-            eq(expenses.household_id, householdId),
-            isNull(expenses.deleted_at),
-            eq(expenses.is_recurring_draft, true)
-          )
-        )
-        .orderBy(expenses.created_at)
-    : [];
-
-  // Fetch splits for all expenses
-  const expenseIds = expenseRows.map((e) => e.id);
-  let allSplits: {
-    id: string;
-    expense_id: string;
-    user_id: string;
-    amount: string;
-    settled: boolean;
-    settled_at: Date | null;
-    settled_by_payer: boolean;
-    settled_by_payee: boolean;
-    settlement_claimed_at: Date | null;
-    settlement_disputed: boolean;
-    user_name: string | null;
-    user_avatar: string | null;
-  }[] = [];
-
-  if (expenseIds.length > 0) {
-    allSplits = await db
+  const [expenseRows, splitRows, categoryRows, memberRows] = await Promise.all([
+    db
       .select({
-        id: expense_splits.id,
-        expense_id: expense_splits.expense_id,
-        user_id: expense_splits.user_id,
-        amount: expense_splits.amount,
-        settled: expense_splits.settled,
-        settled_at: expense_splits.settled_at,
-        settled_by_payer: expense_splits.settled_by_payer,
-        settled_by_payee: expense_splits.settled_by_payee,
-        settlement_claimed_at: expense_splits.settlement_claimed_at,
-        settlement_disputed: expense_splits.settlement_disputed,
-        user_name: user.name,
-        user_avatar: users.avatar_color,
+        id: expenses.id,
+        title: expenses.title,
+        amount: expenses.amount,
+        categoryId: expenses.categoryId,
+        paidBy: expenses.paidBy,
+        notes: expenses.notes,
+        receiptData: expenses.receiptData,
+        isRecurringDraft: expenses.isRecurringDraft,
+        recurringTemplateId: expenses.recurringTemplateId,
+        createdAt: expenses.createdAt,
+        updatedAt: expenses.updatedAt,
+        paidByName: users.name,
+        paidByColor: users.avatarColor,
       })
-      .from(expense_splits)
-      .leftJoin(user, eq(expense_splits.user_id, user.id))
-      .leftJoin(users, eq(expense_splits.user_id, users.id))
-      .where(inArray(expense_splits.expense_id, expenseIds));
+      .from(expenses)
+      .leftJoin(users, eq(expenses.paidBy, users.id))
+      .where(and(eq(expenses.householdId, householdId), isNull(expenses.deletedAt)))
+      .orderBy(desc(expenses.createdAt)),
+
+    db
+      .select()
+      .from(expenseSplits)
+      .where(eq(expenseSplits.householdId, householdId)),
+
+    db
+      .select({ id: expenseCategories.id, name: expenseCategories.name, icon: expenseCategories.icon, color: expenseCategories.color })
+      .from(expenseCategories)
+      .where(and(eq(expenseCategories.householdId, householdId), isNull(expenseCategories.deletedAt))),
+
+    db
+      .select({ userId: householdMembers.userId, name: users.name, avatarColor: users.avatarColor, venmoHandle: users.venmoHandle, cashappHandle: users.cashappHandle })
+      .from(householdMembers)
+      .leftJoin(users, eq(householdMembers.userId, users.id))
+      .where(and(eq(householdMembers.householdId, householdId), isNull(householdMembers.deletedAt))),
+  ])
+
+  const categoryMap = new Map(categoryRows.map(c => [c.id, c]))
+  const splitsByExpense = new Map<string, typeof splitRows>()
+  for (const s of splitRows) {
+    const arr = splitsByExpense.get(s.expenseId) ?? []
+    arr.push(s)
+    splitsByExpense.set(s.expenseId, arr)
   }
 
-  // Group splits by expense
-  const splitsByExpense: Record<string, typeof allSplits> = {};
-  for (const split of allSplits) {
-    if (!splitsByExpense[split.expense_id]) splitsByExpense[split.expense_id] = [];
-    splitsByExpense[split.expense_id].push(split);
-  }
+  const myUserId = session.user.id
 
-  // Assemble full expense objects
-  const expensesWithSplits = expenseRows.map((e) => ({
-    ...e,
-    total_amount: e.total_amount, // keep as string, client will parseFloat
-    splits: splitsByExpense[e.id] ?? [],
-  }));
+  const regularExpenses = expenseRows.filter(e => !e.isRecurringDraft)
+  const recurringDrafts = expenseRows.filter(e => e.isRecurringDraft)
 
-  // Compute balances (per-person net)
-  // net > 0 means others owe them; net < 0 means they owe others
-  const balanceMap: Record<string, { userId: string; name: string; avatarColor: string | null; net: number }> = {};
+  const expensesWithSplits = regularExpenses.map(e => {
+    const splits = splitsByExpense.get(e.id) ?? []
+    const mySplit = splits.find(s => s.userId === myUserId)
+    const myShare = mySplit ? parseFloat(mySplit.amount) : 0
+    const iMade = e.paidBy === myUserId
+    const settled = !mySplit || mySplit.settled
 
-  function ensureBalance(userId: string, name: string, avatarColor: string | null) {
-    if (!balanceMap[userId]) balanceMap[userId] = { userId, name, avatarColor, net: 0 };
-  }
-
-  for (const expense of expensesWithSplits) {
-    const payerId = expense.paid_by;
-    const payerName = expense.payer_name ?? "Unknown";
-    const payerAvatar = expense.payer_avatar ?? null;
-    ensureBalance(payerId, payerName, payerAvatar);
-
-    for (const split of expense.splits) {
-      const splitUserId = split.user_id;
-      const splitName = split.user_name ?? "Unknown";
-      const splitAvatar = split.user_avatar ?? null;
-      ensureBalance(splitUserId, splitName, splitAvatar);
-
-      if (split.settled) continue;
-      if (splitUserId === payerId) continue; // payer's own share, skip
-
-      const amt = parseFloat(split.amount);
-      balanceMap[payerId].net += amt;     // payer is owed
-      balanceMap[splitUserId].net -= amt; // split person owes
+    let myPosition: 'owed_back' | 'you_owe' | 'settled' | null = null
+    if (splits.length > 0) {
+      if (settled) myPosition = 'settled'
+      else if (iMade) myPosition = 'owed_back'
+      else myPosition = 'you_owe'
     }
-  }
 
-  const balanceList = Object.values(balanceMap);
-  const debts = simplifyDebts(balanceList);
-
-  // Current user's summary
-  const myBalance = balanceMap[session.user.id]?.net ?? 0;
-
-  // Compute total spent this month (all household expenses)
-  const monthStart = startOfMonth(new Date());
-  const monthEnd = endOfMonth(new Date());
-  const totalSpentThisMonth = expenseRows
-    .filter((e) => e.created_at && e.created_at >= monthStart && e.created_at <= monthEnd)
-    .reduce((acc, e) => acc + parseFloat(e.total_amount ?? "0"), 0);
-
-  // Compute pending claims: splits claimed by payer but not yet confirmed by payee
-  const expensePaidByMap: Record<string, string> = {};
-  for (const e of expenseRows) expensePaidByMap[e.id] = e.paid_by;
-
-  const pendingClaimsMap: Record<string, { fromUserId: string; toUserId: string; amount: number; claimedAt: string }> = {};
-  for (const split of allSplits) {
-    if (!split.settled_by_payer || split.settled_by_payee || split.settlement_disputed) continue;
-    const payeeId = expensePaidByMap[split.expense_id];
-    if (!payeeId) continue;
-    const key = `${split.user_id}_${payeeId}`;
-    if (!pendingClaimsMap[key]) {
-      pendingClaimsMap[key] = {
-        fromUserId: split.user_id,
-        toUserId: payeeId,
-        amount: 0,
-        claimedAt: split.settlement_claimed_at?.toISOString() ?? new Date().toISOString(),
-      };
-    }
-    pendingClaimsMap[key].amount += parseFloat(split.amount);
-  }
-  // Embed pendingClaim directly on each debt for reliable lookup
-  const enhancedDebts = debts.map((debt) => {
-    const pc = pendingClaimsMap[`${debt.fromUserId}_${debt.toUserId}`];
     return {
-      ...debt,
-      pendingClaim: pc
-        ? { fromUserId: pc.fromUserId, toUserId: pc.toUserId, amount: Math.round(pc.amount * 100) / 100, claimedAt: pc.claimedAt }
-        : null,
-    };
-  });
+      ...e,
+      amount: e.amount,
+      category: e.categoryId ? categoryMap.get(e.categoryId) ?? null : null,
+      splits: splits.map(s => ({
+        id: s.id,
+        userId: s.userId,
+        amount: s.amount,
+        settled: s.settled,
+        settledByPayer: s.settledByPayer,
+        settledByPayee: s.settledByPayee,
+        settlementDisputed: s.settlementDisputed,
+        settlementLastRemindedAt: s.settlementLastRemindedAt,
+        settledAt: s.settledAt,
+      })),
+      myPosition,
+      myShare: iMade ? null : myShare,
+    }
+  })
 
-  return Response.json({
+  // build raw splits for debt simplification
+  const rawSplits: RawSplit[] = []
+  for (const e of regularExpenses) {
+    const splits = splitsByExpense.get(e.id) ?? []
+    for (const s of splits) {
+      if (s.userId === e.paidBy) continue // payer split, skip
+      rawSplits.push({
+        creditorId: e.paidBy,
+        debtorId: s.userId,
+        amount: parseFloat(s.amount),
+        splitId: s.id,
+        settled: s.settled,
+        settledByPayer: s.settledByPayer,
+        settledByPayee: s.settledByPayee,
+        settlementDisputed: s.settlementDisputed,
+        settlementLastRemindedAt: s.settlementLastRemindedAt,
+        settledAt: s.settledAt,
+      })
+    }
+  }
+
+  const debts = simplifyDebts(rawSplits)
+
+  // my balance
+  const owedToMe = debts.filter(d => d.to === myUserId).reduce((s, d) => s + d.amount, 0)
+  const iOwe = debts.filter(d => d.from === myUserId).reduce((s, d) => s + d.amount, 0)
+
+  // total spent this month
+  const now = new Date()
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1)
+  const totalSpentThisMonth = regularExpenses
+    .filter(e => new Date(e.createdAt) >= monthStart)
+    .reduce((s, e) => s + parseFloat(e.amount), 0)
+
+  const memberMap = new Map(memberRows.map(m => [m.userId, { name: m.name, avatarColor: m.avatarColor, venmoHandle: m.venmoHandle, cashappHandle: m.cashappHandle }]))
+
+  const enrichedDebts = debts.map(d => ({
+    ...d,
+    fromName: memberMap.get(d.from)?.name ?? 'Unknown',
+    fromColor: memberMap.get(d.from)?.avatarColor ?? null,
+    toName: memberMap.get(d.to)?.name ?? 'Unknown',
+    toColor: memberMap.get(d.to)?.avatarColor ?? null,
+    toVenmoHandle: memberMap.get(d.to)?.venmoHandle ?? null,
+    toCashappHandle: memberMap.get(d.to)?.cashappHandle ?? null,
+  }))
+
+  return NextResponse.json({
     expenses: expensesWithSplits,
-    balances: balanceList,
-    debts: enhancedDebts,
-    myBalance: Math.round(myBalance * 100) / 100,
+    recurringDrafts,
+    debts: enrichedDebts,
+    members: memberRows,
+    myBalance: { owedToMe: Math.round(owedToMe * 100) / 100, iOwe: Math.round(iOwe * 100) / 100 },
     totalSpentThisMonth: Math.round(totalSpentThisMonth * 100) / 100,
     isPremium,
-    recurringDrafts: draftRows,
-  });
+  })
 }
 
-// ---- POST -------------------------------------------------------------------
+export async function POST(req: NextRequest) {
+  const session = await getSession()
+  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-export async function POST(request: NextRequest): Promise<Response> {
-  let session;
-  try {
-    session = await requireSession(request);
-  } catch (r) {
-    return r as Response;
+  const membership = await getUserHousehold(session.user.id)
+  if (!membership) return NextResponse.json({ error: 'No household' }, { status: 403 })
+
+  const { householdId, role } = membership
+  if (role === 'child') return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+
+  if (membership.household.subscriptionStatus !== 'premium') {
+    return NextResponse.json({ error: 'Premium required', code: 'EXPENSES_PREMIUM' }, { status: 403 })
   }
 
-  const membership = await getUserHousehold(session.user.id);
-  if (!membership) {
-    return Response.json({ error: "No household found" }, { status: 404 });
-  }
-  if (membership.role === "child") {
-    return Response.json({ error: "Forbidden" }, { status: 403 });
-  }
-  const { householdId } = membership;
+  const body = await req.json()
+  const { title, amount, categoryId, paidBy, notes, receiptData, splits } = body
 
-  // Premium check
-  const [household] = await db
-    .select({ subscription_status: households.subscription_status })
-    .from(households)
-    .where(eq(households.id, householdId))
-    .limit(1);
+  if (!title?.trim()) return NextResponse.json({ error: 'Title required' }, { status: 400 })
+  if (!amount || isNaN(parseFloat(amount))) return NextResponse.json({ error: 'Invalid amount' }, { status: 400 })
+  if (!paidBy) return NextResponse.json({ error: 'Paid by required' }, { status: 400 })
+  if (!splits?.length) return NextResponse.json({ error: 'Splits required' }, { status: 400 })
 
-  if (!household || household.subscription_status !== "premium") {
-    return Response.json({ error: "Premium required" }, { status: 403 });
+  const invalidSplit = (splits as { userId: string; amount: string }[]).find(sp => !sp.userId)
+  if (invalidSplit) {
+    return NextResponse.json({ error: 'Invalid split: missing user ID' }, { status: 400 })
   }
 
-  let body: {
-    title?: string;
-    total_amount?: number;
-    paid_by?: string;
-    category?: string;
-    category_id?: string;
-    splits?: { user_id: string; amount: number }[];
-    receipt_data?: string;
-  };
-  try {
-    body = await request.json();
-  } catch (err) {
-    console.error("[POST /api/expenses] Failed to parse body:", err);
-    return Response.json({ error: "Invalid request body" }, { status: 400 });
+  const totalSplit = splits.reduce((s: number, sp: { amount: string }) => s + parseFloat(sp.amount), 0)
+  if (Math.abs(totalSplit - parseFloat(amount)) > 0.02) {
+    return NextResponse.json({ error: 'Splits must sum to total amount' }, { status: 400 })
   }
 
-  if (!body.title?.trim()) {
-    return Response.json({ error: "Title is required" }, { status: 400 });
-  }
-  if (!body.total_amount || body.total_amount <= 0) {
-    return Response.json({ error: "Amount must be greater than 0" }, { status: 400 });
-  }
-  if (!body.paid_by) {
-    return Response.json({ error: "Paid by is required" }, { status: 400 });
-  }
-  if (!body.splits || body.splits.length === 0) {
-    return Response.json({ error: "At least one split is required" }, { status: 400 });
-  }
+  const expenseId = crypto.randomUUID()
 
-  // Validate splits sum to total
-  const splitsSum = body.splits.reduce((acc, s) => acc + s.amount, 0);
-  const diff = Math.abs(splitsSum - body.total_amount);
-  if (diff > 0.02) {
-    return Response.json({ error: "Splits must add up to the total amount" }, { status: 400 });
-  }
-
-  const [expense] = await db
-    .insert(expenses)
-    .values({
-      household_id: householdId,
-      title: body.title.trim(),
-      total_amount: body.total_amount.toFixed(2),
-      paid_by: body.paid_by,
-      category: body.category?.trim() || null,
-      category_id: body.category_id ?? null,
-      receipt_data: body.receipt_data ?? null,
-    })
-    .returning();
-
-  if (body.splits.length > 0) {
-    await db.insert(expense_splits).values(
-      body.splits.map((s) => ({
-        expense_id: expense.id,
-        user_id: s.user_id,
-        amount: s.amount.toFixed(2),
-      }))
-    );
-  }
-
-  // ---- Budget notification trigger ----
-  if (body.category_id) {
-    try {
-      const [budget] = await db
-        .select()
-        .from(expense_budgets)
-        .where(
-          and(
-            eq(expense_budgets.household_id, householdId),
-            eq(expense_budgets.category_id, body.category_id)
-          )
-        )
-        .limit(1);
-
-      if (budget) {
-        const periodStart = new Date(`${budget.period_start}T00:00:00`);
-        const [spentRow] = await db
-          .select({ total: sql<string>`COALESCE(SUM(${expenses.total_amount}), 0)` })
-          .from(expenses)
-          .where(
-            and(
-              eq(expenses.household_id, householdId),
-              eq(expenses.category_id, body.category_id),
-              gte(expenses.created_at, periodStart),
-              isNull(expenses.deleted_at),
-              eq(expenses.is_recurring_draft, false)
-            )
-          );
-
-        const spent = parseFloat(spentRow?.total ?? "0");
-        const limit = parseFloat(budget.amount);
-        const percentage = limit > 0 ? Math.round((spent / limit) * 100) : 0;
-        const threshold = budget.warning_threshold ?? 80;
-
-        // Fetch category name for notification
-        const [cat] = await db
-          .select({ name: expense_categories.name })
-          .from(expense_categories)
-          .where(eq(expense_categories.id, body.category_id))
-          .limit(1);
-        const catName = cat?.name ?? "Budget";
-
-        // TODO: send push when Expo is wired
-        // For now just log (future: notify all household members)
-        if (percentage >= 100) {
-          console.info(`[budget] ${catName} budget exceeded: ${percentage}% of $${limit}`);
-        } else if (percentage >= threshold) {
-          console.info(`[budget] ${catName} budget warning: ${percentage}% of $${limit}`);
-        }
-      }
-    } catch (err) {
-      // Non-fatal: budget notification should never block expense creation
-      console.error("[POST /api/expenses] Budget check failed:", err);
-    }
-  }
-  // ---- End budget trigger ----
-
-  await logActivity({
+  await db.insert(expenses).values({
+    id: expenseId,
     householdId,
-    userId: session.user.id,
-    type: "expense_added",
-    description: `added an expense: ${expense.title}`,
-    entityId: expense.id,
-    entityType: "expense",
-  });
+    title: title.trim(),
+    amount: parseFloat(amount).toFixed(2),
+    categoryId: categoryId ?? null,
+    paidBy,
+    notes: notes ?? null,
+    receiptData: receiptData ?? null,
+  })
 
-  return Response.json({ expense }, { status: 201 });
+  if (splits.length > 0) {
+    await db.insert(expenseSplits).values(
+      splits.map((sp: { userId: string; amount: string }) => ({
+        id: crypto.randomUUID(),
+        expenseId,
+        householdId,
+        userId: sp.userId,
+        amount: parseFloat(sp.amount).toFixed(2),
+      }))
+    )
+  }
+
+  return NextResponse.json({ id: expenseId }, { status: 201 })
 }

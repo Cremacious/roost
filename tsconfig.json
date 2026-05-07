@@ -25,6 +25,21 @@
     "paths": {
       "@/*": [
         "./src/*"
+      ],
+      "@roost/constants": [
+        "./packages/constants/src/index.ts"
+      ],
+      "@roost/constants/*": [
+        "./packages/constants/src/*"
+      ],
+      "@roost/utils": [
+        "./packages/utils/src/index.ts"
+      ],
+      "@roost/utils/*": [
+        "./packages/utils/src/*"
+      ],
+      "@roost/api-types": [
+        "./packages/api-types/src/index.ts"
       ]
     }
   },
@@ -33,12 +48,11 @@
     "**/*.ts",
     "**/*.tsx",
     ".next/types/**/*.ts",
-    "**/*.mts",
     ".next/dev/types/**/*.ts"
   ],
   "exclude": [
     "node_modules",
-    "apps/web",
-    "apps/mobile"
+    "apps",
+    "packages"
   ]
 }

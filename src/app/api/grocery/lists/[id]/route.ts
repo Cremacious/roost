@@ -1,124 +1,70 @@
-import { NextRequest } from "next/server";
-import { requireSession } from "@/lib/auth/helpers";
-import { db } from "@/lib/db";
-import { grocery_lists } from "@/db/schema";
-import { and, eq, isNull } from "drizzle-orm";
-import { getUserHousehold } from "@/app/api/chores/route";
-
-// ---- PATCH ------------------------------------------------------------------
+import { NextResponse } from 'next/server'
+import { getSession, getUserHousehold } from '@/lib/auth/helpers'
+import { db } from '@/lib/db'
+import { groceryLists } from '@/db/schema'
+import { eq, and, isNull } from 'drizzle-orm'
 
 export async function PATCH(
-  request: NextRequest,
+  request: Request,
   { params }: { params: Promise<{ id: string }> }
-): Promise<Response> {
-  const { id } = await params;
+) {
+  const session = await getSession()
+  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  let session;
-  try {
-    session = await requireSession(request);
-  } catch (r) {
-    return r as Response;
-  }
+  const membership = await getUserHousehold(session.user.id)
+  if (!membership) return NextResponse.json({ error: 'No household' }, { status: 403 })
 
-  const membership = await getUserHousehold(session.user.id);
-  if (!membership) {
-    return Response.json({ error: "No household found" }, { status: 404 });
-  }
-  const { householdId } = membership;
-
-  if (membership.role === "child") {
-    return Response.json({ error: "Forbidden" }, { status: 403 });
-  }
-
-  const [list] = await db
-    .select()
-    .from(grocery_lists)
-    .where(
-      and(
-        eq(grocery_lists.id, id),
-        eq(grocery_lists.household_id, householdId),
-        isNull(grocery_lists.deleted_at)
-      )
-    )
-    .limit(1);
-
-  if (!list) {
-    return Response.json({ error: "List not found" }, { status: 404 });
-  }
-
-  if (list.is_default) {
-    return Response.json({ error: "Cannot rename the default list" }, { status: 400 });
-  }
-
-  let body: { name?: string };
-  try {
-    body = await request.json();
-  } catch {
-    return Response.json({ error: "Invalid request body" }, { status: 400 });
-  }
-
-  if (!body.name?.trim()) {
-    return Response.json({ error: "Name is required" }, { status: 400 });
-  }
+  const { id } = await params
+  const body = await request.json()
+  const name = (body.name ?? '').trim()
+  if (!name) return NextResponse.json({ error: 'Name is required' }, { status: 400 })
 
   const [updated] = await db
-    .update(grocery_lists)
-    .set({ name: body.name.trim() })
-    .where(eq(grocery_lists.id, id))
-    .returning();
-
-  return Response.json({ list: updated });
-}
-
-// ---- DELETE -----------------------------------------------------------------
-
-export async function DELETE(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-): Promise<Response> {
-  const { id } = await params;
-
-  let session;
-  try {
-    session = await requireSession(request);
-  } catch (r) {
-    return r as Response;
-  }
-
-  const membership = await getUserHousehold(session.user.id);
-  if (!membership) {
-    return Response.json({ error: "No household found" }, { status: 404 });
-  }
-  const { householdId } = membership;
-
-  if (membership.role !== "admin") {
-    return Response.json({ error: "Admin only" }, { status: 403 });
-  }
-
-  const [list] = await db
-    .select()
-    .from(grocery_lists)
+    .update(groceryLists)
+    .set({ name })
     .where(
       and(
-        eq(grocery_lists.id, id),
-        eq(grocery_lists.household_id, householdId),
-        isNull(grocery_lists.deleted_at)
+        eq(groceryLists.id, id),
+        eq(groceryLists.householdId, membership.householdId),
+        isNull(groceryLists.deletedAt),
       )
     )
-    .limit(1);
+    .returning()
 
-  if (!list) {
-    return Response.json({ error: "List not found" }, { status: 404 });
-  }
+  if (!updated) return NextResponse.json({ error: 'Not found' }, { status: 404 })
+  return NextResponse.json({ ok: true })
+}
 
-  if (list.is_default) {
-    return Response.json({ error: "Cannot delete the default list" }, { status: 400 });
-  }
+export async function DELETE(
+  _request: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const session = await getSession()
+  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+  const membership = await getUserHousehold(session.user.id)
+  if (!membership) return NextResponse.json({ error: 'No household' }, { status: 403 })
+
+  const { id } = await params
+
+  const [list] = await db
+    .select({ isDefault: groceryLists.isDefault })
+    .from(groceryLists)
+    .where(
+      and(
+        eq(groceryLists.id, id),
+        eq(groceryLists.householdId, membership.householdId),
+        isNull(groceryLists.deletedAt),
+      )
+    )
+
+  if (!list) return NextResponse.json({ error: 'Not found' }, { status: 404 })
+  if (list.isDefault) return NextResponse.json({ error: 'Cannot delete the default list' }, { status: 400 })
 
   await db
-    .update(grocery_lists)
-    .set({ deleted_at: new Date() })
-    .where(eq(grocery_lists.id, id));
+    .update(groceryLists)
+    .set({ deletedAt: new Date() })
+    .where(eq(groceryLists.id, id))
 
-  return Response.json({ ok: true });
+  return NextResponse.json({ ok: true })
 }

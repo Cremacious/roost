@@ -1,115 +1,114 @@
-import { NextRequest } from "next/server";
-import { requireSession } from "@/lib/auth/helpers";
-import { db } from "@/lib/db";
-import {
-  reward_rules,
-  reward_payouts,
-  chores,
-  chore_completions,
-} from "@/db/schema";
-import { and, count, desc, eq, gte, isNull, lt } from "drizzle-orm";
-import { getUserHousehold } from "@/app/api/chores/route";
-import { getPeriodBounds } from "@/app/api/rewards/route";
-import { addDays, format } from "date-fns";
+import { NextResponse } from 'next/server'
+import { getSession, getUserHousehold } from '@/lib/auth/helpers'
+import { db } from '@/lib/db'
+import { rewardRules, rewardPayouts, chores, choreCompletions, users } from '@/db/schema'
+import { eq, and, isNull, gte, lt, desc } from 'drizzle-orm'
+import { getPeriodBounds } from '../route'
 
-// ---- GET: Reward data for the current user (child view) ---------------------
+export async function GET() {
+  const session = await getSession()
+  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-export async function GET(request: NextRequest): Promise<Response> {
-  let session;
-  try {
-    session = await requireSession(request);
-  } catch (r) {
-    return r as Response;
+  const membership = await getUserHousehold(session.user.id)
+  if (!membership) return NextResponse.json({ error: 'No household' }, { status: 403 })
+
+  const { householdId } = membership
+  const userId = session.user.id
+  const isPremium = membership.household.subscriptionStatus === 'premium'
+
+  if (!isPremium) {
+    return NextResponse.json({ rules: [], payouts: [], isPremium: false })
   }
 
-  const membership = await getUserHousehold(session.user.id);
-  if (!membership) {
-    return Response.json({ error: "No household found" }, { status: 404 });
-  }
-
-  const userId = session.user.id;
-  const { householdId } = membership;
-
-  // Fetch enabled rules for this child
-  const rules = await db
-    .select()
-    .from(reward_rules)
-    .where(
-      and(
-        eq(reward_rules.household_id, householdId),
-        eq(reward_rules.user_id, userId),
-        eq(reward_rules.enabled, true)
+  const [rules, payoutHistory] = await Promise.all([
+    db
+      .select()
+      .from(rewardRules)
+      .where(
+        and(
+          eq(rewardRules.householdId, householdId),
+          eq(rewardRules.userId, userId),
+          eq(rewardRules.enabled, true),
+          isNull(rewardRules.deletedAt),
+        )
       )
-    )
-    .orderBy(reward_rules.created_at);
+      .orderBy(rewardRules.createdAt),
 
-  // For each rule, calculate current period progress
+    db
+      .select()
+      .from(rewardPayouts)
+      .where(
+        and(
+          eq(rewardPayouts.householdId, householdId),
+          eq(rewardPayouts.userId, userId),
+        )
+      )
+      .orderBy(desc(rewardPayouts.createdAt))
+      .limit(12),
+  ])
+
+  const now = new Date()
+
   const rulesWithProgress = await Promise.all(
-    rules.map(async (rule) => {
-      const { start, end } = getPeriodBounds(
-        rule.period_type,
-        rule.period_days,
-        rule.starts_at
-      );
-      const endExclusive = addDays(end, 1);
+    rules.map(async rule => {
+      const { start, end } = getPeriodBounds(rule.periodType, rule.startsAt, rule.periodDays, now)
 
-      const [totalRow] = await db
-        .select({ total: count() })
-        .from(chores)
-        .where(
-          and(
-            eq(chores.household_id, householdId),
-            eq(chores.assigned_to, userId),
-            isNull(chores.deleted_at)
+      const [assignedChores, completionsInPeriod] = await Promise.all([
+        db
+          .select({ id: chores.id })
+          .from(chores)
+          .where(
+            and(
+              eq(chores.householdId, householdId),
+              eq(chores.assignedTo, userId),
+              isNull(chores.deletedAt),
+            )
+          ),
+
+        db
+          .select({ choreId: choreCompletions.choreId })
+          .from(choreCompletions)
+          .where(
+            and(
+              eq(choreCompletions.householdId, householdId),
+              eq(choreCompletions.userId, userId),
+              gte(choreCompletions.completedAt, start),
+              lt(choreCompletions.completedAt, end),
+            )
           )
-        );
-      const total = totalRow?.total ?? 0;
+          .groupBy(choreCompletions.choreId),
+      ])
 
-      const [completedRow] = await db
-        .select({ completed: count() })
-        .from(chore_completions)
-        .innerJoin(chores, eq(chores.id, chore_completions.chore_id))
-        .where(
-          and(
-            eq(chore_completions.completed_by, userId),
-            eq(chores.household_id, householdId),
-            isNull(chores.deleted_at),
-            gte(chore_completions.completed_at, start),
-            lt(chore_completions.completed_at, endExclusive)
-          )
-        );
-      const completed = completedRow?.completed ?? 0;
-
-      const completionRate =
-        total === 0 ? 100 : Math.round((completed / total) * 100);
-      const onTrack = completionRate >= rule.threshold_percent;
+      const total = assignedChores.length
+      const completed = completionsInPeriod.length
+      const completionRate = total === 0 ? 100 : Math.round((completed / total) * 100)
 
       return {
-        ...rule,
-        currentPeriod: {
-          start: format(start, "yyyy-MM-dd"),
-          end: format(end, "yyyy-MM-dd"),
-          total,
-          completed,
-          completionRate,
-          onTrack,
-        },
-      };
+        id: rule.id,
+        title: rule.title,
+        periodType: rule.periodType,
+        periodDays: rule.periodDays,
+        thresholdPercent: rule.thresholdPercent,
+        rewardType: rule.rewardType,
+        rewardDetail: rule.rewardDetail,
+        startsAt: rule.startsAt.toISOString(),
+        periodStart: start.toISOString(),
+        periodEnd: end.toISOString(),
+        completionRate,
+        completed,
+        total,
+      }
     })
-  );
+  )
 
-  // Last 12 payouts
-  const payouts = await db
-    .select()
-    .from(reward_payouts)
-    .where(
-      and(
-        eq(reward_payouts.household_id, householdId),
-        eq(reward_payouts.user_id, userId)
-      )
-    )
-    .orderBy(desc(reward_payouts.period_start))
-    .limit(12);
-
-  return Response.json({ rules: rulesWithProgress, payouts });
+  return NextResponse.json({
+    rules: rulesWithProgress,
+    payouts: payoutHistory.map(p => ({
+      ...p,
+      periodStart: p.periodStart.toISOString(),
+      periodEnd: p.periodEnd.toISOString(),
+      createdAt: p.createdAt.toISOString(),
+    })),
+    isPremium: true,
+  })
 }

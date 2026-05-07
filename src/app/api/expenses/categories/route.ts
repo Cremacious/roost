@@ -1,107 +1,68 @@
-import { NextRequest } from "next/server";
-import { requireSession } from "@/lib/auth/helpers";
-import { db } from "@/lib/db";
-import { expense_categories } from "@/db/schema";
-import { and, asc, eq, or } from "drizzle-orm";
-import { getUserHousehold } from "@/app/api/chores/route";
-import { seedDefaultCategories } from "@/lib/utils/seedCategories";
+import { NextRequest, NextResponse } from 'next/server'
+import { getSession, getUserHousehold } from '@/lib/auth/helpers'
+import { db } from '@/lib/db'
+import { expenseCategories } from '@/db/schema'
+import { eq, and, isNull, or } from 'drizzle-orm'
+import { seedExpenseCategories } from '@/lib/utils/seedExpenseCategories'
 
-// ---- GET --------------------------------------------------------------------
+export async function GET() {
+  const session = await getSession()
+  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-export async function GET(request: NextRequest): Promise<Response> {
-  let session;
-  try {
-    session = await requireSession(request);
-  } catch (r) {
-    return r as Response;
-  }
+  const membership = await getUserHousehold(session.user.id)
+  if (!membership) return NextResponse.json({ error: 'No household' }, { status: 403 })
 
-  const membership = await getUserHousehold(session.user.id);
-  if (!membership) {
-    return Response.json({ error: "No household found" }, { status: 404 });
-  }
-  const { householdId, role } = membership;
-  const isAdmin = role === "admin";
+  const { householdId, role } = membership
 
-  // Auto-seed defaults for households that have none yet
-  const existing = await db
-    .select({ id: expense_categories.id })
-    .from(expense_categories)
-    .where(eq(expense_categories.household_id, householdId))
-    .limit(1);
+  // auto-seed defaults on first access
+  await seedExpenseCategories(householdId)
 
-  if (existing.length === 0) {
-    await seedDefaultCategories(householdId);
-  }
-
-  // Fetch all active categories (defaults first, then custom)
-  const categories = await db
+  const rows = await db
     .select()
-    .from(expense_categories)
+    .from(expenseCategories)
     .where(
       and(
-        eq(expense_categories.household_id, householdId),
+        eq(expenseCategories.householdId, householdId),
+        isNull(expenseCategories.deletedAt),
         or(
-          eq(expense_categories.status, "active"),
-          // Admins also see pending suggestions inline
-          ...(isAdmin ? [eq(expense_categories.status, "pending")] : [])
+          eq(expenseCategories.status, 'active'),
+          // admins also see pending suggestions
+          ...(role === 'admin' ? [eq(expenseCategories.status, 'pending')] : [])
         )
       )
     )
-    .orderBy(
-      // defaults first: is_default DESC, then by name
-      asc(expense_categories.is_custom),
-      asc(expense_categories.created_at)
-    );
 
-  const active = categories.filter((c) => c.status === "active");
-  const pendingSuggestions = isAdmin ? categories.filter((c) => c.status === "pending") : undefined;
-
-  return Response.json({ categories: active, pendingSuggestions });
+  return NextResponse.json(rows)
 }
 
-// ---- POST -------------------------------------------------------------------
+export async function POST(req: NextRequest) {
+  const session = await getSession()
+  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-export async function POST(request: NextRequest): Promise<Response> {
-  let session;
-  try {
-    session = await requireSession(request);
-  } catch (r) {
-    return r as Response;
+  const membership = await getUserHousehold(session.user.id)
+  if (!membership) return NextResponse.json({ error: 'No household' }, { status: 403 })
+
+  const { householdId, role } = membership
+  if (role !== 'admin') return NextResponse.json({ error: 'Admin only' }, { status: 403 })
+
+  if (membership.household.subscriptionStatus !== 'premium') {
+    return NextResponse.json({ error: 'Premium required', code: 'EXPENSE_CATEGORIES_PREMIUM' }, { status: 403 })
   }
 
-  const membership = await getUserHousehold(session.user.id);
-  if (!membership) {
-    return Response.json({ error: "No household found" }, { status: 404 });
-  }
-  if (membership.role !== "admin") {
-    return Response.json({ error: "Admin only" }, { status: 403 });
-  }
-  const { householdId } = membership;
+  const { name, icon, color } = await req.json()
+  if (!name?.trim()) return NextResponse.json({ error: 'Name required' }, { status: 400 })
 
-  let body: { name?: string; icon?: string; color?: string };
-  try {
-    body = await request.json();
-  } catch {
-    return Response.json({ error: "Invalid request body" }, { status: 400 });
-  }
+  const id = crypto.randomUUID()
+  await db.insert(expenseCategories).values({
+    id,
+    householdId,
+    name: name.trim(),
+    icon: icon ?? 'Tag',
+    color: color ?? '#22C55E',
+    isDefault: false,
+    isCustom: true,
+    status: 'active',
+  })
 
-  if (!body.name?.trim()) return Response.json({ error: "Name is required" }, { status: 400 });
-  if (!body.icon?.trim()) return Response.json({ error: "Icon is required" }, { status: 400 });
-  if (!body.color?.trim()) return Response.json({ error: "Color is required" }, { status: 400 });
-
-  const [category] = await db
-    .insert(expense_categories)
-    .values({
-      household_id: householdId,
-      name: body.name.trim(),
-      icon: body.icon.trim(),
-      color: body.color.trim(),
-      is_default: false,
-      is_custom: true,
-      status: "active",
-    })
-    .returning();
-
-  return Response.json({ category }, { status: 201 });
+  return NextResponse.json({ id }, { status: 201 })
 }

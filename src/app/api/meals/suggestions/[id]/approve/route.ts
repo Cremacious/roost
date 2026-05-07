@@ -1,134 +1,125 @@
-import { NextRequest } from "next/server";
-import { requireSession } from "@/lib/auth/helpers";
-import { db } from "@/lib/db";
-import { meal_plan_slots, meal_suggestions, meals } from "@/db/schema";
-import { and, eq } from "drizzle-orm";
-import { getUserHousehold } from "@/app/api/chores/route";
-import { logActivity } from "@/lib/utils/activity";
-import { format } from "date-fns";
-
-// ---- POST -------------------------------------------------------------------
+import { NextRequest, NextResponse } from 'next/server'
+import { getSession, getUserHousehold } from '@/lib/auth/helpers'
+import { db } from '@/lib/db'
+import { mealSuggestions, meals, mealPlanSlots } from '@/db/schema'
+import { eq, and } from 'drizzle-orm'
 
 export async function POST(
-  request: NextRequest,
+  req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
-): Promise<Response> {
-  const { id } = await params;
+) {
+  const { id } = await params
+  const session = await getSession()
+  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  let session;
-  try {
-    session = await requireSession(request);
-  } catch (r) {
-    return r as Response;
+  const membership = await getUserHousehold(session.user.id)
+  if (!membership) return NextResponse.json({ error: 'No household' }, { status: 403 })
+
+  if (membership.role !== 'admin') {
+    return NextResponse.json({ error: 'Admin only' }, { status: 403 })
   }
 
-  const membership = await getUserHousehold(session.user.id);
-  if (!membership) {
-    return Response.json({ error: "No household found" }, { status: 404 });
-  }
-  if (membership.role !== "admin") {
-    return Response.json({ error: "Admin only" }, { status: 403 });
-  }
-  const { householdId } = membership;
+  const { householdId } = membership
 
   const [suggestion] = await db
     .select()
-    .from(meal_suggestions)
-    .where(and(eq(meal_suggestions.id, id), eq(meal_suggestions.household_id, householdId)))
-    .limit(1);
+    .from(mealSuggestions)
+    .where(eq(mealSuggestions.id, id))
+    .limit(1)
 
-  if (!suggestion) {
-    return Response.json({ error: "Suggestion not found" }, { status: 404 });
-  }
-  if (suggestion.status !== "suggested") {
-    return Response.json({ error: "Suggestion has already been processed" }, { status: 409 });
+  if (!suggestion || suggestion.householdId !== householdId) {
+    return NextResponse.json({ error: 'Not found' }, { status: 404 })
   }
 
-  let body: {
-    slot_date?: string;
-    slot_type?: string;
-    destination?: "planner" | "bank";
-  } = {};
-  try {
-    body = await request.json();
-  } catch {
-    // optional body
+  const body = await req.json()
+  const { destination } = body // 'bank' | 'reject'
+
+  if (destination === 'reject') {
+    await db
+      .update(mealSuggestions)
+      .set({ status: 'rejected', respondedBy: session.user.id, respondedAt: new Date() })
+      .where(eq(mealSuggestions.id, id))
+    return NextResponse.json({ ok: true })
   }
 
-  const destination = body.destination ?? "planner";
-  const slotDate = body.slot_date ?? suggestion.target_slot_date;
-  const slotType =
-    body.slot_type ?? suggestion.target_slot_type ?? suggestion.category ?? "dinner";
-
-  if (destination === "planner" && !slotDate) {
-    return Response.json(
-      { error: "slot_date is required to accept a suggestion" },
-      { status: 400 }
-    );
-  }
-
-  const [meal] = await db
-    .insert(meals)
-    .values({
-      household_id: householdId,
-      name: suggestion.meal_name,
-      description: suggestion.note,
-      category: suggestion.category ?? "dinner",
-      prep_time: suggestion.prep_time ?? null,
-      ingredients: suggestion.ingredients ?? null,
-      created_by: suggestion.suggested_by,
-    })
-    .returning();
-
-  let slot = null;
-  if (destination === "planner" && slotDate) {
-    [slot] = await db
-      .insert(meal_plan_slots)
+  if (destination === 'bank') {
+    // Create a meal bank entry from the suggestion
+    const [meal] = await db
+      .insert(meals)
       .values({
-        household_id: householdId,
-        meal_id: meal.id,
-        custom_meal_name: null,
-        slot_date: slotDate,
-        slot_type: slotType,
-        assigned_by: session.user.id,
+        householdId,
+        name: suggestion.name,
+        ingredients: suggestion.ingredients,
+        description: suggestion.note ?? undefined,
+        prepTime: suggestion.prepTime ?? undefined,
+        createdBy: session.user.id,
       })
-      .onConflictDoUpdate({
-        target: [meal_plan_slots.household_id, meal_plan_slots.slot_date, meal_plan_slots.slot_type],
-        set: {
-          meal_id: meal.id,
-          custom_meal_name: null,
-          assigned_by: session.user.id,
-        },
+      .returning()
+
+    await db
+      .update(mealSuggestions)
+      .set({
+        status: 'in_bank',
+        respondedBy: session.user.id,
+        respondedAt: new Date(),
+        acceptedMealId: meal.id,
       })
-      .returning();
+      .where(eq(mealSuggestions.id, id))
+
+    return NextResponse.json({ meal })
   }
 
-  const [updated] = await db
-    .update(meal_suggestions)
-    .set({
-      status: destination === "bank" ? "in_bank" : "accepted",
-      target_slot_date: destination === "planner" ? slotDate : suggestion.target_slot_date,
-      target_slot_type: destination === "planner" ? slotType : suggestion.target_slot_type,
-      responded_by: session.user.id,
-      responded_at: new Date(),
-      accepted_meal_id: meal.id,
-      accepted_slot_id: slot?.id ?? null,
-      updated_at: new Date(),
-    })
-    .where(eq(meal_suggestions.id, id))
-    .returning();
+  if (destination === 'planner') {
+    if (!suggestion.targetSlotDate || !suggestion.targetSlotType) {
+      return NextResponse.json({ error: 'No target slot on suggestion' }, { status: 400 })
+    }
 
-  if (slotDate && slot) {
-    const dayLabel = format(new Date(`${slotDate}T00:00:00`), "EEEE");
-    await logActivity({
-      householdId,
-      userId: session.user.id,
-      type: "meal_planned",
-      description: `accepted ${suggestion.meal_name} for ${dayLabel} ${slotType}`,
-      entityId: slot.id,
-      entityType: "meal_plan_slot",
-    });
+    const [meal] = await db
+      .insert(meals)
+      .values({
+        householdId,
+        name: suggestion.name,
+        ingredients: suggestion.ingredients,
+        description: suggestion.note ?? undefined,
+        prepTime: suggestion.prepTime ?? undefined,
+        createdBy: session.user.id,
+      })
+      .returning()
+
+    // Delete any existing slot in the same position before inserting
+    const existing = await db.select({ id: mealPlanSlots.id }).from(mealPlanSlots).where(
+      and(
+        eq(mealPlanSlots.householdId, householdId),
+        eq(mealPlanSlots.slotDate, suggestion.targetSlotDate),
+        eq(mealPlanSlots.slotType, suggestion.targetSlotType)
+      )
+    ).limit(1)
+    if (existing.length > 0) await db.delete(mealPlanSlots).where(eq(mealPlanSlots.id, existing[0].id))
+
+    const [slot] = await db
+      .insert(mealPlanSlots)
+      .values({
+        householdId,
+        mealId: meal.id,
+        slotDate: suggestion.targetSlotDate,
+        slotType: suggestion.targetSlotType,
+        createdBy: session.user.id,
+      })
+      .returning()
+
+    await db
+      .update(mealSuggestions)
+      .set({
+        status: 'accepted',
+        respondedBy: session.user.id,
+        respondedAt: new Date(),
+        acceptedMealId: meal.id,
+        acceptedSlotId: slot.id,
+      })
+      .where(eq(mealSuggestions.id, id))
+
+    return NextResponse.json({ meal, slot })
   }
 
-  return Response.json({ suggestion: updated, meal, slot });
+  return NextResponse.json({ error: 'Invalid destination' }, { status: 400 })
 }

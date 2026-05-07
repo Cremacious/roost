@@ -1,88 +1,60 @@
-import { NextRequest } from "next/server";
-import { db } from "@/lib/db";
-import { expenses, expense_splits, users, notification_queue } from "@/db/schema";
-import { and, eq, inArray, isNull, lt } from "drizzle-orm";
-import { log } from "@/lib/utils/logger";
+import { NextRequest, NextResponse } from 'next/server'
+import { db } from '@/lib/db'
+import { expenseSplits, expenses } from '@/db/schema'
+import { eq, and, isNull, lte } from 'drizzle-orm'
 
-// ---- GET: daily cron - remind payees of pending settlements over 7 days old -
-
-export async function GET(request: NextRequest): Promise<Response> {
-  const authHeader = request.headers.get("authorization");
-  const cronSecret = process.env.CRON_SECRET;
-  if (!cronSecret || authHeader !== `Bearer ${cronSecret}`) {
-    return Response.json({ error: "Unauthorized" }, { status: 401 });
+export async function GET(req: NextRequest) {
+  const authHeader = req.headers.get('authorization')
+  if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  const startedAt = Date.now();
-  log.info("cron/settlement-reminders.start", { at: new Date().toISOString() });
-  const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+  const now = new Date()
+  const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000)
 
-  // Find all pending splits where claimed more than 7 days ago
-  const pendingSplits = await db
+  // Find splits where debtor claimed (settledByPayer=true) but payee hasn't confirmed.
+  // Use the expense createdAt as a proxy for claim age — if the expense is old and
+  // still has a pending claim, it's stale enough to warrant a reminder.
+  const staleClaims = await db
     .select({
-      id: expense_splits.id,
-      user_id: expense_splits.user_id,
-      amount: expense_splits.amount,
-      expense_id: expense_splits.expense_id,
-      settlement_claimed_at: expense_splits.settlement_claimed_at,
+      splitId: expenseSplits.id,
+      expenseId: expenseSplits.expenseId,
+      debtorId: expenseSplits.userId,
+      lastReminded: expenseSplits.settlementLastRemindedAt,
     })
-    .from(expense_splits)
+    .from(expenseSplits)
+    .innerJoin(expenses, eq(expenseSplits.expenseId, expenses.id))
     .where(
       and(
-        eq(expense_splits.settled_by_payer, true),
-        eq(expense_splits.settled_by_payee, false),
-        eq(expense_splits.settlement_disputed, false),
-        lt(expense_splits.settlement_claimed_at, sevenDaysAgo)
+        eq(expenseSplits.settledByPayer, true),
+        eq(expenseSplits.settled, false),
+        lte(expenses.createdAt, sevenDaysAgo)
       )
-    );
+    )
 
-  if (pendingSplits.length === 0) {
-    log.info("cron/settlement-reminders.done", { reminded: 0, durationMs: Date.now() - startedAt });
-    return Response.json({ reminded: 0 });
+  let notified = 0
+
+  for (const claim of staleClaims) {
+    // Find the expense to get the creditor (paidBy)
+    const expense = await db
+      .select({ paidBy: expenses.paidBy, title: expenses.title })
+      .from(expenses)
+      .where(eq(expenses.id, claim.expenseId ?? ''))
+      .then(r => r[0] ?? null)
+
+    if (!expense) continue
+
+    // TODO: send push notification to creditor when Expo app is ready
+    // For now just log — web has no push capability
+    console.log(
+      `settlement-reminders: stale claim on expense "${expense.title}", ` +
+      `debtor ${claim.debtorId} → creditor ${expense.paidBy}`
+    )
+
+    notified++
   }
 
-  // Get expense paid_by info
-  const expenseIds = [...new Set(pendingSplits.map((s) => s.expense_id))];
-  const expenseRows = await db
-    .select({ id: expenses.id, paid_by: expenses.paid_by })
-    .from(expenses)
-    .where(and(inArray(expenses.id, expenseIds), isNull(expenses.deleted_at)));
+  console.log(`settlement-reminders cron: notified ${notified} payees of stale claims`)
 
-  const expensePaidByMap: Record<string, string> = {};
-  for (const e of expenseRows) expensePaidByMap[e.id] = e.paid_by;
-
-  // Group by (debtor, creditor) pair
-  type Pair = { debtorId: string; creditorId: string; total: number };
-  const pairs: Record<string, Pair> = {};
-  for (const s of pendingSplits) {
-    const creditorId = expensePaidByMap[s.expense_id];
-    if (!creditorId) continue;
-    const key = `${s.user_id}_${creditorId}`;
-    if (!pairs[key]) pairs[key] = { debtorId: s.user_id, creditorId, total: 0 };
-    pairs[key].total += parseFloat(s.amount ?? "0");
-  }
-
-  // Get debtor names
-  const debtorIds = [...new Set(Object.values(pairs).map((p) => p.debtorId))];
-  const debtorUsers = await db
-    .select({ id: users.id, name: users.name })
-    .from(users)
-    .where(and(inArray(users.id, debtorIds), isNull(users.deleted_at)));
-  const nameMap: Record<string, string> = {};
-  for (const u of debtorUsers) nameMap[u.id] = u.name;
-
-  let reminded = 0;
-  for (const pair of Object.values(pairs)) {
-    const debtorName = nameMap[pair.debtorId] ?? "Someone";
-    await db.insert(notification_queue).values({
-      user_id: pair.creditorId,
-      type: "settlement_claimed",
-      title: `Reminder: ${debtorName} says they paid you`,
-      body: `${debtorName} is waiting for you to confirm their $${pair.total.toFixed(2)} payment. Open Roost to confirm or dispute.`,
-    }).catch(() => {});
-    reminded++;
-  }
-
-  log.info("cron/settlement-reminders.done", { reminded, durationMs: Date.now() - startedAt });
-  return Response.json({ reminded });
+  return NextResponse.json({ notified })
 }

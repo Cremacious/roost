@@ -1,68 +1,60 @@
-import { NextRequest } from "next/server";
-import { requireSession } from "@/lib/auth/helpers";
-import { db } from "@/lib/db";
-import { household_members } from "@/db/schema";
-import { and, eq } from "drizzle-orm";
-import { getUserHousehold } from "@/app/api/chores/route";
-import { hashPassword } from "better-auth/crypto";
+import { type NextRequest } from 'next/server'
+import { requireSession, getUserHousehold } from '@/lib/auth/helpers'
+import { db } from '@/lib/db'
+import { householdMembers } from '@/db/schema'
+import { eq, and, isNull } from 'drizzle-orm'
+import { hashPassword } from 'better-auth/crypto'
 
 export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ): Promise<Response> {
-  const { id } = await params;
+  const { id } = await params
+  const session = await requireSession()
+  const householdData = await getUserHousehold(session.user.id)
 
-  let session;
-  try {
-    session = await requireSession(request);
-  } catch (r) {
-    return r as Response;
+  if (!householdData) {
+    return Response.json({ error: 'No household' }, { status: 403 })
+  }
+  if (householdData.role !== 'admin') {
+    return Response.json({ error: 'Admin only' }, { status: 403 })
   }
 
-  const membership = await getUserHousehold(session.user.id);
-  if (!membership) {
-    return Response.json({ error: "No household found" }, { status: 404 });
-  }
-  if (membership.role !== "admin") {
-    return Response.json({ error: "Forbidden" }, { status: 403 });
+  const { householdId } = householdData
+
+  const body = await request.json()
+  const { pin } = body
+
+  if (!pin || !/^\d{4}$/.test(pin)) {
+    return Response.json({ error: 'PIN must be exactly 4 digits' }, { status: 400 })
   }
 
-  let body: { pin?: string };
-  try {
-    body = await request.json();
-  } catch {
-    return Response.json({ error: "Invalid request body" }, { status: 400 });
-  }
-
-  if (!body.pin || !/^\d{4}$/.test(body.pin)) {
-    return Response.json({ error: "PIN must be exactly 4 digits" }, { status: 400 });
-  }
-
+  // Find the child member
   const [target] = await db
-    .select({ id: household_members.id, role: household_members.role })
-    .from(household_members)
+    .select({ role: householdMembers.role })
+    .from(householdMembers)
     .where(
       and(
-        eq(household_members.id, id),
-        eq(household_members.household_id, membership.householdId)
+        eq(householdMembers.id, id),
+        eq(householdMembers.householdId, householdId),
+        isNull(householdMembers.deletedAt),
       )
     )
-    .limit(1);
+    .limit(1)
 
   if (!target) {
-    return Response.json({ error: "Member not found" }, { status: 404 });
+    return Response.json({ error: 'Member not found' }, { status: 404 })
+  }
+  if (target.role !== 'child') {
+    return Response.json({ error: 'Only child accounts have PINs' }, { status: 400 })
   }
 
-  if (target.role !== "child") {
-    return Response.json({ error: "PIN can only be set for child accounts" }, { status: 400 });
-  }
-
-  const hashedPin = await hashPassword(body.pin);
+  const hashedPin = await hashPassword(pin)
 
   await db
-    .update(household_members)
+    .update(householdMembers)
     .set({ pin: hashedPin })
-    .where(eq(household_members.id, id));
+    .where(eq(householdMembers.id, id))
 
-  return Response.json({ success: true });
+  return Response.json({ ok: true })
 }

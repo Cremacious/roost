@@ -1,177 +1,91 @@
-import { NextRequest } from "next/server";
-import { db } from "@/lib/db";
-import { log } from "@/lib/utils/logger";
-import {
-  recurring_expense_templates,
-  expenses,
-  expense_splits,
-  households,
-  household_members,
-  notification_queue,
-} from "@/db/schema";
-import { and, eq, isNull, lte } from "drizzle-orm";
-import { format, subDays } from "date-fns";
+import { NextRequest, NextResponse } from 'next/server'
+import { db } from '@/lib/db'
+import { recurringExpenses, expenses, expenseSplits, householdMembers } from '@/db/schema'
+import { eq, and, isNull, lte } from 'drizzle-orm'
+import { advanceRecurringDate } from '@/app/api/expenses/recurring/route'
 
-export async function GET(request: NextRequest): Promise<Response> {
-  const authHeader = request.headers.get("authorization");
+export async function GET(req: NextRequest) {
+  const authHeader = req.headers.get('authorization')
   if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
-    return Response.json({ error: "Unauthorized" }, { status: 401 });
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  const startedAt = Date.now();
-  const now = new Date();
-  log.info("cron/recurring-expenses.start", { at: now.toISOString() });
+  const now = new Date()
 
-  const today = format(now, "yyyy-MM-dd");
-  const threeDaysAgo = format(subDays(now, 3), "yyyy-MM-dd");
-
-  // --- PART 1: Create drafts for due templates ---
-
+  // Find all non-paused templates where next_due_date <= today
   const dueTemplates = await db
     .select()
-    .from(recurring_expense_templates)
+    .from(recurringExpenses)
     .where(
       and(
-        isNull(recurring_expense_templates.deleted_at),
-        eq(recurring_expense_templates.paused, false),
-        lte(recurring_expense_templates.next_due_date, today)
+        isNull(recurringExpenses.deletedAt),
+        eq(recurringExpenses.paused, false),
+        lte(recurringExpenses.nextDueDate, now)
       )
-    );
+    )
 
-  let created = 0;
-  let skipped = 0;
+  let created = 0
+  let skipped = 0
 
   for (const template of dueTemplates) {
-    // Skip if household is not premium
-    const [household] = await db
-      .select({ subscription_status: households.subscription_status })
-      .from(households)
-      .where(eq(households.id, template.household_id))
-      .limit(1);
-
-    if (!household || household.subscription_status !== "premium") {
-      skipped++;
-      continue;
-    }
-
     // Check if a draft already exists for this template
-    const [existingDraft] = await db
+    const existingDraft = await db
       .select({ id: expenses.id })
       .from(expenses)
       .where(
         and(
-          eq(expenses.recurring_template_id, template.id),
-          eq(expenses.is_recurring_draft, true),
-          isNull(expenses.deleted_at)
+          eq(expenses.recurringTemplateId, template.id),
+          eq(expenses.isRecurringDraft, true),
+          isNull(expenses.deletedAt)
         )
       )
-      .limit(1);
+      .then(r => r[0] ?? null)
 
     if (existingDraft) {
-      skipped++;
-      continue;
+      // Already has a pending draft — check if it's stale (>3 days) and remind admin
+      const draftAge = (now.getTime() - new Date(template.nextDueDate).getTime()) / (1000 * 60 * 60 * 24)
+      if (draftAge > 3) {
+        // TODO: send push notification to admin when Expo app is ready
+        console.log(`Stale draft for template ${template.id} (${template.title}), ${Math.floor(draftAge)} days old`)
+      }
+      skipped++
+      continue
     }
 
-    const splits = template.splits as { userId: string; amount: number }[];
-    const totalAmount = parseFloat(template.total_amount ?? "0");
+    // Create a draft expense
+    const expenseId = crypto.randomUUID()
+    const splits: Array<{ userId: string; amount: string }> = JSON.parse(template.splits ?? '[]')
 
-    // Create draft expense
-    const [draft] = await db
-      .insert(expenses)
-      .values({
-        household_id: template.household_id,
+    await db.transaction(async tx => {
+      await tx.insert(expenses).values({
+        id: expenseId,
+        householdId: template.householdId,
         title: template.title,
-        total_amount: totalAmount.toFixed(2),
-        paid_by: template.created_by,
-        category: template.category,
-        recurring_template_id: template.id,
-        is_recurring_draft: true,
+        amount: template.totalAmount,
+        categoryId: template.categoryId,
+        notes: template.notes,
+        paidBy: template.createdBy,
+        isRecurringDraft: true,
+        recurringTemplateId: template.id,
       })
-      .returning();
 
-    if (splits.length > 0) {
-      await db.insert(expense_splits).values(
-        splits.map((s) => ({
-          expense_id: draft.id,
-          user_id: s.userId,
-          amount: s.amount.toFixed(2),
-        }))
-      );
-    }
-
-    // Notify household admins
-    const admins = await db
-      .select({ user_id: household_members.user_id })
-      .from(household_members)
-      .where(
-        and(
-          eq(household_members.household_id, template.household_id),
-          eq(household_members.role, "admin")
+      if (splits.length > 0) {
+        await tx.insert(expenseSplits).values(
+          splits.map(s => ({
+            id: crypto.randomUUID(),
+            expenseId,
+            householdId: template.householdId,
+            userId: s.userId,
+            amount: s.amount,
+          }))
         )
-      );
-
-    for (const admin of admins) {
-      await db
-        .insert(notification_queue)
-        .values({
-          user_id: admin.user_id,
-          type: "recurring_expense_due",
-          title: "Recurring expense due",
-          body: `${template.title} ($${totalAmount.toFixed(2)}) is ready to post.`,
-        })
-        .catch(() => {});
-    }
-
-    created++;
-  }
-
-  // --- PART 2: Remind admins about drafts older than 3 days ---
-
-  const staleDrafts = await db
-    .select({
-      id: expenses.id,
-      title: expenses.title,
-      total_amount: expenses.total_amount,
-      household_id: expenses.household_id,
-      created_at: expenses.created_at,
+      }
     })
-    .from(expenses)
-    .where(
-      and(
-        eq(expenses.is_recurring_draft, true),
-        isNull(expenses.deleted_at),
-        lte(expenses.created_at, new Date(`${threeDaysAgo}T00:00:00`))
-      )
-    );
 
-  let reminded = 0;
-
-  for (const draft of staleDrafts) {
-    const admins = await db
-      .select({ user_id: household_members.user_id })
-      .from(household_members)
-      .where(
-        and(
-          eq(household_members.household_id, draft.household_id),
-          eq(household_members.role, "admin")
-        )
-      );
-
-    for (const admin of admins) {
-      await db
-        .insert(notification_queue)
-        .values({
-          user_id: admin.user_id,
-          type: "recurring_expense_stale",
-          title: "Pending recurring expense",
-          body: `${draft.title} has been waiting to be posted for over 3 days.`,
-        })
-        .catch(() => {});
-    }
-
-    reminded++;
+    created++
   }
 
-  log.info("cron/recurring-expenses.done", { created, skipped, reminded, durationMs: Date.now() - startedAt });
-  return Response.json({ created, skipped, reminded });
+  console.log(`recurring-expenses cron: created ${created} drafts, skipped ${skipped} (already pending)`)
+
+  return NextResponse.json({ created, skipped })
 }

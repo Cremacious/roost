@@ -1,1121 +1,292 @@
-'use client';
+'use client'
 
-import { useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useSession } from '@/lib/auth/client';
-import { useHousehold } from '@/lib/hooks/useHousehold';
-import { toast } from 'sonner';
-import {
-  AlertCircle,
-  Bell,
-  Check,
-  ChevronDown,
-  Clock,
-  Home,
-  MoreHorizontal,
-  Plus,
-  RefreshCw,
-  RotateCcw,
-  User,
-  Users,
-} from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
-import {
-  isToday,
-  isTomorrow,
-  isPast,
-  format,
-  differenceInCalendarDays,
-  addDays,
-  addMonths,
-} from 'date-fns';
-import PageHeader from '@/components/shared/PageHeader';
-import StatCard from '@/components/shared/StatCard';
-import SectionColorBadge from '@/components/shared/SectionColorBadge';
-import EmptyState from '@/components/shared/EmptyState';
-import ErrorState from '@/components/shared/ErrorState';
-import { Skeleton } from '@/components/ui/skeleton';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from '@/components/ui/dialog';
-import ReminderSheet, {
-  type ReminderData,
-  type Member,
-} from '@/components/reminders/ReminderSheet';
-import PremiumGate from '@/components/shared/PremiumGate';
-import { SECTION_COLORS } from '@/lib/constants/colors';
-import { PageContainer } from '@/components/layout/PageContainer';
+import { useState } from 'react'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { motion, AnimatePresence } from 'framer-motion'
+import { Plus, Bell, Pencil, Trash2, Check, ChevronDown, ChevronUp, Clock } from 'lucide-react'
+import { toast } from 'sonner'
+import { useSession } from '@/lib/auth/client'
+import { SECTION_COLORS } from '@/lib/constants/colors'
+import { SlabCard } from '@/components/ui/SlabCard'
+import { ReminderSheet, type ReminderData, type Member } from '@/components/reminders/ReminderSheet'
 
-const COLOR = SECTION_COLORS.reminders; // #06B6D4
-const COLOR_DARK = '#0891B2';
+const COLOR = SECTION_COLORS.reminders.base
+const COLOR_DARK = SECTION_COLORS.reminders.dark
 
-// ---- Types ------------------------------------------------------------------
-
-interface ReminderRow extends ReminderData {
-  creator_name: string | null;
-  creator_avatar: string | null;
-  created_at: string | null;
+interface Reminder {
+  id: string
+  title: string
+  note: string | null
+  remindAt: string
+  nextRemindAt: string
+  frequency: string | null
+  notifyType: string
+  notifyUserIds: string
+  completed: boolean
+  snoozedUntil: string | null
+  createdBy: string
+  householdId: string
 }
 
-interface RemindersResponse {
-  reminders: ReminderRow[];
+function isSnoozed(r: Reminder) {
+  if (!r.snoozedUntil) return false
+  return new Date(r.snoozedUntil) > new Date()
 }
 
-interface MembersResponse {
-  household: { id: string; name: string };
-  members: Member[];
+function isOverdue(r: Reminder) {
+  return !r.completed && !isSnoozed(r) && new Date(r.nextRemindAt) < new Date()
 }
 
-type FilterKey = 'all' | 'mine' | 'household' | 'completed';
-
-// ---- Helpers ----------------------------------------------------------------
-
-function isSnoozed(r: ReminderRow): boolean {
-  return (
-    !r.completed && !!r.snoozed_until && new Date(r.snoozed_until) > new Date()
-  );
+function isDueToday(r: Reminder) {
+  if (r.completed || isSnoozed(r)) return false
+  const d = new Date(r.nextRemindAt)
+  const today = new Date(); today.setHours(0, 0, 0, 0)
+  const tomorrow = new Date(today); tomorrow.setDate(tomorrow.getDate() + 1)
+  return d >= today && d < tomorrow
 }
 
-function formatRemindAt(dateStr: string): { label: string; overdue: boolean } {
-  const d = new Date(dateStr);
-  const overdue = isPast(d) && !isToday(d);
-  if (overdue) return { label: 'Overdue', overdue: true };
-  if (isToday(d))
-    return { label: `Today at ${format(d, 'h:mm a')}`, overdue: false };
-  if (isTomorrow(d))
-    return { label: `Tomorrow at ${format(d, 'h:mm a')}`, overdue: false };
-  return { label: format(d, "EEE MMM d 'at' h:mm a"), overdue: false };
+function dueDateStr(dateStr: string) {
+  const d = new Date(dateStr)
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })
 }
 
-function formatResetsIn(snoozedUntil: string): string {
-  const d = new Date(snoozedUntil);
-  if (isToday(d)) return 'Resets today';
-  if (isTomorrow(d)) return 'Resets tomorrow';
-  const days = differenceInCalendarDays(d, new Date());
-  if (days <= 6) return `Resets in ${days} day${days === 1 ? '' : 's'}`;
-  return `Resets ${format(d, 'EEE MMM d')}`;
+function freqLabel(f: string | null) {
+  if (!f || f === 'once') return ''
+  return f.charAt(0).toUpperCase() + f.slice(1)
 }
 
-function calcNextSnoozeDate(r: ReminderRow): Date {
-  // Use Math.max(next_remind_at, now) so overdue reminders always produce a future date
-  const raw = r.next_remind_at ? new Date(r.next_remind_at) : new Date();
-  const base = new Date(Math.max(raw.getTime(), Date.now()));
-  switch (r.frequency) {
-    case 'daily':
-      return addDays(base, 1);
-    case 'weekly':
-      return addDays(base, 7);
-    case 'monthly':
-      return addMonths(base, 1);
-    case 'custom': {
-      let customDays: number[] = [];
-      try {
-        customDays = r.custom_days
-          ? (JSON.parse(r.custom_days) as number[])
-          : [];
-      } catch {
-        /* */
-      }
-      for (let i = 1; i <= 7; i++) {
-        const candidate = addDays(base, i);
-        if (customDays.includes(candidate.getDay())) return candidate;
-      }
-      return addDays(base, 1);
-    }
-    default:
-      return addDays(base, 1);
-  }
-}
-
-function calcNextOccurrenceLabel(r: ReminderRow): string {
-  return format(calcNextSnoozeDate(r), 'EEEE, MMMM d');
-}
-
-function freqLabel(freq: string): string {
-  switch (freq) {
-    case 'once':
-      return 'Once';
-    case 'daily':
-      return 'Daily';
-    case 'weekly':
-      return 'Weekly';
-    case 'monthly':
-      return 'Monthly';
-    case 'custom':
-      return 'Custom';
-    default:
-      return freq;
-  }
-}
-
-// ---- Loading skeleton -------------------------------------------------------
-
-function RemindersSkeleton() {
-  return (
-    <div className="space-y-2">
-      {[72, 72, 64, 72, 64].map((h, i) => (
-        <Skeleton
-          key={i}
-          className="w-full rounded-2xl"
-          style={{ height: h }}
-        />
-      ))}
-    </div>
-  );
-}
-
-// ---- More menu --------------------------------------------------------------
-
-function ReminderMoreMenu({
-  canManage,
-  onEdit,
-  onDelete,
-}: {
-  canManage: boolean;
-  onEdit: () => void;
-  onDelete: () => void;
+function ReminderRow({ reminder, canModify, onComplete, onUndo, onEdit, onDelete }: {
+  reminder: Reminder; canModify: boolean
+  onComplete: (id: string) => void; onUndo: (id: string) => void
+  onEdit: (r: Reminder) => void; onDelete: (id: string) => void
 }) {
-  const [open, setOpen] = useState(false);
-
-  if (!canManage) return null;
+  const snoozed = isSnoozed(reminder)
 
   return (
-    <div className="relative">
-      <button
-        type="button"
-        onClick={(e) => {
-          e.stopPropagation();
-          setOpen((v) => !v);
-        }}
-        className="flex h-12 w-12 items-center justify-center rounded-xl shrink-0"
-        style={{ color: 'var(--roost-text-muted)' }}
-        aria-label="More options"
-      >
-        <MoreHorizontal className="size-5" />
-      </button>
-      {open && (
-        <>
-          <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} />
-          <div
-            className="absolute right-0 top-full z-20 mt-1 w-36 overflow-hidden rounded-xl py-1"
-            style={{
-              backgroundColor: 'var(--roost-surface)',
-              border: '1.5px solid var(--roost-border)',
-              borderBottom: '3px solid #E5E7EB',
-              boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
-            }}
-          >
-            <button
-              type="button"
-              onClick={() => {
-                setOpen(false);
-                onEdit();
-              }}
-              className="flex w-full items-center px-4 py-2.5 text-sm"
-              style={{ color: 'var(--roost-text-primary)', fontWeight: 700 }}
-            >
-              Edit
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setOpen(false);
-                onDelete();
-              }}
-              className="flex w-full items-center px-4 py-2.5 text-sm"
-              style={{ color: '#EF4444', fontWeight: 700 }}
-            >
-              Delete
-            </button>
-          </div>
-        </>
-      )}
-    </div>
-  );
-}
+    <SlabCard color={reminder.completed || snoozed ? 'var(--roost-border-bottom)' : COLOR} style={{ opacity: reminder.completed || snoozed ? 0.7 : 1 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '14px 16px', minHeight: 64 }}>
+        <motion.button
+          whileTap={{ scale: 0.85 }} type="button"
+          onClick={() => reminder.completed ? onUndo(reminder.id) : onComplete(reminder.id)}
+          disabled={snoozed}
+          style={{ background: 'none', border: 'none', cursor: snoozed ? 'default' : 'pointer', padding: 0, flexShrink: 0 }}
+        >
+          {snoozed ? <Clock size={22} color={COLOR} /> : reminder.completed ? <Check size={22} color={COLOR} /> : <Bell size={22} color={`${COLOR}66`} />}
+        </motion.button>
 
-// ---- Reminder row -----------------------------------------------------------
-
-function ReminderRow({
-  reminder,
-  index,
-  currentUserId,
-  isAdmin,
-  onEdit,
-  onDelete,
-  onComplete,
-  onUnsnooze,
-}: {
-  reminder: ReminderRow;
-  index: number;
-  currentUserId: string;
-  isAdmin: boolean;
-  onEdit: () => void;
-  onDelete: () => void;
-  onComplete: () => void;
-  onUnsnooze: () => void;
-}) {
-  const [confirmOpen, setConfirmOpen] = useState(false);
-  const snoozed = isSnoozed(reminder);
-  const { label: dateLabel, overdue } = formatRemindAt(
-    reminder.next_remind_at ?? reminder.remind_at,
-  );
-  const canManage = reminder.created_by === currentUserId || isAdmin;
-  const isRecurring = reminder.frequency !== 'once';
-
-  function handleCircleClick(e: React.MouseEvent) {
-    e.stopPropagation();
-    if (reminder.completed || snoozed) return; // snoozed rows use Undo button instead
-    setConfirmOpen(true);
-  }
-
-  // ---- Snoozed (recurring, waiting for next occurrence) ---------------------
-  if (snoozed) {
-    return (
-      <motion.div
-        initial={{ opacity: 0, y: 8 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: Math.min(index * 0.04, 0.2), duration: 0.15 }}
-        className="flex items-center gap-3 rounded-2xl px-3 py-3"
-        style={{
-          backgroundColor: 'var(--roost-bg)',
-          border: '1.5px solid var(--roost-border)',
-          borderBottom: '4px solid #0891B2',
-          minHeight: 64,
-        }}
-      >
-        {/* Clock circle */}
-        <div className="flex h-12 w-12 shrink-0 items-center justify-center">
-          <div
-            className="flex h-7 w-7 items-center justify-center rounded-full"
-            style={{ backgroundColor: COLOR, border: `2px solid ${COLOR}` }}
-          >
-            <Clock className="size-3.5 text-white" strokeWidth={2.5} />
-          </div>
-        </div>
-
-        {/* Content */}
-        <div className="min-w-0 flex-1">
-          <p
-            className="text-sm leading-snug"
-            style={{ color: 'var(--roost-text-secondary)', fontWeight: 700 }}
-          >
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <p style={{ margin: 0, fontSize: 15, fontWeight: 700, color: reminder.completed ? 'var(--roost-text-muted)' : 'var(--roost-text-primary)', textDecoration: reminder.completed ? 'line-through' : 'none', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
             {reminder.title}
           </p>
-          <div className="mt-1 flex flex-wrap items-center gap-1.5">
-            <SectionColorBadge
-              label={freqLabel(reminder.frequency)}
-              color={COLOR}
-            />
-            {reminder.snoozed_until && (
-              <span
-                className="flex items-center gap-1 text-xs"
-                style={{ color: 'var(--roost-text-muted)', fontWeight: 600 }}
-              >
-                <RotateCcw className="size-3" />
-                {formatResetsIn(reminder.snoozed_until)}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 3 }}>
+            <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--roost-text-muted)' }}>
+              {snoozed ? `Resets ${dueDateStr(reminder.snoozedUntil!)}` : dueDateStr(reminder.nextRemindAt)}
+            </span>
+            {freqLabel(reminder.frequency) && (
+              <span style={{ fontSize: 11, fontWeight: 800, color: COLOR, backgroundColor: `${COLOR}18`, padding: '1px 7px', borderRadius: 8 }}>
+                {freqLabel(reminder.frequency)}
               </span>
             )}
           </div>
         </div>
 
-        {/* Undo button */}
-        <button
-          type="button"
-          onClick={(e) => {
-            e.stopPropagation();
-            onUnsnooze();
-          }}
-          className="shrink-0 text-sm px-2 py-1"
-          style={{ color: COLOR, fontWeight: 700 }}
-        >
-          Undo
-        </button>
-      </motion.div>
-    );
-  }
-
-  // ---- Normal active / completed row ----------------------------------------
-  return (
-    <>
-      <motion.div
-        initial={{ opacity: 0, y: 8 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: Math.min(index * 0.04, 0.2), duration: 0.15 }}
-        className="flex items-center gap-3 rounded-2xl px-3 py-3"
-        style={{
-          backgroundColor: 'var(--roost-surface)',
-          border: '1.5px solid var(--roost-border)',
-          borderBottom: overdue
-            ? '4px solid #EF444460'
-            : `4px solid ${COLOR}30`,
-          minHeight: 64,
-          opacity: reminder.completed ? 0.65 : 1,
-        }}
-      >
-        {/* Completion circle */}
-        <button
-          type="button"
-          onClick={handleCircleClick}
-          className="flex h-12 w-12 shrink-0 items-center justify-center"
-          aria-label={reminder.completed ? 'Done' : 'Mark done'}
-        >
-          <div
-            className="flex h-7 w-7 items-center justify-center rounded-full transition-colors"
-            style={{
-              backgroundColor: reminder.completed ? COLOR : 'transparent',
-              border: `2px solid ${reminder.completed ? COLOR : overdue ? '#EF4444' : COLOR}`,
-            }}
-          >
-            {reminder.completed && (
-              <Check className="size-3.5 text-white" strokeWidth={3} />
+        {canModify && (
+          <div style={{ display: 'flex', gap: 4, flexShrink: 0 }}>
+            {!reminder.completed && !snoozed && (
+              <motion.button whileTap={{ y: 1 }} type="button" onClick={() => onEdit(reminder)}
+                style={{ width: 36, height: 36, borderRadius: 10, border: 'none', backgroundColor: 'var(--roost-bg)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Pencil size={14} color="var(--roost-text-secondary)" />
+              </motion.button>
             )}
-          </div>
-        </button>
-
-        {/* Content */}
-        <div className="min-w-0 flex-1">
-          <p
-            className="text-sm leading-snug"
-            style={{
-              color: 'var(--roost-text-primary)',
-              fontWeight: 700,
-              textDecoration: reminder.completed ? 'line-through' : 'none',
-            }}
-          >
-            {reminder.title}
-          </p>
-          <div className="mt-1 flex flex-wrap items-center gap-1.5">
-            <SectionColorBadge
-              label={freqLabel(reminder.frequency)}
-              color={COLOR}
-            />
-            {isRecurring && (
-              <RefreshCw className="size-3" style={{ color: COLOR }} />
-            )}
-            <span
-              className="flex items-center gap-1 text-xs"
-              style={{
-                color: overdue ? '#EF4444' : 'var(--roost-text-muted)',
-                fontWeight: 600,
-              }}
-            >
-              {overdue && <AlertCircle className="size-3" />}
-              {dateLabel}
-            </span>
-            {reminder.notify_type === 'self' && (
-              <User
-                className="size-3"
-                style={{ color: 'var(--roost-text-muted)' }}
-              />
-            )}
-            {reminder.notify_type === 'specific' && (
-              <Users
-                className="size-3"
-                style={{ color: 'var(--roost-text-muted)' }}
-              />
-            )}
-            {reminder.notify_type === 'household' && (
-              <Home
-                className="size-3"
-                style={{ color: 'var(--roost-text-muted)' }}
-              />
-            )}
-          </div>
-        </div>
-
-        {/* Right side: more menu (active) or nothing (completed) */}
-        {!reminder.completed && (
-          <ReminderMoreMenu
-            canManage={canManage}
-            onEdit={onEdit}
-            onDelete={onDelete}
-          />
-        )}
-      </motion.div>
-
-      {/* Confirmation dialog */}
-      <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle
-              style={{ color: 'var(--roost-text-primary)', fontWeight: 800 }}
-            >
-              {isRecurring ? 'Done for now?' : 'Mark as done?'}
-            </DialogTitle>
-          </DialogHeader>
-          <DialogDescription className="sr-only">
-            {isRecurring
-              ? 'Confirm that this recurring reminder should be marked done for now.'
-              : 'Confirm that this reminder should be marked done.'}
-          </DialogDescription>
-          {isRecurring ? (
-            <div className="space-y-2">
-              <p
-                className="text-sm"
-                style={{
-                  color: 'var(--roost-text-secondary)',
-                  fontWeight: 600,
-                }}
-              >
-                This is a recurring reminder. Marking it complete will snooze it
-                until the next occurrence.
-              </p>
-              <p
-                className="text-sm"
-                style={{ color: 'var(--roost-text-muted)', fontWeight: 600 }}
-              >
-                It will return on {calcNextOccurrenceLabel(reminder)}.
-              </p>
-            </div>
-          ) : (
-            <p
-              className="text-sm"
-              style={{ color: 'var(--roost-text-secondary)', fontWeight: 600 }}
-            >
-              {reminder.title}
-            </p>
-          )}
-          <DialogFooter className="mt-2 gap-2">
-            <button
-              type="button"
-              onClick={() => setConfirmOpen(false)}
-              className="flex h-11 flex-1 items-center justify-center rounded-xl text-sm"
-              style={{
-                border: '1.5px solid #E5E7EB',
-                borderBottom: '3px solid #E5E7EB',
-                color: 'var(--roost-text-primary)',
-                fontWeight: 700,
-              }}
-            >
-              Cancel
-            </button>
-            <motion.button
-              type="button"
-              whileTap={{ y: 1 }}
-              onClick={() => {
-                setConfirmOpen(false);
-                onComplete();
-              }}
-              className="flex h-11 flex-1 items-center justify-center rounded-xl text-sm text-white"
-              style={{
-                backgroundColor: COLOR,
-                border: `1.5px solid ${COLOR}`,
-                borderBottom: `3px solid ${COLOR_DARK}`,
-                fontWeight: 800,
-              }}
-            >
-              {isRecurring ? 'Got it, mark done' : 'Done'}
+            <motion.button whileTap={{ y: 1 }} type="button" onClick={() => onDelete(reminder.id)}
+              style={{ width: 36, height: 36, borderRadius: 10, border: 'none', backgroundColor: 'var(--roost-bg)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <Trash2 size={14} color="#EF4444" />
             </motion.button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </>
-  );
-}
-
-// ---- Section ----------------------------------------------------------------
-
-function Section({
-  title,
-  subtitle,
-  color,
-  count,
-  collapsed,
-  onToggle,
-  children,
-}: {
-  title: string;
-  subtitle?: string;
-  color: string;
-  count: number;
-  collapsed?: boolean;
-  onToggle?: () => void;
-  children: React.ReactNode;
-}) {
-  if (count === 0) return null;
-
-  return (
-    <div className="space-y-2">
-      <button
-        type="button"
-        onClick={onToggle}
-        className="flex w-full items-start gap-2"
-        disabled={!onToggle}
-      >
-        <div className="flex flex-col items-start gap-0.5">
-          <div className="flex items-center gap-2">
-            <span className="text-xs" style={{ color, fontWeight: 800 }}>
-              {title}
-            </span>
-            <span
-              className="rounded-full px-2 py-0.5 text-[10px]"
-              style={{ backgroundColor: color + '18', color, fontWeight: 700 }}
-            >
-              {count}
-            </span>
           </div>
-          {subtitle && (
-            <span
-              className="text-[11px]"
-              style={{ color: 'var(--roost-text-muted)', fontWeight: 600 }}
-            >
-              {subtitle}
-            </span>
-          )}
-        </div>
-        {onToggle && (
-          <ChevronDown
-            className="size-3.5 ml-auto mt-0.5 transition-transform"
-            style={{
-              color: 'var(--roost-text-muted)',
-              transform: collapsed ? 'rotate(-90deg)' : 'rotate(0deg)',
-            }}
-          />
         )}
-      </button>
-      <AnimatePresence>
-        {!collapsed && (
-          <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: 'auto' }}
-            exit={{ opacity: 0, height: 0 }}
-            className="space-y-2 overflow-hidden"
-          >
-            {children}
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </div>
-  );
+      </div>
+    </SlabCard>
+  )
 }
 
-// ---- Page -------------------------------------------------------------------
+function SectionHeader({ label, count, color, collapsed, onToggle }: { label: string; count: number; color: string; collapsed?: boolean; onToggle?: () => void }) {
+  return (
+    <button type="button" onClick={onToggle} style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'none', border: 'none', cursor: onToggle ? 'pointer' : 'default', padding: '4px 0', width: '100%' }}>
+      <span style={{ fontSize: 12, fontWeight: 800, color, textTransform: 'uppercase', letterSpacing: '0.06em' }}>{label}</span>
+      <span style={{ fontSize: 11, fontWeight: 800, color: '#fff', backgroundColor: color, borderRadius: 20, padding: '1px 7px' }}>{count}</span>
+      {onToggle && <span style={{ marginLeft: 'auto', color }}>{collapsed ? <ChevronDown size={14} /> : <ChevronUp size={14} />}</span>}
+    </button>
+  )
+}
 
 export default function RemindersPage() {
-  const { data: sessionData } = useSession();
-  const currentUserId = sessionData?.user?.id ?? '';
-  const queryClient = useQueryClient();
-  const { isPremium } = useHousehold();
+  const { data: session } = useSession()
+  const currentUserId = session?.user?.id ?? ''
+  const qc = useQueryClient()
 
-  const [filter, setFilter] = useState<FilterKey>('all');
-  const [upgradeCode, setUpgradeCode] = useState<string | null>(null);
-  const [sheetOpen, setSheetOpen] = useState(false);
-  const [sheetMode, setSheetMode] = useState<'create' | 'edit'>('create');
-  const [selectedReminder, setSelectedReminder] = useState<ReminderRow | null>(
-    null,
-  );
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [reminderToDelete, setReminderToDelete] = useState<ReminderRow | null>(
-    null,
-  );
-  const [snoozedCollapsed, setSnoozedCollapsed] = useState(true);
-  const [completedCollapsed, setCompletedCollapsed] = useState(true);
+  const [sheetOpen, setSheetOpen] = useState(false)
+  const [editReminder, setEditReminder] = useState<Reminder | null>(null)
+  const [completedCollapsed, setCompletedCollapsed] = useState(true)
 
-  // ---- Queries ---------------------------------------------------------------
-
-  const {
-    data: remindersData,
-    isLoading,
-    isError,
-    refetch,
-  } = useQuery<RemindersResponse>({
+  const { data, isLoading, isError } = useQuery({
     queryKey: ['reminders'],
     queryFn: async () => {
-      const r = await fetch('/api/reminders');
-      if (!r.ok) {
-        const d = await r.json().catch(() => ({}));
-        throw new Error(d.error ?? 'Failed to load reminders');
-      }
-      return r.json();
+      const r = await fetch('/api/reminders')
+      if (!r.ok) throw new Error('Failed')
+      return r.json() as Promise<{ reminders: Reminder[] }>
     },
     staleTime: 10_000,
-    retry: 2,
-  });
+    refetchInterval: 60_000,
+  })
 
-  const { data: membersData } = useQuery<MembersResponse>({
-    queryKey: ['household-members'],
+  const { data: householdData } = useQuery({
+    queryKey: ['household-me'],
     queryFn: async () => {
-      const r = await fetch('/api/household/members');
-      if (!r.ok) return { household: null, members: [] };
-      return r.json();
+      const r = await fetch('/api/household/me')
+      if (!r.ok) throw new Error('Failed')
+      return r.json()
     },
-    staleTime: 10_000,
-    retry: 2,
-  });
-
-  // ---- Mutations -------------------------------------------------------------
+    staleTime: 60_000,
+  })
+  const myRole = householdData?.role ?? 'member'
+  const isAdmin = myRole === 'admin'
 
   const completeMutation = useMutation({
     mutationFn: async (id: string) => {
-      const r = await fetch(`/api/reminders/${id}/complete`, {
-        method: 'POST',
-      });
-      if (!r.ok) {
-        const d = await r.json().catch(() => ({}));
-        throw new Error(d.error ?? 'Failed to complete reminder');
-      }
-      return r.json();
+      const r = await fetch(`/api/reminders/${id}/complete`, { method: 'POST' })
+      if (!r.ok) throw new Error('Failed')
     },
-    onMutate: async (id) => {
-      await queryClient.cancelQueries({ queryKey: ['reminders'] });
-      const previous = queryClient.getQueryData<RemindersResponse>([
-        'reminders',
-      ]);
-      queryClient.setQueryData<RemindersResponse>(['reminders'], (old) => {
-        if (!old) return old;
-        return {
-          ...old,
-          reminders: old.reminders.map((r) => {
-            if (r.id !== id) return r;
-            if (r.frequency === 'once') {
-              return {
-                ...r,
-                completed: true,
-                completed_at: new Date().toISOString(),
-              };
-            }
-            // Recurring: optimistic snooze using the same Math.max(next_remind_at, now) base
-            // so overdue reminders always produce a future snoozed_until
-            const snoozeUntil = calcNextSnoozeDate(r).toISOString();
-            return { ...r, snoozed_until: snoozeUntil };
-          }),
-        };
-      });
-      return { previous };
-    },
-    onError: (_err, _id, ctx) => {
-      if (ctx?.previous) queryClient.setQueryData(['reminders'], ctx.previous);
-      toast.error('Could not complete reminder', {
-        description: 'Something went wrong. Try again.',
-      });
-    },
-    onSettled: () => queryClient.invalidateQueries({ queryKey: ['reminders'] }),
-  });
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['reminders'] }),
+    onError: () => toast.error('Could not complete reminder', { description: 'Please try again.' }),
+  })
 
-  const unsnoozeMutation = useMutation({
+  const undoMutation = useMutation({
     mutationFn: async (id: string) => {
-      const r = await fetch(`/api/reminders/${id}/complete`, {
-        method: 'DELETE',
-      });
-      if (!r.ok) {
-        const d = await r.json().catch(() => ({}));
-        throw new Error(d.error ?? 'Failed to undo');
-      }
-      return r.json();
+      const r = await fetch(`/api/reminders/${id}/complete`, { method: 'DELETE' })
+      if (!r.ok) throw new Error('Failed')
     },
-    onMutate: async (id) => {
-      await queryClient.cancelQueries({ queryKey: ['reminders'] });
-      const previous = queryClient.getQueryData<RemindersResponse>([
-        'reminders',
-      ]);
-      queryClient.setQueryData<RemindersResponse>(['reminders'], (old) =>
-        old
-          ? {
-              ...old,
-              reminders: old.reminders.map((r) =>
-                r.id === id
-                  ? {
-                      ...r,
-                      completed: false,
-                      completed_at: null,
-                      snoozed_until: null,
-                    }
-                  : r,
-              ),
-            }
-          : old,
-      );
-      return { previous };
-    },
-    onError: (_err, _id, ctx) => {
-      if (ctx?.previous) queryClient.setQueryData(['reminders'], ctx.previous);
-      toast.error('Could not undo reminder', {
-        description: 'Something went wrong. Try again.',
-      });
-    },
-    onSettled: () => queryClient.invalidateQueries({ queryKey: ['reminders'] }),
-  });
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['reminders'] }),
+    onError: (e) => toast.error('Could not undo', { description: (e as Error).message }),
+  })
 
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
-      const r = await fetch(`/api/reminders/${id}`, { method: 'DELETE' });
-      if (!r.ok) {
-        const d = await r.json().catch(() => ({}));
-        throw new Error(d.error ?? 'Failed to delete reminder');
-      }
+      const r = await fetch(`/api/reminders/${id}`, { method: 'DELETE' })
+      if (!r.ok) throw new Error('Failed')
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['reminders'] });
-      toast.success('Reminder deleted');
-      setDeleteDialogOpen(false);
-      setReminderToDelete(null);
-    },
-    onError: (err: Error) =>
-      toast.error(err.message, {
-        description: 'Could not delete the reminder. Try again.',
-      }),
-  });
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['reminders'] }); toast.success('Reminder deleted') },
+    onError: () => toast.error('Could not delete reminder', { description: 'Please try again.' }),
+  })
 
-  // ---- Derived ---------------------------------------------------------------
+  const reminders = data?.reminders ?? []
+  const active = reminders.filter(r => !r.completed)
+  const overdue = active.filter(r => isOverdue(r))
+  const today = active.filter(r => !isOverdue(r) && isDueToday(r))
+  const upcoming = active.filter(r => !isOverdue(r) && !isDueToday(r) && !isSnoozed(r))
+  const snoozed = active.filter(r => isSnoozed(r))
+  const completed = reminders.filter(r => r.completed)
 
-  const allReminders = remindersData?.reminders ?? [];
-  const members = membersData?.members ?? [];
-  const currentMember = members.find((m) => m.userId === currentUserId);
-  const isAdmin = currentMember?.role === 'admin';
-  const now = new Date();
-  const in7Days = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+  const hasAny = reminders.length > 0
 
-  // Apply filter
-  const filtered = allReminders.filter((r) => {
-    if (filter === 'mine') return r.created_by === currentUserId;
-    if (filter === 'household') return r.notify_type === 'household';
-    if (filter === 'completed') return r.completed;
-    return true;
-  });
+  const members: Member[] = (householdData?.members ?? []).map((m: { userId: string; name: string; avatarColor: string | null }) => ({
+    userId: m.userId,
+    name: m.name,
+    avatarColor: m.avatarColor,
+  }))
 
-  // Active: not completed, not snoozed
-  const active = filtered.filter((r) => !r.completed && !isSnoozed(r));
-  const snoozedList = filtered.filter((r) => isSnoozed(r));
-  const completedList = filtered.filter((r) => r.completed);
-
-  // Group active into sections
-  const overdue = active.filter(
-    (r) =>
-      r.next_remind_at &&
-      isPast(new Date(r.next_remind_at)) &&
-      !isToday(new Date(r.next_remind_at)),
-  );
-  const today = active.filter(
-    (r) => r.next_remind_at && isToday(new Date(r.next_remind_at)),
-  );
-  const thisWeek = active.filter(
-    (r) =>
-      r.next_remind_at &&
-      !isToday(new Date(r.next_remind_at)) &&
-      new Date(r.next_remind_at) <= in7Days &&
-      !isPast(new Date(r.next_remind_at)),
-  );
-  const later = active.filter(
-    (r) => r.next_remind_at && new Date(r.next_remind_at) > in7Days,
-  );
-
-  // Stats — exclude snoozed from "due today"
-  const activeDueTodayCount = allReminders.filter(
-    (r) =>
-      !r.completed &&
-      !isSnoozed(r) &&
-      r.next_remind_at &&
-      isToday(new Date(r.next_remind_at)),
-  ).length;
-  const activeIn7DaysCount = allReminders.filter(
-    (r) =>
-      !r.completed &&
-      !isSnoozed(r) &&
-      r.next_remind_at &&
-      new Date(r.next_remind_at) <= in7Days,
-  ).length;
-  const recurringCount = allReminders.filter(
-    (r) => !r.completed && r.frequency !== 'once',
-  ).length;
-  const incompleteCount = allReminders.filter(
-    (r) => !r.completed && !isSnoozed(r),
-  ).length;
-
-  function openCreate() {
-    setSelectedReminder(null);
-    setSheetMode('create');
-    setSheetOpen(true);
+  function toReminderData(r: Reminder): ReminderData {
+    return {
+      id: r.id,
+      title: r.title,
+      note: r.note,
+      remindAt: r.remindAt,
+      frequency: r.frequency,
+      notifyType: r.notifyType,
+      notifyUserIds: r.notifyUserIds,
+      createdBy: r.createdBy,
+    }
   }
 
-  function openEdit(r: ReminderRow) {
-    setSelectedReminder(r);
-    setSheetMode('edit');
-    setSheetOpen(true);
-  }
-
-  function openDelete(r: ReminderRow) {
-    setReminderToDelete(r);
-    setDeleteDialogOpen(true);
-  }
-
-  const FILTERS: { key: FilterKey; label: string }[] = [
-    { key: 'all', label: 'All' },
-    { key: 'mine', label: 'Mine' },
-    { key: 'household', label: 'Household' },
-    { key: 'completed', label: 'Completed' },
-  ];
-
-  function renderRow(r: ReminderRow, i: number) {
+  function renderGroup(items: Reminder[], label: string, color: string, opts?: { collapsed?: boolean; onToggle?: () => void }) {
+    if (items.length === 0) return null
     return (
-      <ReminderRow
-        key={r.id}
-        reminder={r}
-        index={i}
-        currentUserId={currentUserId}
-        isAdmin={isAdmin ?? false}
-        onEdit={() => openEdit(r)}
-        onDelete={() => openDelete(r)}
-        onComplete={() => completeMutation.mutate(r.id)}
-        onUnsnooze={() => unsnoozeMutation.mutate(r.id)}
-      />
-    );
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+        <SectionHeader label={label} count={items.length} color={color} {...opts} />
+        {!opts?.collapsed && items.map((r, i) => (
+          <motion.div key={r.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: Math.min(i * 0.04, 0.2), duration: 0.15 }}>
+            <ReminderRow
+              reminder={r}
+              canModify={isAdmin || r.createdBy === currentUserId}
+              onComplete={id => completeMutation.mutate(id)}
+              onUndo={id => undoMutation.mutate(id)}
+              onEdit={rem => { setEditReminder(rem); setSheetOpen(true) }}
+              onDelete={id => deleteMutation.mutate(id)}
+            />
+          </motion.div>
+        ))}
+      </div>
+    )
   }
 
-  const hasAnyContent =
-    overdue.length +
-      today.length +
-      thisWeek.length +
-      later.length +
-      snoozedList.length +
-      completedList.length >
-    0;
+  if (isLoading) return (
+    <div style={{ padding: '20px 16px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+      {[1, 2, 3].map(i => <div key={i} style={{ height: 64, borderRadius: 16, backgroundColor: 'var(--roost-surface)', border: '1.5px solid var(--roost-border)', borderBottom: '4px solid var(--roost-border)' }} />)}
+    </div>
+  )
 
-  // ---- Render ----------------------------------------------------------------
+  if (isError) return (
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '50vh', gap: 12, padding: 24 }}>
+      <p style={{ fontWeight: 800, fontSize: 16, color: 'var(--roost-text-primary)', margin: 0 }}>Something went wrong.</p>
+    </div>
+  )
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 12 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.18, ease: 'easeOut' }}
-      className="py-4 pb-24 md:py-6"
-      style={{ backgroundColor: 'var(--roost-bg)' }}
-    >
-      <PageContainer className="flex flex-col gap-4">
-        {/* Header */}
-        <PageHeader
-          title="Reminders"
-          badge={incompleteCount}
-          color={COLOR}
-          action={
-            <motion.button
-              type="button"
-              onClick={openCreate}
-              whileTap={{ y: 1 }}
-              className="flex h-10 w-10 items-center justify-center rounded-xl"
-              style={{
-                backgroundColor: COLOR,
-                border: `1.5px solid ${COLOR}`,
-                borderBottom: `3px solid ${COLOR_DARK}`,
-              }}
-              aria-label="New reminder"
-            >
-              <Plus className="size-4 text-white" />
-            </motion.button>
-          }
-        />
-
-        {/* Filter row */}
-        <div className="flex gap-2 overflow-x-auto pb-0.5">
-          {FILTERS.map((f) => {
-            const active = filter === f.key;
-            return (
-              <button
-                key={f.key}
-                type="button"
-                onClick={() => setFilter(f.key)}
-                className="h-9 shrink-0 rounded-xl px-4 text-sm"
-                style={{
-                  backgroundColor: active ? COLOR : 'var(--roost-surface)',
-                  border: active
-                    ? `1.5px solid ${COLOR}`
-                    : '1.5px solid var(--roost-border)',
-                  borderBottom: active
-                    ? `3px solid ${COLOR_DARK}`
-                    : '3px solid #E5E7EB',
-                  color: active ? 'white' : 'var(--roost-text-secondary)',
-                  fontWeight: 700,
-                }}
-              >
-                {f.label}
-              </button>
-            );
-          })}
-        </div>
-
-        {/* Stats */}
-        <div className="grid grid-cols-3 gap-3">
-          <StatCard
-            value={activeDueTodayCount}
-            label="Due today"
-            color={activeDueTodayCount > 0 ? COLOR : undefined}
-            borderColor="#0891B2"
-          />
-          <StatCard
-            value={activeIn7DaysCount}
-            label="This week"
-            borderColor="#0891B2"
-          />
-          <StatCard
-            value={recurringCount}
-            label="Recurring"
-            color={recurringCount > 0 ? COLOR : undefined}
-            borderColor="#0891B2"
-          />
-        </div>
-
-        {/* Loading */}
-        {isLoading && <RemindersSkeleton />}
-
-        {/* Error */}
-        {isError && !isLoading && <ErrorState onRetry={refetch} />}
-
-        {/* Empty state */}
-        {!isLoading && !isError && allReminders.length === 0 && (
-          <EmptyState
-            icon={Bell}
-            title="Nothing pending."
-            body="Set a reminder for anything the household needs to remember. Bills, appointments, the dog's flea treatment."
-            color={COLOR}
-            buttonLabel="Set a reminder"
-            onButtonClick={openCreate}
-          />
-        )}
-
-        {/* Lists */}
-        {!isLoading && !isError && allReminders.length > 0 && (
-          <div className="space-y-5">
-            <Section title="Overdue" color="#EF4444" count={overdue.length}>
-              {overdue.map((r, i) => renderRow(r, i))}
-            </Section>
-            <Section title="Today" color={COLOR} count={today.length}>
-              {today.map((r, i) => renderRow(r, i))}
-            </Section>
-            <Section title="This week" color={COLOR} count={thisWeek.length}>
-              {thisWeek.map((r, i) => renderRow(r, i))}
-            </Section>
-            <Section
-              title="Later"
-              color="var(--roost-text-muted)"
-              count={later.length}
-            >
-              {later.map((r, i) => renderRow(r, i))}
-            </Section>
-            <Section
-              title="Snoozed"
-              subtitle="These will reactivate automatically"
-              color="var(--roost-text-muted)"
-              count={snoozedList.length}
-              collapsed={snoozedCollapsed}
-              onToggle={() => setSnoozedCollapsed((v) => !v)}
-            >
-              {snoozedList.map((r, i) => renderRow(r, i))}
-            </Section>
-            <Section
-              title="Completed"
-              color="var(--roost-text-muted)"
-              count={completedList.length}
-              collapsed={completedCollapsed}
-              onToggle={() => setCompletedCollapsed((v) => !v)}
-            >
-              {completedList.map((r, i) => renderRow(r, i))}
-            </Section>
-
-            {/* Filter empty state */}
-            {filter !== 'all' && !hasAnyContent && (
-              <div
-                className="flex flex-col items-center gap-2 rounded-2xl px-6 py-10 text-center"
-                style={{
-                  backgroundColor: 'var(--roost-surface)',
-                  border: '1.5px dashed var(--roost-border)',
-                }}
-              >
-                <p
-                  className="text-sm"
-                  style={{
-                    color: 'var(--roost-text-secondary)',
-                    fontWeight: 700,
-                  }}
-                >
-                  Nothing here.
-                </p>
-              </div>
-            )}
+    <>
+      <motion.div
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.18 }}
+        style={{ padding: '20px 16px 100px', maxWidth: 640, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 20 }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div>
+            <h1 style={{ margin: 0, fontWeight: 900, fontSize: 26, color: 'var(--roost-text-primary)', letterSpacing: '-0.3px' }}>Reminders</h1>
+            <p style={{ margin: '2px 0 0', fontSize: 13, fontWeight: 600, color: 'var(--roost-text-muted)' }}>{active.length} active</p>
           </div>
-        )}
+          <motion.button whileTap={{ y: 2 }} type="button" onClick={() => { setEditReminder(null); setSheetOpen(true) }}
+            style={{ width: 40, height: 40, borderRadius: 12, backgroundColor: COLOR, border: 'none', borderBottom: `3px solid ${COLOR_DARK}`, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0 }}>
+            <Plus size={20} color="#fff" />
+          </motion.button>
+        </div>
 
-        {/* Reminder sheet */}
-        <ReminderSheet
-          open={sheetOpen}
-          onClose={() => {
-            setSheetOpen(false);
-            setSelectedReminder(null);
-          }}
-          mode={sheetMode}
-          reminder={selectedReminder}
-          householdMembers={members}
-          isPremium={isPremium}
-          onUpgradeRequired={(code) => {
-            setSheetOpen(false);
-            setUpgradeCode(code);
-          }}
-        />
-
-        {/* Upgrade prompt */}
-        {!!upgradeCode && (
-          <PremiumGate
-            feature="reminders"
-            trigger="sheet"
-            onClose={() => setUpgradeCode(null)}
-          />
-        )}
-
-        {/* Delete confirm */}
-        <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle
-                style={{ color: 'var(--roost-text-primary)', fontWeight: 800 }}
-              >
-                Delete reminder?
-              </DialogTitle>
-            </DialogHeader>
-            <DialogDescription
-              className="text-sm"
-              style={{ color: 'var(--roost-text-secondary)', fontWeight: 600 }}
-            >
-              {reminderToDelete?.title}
-            </DialogDescription>
-            <DialogFooter className="mt-2 gap-2">
-              <button
-                type="button"
-                onClick={() => setDeleteDialogOpen(false)}
-                className="flex h-11 flex-1 items-center justify-center rounded-xl text-sm"
-                style={{
-                  border: '1.5px solid #E5E7EB',
-                  borderBottom: '3px solid #E5E7EB',
-                  color: 'var(--roost-text-primary)',
-                  fontWeight: 700,
-                }}
-              >
-                Cancel
-              </button>
-              <motion.button
-                type="button"
-                whileTap={{ y: 1 }}
-                onClick={() =>
-                  reminderToDelete && deleteMutation.mutate(reminderToDelete.id)
-                }
-                disabled={deleteMutation.isPending}
-                className="flex h-11 flex-1 items-center justify-center rounded-xl text-sm text-white"
-                style={{
-                  backgroundColor: '#EF4444',
-                  border: '1.5px solid #C93B3B',
-                  borderBottom: '3px solid #A63030',
-                  fontWeight: 800,
-                }}
-              >
-                Delete
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+          {!hasAny && (
+            <div style={{ backgroundColor: 'var(--roost-surface)', border: '2px dashed var(--roost-border)', borderBottom: '4px dashed var(--roost-border-bottom)', borderRadius: 16, padding: '32px 24px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10, textAlign: 'center' }}>
+              <div style={{ width: 52, height: 52, borderRadius: 14, backgroundColor: 'var(--roost-surface)', border: '1.5px solid var(--roost-border)', borderBottom: `4px solid ${COLOR}`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Bell size={24} color={COLOR} />
+              </div>
+              <p style={{ margin: 0, fontWeight: 800, fontSize: 16, color: 'var(--roost-text-primary)' }}>Nothing pending.</p>
+              <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: 'var(--roost-text-secondary)' }}>No reminders set. Bold move.</p>
+              <motion.button whileTap={{ y: 2 }} type="button" onClick={() => { setEditReminder(null); setSheetOpen(true) }}
+                style={{ marginTop: 8, padding: '11px 20px', borderRadius: 12, border: 'none', borderBottom: `3px solid ${COLOR_DARK}`, backgroundColor: COLOR, color: '#fff', fontWeight: 800, fontSize: 14, cursor: 'pointer' }}>
+                Add a reminder
               </motion.button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-      </PageContainer>
-    </motion.div>
-  );
+            </div>
+          )}
+          {renderGroup(overdue, 'Overdue', '#EF4444')}
+          {renderGroup(today, 'Today', '#F97316')}
+          {renderGroup(upcoming, 'Upcoming', COLOR)}
+          {renderGroup(snoozed, 'Snoozed', 'var(--roost-text-muted)')}
+          {renderGroup(completed, 'Completed', 'var(--roost-text-muted)', { collapsed: completedCollapsed, onToggle: () => setCompletedCollapsed(v => !v) })}
+        </div>
+      </motion.div>
+
+      <ReminderSheet
+        open={sheetOpen}
+        onClose={() => { setSheetOpen(false); setEditReminder(null) }}
+        reminder={editReminder ? toReminderData(editReminder) : null}
+        members={members}
+      />
+    </>
+  )
 }

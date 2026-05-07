@@ -1,1148 +1,726 @@
-"use client";
+'use client'
 
-import { useEffect, useRef, useState } from "react";
-import { toast } from "sonner";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { motion } from "framer-motion";
-import DraggableSheet from "@/components/shared/DraggableSheet";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from "@/components/ui/dialog";
-import { Switch } from "@/components/ui/switch";
-import { Calendar } from "@/components/ui/calendar";
-import { Bell, Loader2, Lock, MapPin, Pencil, Repeat, Trash2 } from "lucide-react";
-import { CALENDAR_CATEGORIES, getCategoryColor } from "@/lib/constants/calendarCategories";
-import { format } from "date-fns";
-import MemberAvatar from "@/components/shared/MemberAvatar";
-import { useHousehold } from "@/lib/hooks/useHousehold";
+import { useState, useEffect } from 'react'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { motion } from 'framer-motion'
+import { Bell, CheckSquare, Clock, MapPin, Trash2, Users } from 'lucide-react'
+import { toast } from 'sonner'
+import { DayPicker } from 'react-day-picker'
+import { format, parseISO } from 'date-fns'
+import { DraggableSheet } from '@/components/shared/DraggableSheet'
+import { SECTION_COLORS } from '@/lib/constants/colors'
+import { CALENDAR_CATEGORIES } from '@/lib/constants/calendarCategories'
 
-const COLOR = "#3B82F6";
-const COLOR_DARK = "#1A5CB5";
+const COLOR = SECTION_COLORS.calendar.base   // #3B82F6
+const COLOR_DARK = SECTION_COLORS.calendar.dark // #1A5CB5
 
-// ---- Types ------------------------------------------------------------------
-
-export interface Attendee {
-  userId: string;
-  name: string | null;
-  avatarColor: string | null;
-  rsvpStatus: string | null;
-}
+// ─── Types ────────────────────────────────────────────────────────────────────
 
 export interface CalendarEventFull {
-  id: string;
-  title: string;
-  description: string | null;
-  start_time: string;
-  end_time: string | null;
-  all_day: boolean;
-  created_by: string;
-  creator_name: string | null;
-  creator_avatar: string | null;
-  attendees: Attendee[];
-  // Recurrence fields
-  recurring?: boolean;
-  frequency?: string | null;
-  repeat_end_type?: string | null;
-  repeat_until?: string | null;
-  repeat_occurrences?: number | null;
-  // Set to true on expanded instances; false/undefined for one-off events
-  isRecurring?: boolean;
-  // Original template start_time — used in edit mode so editing always targets
-  // the template anchor date rather than the specific instance occurrence date
-  template_start_time?: string | null;
-  category?: string | null;
-  location?: string | null;
-  notify_member_ids?: string | null;
-  rsvp_enabled?: boolean;
+  id: string
+  title: string
+  description: string | null
+  startTime: string
+  endTime: string
+  allDay: boolean
+  recurring: boolean
+  frequency: string | null
+  repeatEndType: string | null
+  repeatUntil: string | null
+  repeatOccurrences: number | null
+  category: string | null
+  location: string | null
+  notifyMemberIds: string | null
+  rsvpEnabled: boolean
+  createdBy: string
+  creatorName: string
+  attendees: Array<{ userId: string; name: string; avatarColor: string | null; rsvpStatus: string | null }>
+  isRecurring: boolean
+  templateStartTime: string
 }
 
 export interface Member {
-  userId: string;
-  name: string;
-  avatarColor: string | null;
-  role: string;
+  userId: string
+  name: string
+  avatarColor: string | null
+  role: string
 }
 
 interface EventSheetProps {
-  open: boolean;
-  onClose: () => void;
-  mode: "create" | "edit" | "view";
-  event?: CalendarEventFull | null;
-  initialDate?: Date;
-  householdMembers: Member[];
-  currentUserId: string;
-  isAdmin: boolean;
-  queryKeys: (string | number)[][];
-  onUpgradeRequired?: (code: string) => void;
+  open: boolean
+  onClose: () => void
+  event?: CalendarEventFull | null
+  members: Member[]
+  defaultDate?: Date
+  currentUserId: string
 }
 
-// ---- Constants --------------------------------------------------------------
+// ─── Helpers ──────────────────────────────────────────────────────────────────
 
-const FREQUENCIES = [
-  { value: "daily",    label: "Daily" },
-  { value: "weekly",   label: "Weekly" },
-  { value: "biweekly", label: "Biweekly" },
-  { value: "monthly",  label: "Monthly" },
-  { value: "yearly",   label: "Yearly" },
-] as const;
+function toDateStr(d: Date): string {
+  return format(d, 'yyyy-MM-dd')
+}
 
-const END_TYPES = [
-  { value: "forever",           label: "Never" },
-  { value: "until_date",        label: "On date" },
-  { value: "after_occurrences", label: "After" },
-] as const;
+function toTimeStr(d: Date): string {
+  return format(d, 'HH:mm')
+}
 
-// ---- Input style ------------------------------------------------------------
+function buildISO(dateStr: string, timeStr: string): string {
+  return new Date(`${dateStr}T${timeStr}:00`).toISOString()
+}
+
+function getInitials(name: string): string {
+  return name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()
+}
+
+// ─── Shared input style — calendar blue borders ────────────────────────────
 
 const inputStyle: React.CSSProperties = {
-  backgroundColor: "var(--roost-surface)",
-  border: "1.5px solid #E5E7EB",
-  borderBottom: "3px solid #E5E7EB",
-  color: "var(--roost-text-primary)",
-  fontWeight: 600,
-};
-
-// ---- Time formatting --------------------------------------------------------
-
-function formatEventTime(event: CalendarEventFull): string {
-  if (event.all_day) return "All day";
-  const start = format(new Date(event.start_time), "h:mm a");
-  if (!event.end_time) return start;
-  const end = format(new Date(event.end_time), "h:mm a");
-  return `${start} - ${end}`;
+  width: '100%',
+  padding: '10px 13px',
+  borderRadius: 12,
+  border: `1.5px solid #BAD3F7`,
+  borderBottom: `3px solid ${COLOR_DARK}`,
+  backgroundColor: '#fff',
+  color: '#0F172A',
+  fontSize: 14,
+  fontWeight: 700,
+  outline: 'none',
+  fontFamily: 'inherit',
 }
 
-function firstName(name: string | null): string {
-  if (!name) return "Someone";
-  return name.split(" ")[0];
+const nativePickerStyle: React.CSSProperties = {
+  width: '100%',
+  padding: '10px 13px',
+  minHeight: 48,
+  borderRadius: 12,
+  border: `1.5px solid #BAD3F7`,
+  borderBottom: `3px solid ${COLOR_DARK}`,
+  backgroundColor: '#fff',
+  color: '#0F172A',
+  fontSize: 14,
+  fontWeight: 700,
+  outline: 'none',
+  fontFamily: 'inherit',
 }
 
-function frequencyLabel(frequency: string | null | undefined): string {
-  if (!frequency) return "";
-  return FREQUENCIES.find((f) => f.value === frequency)?.label ?? frequency;
+const labelStyle: React.CSSProperties = {
+  fontSize: 11,
+  fontWeight: 800,
+  color: '#374151',
+  letterSpacing: '0.06em',
+  textTransform: 'uppercase',
+  display: 'block',
+  marginBottom: 5,
 }
 
-// ---- RecurringFields sub-component ------------------------------------------
-
-interface RecurringFieldsProps {
-  recurring: boolean;
-  frequency: string;
-  repeatEndType: string;
-  repeatUntil: Date | null;
-  repeatOccurrences: number | null;
-  isPremium: boolean | undefined;
-  onChange: (update: {
-    recurring?: boolean;
-    frequency?: string;
-    repeatEndType?: string;
-    repeatUntil?: Date | null;
-    repeatOccurrences?: number | null;
-  }) => void;
-  onUpgradeRequired?: (code: string) => void;
-}
-
-function RecurringFields({
-  recurring,
-  frequency,
-  repeatEndType,
-  repeatUntil,
-  repeatOccurrences,
-  isPremium,
-  onChange,
-  onUpgradeRequired,
-}: RecurringFieldsProps) {
-  return (
-    <div
-      className="rounded-2xl p-3 space-y-3"
-      style={{
-        backgroundColor: "var(--roost-bg)",
-        border: "1.5px solid var(--roost-border)",
-        borderBottom: "3px solid var(--roost-border-bottom)",
-      }}
-    >
-      {/* Repeat toggle row */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <Repeat className="size-4" style={{ color: recurring ? COLOR : "var(--roost-text-muted)" }} />
-          <span className="text-sm" style={{ color: "var(--roost-text-primary)", fontWeight: 700 }}>
-            Repeat
-          </span>
-          {isPremium === false && (
-            <Lock className="size-3" style={{ color: "var(--roost-text-muted)" }} />
-          )}
-        </div>
-        <div style={{ "--primary": COLOR, "--primary-foreground": "#ffffff" } as React.CSSProperties}>
-          <Switch
-            checked={recurring}
-            onCheckedChange={(checked) => {
-              if (checked && isPremium === false) {
-                onUpgradeRequired?.("RECURRING_EVENTS_PREMIUM");
-                return;
-              }
-              onChange({ recurring: checked });
-            }}
-          />
-        </div>
-      </div>
-
-      {/* Expanded recurring options */}
-      {recurring && (
-        <>
-          {/* Frequency pills */}
-          <div>
-            <p className="mb-2 text-xs" style={{ color: "#374151", fontWeight: 700 }}>Frequency</p>
-            <div className="grid grid-cols-5 gap-1.5">
-              {FREQUENCIES.map((f) => {
-                const active = frequency === f.value;
-                return (
-                  <motion.button
-                    key={f.value}
-                    type="button"
-                    whileTap={{ y: 1 }}
-                    onClick={() => onChange({ frequency: f.value })}
-                    className="flex h-9 items-center justify-center rounded-lg text-xs"
-                    style={{
-                      backgroundColor: active ? COLOR + "18" : "var(--roost-surface)",
-                      border: active ? `1.5px solid ${COLOR}40` : "1.5px solid var(--roost-border)",
-                      borderBottom: active ? `3px solid ${COLOR_DARK}60` : "3px solid var(--roost-border-bottom)",
-                      color: active ? COLOR : "var(--roost-text-secondary)",
-                      fontWeight: active ? 800 : 600,
-                    }}
-                  >
-                    {f.label}
-                  </motion.button>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* End condition */}
-          <div>
-            <p className="mb-2 text-xs" style={{ color: "#374151", fontWeight: 700 }}>Ends</p>
-            <div className="grid grid-cols-3 gap-1.5">
-              {END_TYPES.map((et) => {
-                const active = repeatEndType === et.value;
-                return (
-                  <motion.button
-                    key={et.value}
-                    type="button"
-                    whileTap={{ y: 1 }}
-                    onClick={() => onChange({ repeatEndType: et.value })}
-                    className="flex h-9 items-center justify-center rounded-lg text-xs"
-                    style={{
-                      backgroundColor: active ? COLOR + "18" : "var(--roost-surface)",
-                      border: active ? `1.5px solid ${COLOR}40` : "1.5px solid var(--roost-border)",
-                      borderBottom: active ? `3px solid ${COLOR_DARK}60` : "3px solid var(--roost-border-bottom)",
-                      color: active ? COLOR : "var(--roost-text-secondary)",
-                      fontWeight: active ? 800 : 600,
-                    }}
-                  >
-                    {et.label}
-                  </motion.button>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Until date picker */}
-          {repeatEndType === "until_date" && (
-            <div>
-              <label className="mb-1.5 block text-xs" style={{ color: "#374151", fontWeight: 700 }}>
-                End date
-              </label>
-              <input
-                type="date"
-                value={repeatUntil ? format(repeatUntil, "yyyy-MM-dd") : ""}
-                onChange={(e) =>
-                  onChange({
-                    repeatUntil: e.target.value
-                      ? new Date(`${e.target.value}T00:00:00`)
-                      : null,
-                  })
-                }
-                className="h-12 w-full rounded-xl px-4 text-sm focus:outline-none"
-                style={inputStyle}
-              />
-            </div>
-          )}
-
-          {/* After N occurrences */}
-          {repeatEndType === "after_occurrences" && (
-            <div>
-              <label className="mb-1.5 block text-xs" style={{ color: "#374151", fontWeight: 700 }}>
-                Number of times
-              </label>
-              <div className="flex items-center gap-3">
-                <input
-                  type="number"
-                  value={repeatOccurrences ?? ""}
-                  onChange={(e) =>
-                    onChange({
-                      repeatOccurrences: e.target.value ? parseInt(e.target.value, 10) : null,
-                    })
-                  }
-                  placeholder="10"
-                  min={1}
-                  max={365}
-                  className="h-12 w-28 rounded-xl px-4 text-sm focus:outline-none"
-                  style={inputStyle}
-                />
-                <span className="text-sm" style={{ color: "var(--roost-text-muted)", fontWeight: 600 }}>
-                  occurrences total
-                </span>
-              </div>
-            </div>
-          )}
-        </>
-      )}
-    </div>
-  );
-}
-
-// ---- CategoryPicker sub-component -------------------------------------------
-
-function CategoryPicker({
-  value,
-  onChange,
-}: {
-  value: string | null;
-  onChange: (slug: string | null) => void;
-}) {
-  return (
-    <div className="flex flex-wrap gap-2">
-      {CALENDAR_CATEGORIES.map((cat) => {
-        const selected = value === cat.slug;
-        return (
-          <button
-            key={cat.slug}
-            type="button"
-            onClick={() => onChange(selected ? null : cat.slug)}
-            className="flex items-center gap-1.5 rounded-full px-3 py-1 text-xs"
-            style={{
-              fontWeight: 700,
-              background: selected ? cat.color : "var(--roost-bg)",
-              color: selected ? "#fff" : "var(--roost-text-secondary)",
-              border: `1.5px solid ${selected ? cat.color : "var(--roost-border)"}`,
-            }}
-          >
-            <span
-              style={{
-                width: 7,
-                height: 7,
-                borderRadius: "50%",
-                background: selected ? "rgba(255,255,255,0.5)" : cat.color,
-                flexShrink: 0,
-                display: "inline-block",
-              }}
-            />
-            {cat.label}
-          </button>
-        );
-      })}
-    </div>
-  );
-}
-
-// ---- AttendeePicker sub-component -------------------------------------------
-
-function AttendeePicker({
-  members,
-  selectedIds,
-  currentUserId,
-  onChange,
-}: {
-  members: Member[];
-  selectedIds: string[];
-  currentUserId: string;
-  onChange: (ids: string[]) => void;
-}) {
-  const others = members.filter((m) => m.userId !== currentUserId);
-  if (others.length === 0) return null;
-  return (
-    <div className="flex flex-wrap gap-2">
-      {others.map((m) => {
-        const selected = selectedIds.includes(m.userId);
-        return (
-          <button
-            key={m.userId}
-            type="button"
-            onClick={() =>
-              onChange(
-                selected
-                  ? selectedIds.filter((id) => id !== m.userId)
-                  : [...selectedIds, m.userId]
-              )
-            }
-            className="flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs"
-            style={{
-              fontWeight: 700,
-              background: selected ? "#EFF6FF" : "var(--roost-bg)",
-              color: selected ? "#1E40AF" : "var(--roost-text-secondary)",
-              border: `1.5px solid ${selected ? "#BAD3F7" : "var(--roost-border)"}`,
-            }}
-          >
-            <MemberAvatar name={m.name} avatarColor={m.avatarColor} size="sm" />
-            {(m.name ?? "?").split(" ")[0]}
-          </button>
-        );
-      })}
-    </div>
-  );
-}
-
-// ---- NotifyPicker sub-component ---------------------------------------------
-
-function NotifyPicker({
-  members,
-  notifyAll,
-  notifyIds,
-  currentUserId,
-  onToggleAll,
-  onToggleMember,
-}: {
-  members: Member[];
-  notifyAll: boolean;
-  notifyIds: string[];
-  currentUserId: string;
-  onToggleAll: () => void;
-  onToggleMember: (id: string) => void;
-}) {
-  return (
-    <div
-      className="rounded-xl p-3"
-      style={{
-        background: "var(--roost-bg)",
-        border: "1.5px solid var(--roost-border)",
-        borderBottom: "3px solid var(--roost-border-bottom)",
-      }}
-    >
-      <div className="mb-2 flex items-center gap-1.5">
-        <Bell className="size-3" style={{ color: "#374151" }} />
-        <span className="text-[11px] font-extrabold uppercase tracking-wide" style={{ color: "#374151" }}>
-          Notify when saved
-        </span>
-      </div>
-      <div className="flex flex-wrap gap-2">
-        <button
-          type="button"
-          onClick={onToggleAll}
-          className="flex items-center gap-1 rounded-full px-3 py-1 text-xs"
-          style={{
-            fontWeight: 700,
-            background: notifyAll ? "#0F172A" : "var(--roost-surface)",
-            color: notifyAll ? "#fff" : "var(--roost-text-secondary)",
-            border: `1.5px solid ${notifyAll ? "#0F172A" : "var(--roost-border)"}`,
-          }}
-        >
-          All household
-        </button>
-        {members
-          .filter((m) => m.userId !== currentUserId)
-          .map((m) => {
-            const selected = !notifyAll && notifyIds.includes(m.userId);
-            return (
-              <button
-                key={m.userId}
-                type="button"
-                onClick={() => !notifyAll && onToggleMember(m.userId)}
-                className="flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs"
-                style={{
-                  fontWeight: 700,
-                  opacity: notifyAll ? 0.4 : 1,
-                  background: selected ? "#EFF6FF" : "var(--roost-surface)",
-                  color: selected ? "#1E40AF" : "var(--roost-text-secondary)",
-                  border: `1.5px solid ${selected ? "#BAD3F7" : "var(--roost-border)"}`,
-                }}
-              >
-                <MemberAvatar name={m.name} avatarColor={m.avatarColor} size="sm" />
-                {(m.name ?? "?").split(" ")[0]}
-              </button>
-            );
-          })}
-      </div>
-      <p className="mt-2 text-[11px]" style={{ color: "var(--roost-text-muted)", fontWeight: 600 }}>
-        Selected members get a push notification when this event is saved.
-      </p>
-    </div>
-  );
-}
-
-// ---- Component --------------------------------------------------------------
+// ─── Component ────────────────────────────────────────────────────────────────
 
 export default function EventSheet({
   open,
   onClose,
-  mode: initialMode,
   event,
-  initialDate,
-  householdMembers,
+  members,
+  defaultDate,
   currentUserId,
-  isAdmin,
-  queryKeys,
-  onUpgradeRequired,
 }: EventSheetProps) {
-  const queryClient = useQueryClient();
-  const titleRef = useRef<HTMLInputElement>(null);
-  const { isPremium } = useHousehold();
+  const isEdit = Boolean(event)
+  const qc = useQueryClient()
 
-  const [mode, setMode] = useState(initialMode);
-  const [title, setTitle] = useState("");
-  const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
-  const [allDay, setAllDay] = useState(false);
-  const [startTime, setStartTime] = useState("09:00");
-  const [endTime, setEndTime] = useState("");
-  const [description, setDescription] = useState("");
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const today = new Date()
 
-  // New fields
-  const [category, setCategory] = useState<string | null>(null);
-  const [location, setLocation] = useState("");
-  const [attendeeIds, setAttendeeIds] = useState<string[]>([]);
-  const [rsvpEnabled, setRsvpEnabled] = useState(false);
-  const [notifyIds, setNotifyIds] = useState<string[]>([]);
-  const [notifyAll, setNotifyAll] = useState(false);
+  // Form state
+  const [title, setTitle] = useState('')
+  const [description, setDescription] = useState('')
+  const [location, setLocation] = useState('')
+  const [category, setCategory] = useState<string>('')
+  const [startDate, setStartDate] = useState(toDateStr(today))
+  const [startTime, setStartTime] = useState('09:00')
+  const [endDate, setEndDate] = useState(toDateStr(today))
+  const [endTime, setEndTime] = useState('10:00')
+  const [allDay, setAllDay] = useState(false)
+  const [attendeeIds, setAttendeeIds] = useState<string[]>([])
+  const [rsvpEnabled, setRsvpEnabled] = useState(false)
+  const [notifyAll, setNotifyAll] = useState(false)
+  const [notifySpecificIds, setNotifySpecificIds] = useState<string[]>([])
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false)
 
-  // Recurring state
-  const [recurring, setRecurring] = useState(false);
-  const [frequency, setFrequency] = useState("weekly");
-  const [repeatEndType, setRepeatEndType] = useState("forever");
-  const [repeatUntil, setRepeatUntil] = useState<Date | null>(null);
-  const [repeatOccurrences, setRepeatOccurrences] = useState<number | null>(null);
+  // Right-column: selected date for the mini calendar
+  const [calMonth, setCalMonth] = useState<Date>(defaultDate ?? today)
 
-  const canEdit = mode === "view" && event &&
-    (event.created_by === currentUserId || isAdmin);
-
-  // Sync fields when sheet opens / event changes
+  // Populate form when event/open changes
   useEffect(() => {
-    if (!open) return;
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setMode(initialMode);
-
-    if (initialMode === "create") {
-      setTitle("");
-      setSelectedDate(initialDate ?? new Date());
-      setAllDay(false);
-      setStartTime("09:00");
-      setEndTime("");
-      setDescription("");
-      setCategory(null);
-      setLocation("");
-      setAttendeeIds([]);
-      setRsvpEnabled(false);
-      setNotifyIds([]);
-      setNotifyAll(false);
-      setRecurring(false);
-      setFrequency("weekly");
-      setRepeatEndType("forever");
-      setRepeatUntil(null);
-      setRepeatOccurrences(null);
-    } else if (event) {
-      setTitle(event.title);
-      // In edit mode, use the template's original start_time as the date anchor
-      // so the user edits the pattern start, not the specific instance occurrence.
-      const editDate = event.template_start_time
-        ? new Date(event.template_start_time)
-        : new Date(event.start_time);
-      setSelectedDate(editDate);
-      setAllDay(event.all_day);
-      setStartTime(event.all_day ? "09:00" : format(editDate, "HH:mm"));
-      setEndTime(event.end_time && !event.all_day ? format(new Date(event.end_time), "HH:mm") : "");
-      setDescription(event.description ?? "");
-      setCategory(event.category ?? null);
-      setLocation(event.location ?? "");
-      setAttendeeIds(event.attendees.map((a) => a.userId));
-      setRsvpEnabled(event.rsvp_enabled ?? false);
-      setNotifyIds([]);
-      setNotifyAll(false);
-      setRecurring(event.recurring ?? false);
-      setFrequency(event.frequency ?? "weekly");
-      setRepeatEndType(event.repeat_end_type ?? "forever");
-      setRepeatUntil(event.repeat_until ? new Date(event.repeat_until) : null);
-      setRepeatOccurrences(event.repeat_occurrences ?? null);
+    if (event) {
+      setTitle(event.title)
+      setDescription(event.description ?? '')
+      setLocation(event.location ?? '')
+      setCategory(event.category ?? '')
+      const s = new Date(event.startTime)
+      const e = new Date(event.endTime)
+      setStartDate(toDateStr(s))
+      setStartTime(toTimeStr(s))
+      setEndDate(toDateStr(e))
+      setEndTime(toTimeStr(e))
+      setAllDay(event.allDay)
+      setCalMonth(s)
+      setAttendeeIds(event.attendees.map(a => a.userId))
+      setRsvpEnabled(event.rsvpEnabled)
+      if (event.notifyMemberIds === 'all') {
+        setNotifyAll(true); setNotifySpecificIds([])
+      } else if (event.notifyMemberIds) {
+        try { setNotifySpecificIds(JSON.parse(event.notifyMemberIds) as string[]) } catch { setNotifySpecificIds([]) }
+        setNotifyAll(false)
+      } else {
+        setNotifyAll(false); setNotifySpecificIds([])
+      }
+    } else {
+      const d = defaultDate ?? today
+      setTitle(''); setDescription(''); setLocation(''); setCategory('')
+      setStartDate(toDateStr(d)); setEndDate(toDateStr(d))
+      setStartTime('09:00'); setEndTime('10:00')
+      setAllDay(false); setCalMonth(d)
+      setAttendeeIds([]); setRsvpEnabled(false)
+      setNotifyAll(false); setNotifySpecificIds([])
     }
-
-    if (initialMode !== "view") {
-      setTimeout(() => titleRef.current?.focus(), 120);
-    }
-  }, [open, initialMode, event, initialDate]);
-
-  function handleRecurringChange(update: {
-    recurring?: boolean;
-    frequency?: string;
-    repeatEndType?: string;
-    repeatUntil?: Date | null;
-    repeatOccurrences?: number | null;
-  }) {
-    if (update.recurring !== undefined) setRecurring(update.recurring);
-    if (update.frequency !== undefined) setFrequency(update.frequency);
-    if (update.repeatEndType !== undefined) setRepeatEndType(update.repeatEndType);
-    if (update.repeatUntil !== undefined) setRepeatUntil(update.repeatUntil);
-    if (update.repeatOccurrences !== undefined) setRepeatOccurrences(update.repeatOccurrences);
-  }
-
-  function buildDatetime(date: Date, time: string): string {
-    const [h, m] = time.split(":").map(Number);
-    const d = new Date(date);
-    d.setHours(h, m, 0, 0);
-    return d.toISOString();
-  }
-
-  function invalidateCalendar() {
-    for (const key of queryKeys) {
-      queryClient.invalidateQueries({ queryKey: key });
-    }
-  }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [event, defaultDate, open])
 
   const saveMutation = useMutation({
     mutationFn: async () => {
-      if (!title.trim()) throw new Error("Title is required");
-      if (!selectedDate) throw new Error("Date is required");
+      const notifyMemberIds = notifyAll
+        ? 'all'
+        : notifySpecificIds.length > 0 ? notifySpecificIds : undefined
 
-      const startISO = allDay
-        ? new Date(selectedDate.getFullYear(), selectedDate.getMonth(), selectedDate.getDate(), 0, 0, 0).toISOString()
-        : buildDatetime(selectedDate, startTime);
-
-      const endISO = !allDay && endTime
-        ? buildDatetime(selectedDate, endTime)
-        : undefined;
-
-      const payload: Record<string, unknown> = {
+      const body = {
         title: title.trim(),
         description: description.trim() || undefined,
-        start_time: startISO,
-        end_time: endISO ?? null,
-        all_day: allDay,
-        attendee_ids: attendeeIds,
-        recurring,
-        category: category || null,
-        location: location.trim() || null,
-        rsvp_enabled: rsvpEnabled,
-        notify_member_ids: notifyAll ? "all" : notifyIds.length > 0 ? notifyIds : null,
-      };
-
-      if (recurring) {
-        payload.frequency = frequency;
-        payload.repeat_end_type = repeatEndType;
-        if (repeatEndType === "until_date" && repeatUntil) {
-          payload.repeat_until = repeatUntil.toISOString();
-        }
-        if (repeatEndType === "after_occurrences" && repeatOccurrences) {
-          payload.repeat_occurrences = repeatOccurrences;
-        }
+        startTime: allDay
+          ? new Date(`${startDate}T00:00:00`).toISOString()
+          : buildISO(startDate, startTime),
+        endTime: allDay
+          ? new Date(`${endDate}T23:59:59`).toISOString()
+          : buildISO(endDate, endTime),
+        allDay,
+        category: category || undefined,
+        location: location.trim() || undefined,
+        notifyMemberIds,
+        rsvpEnabled,
+        attendeeIds,
       }
 
-      if (mode === "create") {
-        const r = await fetch("/api/calendar", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
-        });
-        if (!r.ok) {
-          const d = await r.json().catch(() => ({}));
-          const err = new Error(d.error ?? "Failed to create event") as Error & { code?: string };
-          err.code = d.code;
-          throw err;
-        }
-        return r.json();
-      } else {
-        const r = await fetch(`/api/calendar/${event!.id}`, {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
-        });
-        if (!r.ok) {
-          const d = await r.json().catch(() => ({}));
-          throw new Error(d.error ?? "Failed to update event");
-        }
-        return r.json();
+      const url = isEdit ? `/api/calendar/${event!.id}` : '/api/calendar'
+      const method = isEdit ? 'PATCH' : 'POST'
+      const res = await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}))
+        throw new Error(data.error ?? 'Failed to save event')
       }
+      return res.json()
     },
     onSuccess: () => {
-      invalidateCalendar();
-      toast.success(mode === "create" ? "Event added" : "Event updated");
-      onClose();
+      qc.invalidateQueries({ queryKey: ['calendar'] })
+      toast.success(isEdit ? 'Event updated' : 'Event added')
+      onClose()
     },
-    onError: (err: Error & { code?: string }) => {
-      if (err.code && onUpgradeRequired) {
-        onUpgradeRequired(err.code);
-      } else {
-        toast.error(err.message);
-      }
+    onError: (err: Error) => {
+      toast.error('Could not save event', { description: err.message })
     },
-  });
+  })
 
   const deleteMutation = useMutation({
     mutationFn: async () => {
-      const r = await fetch(`/api/calendar/${event!.id}`, { method: "DELETE" });
-      if (!r.ok) {
-        const d = await r.json().catch(() => ({}));
-        throw new Error(d.error ?? "Failed to delete event");
+      const res = await fetch(`/api/calendar/${event!.id}`, { method: 'DELETE' })
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}))
+        throw new Error(data.error ?? 'Failed to delete event')
       }
     },
     onSuccess: () => {
-      invalidateCalendar();
-      toast.success("Event deleted");
-      setDeleteDialogOpen(false);
-      onClose();
+      qc.invalidateQueries({ queryKey: ['calendar'] })
+      toast.success('Event deleted')
+      setShowDeleteDialog(false)
+      onClose()
     },
-    onError: (err: Error) => toast.error(err.message),
-  });
+    onError: (err: Error) => {
+      toast.error('Could not delete event', { description: err.message })
+    },
+  })
 
-  // ---- View mode render -------------------------------------------------------
-
-  if (mode === "view" && event) {
-    return (
-      <>
-        <DraggableSheet open={open} onOpenChange={(v) => !v && onClose()} featureColor={COLOR}>
-          <div className="overflow-x-hidden px-4 pb-8">
-            <div className="mb-4 flex items-start gap-2">
-              <p style={{ color: "var(--roost-text-primary)", fontWeight: 800, fontSize: 20, flex: 1 }}>
-                {event.title}
-              </p>
-                {event.isRecurring && (
-                  <span
-                    className="mt-0.5 flex shrink-0 items-center gap-1 rounded-full px-2 py-0.5 text-[11px]"
-                    style={{ backgroundColor: COLOR + "18", color: COLOR, fontWeight: 700 }}
-                  >
-                    <Repeat className="size-3" />
-                    Repeating
-                  </span>
-                )}
-            </div>
-
-            <div className="space-y-4">
-              {/* Date + time */}
-              <div
-                className="rounded-xl px-4 py-3"
-                style={{
-                  backgroundColor: COLOR + "12",
-                  border: `1.5px solid ${COLOR}30`,
-                  borderBottom: `3px solid ${COLOR}50`,
-                }}
-              >
-                <p className="text-sm" style={{ color: COLOR, fontWeight: 700 }}>
-                  {format(new Date(event.start_time), "EEEE, MMMM d, yyyy")}
-                </p>
-                <p className="mt-0.5 text-sm" style={{ color: COLOR + "CC", fontWeight: 600 }}>
-                  {formatEventTime(event)}
-                </p>
-                {event.isRecurring && event.frequency && (
-                  <p className="mt-1 text-xs" style={{ color: COLOR + "99", fontWeight: 600 }}>
-                    Repeats {frequencyLabel(event.frequency).toLowerCase()}
-                  </p>
-                )}
-                {event.category && (
-                  <div className="mt-1 flex items-center gap-1.5">
-                    <span
-                      style={{
-                        width: 8,
-                        height: 8,
-                        borderRadius: "50%",
-                        background: getCategoryColor(event.category),
-                        display: "inline-block",
-                        flexShrink: 0,
-                      }}
-                    />
-                    <span className="text-xs font-bold" style={{ color: getCategoryColor(event.category) }}>
-                      {CALENDAR_CATEGORIES.find((c) => c.slug === event.category)?.label}
-                    </span>
-                  </div>
-                )}
-                {event.location && (
-                  <div className="mt-1 flex items-center gap-1.5">
-                    <MapPin className="size-3 shrink-0" style={{ color: "var(--roost-text-muted)" }} />
-                    <span className="text-xs font-semibold" style={{ color: "var(--roost-text-muted)" }}>
-                      {event.location}
-                    </span>
-                  </div>
-                )}
-              </div>
-
-              {/* Description */}
-              {event.description && (
-                <p className="text-sm leading-relaxed" style={{ color: "var(--roost-text-secondary)", fontWeight: 600 }}>
-                  {event.description}
-                </p>
-              )}
-
-              {/* Created by */}
-              <div className="flex items-center gap-2">
-                {event.creator_name && (
-                  <MemberAvatar name={event.creator_name} avatarColor={event.creator_avatar} size="sm" />
-                )}
-                <span className="text-xs" style={{ color: "var(--roost-text-muted)", fontWeight: 600 }}>
-                  Added by {firstName(event.creator_name)}
-                </span>
-              </div>
-
-              {/* Attendees */}
-              {event.attendees.length > 0 && (
-                <div>
-                  <p className="mb-2 text-xs" style={{ color: "#374151", fontWeight: 700 }}>
-                    Attendees
-                  </p>
-                  <div className="flex flex-wrap gap-2">
-                    {event.attendees.map((a) => (
-                      <div key={a.userId} className="flex items-center gap-1.5 rounded-full px-2.5 py-1"
-                        style={{ backgroundColor: "var(--roost-bg)", border: "1.5px solid var(--roost-border)" }}>
-                        <MemberAvatar name={a.name ?? "?"} avatarColor={a.avatarColor} size="sm" />
-                        <span className="text-xs" style={{ color: "var(--roost-text-primary)", fontWeight: 600 }}>
-                          {firstName(a.name)}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Actions */}
-              {canEdit && (
-                <div className="flex gap-2 pt-2">
-                  <motion.button
-                    type="button"
-                    whileTap={{ y: 1 }}
-                    onClick={() => setMode("edit")}
-                    className="flex h-11 flex-1 items-center justify-center gap-2 rounded-xl text-sm"
-                    style={{
-                      backgroundColor: COLOR,
-                      border: `1.5px solid ${COLOR}`,
-                      borderBottom: `3px solid ${COLOR_DARK}`,
-                      color: "white",
-                      fontWeight: 800,
-                    }}
-                  >
-                    <Pencil className="size-4" />
-                    Edit
-                  </motion.button>
-                  <motion.button
-                    type="button"
-                    whileTap={{ y: 1 }}
-                    onClick={() => setDeleteDialogOpen(true)}
-                    className="flex h-11 w-12 items-center justify-center rounded-xl"
-                    style={{
-                      border: "1.5px solid #E5E7EB",
-                      borderBottom: "3px solid #E5E7EB",
-                      color: "#EF4444",
-                    }}
-                  >
-                    <Trash2 className="size-4" />
-                  </motion.button>
-                </div>
-              )}
-            </div>
-          </div>
-        </DraggableSheet>
-
-        {/* Delete confirmation */}
-        <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle style={{ color: "var(--roost-text-primary)", fontWeight: 800 }}>
-                {event.isRecurring ? "Delete recurring event?" : "Delete event?"}
-              </DialogTitle>
-            </DialogHeader>
-            <DialogDescription className="text-sm" style={{ color: "var(--roost-text-secondary)", fontWeight: 600 }}>
-              {event.title}
-              {event.isRecurring && (
-                <span className="block mt-1" style={{ color: "var(--roost-text-muted)" }}>
-                  All occurrences of this event will be removed.
-                </span>
-              )}
-            </DialogDescription>
-            <DialogFooter className="mt-2 gap-2">
-              <button type="button" onClick={() => setDeleteDialogOpen(false)}
-                className="flex h-11 flex-1 items-center justify-center rounded-xl text-sm"
-                style={{ border: "1.5px solid #E5E7EB", borderBottom: "3px solid #E5E7EB", color: "var(--roost-text-primary)", fontWeight: 700 }}>
-                Cancel
-              </button>
-              <motion.button type="button" whileTap={{ y: 1 }}
-                onClick={() => deleteMutation.mutate()}
-                disabled={deleteMutation.isPending}
-                className="flex h-11 flex-1 items-center justify-center rounded-xl text-sm text-white"
-                style={{ backgroundColor: "#EF4444", border: "1.5px solid #C93B3B", borderBottom: "3px solid #A63030", fontWeight: 800, opacity: deleteMutation.isPending ? 0.7 : 1 }}>
-                {deleteMutation.isPending ? <Loader2 className="size-4 animate-spin" /> : "Delete"}
-              </motion.button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-      </>
-    );
+  const handleSave = () => {
+    if (!title.trim()) {
+      toast.error('Title is required', { description: 'Please enter an event title.' })
+      return
+    }
+    saveMutation.mutate()
   }
 
-  // ---- Create / Edit mode render ----------------------------------------------
+  const toggleAttendee = (uid: string) =>
+    setAttendeeIds(prev => prev.includes(uid) ? prev.filter(id => id !== uid) : [...prev, uid])
+
+  const toggleNotifyMember = (uid: string) =>
+    setNotifySpecificIds(prev => prev.includes(uid) ? prev.filter(id => id !== uid) : [...prev, uid])
+
+  const handleNotifyAllToggle = () => {
+    setNotifyAll(v => !v)
+    setNotifySpecificIds([])
+  }
+
+  const canDelete =
+    isEdit && (event?.createdBy === currentUserId || members.find(m => m.userId === currentUserId)?.role === 'admin')
+
+  // Selected date for right-col calendar
+  const selectedDate = startDate ? new Date(`${startDate}T12:00:00`) : undefined
 
   return (
-    <DraggableSheet open={open} onOpenChange={(v) => !v && onClose()} featureColor={COLOR} desktopMaxWidth={860}>
-      <div className="overflow-x-hidden px-4 pb-8">
-        <p className="mb-5 text-lg" style={{ color: "var(--roost-text-primary)", fontWeight: 800 }}>
-          {mode === "create" ? "New Event" : "Edit Event"}
-        </p>
+    <>
+      <DraggableSheet
+        open={open}
+        onOpenChange={v => { if (!v) onClose() }}
+        featureColor={COLOR}
+        desktopMaxWidth={860}
+      >
+        {/* Two-column grid on desktop */}
+        <div className="grid sm:grid-cols-[1fr_260px]">
 
-        {/* Edit recurring note */}
-        {mode === "edit" && event?.isRecurring && (
+          {/* ── LEFT COLUMN — desktop only ── */}
           <div
-            className="mb-4 flex items-center gap-2 rounded-xl px-3 py-2.5"
+            style={{ padding: '20px 24px 28px', borderRight: '1px solid #E2E8F0' }}
+            className="hidden sm:flex flex-col gap-4"
+          >
+            <LeftColumn
+              isEdit={isEdit}
+              title={title} setTitle={setTitle}
+              description={description} setDescription={setDescription}
+              location={location} setLocation={setLocation}
+              category={category} setCategory={setCategory}
+              startDate={startDate} setStartDate={setStartDate}
+              startTime={startTime} setStartTime={setStartTime}
+              endDate={endDate} setEndDate={setEndDate}
+              endTime={endTime} setEndTime={setEndTime}
+              allDay={allDay} setAllDay={setAllDay}
+              attendeeIds={attendeeIds} toggleAttendee={toggleAttendee}
+              rsvpEnabled={rsvpEnabled} setRsvpEnabled={setRsvpEnabled}
+              notifyAll={notifyAll} handleNotifyAllToggle={handleNotifyAllToggle}
+              notifySpecificIds={notifySpecificIds} toggleNotifyMember={toggleNotifyMember}
+              members={members}
+              canDelete={canDelete}
+              saveMutation={saveMutation}
+              handleSave={handleSave}
+              setShowDeleteDialog={setShowDeleteDialog}
+            />
+          </div>
+
+          {/* Mobile single column */}
+          <div className="flex flex-col gap-4 px-4 pb-8 sm:hidden">
+            <LeftColumn
+              isEdit={isEdit}
+              title={title} setTitle={setTitle}
+              description={description} setDescription={setDescription}
+              location={location} setLocation={setLocation}
+              category={category} setCategory={setCategory}
+              startDate={startDate} setStartDate={setStartDate}
+              startTime={startTime} setStartTime={setStartTime}
+              endDate={endDate} setEndDate={setEndDate}
+              endTime={endTime} setEndTime={setEndTime}
+              allDay={allDay} setAllDay={setAllDay}
+              attendeeIds={attendeeIds} toggleAttendee={toggleAttendee}
+              rsvpEnabled={rsvpEnabled} setRsvpEnabled={setRsvpEnabled}
+              notifyAll={notifyAll} handleNotifyAllToggle={handleNotifyAllToggle}
+              notifySpecificIds={notifySpecificIds} toggleNotifyMember={toggleNotifyMember}
+              members={members}
+              canDelete={canDelete}
+              saveMutation={saveMutation}
+              handleSave={handleSave}
+              setShowDeleteDialog={setShowDeleteDialog}
+            />
+          </div>
+
+          {/* ── RIGHT COLUMN — desktop only ── */}
+          <div
+            className="hidden sm:flex flex-col"
             style={{
-              backgroundColor: COLOR + "0D",
-              border: `1px solid ${COLOR}30`,
+              padding: '20px 18px',
+              backgroundColor: '#FAFBFF',
             }}
           >
-            <Repeat className="size-3.5 shrink-0" style={{ color: COLOR }} />
-            <p className="text-xs" style={{ color: COLOR, fontWeight: 600 }}>
-              Editing this event will update all occurrences.
-            </p>
-          </div>
-        )}
-
-        {/* Two-column on desktop, single column on mobile */}
-        <div className="space-y-4 sm:grid sm:grid-cols-[1fr_240px] sm:items-start sm:gap-6 sm:space-y-0">
-
-          {/* LEFT COLUMN — form fields */}
-          <div className="space-y-4 sm:flex sm:flex-col">
-
-            {/* Title */}
-            <div>
-              <label className="mb-1.5 block text-xs" style={{ color: "#374151", fontWeight: 700 }}>
-                Title
-              </label>
-              <input
-                ref={titleRef}
-                type="text"
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                placeholder="e.g. Family dinner, Rent due"
-                className="h-12 w-full rounded-xl px-4 text-sm focus:outline-none"
-                style={inputStyle}
-              />
-            </div>
-
-            {/* Date — mobile only, hidden on desktop (calendar lives in right column there) */}
-            <div className="sm:hidden">
-              <label className="mb-1.5 block text-xs" style={{ color: "#374151", fontWeight: 700 }}>
-                Date
-              </label>
-              <div
-                className="overflow-hidden rounded-xl"
-                style={{ border: "1.5px solid #E5E7EB", borderBottom: `3px solid ${COLOR_DARK}`, "--primary": COLOR, "--primary-foreground": "#ffffff" } as React.CSSProperties}
-              >
-                <Calendar
-                  mode="single"
-                  selected={selectedDate}
-                  onSelect={(d) => d && setSelectedDate(d)}
-                  fixedWeeks
-                  className="roost-calendar-mobile w-full"
-                />
-              </div>
-            </div>
-
-            {/* All day toggle */}
-            <div className="flex items-center justify-between">
-              <span className="text-sm" style={{ color: "var(--roost-text-primary)", fontWeight: 700 }}>
-                All day
-              </span>
-              <div style={{ "--primary": COLOR, "--primary-foreground": "#ffffff" } as React.CSSProperties}>
-                <Switch checked={allDay} onCheckedChange={setAllDay} />
-              </div>
-            </div>
-
-            {/* Time inputs */}
-            {!allDay && (
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4">
-                <div>
-                  <label className="mb-1.5 block text-xs" style={{ color: "#374151", fontWeight: 700 }}>
-                    Start time
-                  </label>
-                  <input
-                    type="time"
-                    value={startTime}
-                    onChange={(e) => setStartTime(e.target.value)}
-                    className="h-12 w-full rounded-xl px-4 text-sm focus:outline-none"
-                    style={inputStyle}
-                  />
-                </div>
-                <div>
-                  <label className="mb-1.5 block text-xs" style={{ color: "#374151", fontWeight: 700 }}>
-                    End time
-                  </label>
-                  <input
-                    type="time"
-                    value={endTime}
-                    onChange={(e) => setEndTime(e.target.value)}
-                    className="h-12 w-full rounded-xl px-4 text-sm focus:outline-none"
-                    style={inputStyle}
-                  />
-                </div>
-              </div>
-            )}
-
-            {/* Description */}
-            <div>
-              <label className="mb-1.5 block text-xs" style={{ color: "#374151", fontWeight: 700 }}>
-                Description
-              </label>
-              <textarea
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                placeholder="Any details..."
-                rows={2}
-                className="w-full resize-none rounded-xl px-4 py-3 text-sm focus:outline-none"
-                style={inputStyle}
-              />
-            </div>
-
-            {/* Category */}
-            <div>
-              <label className="mb-1.5 block text-[11px] font-extrabold uppercase tracking-wide" style={{ color: "#374151" }}>
-                Category
-              </label>
-              <CategoryPicker value={category} onChange={setCategory} />
-            </div>
-
-            {/* Location */}
-            <div>
-              <label className="mb-1.5 block text-[11px] font-extrabold uppercase tracking-wide" style={{ color: "#374151" }}>
-                Location
-              </label>
-              <div className="relative">
-                <MapPin className="absolute left-3 top-1/2 size-4 -translate-y-1/2" style={{ color: "#94A3B8" }} />
-                <input
-                  type="text"
-                  placeholder="Add a location"
-                  value={location}
-                  onChange={(e) => setLocation(e.target.value)}
-                  className="w-full rounded-xl pl-9 pr-3 py-2.5 text-sm"
-                  style={{
-                    fontWeight: 600,
-                    background: "var(--roost-surface)",
-                    border: "1.5px solid var(--roost-border)",
-                    borderBottom: "3px solid var(--roost-border-bottom)",
-                    borderRadius: 12,
-                    color: "var(--roost-text-primary)",
-                    outline: "none",
-                  }}
-                />
-              </div>
-            </div>
-
-            {/* Attendees */}
-            <div>
-              <label className="mb-1.5 block text-[11px] font-extrabold uppercase tracking-wide" style={{ color: "#374151" }}>
-                Who&apos;s going
-              </label>
-              <AttendeePicker
-                members={householdMembers}
-                selectedIds={attendeeIds}
-                currentUserId={currentUserId}
-                onChange={setAttendeeIds}
-              />
-            </div>
-
-            {/* RSVP toggle */}
-            {attendeeIds.length > 0 && (
-              <div
-                className="flex items-center justify-between rounded-xl px-3 py-2.5"
-                style={{
-                  background: "#EFF6FF",
-                  border: "1.5px solid #BAD3F7",
-                  borderBottom: "3px solid #1A5CB5",
+            {/* Mini calendar */}
+            <style>{`
+              .roost-mini-cal .rdp-root { --rdp-font-size: 12px; }
+              .roost-mini-cal .rdp-day { width: 28px; height: 28px; font-size: 12px; font-weight: 700; }
+              .roost-mini-cal .rdp-day_button { width: 28px; height: 28px; border-radius: 50%; }
+              .roost-mini-cal .rdp-weekday { font-size: 10px; font-weight: 700; color: #94A3B8; }
+              .roost-mini-cal [data-selected] .rdp-day_button { background: #3B82F6 !important; color: #fff !important; }
+              .roost-mini-cal [data-today]:not([data-selected]) .rdp-day_button { background: #DBEAFE; color: #1D4ED8; }
+              .roost-mini-cal .rdp-caption_label { font-size: 13px; font-weight: 800; color: #1E293B; }
+              .roost-mini-cal .rdp-nav_button { width: 28px; height: 28px; border-radius: 50%; border: 1.5px solid #E2E8F0; background: white; color: #475569; }
+            `}</style>
+            <div className="roost-mini-cal">
+              <DayPicker
+                mode="single"
+                selected={selectedDate}
+                month={calMonth}
+                onMonthChange={setCalMonth}
+                onSelect={(d) => {
+                  if (d) {
+                    const ds = toDateStr(d)
+                    setStartDate(ds)
+                    if (ds > endDate) setEndDate(ds)
+                    setCalMonth(d)
+                  }
                 }}
-              >
-                <div>
-                  <p className="text-sm font-bold" style={{ color: "#1E40AF" }}>Ask for RSVP</p>
-                  <p className="text-xs font-semibold" style={{ color: "#3B82F6" }}>
-                    Attendees can mark attending, maybe, or no
-                  </p>
-                </div>
-                <div style={{ "--primary": "#3B82F6" } as React.CSSProperties}>
-                  <Switch checked={rsvpEnabled} onCheckedChange={setRsvpEnabled} />
-                </div>
-              </div>
-            )}
-
-            {/* Notify */}
-            <NotifyPicker
-              members={householdMembers}
-              notifyAll={notifyAll}
-              notifyIds={notifyIds}
-              currentUserId={currentUserId}
-              onToggleAll={() => {
-                setNotifyAll((v) => !v);
-                setNotifyIds([]);
-              }}
-              onToggleMember={(id) =>
-                setNotifyIds((prev) =>
-                  prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
-                )
-              }
-            />
-
-            {/* Recurring fields */}
-            <RecurringFields
-              recurring={recurring}
-              frequency={frequency}
-              repeatEndType={repeatEndType}
-              repeatUntil={repeatUntil}
-              repeatOccurrences={repeatOccurrences}
-              isPremium={isPremium}
-              onChange={handleRecurringChange}
-              onUpgradeRequired={onUpgradeRequired}
-            />
-
-            {/* Save + Cancel — pushed to bottom of left column on desktop */}
-            <div className="space-y-2 sm:mt-auto sm:pt-4">
-              <motion.button
-                type="button"
-                onClick={() => saveMutation.mutate()}
-                disabled={saveMutation.isPending}
-                whileTap={{ y: 2 }}
-                className="flex h-12 w-full items-center justify-center gap-2 rounded-xl text-sm text-white"
-                style={{
-                  backgroundColor: COLOR,
-                  border: `1.5px solid ${COLOR}`,
-                  borderBottom: `3px solid ${COLOR_DARK}`,
-                  fontWeight: 800,
-                  opacity: saveMutation.isPending ? 0.7 : 1,
-                }}
-              >
-                {saveMutation.isPending
-                  ? <Loader2 className="size-4 animate-spin" />
-                  : mode === "create"
-                    ? recurring ? "Add Recurring Event" : "Add Event"
-                    : "Save Changes"}
-              </motion.button>
-
-              <button
-                type="button"
-                onClick={onClose}
-                className="flex h-11 w-full items-center justify-center rounded-xl text-sm"
-                style={{ color: "#374151", fontWeight: 700 }}
-              >
-                Cancel
-              </button>
+              />
             </div>
 
-          </div>
+            <div style={{ height: 1, backgroundColor: '#E2E8F0', margin: '8px 0 12px' }} />
 
-          {/* RIGHT COLUMN — calendar, desktop only */}
-          <div className="hidden sm:block sm:w-full sm:pt-6" style={{ "--primary": COLOR, "--primary-foreground": "#ffffff" } as React.CSSProperties}>
-            <p className="mb-3 text-xs" style={{ color: "#374151", fontWeight: 700 }}>
-              Date
+            {/* Selected date label */}
+            <p style={{ fontSize: 11, fontWeight: 800, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>
+              {selectedDate ? format(selectedDate, 'EEE MMM d') : 'No date selected'}
             </p>
-            <Calendar
-              mode="single"
-              selected={selectedDate}
-              onSelect={(d) => d && setSelectedDate(d)}
-              className="roost-calendar-compact"
-            />
+
+            {/* Category legend */}
+            <div style={{ height: 1, backgroundColor: '#E2E8F0', margin: '12px 0 8px' }} />
+            <p style={{ fontSize: 10, fontWeight: 800, color: '#94A3B8', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 6 }}>
+              Category colors
+            </p>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+              {CALENDAR_CATEGORIES.map(cat => (
+                <div key={cat.slug} style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
+                  <div style={{ width: 8, height: 8, borderRadius: '50%', backgroundColor: cat.color, flexShrink: 0 }} />
+                  <span style={{ fontSize: 10, fontWeight: 700, color: '#475569' }}>{cat.label}</span>
+                </div>
+              ))}
+            </div>
           </div>
 
         </div>
+      </DraggableSheet>
+
+      {/* Delete confirm */}
+      {showDeleteDialog && (
+        <div
+          style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999, padding: '0 24px' }}
+          onClick={() => setShowDeleteDialog(false)}
+        >
+          <div
+            style={{ backgroundColor: 'var(--roost-surface)', borderRadius: 16, padding: 24, maxWidth: 380, width: '100%', border: '1.5px solid var(--roost-border)' }}
+            onClick={e => e.stopPropagation()}
+          >
+            <p style={{ color: 'var(--roost-text-primary)', fontWeight: 800, fontSize: 16, marginBottom: 8 }}>Delete event?</p>
+            <p style={{ color: 'var(--roost-text-muted)', fontSize: 14, fontWeight: 600, marginBottom: 20 }}>
+              {event?.isRecurring ? 'All occurrences will be removed. This cannot be undone.' : 'This event will be permanently deleted.'}
+            </p>
+            <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+              <button type="button" onClick={() => setShowDeleteDialog(false)}
+                style={{ padding: '8px 16px', borderRadius: 10, border: '1.5px solid var(--roost-border)', backgroundColor: 'var(--roost-surface)', color: 'var(--roost-text-primary)', fontWeight: 700, cursor: 'pointer' }}>
+                Cancel
+              </button>
+              <button type="button" onClick={() => deleteMutation.mutate()} disabled={deleteMutation.isPending}
+                style={{ padding: '8px 16px', borderRadius: 10, border: 'none', backgroundColor: '#EF4444', color: '#fff', fontWeight: 700, cursor: 'pointer', opacity: deleteMutation.isPending ? 0.7 : 1 }}>
+                {deleteMutation.isPending ? 'Deleting...' : 'Delete'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
+  )
+}
+
+// ─── Left Column (shared between mobile + desktop) ────────────────────────────
+
+interface LeftColProps {
+  isEdit: boolean
+  title: string; setTitle: (v: string) => void
+  description: string; setDescription: (v: string) => void
+  location: string; setLocation: (v: string) => void
+  category: string; setCategory: (v: string) => void
+  startDate: string; setStartDate: (v: string) => void
+  startTime: string; setStartTime: (v: string) => void
+  endDate: string; setEndDate: (v: string) => void
+  endTime: string; setEndTime: (v: string) => void
+  allDay: boolean; setAllDay: (fn: (v: boolean) => boolean) => void
+  attendeeIds: string[]; toggleAttendee: (uid: string) => void
+  rsvpEnabled: boolean; setRsvpEnabled: (fn: (v: boolean) => boolean) => void
+  notifyAll: boolean; handleNotifyAllToggle: () => void
+  notifySpecificIds: string[]; toggleNotifyMember: (uid: string) => void
+  members: Member[]
+  canDelete: boolean
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  saveMutation: any
+  handleSave: () => void
+  setShowDeleteDialog: (v: boolean) => void
+}
+
+function LeftColumn({
+  isEdit, title, setTitle, description, setDescription, location, setLocation,
+  category, setCategory, startDate, setStartDate, startTime, setStartTime,
+  endDate, setEndDate, endTime, setEndTime, allDay, setAllDay,
+  attendeeIds, toggleAttendee, rsvpEnabled, setRsvpEnabled,
+  notifyAll, handleNotifyAllToggle, notifySpecificIds, toggleNotifyMember,
+  members, canDelete, saveMutation, handleSave, setShowDeleteDialog,
+}: LeftColProps) {
+  return (
+    <>
+      <p style={{ fontSize: 18, fontWeight: 800, color: '#0F172A' }}>
+        {isEdit ? 'Edit event' : 'New event'}
+      </p>
+
+      {/* Title */}
+      <input
+        type="text"
+        placeholder="Event title"
+        value={title}
+        onChange={e => setTitle(e.target.value)}
+        style={{ ...inputStyle, fontSize: 16, fontWeight: 800, borderBottomWidth: 4 }}
+      />
+
+      {/* All day row */}
+      <div style={{
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        padding: '8px 13px', backgroundColor: '#F8FAFC',
+        border: '1.5px solid #BAD3F7', borderBottom: `3px solid ${COLOR_DARK}`, borderRadius: 12,
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, fontWeight: 700, color: '#374151' }}>
+          <Clock size={15} style={{ color: COLOR }} />
+          All day
+        </div>
+        <TogglePill on={allDay} onToggle={() => setAllDay(v => !v)} />
       </div>
-    </DraggableSheet>
-  );
+
+      {/* Date + time — native inputs open OS picker on mobile */}
+      <div style={{ display: 'grid', gridTemplateColumns: allDay ? '1fr' : '1fr 1fr', gap: 8 }}>
+        <div>
+          <label style={labelStyle}>Start date</label>
+          <input type="date" value={startDate}
+            onChange={e => { setStartDate(e.target.value); if (e.target.value > endDate) setEndDate(e.target.value) }}
+            style={nativePickerStyle} />
+        </div>
+        {!allDay && (
+          <div>
+            <label style={labelStyle}>Start time</label>
+            <input type="time" value={startTime} onChange={e => setStartTime(e.target.value)} style={nativePickerStyle} />
+          </div>
+        )}
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: allDay ? '1fr' : '1fr 1fr', gap: 8 }}>
+        <div>
+          <label style={labelStyle}>End date</label>
+          <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} style={nativePickerStyle} />
+        </div>
+        {!allDay && (
+          <div>
+            <label style={labelStyle}>End time</label>
+            <input type="time" value={endTime} onChange={e => setEndTime(e.target.value)} style={nativePickerStyle} />
+          </div>
+        )}
+      </div>
+
+      {/* Category */}
+      <div>
+        <label style={labelStyle}>Category</label>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+          <button type="button" onClick={() => setCategory('')}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 5,
+              padding: '5px 11px', borderRadius: 20, fontSize: 12, fontWeight: 700,
+              border: !category ? `1.5px solid ${COLOR}` : '1.5px solid transparent',
+              backgroundColor: !category ? COLOR : '#F1F5F9',
+              color: !category ? '#fff' : '#475569', cursor: 'pointer',
+            }}>
+            None
+          </button>
+          {CALENDAR_CATEGORIES.map(cat => {
+            const active = category === cat.slug
+            return (
+              <button key={cat.slug} type="button" onClick={() => setCategory(active ? '' : cat.slug)}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 5,
+                  padding: '5px 11px', borderRadius: 20, fontSize: 12, fontWeight: 700,
+                  border: '1.5px solid transparent',
+                  backgroundColor: active ? cat.color : '#F1F5F9',
+                  color: active ? '#fff' : '#475569', cursor: 'pointer',
+                }}>
+                <span style={{ width: 7, height: 7, borderRadius: '50%', backgroundColor: active ? 'rgba(255,255,255,0.5)' : cat.color, flexShrink: 0 }} />
+                {cat.label}
+              </button>
+            )
+          })}
+        </div>
+      </div>
+
+      {/* Location */}
+      <div>
+        <label style={labelStyle}>Location</label>
+        <div style={{ position: 'relative' }}>
+          <MapPin size={15} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: '#94A3B8', pointerEvents: 'none' }} />
+          <input type="text" placeholder="Add a location" value={location}
+            onChange={e => setLocation(e.target.value)}
+            style={{ ...inputStyle, paddingLeft: 36 }} />
+        </div>
+      </div>
+
+      {/* Attendees */}
+      {members.length > 0 && (
+        <div>
+          <label style={labelStyle}>Who&apos;s going</label>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+            {members.map(m => {
+              const sel = attendeeIds.includes(m.userId)
+              return (
+                <button key={m.userId} type="button" onClick={() => toggleAttendee(m.userId)}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 6,
+                    padding: '5px 10px 5px 5px', borderRadius: 20, fontSize: 12, fontWeight: 700, cursor: 'pointer',
+                    border: sel ? '1.5px solid #BAD3F7' : '1.5px solid #E2E8F0',
+                    backgroundColor: sel ? '#EFF6FF' : '#F8FAFC',
+                    color: sel ? '#1E40AF' : '#475569',
+                  }}>
+                  <MiniAvatar name={m.name} color={m.avatarColor} />
+                  {m.name.split(' ')[0]}
+                </button>
+              )
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* RSVP — shown when attendees selected, blue-tinted card */}
+      {attendeeIds.length > 0 && (
+        <div style={{
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          padding: '8px 13px', marginTop: -8,
+          backgroundColor: '#EFF6FF', border: '1.5px solid #BAD3F7',
+          borderBottom: `3px solid ${COLOR_DARK}`, borderRadius: 12,
+        }}>
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, fontWeight: 700, color: '#1E40AF' }}>
+              <CheckSquare size={14} style={{ color: COLOR }} />
+              Ask for RSVP
+            </div>
+            <div style={{ fontSize: 11, fontWeight: 600, color: COLOR, marginTop: 2 }}>
+              Attendees can mark attending, maybe, or no
+            </div>
+          </div>
+          <TogglePill on={rsvpEnabled} onToggle={() => setRsvpEnabled(v => !v)} />
+        </div>
+      )}
+
+      {/* Notes */}
+      <div>
+        <label style={labelStyle}>Notes</label>
+        <textarea placeholder="Any extra details" value={description}
+          onChange={e => setDescription(e.target.value)} rows={3}
+          style={{ ...inputStyle, resize: 'vertical', lineHeight: 1.5 }} />
+      </div>
+
+      {/* Notify section — card */}
+      <div style={{
+        backgroundColor: '#F8FAFC', border: '1.5px solid #E2E8F0',
+        borderBottom: '3px solid #94A3B8', borderRadius: 12, padding: '12px 14px',
+        display: 'flex', flexDirection: 'column', gap: 10,
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 12, fontWeight: 800, color: '#374151', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+          <Bell size={13} style={{ color: '#374151' }} />
+          Notify when saved
+        </div>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+          {/* All household — dark fill */}
+          <button type="button" onClick={handleNotifyAllToggle}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 5,
+              padding: '4px 10px', borderRadius: 20, fontSize: 12, fontWeight: 700, cursor: 'pointer',
+              border: '1.5px solid transparent',
+              backgroundColor: notifyAll ? '#0F172A' : '#fff',
+              color: notifyAll ? '#fff' : '#475569',
+              borderColor: notifyAll ? '#0F172A' : '#E2E8F0',
+            }}>
+            <Users size={11} />
+            All household
+          </button>
+          {/* Individual member chips */}
+          {members.map(m => {
+            const sel = notifySpecificIds.includes(m.userId)
+            return (
+              <button key={m.userId} type="button"
+                onClick={() => { if (!notifyAll) toggleNotifyMember(m.userId) }}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 5,
+                  padding: '4px 10px 4px 5px', borderRadius: 20, fontSize: 12, fontWeight: 700, cursor: 'pointer',
+                  border: '1.5px solid',
+                  borderColor: sel ? '#BAD3F7' : '#E2E8F0',
+                  backgroundColor: (notifyAll || sel) ? '#EFF6FF' : '#fff',
+                  color: (notifyAll || sel) ? '#1E40AF' : '#475569',
+                  opacity: notifyAll ? 0.6 : 1,
+                }}>
+                <MiniAvatar name={m.name} color={m.avatarColor} size={16} fontSize={8} />
+                {m.name.split(' ')[0]}
+              </button>
+            )
+          })}
+        </div>
+        <p style={{ fontSize: 11, fontWeight: 600, color: '#94A3B8' }}>
+          Selected members get a push notification when this event is saved
+        </p>
+      </div>
+
+      {/* Save */}
+      <motion.button type="button" whileTap={{ y: 1 }} disabled={saveMutation.isPending}
+        onClick={handleSave}
+        style={{
+          width: '100%', height: 50, borderRadius: 14, border: 'none',
+          borderBottom: `4px solid ${COLOR_DARK}`, backgroundColor: COLOR,
+          color: '#fff', fontSize: 14, fontWeight: 800, cursor: 'pointer',
+          opacity: saveMutation.isPending ? 0.7 : 1,
+        }}>
+        {saveMutation.isPending ? 'Saving...' : isEdit ? 'Save changes' : 'Save event'}
+      </motion.button>
+
+      {canDelete && (
+        <motion.button type="button" whileTap={{ y: 1 }} onClick={() => setShowDeleteDialog(true)}
+          style={{
+            width: '100%', height: 44, borderRadius: 14,
+            border: '1.5px solid #E2E8F0', borderBottom: '3px solid #E2E8F0',
+            backgroundColor: '#F8FAFC', color: '#EF4444',
+            fontSize: 14, fontWeight: 700, cursor: 'pointer',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+          }}>
+          <Trash2 size={15} />
+          Delete event
+        </motion.button>
+      )}
+    </>
+  )
+}
+
+// ─── Mini helpers ─────────────────────────────────────────────────────────────
+
+function TogglePill({ on, onToggle }: { on: boolean; onToggle: () => void }) {
+  return (
+    <button type="button" onClick={onToggle} aria-label="Toggle"
+      style={{
+        width: 40, height: 22, borderRadius: 11, border: 'none', flexShrink: 0, cursor: 'pointer',
+        backgroundColor: on ? COLOR : '#CBD5E1', position: 'relative', transition: 'background-color 0.15s',
+      }}>
+      <span style={{
+        position: 'absolute', top: 2,
+        left: on ? 20 : 2,
+        width: 18, height: 18, borderRadius: '50%', backgroundColor: '#fff',
+        boxShadow: '0 1px 3px rgba(0,0,0,0.2)', transition: 'left 0.15s',
+      }} />
+    </button>
+  )
+}
+
+function MiniAvatar({ name, color, size = 22, fontSize = 10 }: { name: string; color: string | null; size?: number; fontSize?: number }) {
+  return (
+    <span style={{
+      width: size, height: size, borderRadius: '50%',
+      backgroundColor: color ?? SECTION_COLORS.calendar.base,
+      color: '#fff', fontSize, fontWeight: 800,
+      display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+    }}>
+      {name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}
+    </span>
+  )
 }

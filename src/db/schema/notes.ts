@@ -1,18 +1,19 @@
-import { pgTable, text, timestamp } from "drizzle-orm/pg-core";
-import { households } from "./households";
+import { pgTable, text, timestamp, boolean } from 'drizzle-orm/pg-core'
+import { households } from './households'
+import { users } from './users'
 
-export const notes = pgTable("notes", {
-  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
-  household_id: text("household_id")
-    .references(() => households.id)
-    .notNull(),
-  title: text("title"),
-  content: text("content").notNull(),
-  created_by: text("created_by").notNull(),
-  created_at: timestamp("created_at").defaultNow(),
-  updated_at: timestamp("updated_at").defaultNow(),
-  deleted_at: timestamp("deleted_at"),
-});
-
-export type Note = typeof notes.$inferSelect;
-export type NewNote = typeof notes.$inferInsert;
+export const notes = pgTable('notes', {
+  id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+  householdId: text('household_id')
+    .notNull()
+    .references(() => households.id, { onDelete: 'cascade' }),
+  title: text('title'),
+  content: text('content').notNull().default(''),
+  isRichText: boolean('is_rich_text').notNull().default(false),
+  createdBy: text('created_by')
+    .notNull()
+    .references(() => users.id),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+  updatedAt: timestamp('updated_at').notNull().defaultNow(),
+  deletedAt: timestamp('deleted_at'),
+})

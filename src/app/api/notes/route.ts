@@ -1,120 +1,96 @@
-import { NextRequest } from "next/server";
-import { requireSession } from "@/lib/auth/helpers";
-import { db } from "@/lib/db";
-import { notes, users, households } from "@/db/schema";
-import { and, desc, eq, isNull } from "drizzle-orm";
-import { getUserHousehold } from "@/app/api/chores/route";
-import { logActivity } from "@/lib/utils/activity";
-import { checkNoteLimit } from "@/lib/utils/premiumGating";
+import { NextRequest, NextResponse } from 'next/server'
+import { getSession, getUserHousehold } from '@/lib/auth/helpers'
+import { db } from '@/lib/db'
+import { notes, users } from '@/db/schema'
+import { eq, and, isNull, desc, count } from 'drizzle-orm'
+import { logActivity } from '@/lib/utils/activity'
 
-// ---- GET --------------------------------------------------------------------
+const FREE_NOTES_LIMIT = 10
 
-export async function GET(request: NextRequest): Promise<Response> {
-  let session;
-  try {
-    session = await requireSession(request);
-  } catch (r) {
-    return r as Response;
-  }
+export async function GET() {
+  const session = await getSession()
+  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const membership = await getUserHousehold(session.user.id);
-  if (!membership) {
-    return Response.json({ error: "No household found" }, { status: 404 });
-  }
-  const { householdId } = membership;
+  const membership = await getUserHousehold(session.user.id)
+  if (!membership) return NextResponse.json({ error: 'No household' }, { status: 403 })
 
-  const noteRows = await db
+  const { householdId } = membership
+
+  const rows = await db
     .select({
       id: notes.id,
       title: notes.title,
       content: notes.content,
-      created_by: notes.created_by,
-      created_at: notes.created_at,
-      updated_at: notes.updated_at,
-      creator_name: users.name,
-      creator_avatar: users.avatar_color,
+      isRichText: notes.isRichText,
+      createdBy: notes.createdBy,
+      createdAt: notes.createdAt,
+      updatedAt: notes.updatedAt,
+      creatorName: users.name,
+      creatorAvatar: users.avatarColor,
     })
     .from(notes)
-    .leftJoin(users, eq(notes.created_by, users.id))
-    .where(and(eq(notes.household_id, householdId), isNull(notes.deleted_at)))
-    .orderBy(desc(notes.created_at));
+    .leftJoin(users, eq(notes.createdBy, users.id))
+    .where(and(eq(notes.householdId, householdId), isNull(notes.deletedAt)))
+    .orderBy(desc(notes.updatedAt))
 
-  return Response.json({ notes: noteRows });
+  return NextResponse.json({ notes: rows })
 }
 
-// ---- POST -------------------------------------------------------------------
+export async function POST(req: NextRequest) {
+  const session = await getSession()
+  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-export async function POST(request: NextRequest): Promise<Response> {
-  let session;
-  try {
-    session = await requireSession(request);
-  } catch (r) {
-    return r as Response;
+  const membership = await getUserHousehold(session.user.id)
+  if (!membership) return NextResponse.json({ error: 'No household' }, { status: 403 })
+
+  const { householdId } = membership
+  const isPremium = membership.household.subscriptionStatus === 'premium'
+
+  const body = await req.json()
+  const { title, content, isRichText = false } = body
+
+  if (!content?.trim() && !title?.trim()) {
+    return NextResponse.json({ error: 'Note must have a title or content' }, { status: 400 })
   }
 
-  const membership = await getUserHousehold(session.user.id);
-  if (!membership) {
-    return Response.json({ error: "No household found" }, { status: 404 });
+  if (content && content.length > 50_000) {
+    return NextResponse.json({ error: 'Note content is too long (50,000 character limit)' }, { status: 400 })
   }
-  if (membership.role === "child") {
-    return Response.json({ error: "Forbidden" }, { status: 403 });
-  }
-  const { householdId } = membership;
 
-  // Premium check
-  const [household] = await db
-    .select({ subscription_status: households.subscription_status })
-    .from(households)
-    .where(eq(households.id, householdId))
-    .limit(1);
-  if (household?.subscription_status !== "premium") {
-    const { allowed, count } = await checkNoteLimit(householdId);
-    if (!allowed) {
-      return Response.json(
-        { error: "Free tier limit reached", code: "NOTES_LIMIT", limit: 10, current: count },
+  // Free tier note limit
+  if (!isPremium) {
+    const [{ cnt }] = await db
+      .select({ cnt: count(notes.id) })
+      .from(notes)
+      .where(and(eq(notes.householdId, householdId), isNull(notes.deletedAt)))
+
+    if (Number(cnt) >= FREE_NOTES_LIMIT) {
+      return NextResponse.json(
+        { error: `Free plan is limited to ${FREE_NOTES_LIMIT} notes`, code: 'NOTES_LIMIT', limit: FREE_NOTES_LIMIT, current: Number(cnt) },
         { status: 403 }
-      );
+      )
     }
-  }
-
-  let body: { title?: string; content?: string };
-  try {
-    body = await request.json();
-  } catch (err) {
-    console.error("[POST /api/notes] Failed to parse body:", err);
-    return Response.json({ error: "Invalid request body" }, { status: 400 });
-  }
-
-  const rawContent = body.content ?? "";
-  const isEmpty =
-    !rawContent ||
-    rawContent.trim() === "" ||
-    rawContent === "<p></p>";
-  if (isEmpty) {
-    return Response.json({ error: "Content is required" }, { status: 400 });
-  }
-  if (rawContent.length > 50000) {
-    return Response.json({ error: "Content must be 50,000 characters or less" }, { status: 400 });
   }
 
   const [note] = await db
     .insert(notes)
     .values({
-      household_id: householdId,
-      title: body.title?.trim() || null,
-      content: rawContent,
-      created_by: session.user.id,
+      householdId,
+      title: title?.trim() ?? null,
+      content: content ?? '',
+      isRichText: isRichText && !!isPremium,
+      createdBy: session.user.id,
     })
-    .returning();
+    .returning()
 
   await logActivity({
     householdId,
     userId: session.user.id,
-    type: "note_added",
-    description: "left a note",
+    type: 'note_added',
     entityId: note.id,
-    entityType: "note",
-  });
+    entityType: 'note',
+    description: `Added note "${note.title ?? 'Untitled'}"`,
+  })
 
-  return Response.json({ note }, { status: 201 });
+  return NextResponse.json({ note }, { status: 201 })
 }

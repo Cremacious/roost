@@ -1,708 +1,197 @@
-'use client';
+'use client'
 
-import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
-import Link from 'next/link';
-import Image from 'next/image';
-import { toast } from 'sonner';
-import { signUp } from '@/lib/auth/client';
-import { GoogleAuthButton } from '@/components/auth/GoogleAuthButton';
-import {
-  consumePendingInviteRedirect,
-  getPostAuthRedirect,
-  persistPendingInviteToken,
-} from '@/lib/auth/client-redirects';
-import {
-  ROOST_BRAND_BG,
-  ROOST_BRAND_CARD_MUTED,
-  ROOST_BRAND_CARD_TEXT,
-  ROOST_BRAND_MUTED,
-  ROOST_BRAND_SOFT_BG,
-  ROOST_BRAND_SURFACE,
-  ROOST_BRAND_TEXT,
-  ROOST_ICON_SRC,
-} from '@/lib/brand';
-import {
-  CalendarDays,
-  CheckCircle2,
-  CheckSquare,
-  Coffee,
-  DollarSign,
-  Eye,
-  EyeOff,
-  Loader2,
-  PiggyBank,
-  ShoppingCart,
-  XCircle,
-} from 'lucide-react';
-import { motion } from 'framer-motion';
-
-// ---- Password strength ------------------------------------------------------
-
-type Strength = 'weak' | 'fair' | 'good' | 'strong';
-
-function getStrength(password: string): Strength {
-  if (password.length < 8) return 'weak';
-  const hasNumber = /[0-9]/.test(password);
-  const hasSymbol = /[^a-zA-Z0-9]/.test(password);
-  const hasUpper = /[A-Z]/.test(password);
-  if (hasUpper && hasNumber && hasSymbol) return 'strong';
-  if (hasNumber || hasSymbol) return 'good';
-  return 'fair';
-}
-
-const STRENGTH_CONFIG: Record<
-  Strength,
-  { segments: number; label: string; color: string }
-> = {
-  weak: { segments: 1, label: 'Weak', color: '#EF4444' },
-  fair: { segments: 2, label: 'Fair', color: '#F97316' },
-  good: { segments: 3, label: 'Good', color: '#F59E0B' },
-  strong: { segments: 4, label: 'Strong', color: '#22C55E' },
-};
-
-// ---- Left panel features ----------------------------------------------------
+import { useState } from 'react'
+import { useRouter } from 'next/navigation'
+import Link from 'next/link'
+import { signUp } from '@/lib/auth/client'
+import { Input } from '@/components/ui/Input'
+import { Button } from '@/components/ui/Button'
+import { CheckSquare, ShoppingCart, DollarSign, CalendarDays, UtensilsCrossed, Bell } from 'lucide-react'
 
 const FEATURES = [
-  {
-    icon: CheckSquare,
-    title: 'Chores',
-    desc: 'Assign them. Track them. Stop nagging.',
-  },
-  {
-    icon: ShoppingCart,
-    title: 'Groceries',
-    desc: 'One list. No more 3 versions of the same milk.',
-  },
-  {
-    icon: DollarSign,
-    title: 'Expenses',
-    desc: 'Split the bills. Keep the friends.',
-  },
-  {
-    icon: CalendarDays,
-    title: 'Calendar',
-    desc: "Everyone's schedule. One place. No excuses.",
-  },
-  {
-    icon: Coffee,
-    title: 'Meals',
-    desc: 'Plan the week. Skip the "what\'s for dinner" panic.',
-  },
-  {
-    icon: PiggyBank,
-    title: 'Allowances',
-    desc: 'Kids earn it. You approve it. Everyone learns.',
-  },
-];
+  { icon: CheckSquare,    title: 'Chores',    desc: 'Track who does what and keep score' },
+  { icon: ShoppingCart,   title: 'Grocery',   desc: 'One shared list, no duplicate buys' },
+  { icon: DollarSign,     title: 'Expenses',  desc: 'Split bills and settle up fairly' },
+  { icon: CalendarDays,   title: 'Calendar',  desc: 'Household events everyone can see' },
+  { icon: UtensilsCrossed, title: 'Meals',    desc: 'Plan the week so nobody asks "what\'s for dinner"' },
+  { icon: Bell,           title: 'Reminders', desc: 'Nag the right people at the right time' },
+]
 
-// ---- Styles -----------------------------------------------------------------
+function getStrength(password: string): number {
+  if (password.length === 0) return 0
+  if (password.length < 8) return 1
+  const hasUpper = /[A-Z]/.test(password)
+  const hasNumber = /[0-9]/.test(password)
+  const hasSpecial = /[^A-Za-z0-9]/.test(password)
+  const complexity = [hasUpper, hasNumber, hasSpecial].filter(Boolean).length
+  if (complexity >= 2) return 4
+  if (complexity === 1) return 3
+  return 2
+}
 
-const labelStyle: React.CSSProperties = {
-  display: 'block',
-  fontSize: 11,
-  fontWeight: 800,
-  textTransform: 'uppercase',
-  letterSpacing: '0.07em',
-  color: ROOST_BRAND_CARD_TEXT,
-  marginBottom: 6,
-};
-
-const inputStyle: React.CSSProperties = {
-  border: '1.5px solid #F5C5C5',
-  borderBottom: '3px solid #DBADB0',
-  color: ROOST_BRAND_TEXT,
-  fontWeight: 600,
-  backgroundColor: 'white',
-  borderRadius: 12,
-  width: '100%',
-  height: 48,
-  padding: '0 16px',
-  fontSize: 14,
-  outline: 'none',
-  boxSizing: 'border-box',
-};
-
-// ---- Page -------------------------------------------------------------------
+function StrengthBar({ password }: { password: string }) {
+  const score = getStrength(password)
+  const colors = ['transparent', '#EF4444', '#F97316', '#EAB308', '#22C55E']
+  const labels = ['', 'Too short', 'Weak', 'Fair', 'Strong']
+  return (
+    <div style={{ marginTop: 6 }}>
+      <div style={{ display: 'flex', gap: 4 }}>
+        {[1, 2, 3, 4].map(i => (
+          <div key={i} style={{ flex: 1, height: 3, borderRadius: 2, backgroundColor: i <= score ? colors[score] : '#E5E7EB', transition: 'background-color 0.2s' }} />
+        ))}
+      </div>
+      {password.length > 0 && (
+        <p style={{ fontSize: 11, fontWeight: 700, color: colors[score], margin: '3px 0 0' }}>{labels[score]}</p>
+      )}
+    </div>
+  )
+}
 
 export default function SignupPage() {
-  const router = useRouter();
-  const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [confirm, setConfirm] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
-  const [showConfirm, setShowConfirm] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [errors, setErrors] = useState<Record<string, string>>({});
-  const [inviteHouseholdName, setInviteHouseholdName] = useState<string | null>(null);
+  const router = useRouter()
+  const [name, setName] = useState('')
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [confirm, setConfirm] = useState('')
+  const [error, setError] = useState('')
+  const [loading, setLoading] = useState(false)
 
-  useEffect(() => {
-    persistPendingInviteToken(new URLSearchParams(window.location.search));
-  }, []);
-
-  useEffect(() => {
-    const inviteToken = new URLSearchParams(window.location.search).get('invite');
-    if (!inviteToken) return;
-
-    fetch(`/api/invite/${inviteToken}`)
-      .then(async (response) => {
-        if (!response.ok) return null;
-        return response.json();
-      })
-      .then((data) => {
-        if (data?.household_name) {
-          setInviteHouseholdName(data.household_name);
-        }
-      })
-      .catch(() => {});
-  }, []);
-
-  const strength = password.length > 0 ? getStrength(password) : null;
-  const confirmTouched = confirm.length > 0;
-  const passwordsMatch = password === confirm;
-  const cfg = strength ? STRENGTH_CONFIG[strength] : null;
-
-  function validate(): boolean {
-    const next: Record<string, string> = {};
-    if (!name.trim()) next.name = 'Name is required';
-    if (!email.trim()) next.email = 'Email is required';
-    if (!strength || strength === 'weak')
-      next.password = 'Password must be at least 8 characters';
-    if (!passwordsMatch) next.confirm = 'Passwords do not match';
-    setErrors(next);
-    return Object.keys(next).length === 0;
-  }
+  const confirmMismatch = confirm.length > 0 && confirm !== password
 
   async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    if (!validate()) return;
-    setLoading(true);
-    const { error } = await signUp.email({ name, email, password });
-    if (error) {
-      toast.error(error.message ?? 'Sign up failed', {
-        description: 'Check your details and try again.',
-      });
-      setLoading(false);
-      return;
+    e.preventDefault()
+    setError('')
+    if (getStrength(password) < 3) {
+      setError('Password is too weak. Use 8+ characters with uppercase letters and numbers.')
+      return
     }
-
-    const params = new URLSearchParams(window.location.search);
-    router.push(
-      consumePendingInviteRedirect() ??
-        getPostAuthRedirect(params, '/onboarding'),
-    );
+    if (password !== confirm) {
+      setError('Passwords do not match.')
+      return
+    }
+    setLoading(true)
+    try {
+      const result = await signUp.email({ name, email, password })
+      if (result.error) {
+        setError(result.error.message ?? 'Sign up failed')
+      } else {
+        router.push('/onboarding')
+      }
+    } catch {
+      setError('Something went wrong. Try again.')
+    } finally {
+      setLoading(false)
+    }
   }
 
-  const submitDisabled =
-    loading ||
-    (confirmTouched && !passwordsMatch) ||
-    (!!strength && strength === 'weak');
-
   return (
-    <div
-      style={{
-        display: 'flex',
-        minHeight: '100vh',
-        fontFamily: 'var(--font-nunito)',
-        backgroundColor: ROOST_BRAND_SOFT_BG,
-      }}
-    >
-      {/* Left panel — desktop only */}
+    <div style={{ display: 'flex', minHeight: '100dvh' }}>
+      {/* Red left panel — desktop only */}
       <div
         className="hidden md:flex"
         style={{
           width: '40%',
-          backgroundColor: ROOST_BRAND_BG,
+          backgroundColor: '#EF4444',
           flexDirection: 'column',
-          justifyContent: 'flex-start',
-          alignItems: 'center',
-          padding: '48px 40px',
+          justifyContent: 'center',
+          alignItems: 'flex-start',
+          padding: '40px 36px',
         }}
       >
-        {/* Brand block */}
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 10,
-            marginBottom: 8,
-          }}
-        >
-          <Image
-            src={ROOST_ICON_SRC}
-            alt="Roost"
-            width={52}
-            height={52}
-            className="rounded-xl"
-            priority
-            sizes="52px"
-            style={{ objectFit: 'cover', width: 52, height: 'auto' }}
-          />
-          <span
-            style={{
-              fontWeight: 900,
-              fontSize: 34,
-              color: 'white',
-              letterSpacing: '-1px',
-            }}
-          >
-            Roost
-          </span>
+        {/* Brand */}
+        <div style={{ marginBottom: 36 }}>
+          <div style={{ width: 42, height: 42, backgroundColor: 'rgba(255,255,255,0.18)', borderRadius: 12, marginBottom: 12 }} />
+          <p style={{ color: '#fff', fontWeight: 900, fontSize: 26, letterSpacing: '-0.5px', margin: 0 }}>Roost</p>
+          <p style={{ color: 'rgba(255,255,255,0.7)', fontWeight: 700, fontSize: 13, marginTop: 4 }}>Home, sorted.</p>
         </div>
-        <p
-          style={{
-            fontWeight: 700,
-            fontSize: 15,
-            color: 'rgba(255,255,255,0.7)',
-            marginBottom: 40,
-          }}
-        >
-          Homes run better with Roost.
-        </p>
 
         {/* Feature list */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 22 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
           {FEATURES.map(({ icon: Icon, title, desc }) => (
-            <div
-              key={title}
-              style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}
-            >
-              <div
-                style={{
-                  width: 40,
-                  height: 40,
-                  borderRadius: '50%',
-                  backgroundColor: 'rgba(255,255,255,0.18)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  flexShrink: 0,
-                }}
-              >
-                <Icon size={18} color="white" />
+            <div key={title} style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
+              <div style={{ width: 28, height: 28, borderRadius: '50%', backgroundColor: 'rgba(255,255,255,0.18)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 1 }}>
+                <Icon size={13} color="#fff" />
               </div>
               <div>
-                <p
-                  style={{
-                    fontWeight: 800,
-                    fontSize: 15,
-                    color: 'white',
-                    marginBottom: 3,
-                  }}
-                >
-                  {title}
-                </p>
-                <p
-                  style={{
-                    fontWeight: 600,
-                    fontSize: 13,
-                    color: 'rgba(255,255,255,0.62)',
-                    lineHeight: 1.35,
-                  }}
-                >
-                  {desc}
-                </p>
+                <p style={{ fontSize: 12, fontWeight: 800, color: '#fff', margin: 0 }}>{title}</p>
+                <p style={{ fontSize: 11, fontWeight: 600, color: 'rgba(255,255,255,0.62)', margin: '2px 0 0', lineHeight: 1.35 }}>{desc}</p>
               </div>
             </div>
           ))}
         </div>
       </div>
 
-      {/* Right panel — form */}
+      {/* Form panel */}
       <div
-        className="px-6 py-10 md:px-9"
         style={{
           flex: 1,
-          backgroundColor: ROOST_BRAND_SOFT_BG,
+          backgroundColor: '#FFF5F5',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          minHeight: '100vh',
+          padding: '24px',
         }}
       >
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.18, ease: 'easeOut' }}
-          style={{
-            width: '100%',
-            maxWidth: 420,
-            backgroundColor: ROOST_BRAND_SURFACE,
-            borderRadius: 28,
-            padding: '28px 24px',
-            boxShadow: '0 28px 70px rgba(69, 10, 10, 0.24)',
-            border: '1px solid rgba(127, 29, 29, 0.22)',
-          }}
-        >
-          {/* Mobile-only logo */}
-          <div
-            className="flex md:hidden"
-            style={{
-              flexDirection: 'column',
-              alignItems: 'center',
-              gap: 8,
-              marginBottom: 24,
-            }}
-          >
-            <Image
-              src={ROOST_ICON_SRC}
-              alt="Roost"
-              width={64}
-              height={64}
-              priority
-              sizes="64px"
-              style={{
-                borderRadius: 16,
-                objectFit: 'cover',
-                width: 64,
-                height: 'auto',
-              }}
-            />
-            <span
-              style={{
-                fontWeight: 900,
-                fontSize: 28,
-                color: ROOST_BRAND_CARD_TEXT,
-                letterSpacing: '-0.5px',
-                lineHeight: 1,
-              }}
-            >
-              Roost
-            </span>
+        {/* Mobile logo */}
+        <div style={{ width: '100%', maxWidth: 400 }}>
+          <div className="flex md:hidden" style={{ flexDirection: 'column', alignItems: 'center', gap: 8, marginBottom: 28 }}>
+            <div style={{ width: 64, height: 64, backgroundColor: '#EF4444', borderRadius: 16 }} />
+            <p style={{ fontWeight: 900, fontSize: 28, color: '#1A0505', margin: 0 }}>Roost</p>
           </div>
 
-          <h1
-            className="text-center"
-            style={{
-              fontSize: 28,
-              fontWeight: 900,
-              color: ROOST_BRAND_CARD_TEXT,
-              marginBottom: 4,
-              letterSpacing: '-0.5px',
-            }}
-          >
-            Create your account.
+          <h1 style={{ color: '#1A0505', fontWeight: 900, fontSize: 28, letterSpacing: '-0.5px', marginBottom: 4 }}>
+            Create your account
           </h1>
-          <p
-            className="text-center"
-            style={{
-              fontSize: 14,
-              fontWeight: 600,
-              color: ROOST_BRAND_CARD_MUTED,
-              marginBottom: 28,
-            }}
-          >
-            Let us get your household sorted.
+          <p style={{ color: '#7A3F3F', fontWeight: 700, fontSize: 14, marginBottom: 28 }}>
+            Set up Roost for your household
           </p>
-          {inviteHouseholdName && (
-            <div
-              className="mb-5 rounded-2xl px-4 py-3"
-              style={{
-                backgroundColor: 'rgba(255,255,255,0.1)',
-                border: '1px solid rgba(255,255,255,0.18)',
-              }}
-            >
-              <p
-                className="text-center"
-                style={{ fontSize: 12, fontWeight: 800, color: '#FFE4E6' }}
-              >
-                Joining household
-              </p>
-              <p
-                className="mt-1 text-center"
-                style={{ fontSize: 15, fontWeight: 800, color: 'white' }}
-              >
-                {inviteHouseholdName}
-              </p>
-            </div>
-          )}
 
-          <div style={{ marginBottom: 20 }}>
-            <GoogleAuthButton disabled={loading} mode="signup" />
-          </div>
-
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 12,
-              margin: '0 0 20px',
-            }}
-          >
-            <div
-              style={{
-                flex: 1,
-                height: 1,
-                backgroundColor: 'rgba(255,255,255,0.22)',
-              }}
-            />
-            <span
-              style={{
-                fontSize: 13,
-                fontWeight: 700,
-                color: ROOST_BRAND_CARD_MUTED,
-              }}
-            >
-              or
-            </span>
-            <div
-              style={{
-                flex: 1,
-                height: 1,
-                backgroundColor: 'rgba(255,255,255,0.22)',
-              }}
-            />
-          </div>
-
-          <form
-            onSubmit={handleSubmit}
-            style={{ display: 'flex', flexDirection: 'column', gap: 16 }}
-          >
-            {/* Name */}
+          <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
             <div>
-              <label style={labelStyle}>Your name</label>
-              <input
-                type="text"
-                autoComplete="name"
-                value={name}
-                onChange={(e) => {
-                  setName(e.target.value);
-                  setErrors((p) => ({ ...p, name: '' }));
+              <label style={{ display: 'block', fontSize: 11, fontWeight: 800, letterSpacing: '0.07em', color: '#7A3F3F', marginBottom: 6 }}>NAME</label>
+              <Input value={name} onChange={e => setName(e.target.value)} placeholder="Your name" required autoComplete="name" style={{ border: '1.5px solid #F5C5C5', borderBottom: '3px solid #DBADB0' }} />
+            </div>
+            <div>
+              <label style={{ display: 'block', fontSize: 11, fontWeight: 800, letterSpacing: '0.07em', color: '#7A3F3F', marginBottom: 6 }}>EMAIL</label>
+              <Input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="you@example.com" required autoComplete="email" style={{ border: '1.5px solid #F5C5C5', borderBottom: '3px solid #DBADB0' }} />
+            </div>
+            <div>
+              <label style={{ display: 'block', fontSize: 11, fontWeight: 800, letterSpacing: '0.07em', color: '#7A3F3F', marginBottom: 6 }}>PASSWORD</label>
+              <Input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="Min 8 chars, uppercase, number" required autoComplete="new-password" style={{ border: '1.5px solid #F5C5C5', borderBottom: '3px solid #DBADB0' }} />
+              <StrengthBar password={password} />
+            </div>
+            <div>
+              <label style={{ display: 'block', fontSize: 11, fontWeight: 800, letterSpacing: '0.07em', color: '#7A3F3F', marginBottom: 6 }}>CONFIRM PASSWORD</label>
+              <Input
+                type="password"
+                value={confirm}
+                onChange={e => setConfirm(e.target.value)}
+                placeholder="Re-enter your password"
+                required
+                autoComplete="new-password"
+                style={{
+                  border: confirmMismatch ? '1.5px solid #FCA5A5' : '1.5px solid #F5C5C5',
+                  borderBottom: confirmMismatch ? '3px solid #EF4444' : '3px solid #DBADB0',
                 }}
-                placeholder="What should we call you?"
-                style={inputStyle}
               />
-              {errors.name && (
-                <p
-                  style={{
-                    fontSize: 12,
-                    fontWeight: 600,
-                    color: '#FFE2E2',
-                    marginTop: 4,
-                  }}
-                >
-                  {errors.name}
-                </p>
+              {confirmMismatch && (
+                <p style={{ fontSize: 11, fontWeight: 700, color: '#EF4444', margin: '3px 0 0' }}>Passwords do not match</p>
               )}
             </div>
 
-            {/* Email */}
-            <div>
-              <label style={labelStyle}>Email</label>
-              <input
-                type="email"
-                autoComplete="email"
-                value={email}
-                onChange={(e) => {
-                  setEmail(e.target.value);
-                  setErrors((p) => ({ ...p, email: '' }));
-                }}
-                placeholder="you@example.com"
-                style={inputStyle}
-              />
-              {errors.email && (
-                <p
-                  style={{
-                    fontSize: 12,
-                    fontWeight: 600,
-                    color: '#FFE2E2',
-                    marginTop: 4,
-                  }}
-                >
-                  {errors.email}
-                </p>
-              )}
-            </div>
+            {error && <p style={{ color: '#EF4444', fontSize: 13, fontWeight: 700 }}>{error}</p>}
 
-            {/* Password */}
-            <div>
-              <label style={labelStyle}>Password</label>
-              <div style={{ position: 'relative' }}>
-                <input
-                  type={showPassword ? 'text' : 'password'}
-                  autoComplete="new-password"
-                  value={password}
-                  onChange={(e) => {
-                    setPassword(e.target.value);
-                    setErrors((p) => ({ ...p, password: '' }));
-                  }}
-                  placeholder="At least 8 characters"
-                  style={{ ...inputStyle, paddingRight: 44 }}
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword((v) => !v)}
-                  tabIndex={-1}
-                  style={{
-                    position: 'absolute',
-                    right: 12,
-                    top: '50%',
-                    transform: 'translateY(-50%)',
-                    color: ROOST_BRAND_MUTED,
-                    background: 'none',
-                    border: 'none',
-                    cursor: 'pointer',
-                  }}
-                >
-                  {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-                </button>
-              </div>
-
-              {/* Strength bar */}
-              {cfg && (
-                <div
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 8,
-                    marginTop: 6,
-                  }}
-                >
-                  <div style={{ display: 'flex', flex: 1, gap: 3 }}>
-                    {[0, 1, 2, 3].map((i) => (
-                      <div
-                        key={i}
-                        style={{
-                          height: 4,
-                          flex: 1,
-                          borderRadius: 2,
-                          backgroundColor:
-                            i < cfg.segments ? cfg.color : '#F5C5C5',
-                        }}
-                      />
-                    ))}
-                  </div>
-                  <span
-                    style={{ fontSize: 11, fontWeight: 700, color: cfg.color }}
-                  >
-                    {cfg.label}
-                  </span>
-                </div>
-              )}
-              {errors.password && (
-                <p
-                  style={{
-                    fontSize: 12,
-                    fontWeight: 600,
-                    color: '#FFE2E2',
-                    marginTop: 4,
-                  }}
-                >
-                  {errors.password}
-                </p>
-              )}
-            </div>
-
-            {/* Confirm password */}
-            <div>
-              <label style={labelStyle}>Confirm password</label>
-              <div style={{ position: 'relative' }}>
-                <input
-                  type={showConfirm ? 'text' : 'password'}
-                  autoComplete="new-password"
-                  value={confirm}
-                  onChange={(e) => {
-                    setConfirm(e.target.value);
-                    setErrors((p) => ({ ...p, confirm: '' }));
-                  }}
-                  placeholder="Same as above"
-                  style={{ ...inputStyle, paddingRight: 60 }}
-                />
-                <div
-                  style={{
-                    position: 'absolute',
-                    right: 12,
-                    top: '50%',
-                    transform: 'translateY(-50%)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 4,
-                  }}
-                >
-                  {confirmTouched &&
-                    (passwordsMatch ? (
-                      <CheckCircle2 size={15} color="#22C55E" />
-                    ) : (
-                      <XCircle size={15} color={ROOST_BRAND_BG} />
-                    ))}
-                  <button
-                    type="button"
-                    onClick={() => setShowConfirm((v) => !v)}
-                    tabIndex={-1}
-                    style={{
-                      color: ROOST_BRAND_MUTED,
-                      background: 'none',
-                      border: 'none',
-                      cursor: 'pointer',
-                    }}
-                  >
-                    {showConfirm ? <EyeOff size={16} /> : <Eye size={16} />}
-                  </button>
-                </div>
-              </div>
-              {errors.confirm && (
-                <p
-                  style={{
-                    fontSize: 12,
-                    fontWeight: 600,
-                    color: '#FFE2E2',
-                    marginTop: 4,
-                  }}
-                >
-                  {errors.confirm}
-                </p>
-              )}
-            </div>
-
-            {/* Submit */}
-            <motion.button
-              type="submit"
-              data-testid="signup-submit"
-              disabled={submitDisabled}
-              whileTap={{ y: 2 }}
-              style={{
-                width: '100%',
-                height: 50,
-                backgroundColor: 'white',
-                color: ROOST_BRAND_BG,
-                fontWeight: 800,
-                fontSize: 14,
-                borderRadius: 14,
-                border: 'none',
-                borderBottom: '3px solid #E7B7B7',
-                cursor: submitDisabled ? 'not-allowed' : 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                opacity: submitDisabled ? 0.6 : 1,
-                marginTop: 4,
-              }}
-            >
-              {loading ? (
-                <Loader2 size={18} className="animate-spin" />
-              ) : (
-                'Create account'
-              )}
-            </motion.button>
+            <Button type="submit" loading={loading} color="#EF4444" darkColor="#C93B3B" size="lg">
+              Create account
+            </Button>
           </form>
 
-          {/* Footer link */}
-          <div style={{ textAlign: 'center', marginTop: 24 }}>
-            <Link
-              href="/login"
-              style={{
-                fontSize: 13,
-                fontWeight: 700,
-                color: 'white',
-                textDecoration: 'none',
-              }}
-            >
-              Already have an account? Sign in
-            </Link>
-          </div>
-        </motion.div>
+          <p style={{ marginTop: 20, textAlign: 'center', fontSize: 13, fontWeight: 700, color: '#7A3F3F' }}>
+            Already have an account?{' '}
+            <Link href="/login" style={{ color: '#EF4444' }}>Sign in</Link>
+          </p>
+        </div>
       </div>
     </div>
-  );
+  )
 }

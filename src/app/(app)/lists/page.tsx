@@ -5,7 +5,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { motion, AnimatePresence } from 'framer-motion'
 import { ShoppingCart, Plus, Trash2, Check, ChevronDown, ChevronUp, ArrowUpDown, X, Pencil } from 'lucide-react'
 import { toast } from 'sonner'
-import { Skeleton } from '@/components/ui/Skeleton'
+import { Skeleton } from '@/components/ui/skeleton'
 import { groupItemsBySection } from '@/lib/utils/grocerySort'
 
 const COLOR = '#F59E0B'

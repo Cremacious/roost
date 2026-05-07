@@ -7,7 +7,7 @@ import { useState } from 'react'
 import { HeroCard } from '@/components/today/HeroCard'
 import { ChoreRow } from '@/components/today/ChoreRow'
 import { SnapshotStrip } from '@/components/today/SnapshotStrip'
-import { SkeletonCard, Skeleton } from '@/components/ui/Skeleton'
+import { SkeletonCard, Skeleton } from '@/components/ui/skeleton'
 import WelcomeModal from '@/components/shared/WelcomeModal'
 
 interface ChoreItem { id: string; title: string; nextDueAt: string | null; overdue: boolean }

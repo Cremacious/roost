@@ -28,7 +28,7 @@ import {
   AreaChart,
   Area,
 } from "recharts";
-import { Skeleton } from "@/components/ui/Skeleton";
+import { Skeleton } from "@/components/ui/skeleton";
 
 function PageContainer({ children }: { children: React.ReactNode }) {
   return (

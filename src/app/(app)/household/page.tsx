@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { motion } from 'framer-motion'
 import { Copy, Check, Users } from 'lucide-react'
-import { Skeleton, SkeletonCard } from '@/components/ui/Skeleton'
+import { Skeleton, SkeletonCard } from '@/components/ui/skeleton'
 
 const SECTION_COLOR = '#3B82F6'
 const SECTION_DARK = '#1A5CB5'

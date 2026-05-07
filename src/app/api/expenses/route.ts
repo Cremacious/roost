@@ -133,7 +133,7 @@ export async function GET(request: NextRequest): Promise<Response> {
         .from(expenses)
         .leftJoin(
           recurring_expense_templates,
-          sql`${expenses.recurring_template_id}::uuid = ${recurring_expense_templates.id}`
+          eq(expenses.recurring_template_id, recurring_expense_templates.id)
         )
         .where(
           and(

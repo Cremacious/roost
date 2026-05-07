@@ -124,6 +124,11 @@ jobs:
           CRON_SECRET=${CRON_SECRET}
           EOF
 
+      - name: Sync database schema
+        run: npx drizzle-kit push --force
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+
       - name: Run Playwright
         run: npm run test:e2e
 

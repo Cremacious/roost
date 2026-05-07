@@ -357,8 +357,8 @@ export default async function HomePage() {
                 <p style={{ fontSize: 16, fontWeight: 900, color: '#111827', margin: '0 0 6px', fontFamily: 'var(--font-nunito)' }}>
                   Chores
                 </p>
-                <p style={{ fontSize: 13, fontWeight: 600, color: '#6B7280', lineHeight: 1.55, margin: 0, fontFamily: 'var(--font-nunito)' }}>
-                  Assign it. Track it. Nobody gets away with &ldquo;I forgot.&rdquo; Kids earn rewards for finishing theirs.
+                <p style={{ fontSize: 13, fontWeight: 600, color: '#6B7280', lineHeight: 1.6, margin: 0, fontFamily: 'var(--font-nunito)' }}>
+                  Assign chores to anyone in the household and track who has done what. Kids earn points and rewards when they hit their weekly completion goal, so you&apos;re not the one doing the nagging. Streaks and a leaderboard keep everyone honest.
                 </p>
               </div>
               <ChoresMockup />
@@ -391,8 +391,8 @@ export default async function HomePage() {
               <p style={{ fontSize: 16, fontWeight: 900, color: '#111827', margin: '0 0 6px', fontFamily: 'var(--font-nunito)' }}>
                 Grocery
               </p>
-              <p style={{ fontSize: 13, fontWeight: 600, color: '#6B7280', lineHeight: 1.55, margin: 0, fontFamily: 'var(--font-nunito)' }}>
-                One list everyone adds to. No more &ldquo;I thought you got the milk.&rdquo;
+              <p style={{ fontSize: 13, fontWeight: 600, color: '#6B7280', lineHeight: 1.6, margin: 0, fontFamily: 'var(--font-nunito)' }}>
+                One shared list that everyone can add to from anywhere. Items auto-sort by store section so you&apos;re not zigzagging across the store. Check things off as you shop, and clear the cart when you&apos;re done.
               </p>
             </div>
           </div>
@@ -426,8 +426,8 @@ export default async function HomePage() {
               <p style={{ fontSize: 16, fontWeight: 900, color: '#111827', margin: '0 0 6px', fontFamily: 'var(--font-nunito)' }}>
                 Expenses
               </p>
-              <p style={{ fontSize: 13, fontWeight: 600, color: '#6B7280', lineHeight: 1.55, margin: 0, fontFamily: 'var(--font-nunito)' }}>
-                Split bills three ways, scan a receipt, settle up. No spreadsheets.
+              <p style={{ fontSize: 13, fontWeight: 600, color: '#6B7280', lineHeight: 1.6, margin: 0, fontFamily: 'var(--font-nunito)' }}>
+                Track shared bills and split them equally, by custom amounts, or by line item. Snap a photo of a receipt and Roost reads the items for you. See who owes what, settle up, and move on.
               </p>
             </div>
 
@@ -462,8 +462,8 @@ export default async function HomePage() {
                 <p style={{ fontSize: 16, fontWeight: 900, color: '#111827', margin: '0 0 6px', fontFamily: 'var(--font-nunito)' }}>
                   Meals
                 </p>
-                <p style={{ fontSize: 13, fontWeight: 600, color: '#6B7280', lineHeight: 1.55, margin: 0, fontFamily: 'var(--font-nunito)' }}>
-                  Plan the week, vote on dinners, push ingredients straight to your grocery list.
+                <p style={{ fontSize: 13, fontWeight: 600, color: '#6B7280', lineHeight: 1.6, margin: 0, fontFamily: 'var(--font-nunito)' }}>
+                  Plan the week&apos;s meals together, let everyone vote on what sounds good, and push ingredients straight to the grocery list with one tap. Save your household favorites to a meal bank and schedule them again whenever you want.
                 </p>
               </div>
               <MealsMockup />
@@ -499,8 +499,8 @@ export default async function HomePage() {
               <p style={{ fontSize: 16, fontWeight: 900, color: '#111827', margin: '0 0 6px', fontFamily: 'var(--font-nunito)' }}>
                 Calendar
               </p>
-              <p style={{ fontSize: 13, fontWeight: 600, color: '#6B7280', lineHeight: 1.55, margin: 0, fontFamily: 'var(--font-nunito)' }}>
-                Household events everyone can see. School pickups, dentist, game night.
+              <p style={{ fontSize: 13, fontWeight: 600, color: '#6B7280', lineHeight: 1.6, margin: 0, fontFamily: 'var(--font-nunito)' }}>
+                A shared calendar for the whole household, from school pickups and dentist appointments to game nights and grocery runs. Everyone sees the same events. Set recurring events once and never think about them again.
               </p>
             </div>
 
@@ -531,8 +531,8 @@ export default async function HomePage() {
               <p style={{ fontSize: 16, fontWeight: 900, color: '#111827', margin: '0 0 6px', fontFamily: 'var(--font-nunito)' }}>
                 Reminders
               </p>
-              <p style={{ fontSize: 13, fontWeight: 600, color: '#6B7280', lineHeight: 1.55, margin: 0, fontFamily: 'var(--font-nunito)' }}>
-                Nag the right people at the right time, so you don&apos;t have to.
+              <p style={{ fontSize: 13, fontWeight: 600, color: '#6B7280', lineHeight: 1.6, margin: 0, fontFamily: 'var(--font-nunito)' }}>
+                Set a reminder for yourself or anyone in the household, once or on a recurring schedule. Roost sends a push notification to the right person at the right time, so you don&apos;t have to be the one following up.
               </p>
             </div>
           </div>

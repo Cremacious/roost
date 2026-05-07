@@ -17,12 +17,20 @@ const FEATURES = [
   { icon: Bell,           title: 'Reminders', desc: 'Nag the right people at the right time' },
 ]
 
+function getStrength(password: string): number {
+  if (password.length === 0) return 0
+  if (password.length < 8) return 1
+  const hasUpper = /[A-Z]/.test(password)
+  const hasNumber = /[0-9]/.test(password)
+  const hasSpecial = /[^A-Za-z0-9]/.test(password)
+  const complexity = [hasUpper, hasNumber, hasSpecial].filter(Boolean).length
+  if (complexity >= 2) return 4
+  if (complexity === 1) return 3
+  return 2
+}
+
 function StrengthBar({ password }: { password: string }) {
-  const score = password.length === 0 ? 0
-    : password.length < 6 ? 1
-    : password.length < 10 ? 2
-    : /[A-Z]/.test(password) && /[0-9]/.test(password) ? 4
-    : 3
+  const score = getStrength(password)
   const colors = ['transparent', '#EF4444', '#F97316', '#EAB308', '#22C55E']
   const labels = ['', 'Too short', 'Weak', 'Fair', 'Strong']
   return (
@@ -44,14 +52,21 @@ export default function SignupPage() {
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [confirm, setConfirm] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+
+  const confirmMismatch = confirm.length > 0 && confirm !== password
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setError('')
-    if (password.length < 8) {
-      setError('Password must be at least 8 characters')
+    if (getStrength(password) < 3) {
+      setError('Password is too weak. Use 8+ characters with uppercase letters and numbers.')
+      return
+    }
+    if (password !== confirm) {
+      setError('Passwords do not match.')
       return
     }
     setLoading(true)
@@ -142,8 +157,26 @@ export default function SignupPage() {
             </div>
             <div>
               <label style={{ display: 'block', fontSize: 11, fontWeight: 800, letterSpacing: '0.07em', color: '#7A3F3F', marginBottom: 6 }}>PASSWORD</label>
-              <Input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="At least 8 characters" required autoComplete="new-password" style={{ border: '1.5px solid #F5C5C5', borderBottom: '3px solid #DBADB0' }} />
+              <Input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="Min 8 chars, uppercase, number" required autoComplete="new-password" style={{ border: '1.5px solid #F5C5C5', borderBottom: '3px solid #DBADB0' }} />
               <StrengthBar password={password} />
+            </div>
+            <div>
+              <label style={{ display: 'block', fontSize: 11, fontWeight: 800, letterSpacing: '0.07em', color: '#7A3F3F', marginBottom: 6 }}>CONFIRM PASSWORD</label>
+              <Input
+                type="password"
+                value={confirm}
+                onChange={e => setConfirm(e.target.value)}
+                placeholder="Re-enter your password"
+                required
+                autoComplete="new-password"
+                style={{
+                  border: confirmMismatch ? '1.5px solid #FCA5A5' : '1.5px solid #F5C5C5',
+                  borderBottom: confirmMismatch ? '3px solid #EF4444' : '3px solid #DBADB0',
+                }}
+              />
+              {confirmMismatch && (
+                <p style={{ fontSize: 11, fontWeight: 700, color: '#EF4444', margin: '3px 0 0' }}>Passwords do not match</p>
+              )}
             </div>
 
             {error && <p style={{ color: '#EF4444', fontSize: 13, fontWeight: 700 }}>{error}</p>}

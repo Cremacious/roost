@@ -188,6 +188,11 @@ export async function POST(req: NextRequest) {
   if (!paidBy) return NextResponse.json({ error: 'Paid by required' }, { status: 400 })
   if (!splits?.length) return NextResponse.json({ error: 'Splits required' }, { status: 400 })
 
+  const invalidSplit = (splits as { userId: string; amount: string }[]).find(sp => !sp.userId)
+  if (invalidSplit) {
+    return NextResponse.json({ error: 'Invalid split: missing user ID' }, { status: 400 })
+  }
+
   const totalSplit = splits.reduce((s: number, sp: { amount: string }) => s + parseFloat(sp.amount), 0)
   if (Math.abs(totalSplit - parseFloat(amount)) > 0.02) {
     return NextResponse.json({ error: 'Splits must sum to total amount' }, { status: 400 })

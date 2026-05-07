@@ -108,12 +108,13 @@ export function ExpenseSheet({ open, onClose, members, currentUserId, isPremium,
     staleTime: 60_000,
   })
 
-  // When the sheet opens or currentUserId becomes available, seed paidBy if not already set
+  // Seed paidBy whenever currentUserId becomes available (runs regardless of open state,
+  // so the select is pre-filled even if the session query resolves while the sheet is open)
   useEffect(() => {
-    if (open && currentUserId && !paidBy) {
+    if (currentUserId && !paidBy) {
       setPaidBy(currentUserId)
     }
-  }, [open, currentUserId])
+  }, [currentUserId])
 
   const nonPayerMembers = members.filter(m => m.id !== paidBy)
 
@@ -254,10 +255,16 @@ export function ExpenseSheet({ open, onClose, members, currentUserId, isPremium,
       toast.error('Invalid amount', { description: 'Enter a positive number.' }); return
     }
 
+    const effectivePaidBy = paidBy || currentUserId || members[0]?.id || ''
+    if (!effectivePaidBy) {
+      toast.error('Payer required', { description: 'Select who paid for this expense.' })
+      return
+    }
+
     let splits: CustomSplit[] = []
 
     if (splitMethod === 'equal') {
-      splits = members.filter(m => m.id !== paidBy).map(m => ({
+      splits = members.filter(m => m.id !== effectivePaidBy).map(m => ({
         userId: m.id,
         amount: (totalAmount / members.length).toFixed(2),
       }))
@@ -289,12 +296,13 @@ export function ExpenseSheet({ open, onClose, members, currentUserId, isPremium,
     }
     // payer only: one split for the payer themselves covering the full amount
     if (splitMethod === 'payer') {
-      splits = [{ userId: paidBy, amount: totalAmount.toFixed(2) }]
+      splits = [{ userId: effectivePaidBy, amount: totalAmount.toFixed(2) }]
     }
 
-    const effectivePaidBy = paidBy || currentUserId || members[0]?.id || ''
-    if (!effectivePaidBy) {
-      toast.error('Payer required', { description: 'Select who paid for this expense.' })
+    // Guard: reject any splits with a missing userId before hitting the DB
+    const invalidSplit = splits.find(sp => !sp.userId || sp.userId.trim() === '')
+    if (invalidSplit) {
+      toast.error('Split error', { description: 'Some split members are missing. Please re-open the form and try again.' })
       return
     }
 

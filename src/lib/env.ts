@@ -55,10 +55,16 @@ function ensureValidUrl(name: string, value: string): string {
 }
 
 export function getAppUrl(): string {
+  // During `next build`, Next.js sets NEXT_PHASE to "phase-production-build".
+  // Secrets are injected at runtime (Vercel), not at build time, so we fall
+  // back to a placeholder during the build phase to avoid crashing static
+  // generation. The app never serves real traffic with this fallback.
+  const isBuildPhase = process.env.NEXT_PHASE === "phase-production-build";
+
   const configured =
     readEnv("NEXT_PUBLIC_APP_URL") ??
     readEnv("BETTER_AUTH_URL") ??
-    (!isProduction() ? LOCAL_APP_URL : undefined);
+    (!isProduction() || isBuildPhase ? LOCAL_APP_URL : undefined);
 
   if (!configured) {
     throw new Error("[env] NEXT_PUBLIC_APP_URL is required in production");
@@ -178,7 +184,11 @@ export function validateServerEnv(): void {
   const receiptScanningConfigured = isAzureReceiptScanningConfigured();
   const adminIpRestricted = Boolean(readEnv("ADMIN_ALLOWED_IPS"));
 
-  if (isProduction() && missing.length > 0) {
+  // During `next build` (NEXT_PHASE=phase-production-build), secrets are not
+  // yet injected (Vercel injects them at deploy/runtime). Only throw at actual
+  // server startup, not at build time.
+  const isBuildPhase = process.env.NEXT_PHASE === "phase-production-build";
+  if (isProduction() && !isBuildPhase && missing.length > 0) {
     throw new Error(
       `[env] Missing required environment variables: ${missing.join(", ")}`
     );

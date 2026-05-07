@@ -29,7 +29,7 @@ import {
   Area,
 } from "recharts";
 import { PageContainer } from "@/components/layout/PageContainer";
-import { Skeleton } from "@/components/ui/Skeleton";
+import { Skeleton } from "@/components/ui/skeleton";
 import PremiumGate from "@/components/shared/PremiumGate";
 import MemberAvatar from "@/components/shared/MemberAvatar";
 

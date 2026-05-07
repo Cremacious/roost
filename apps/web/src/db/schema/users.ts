@@ -15,6 +15,8 @@ export const users = pgTable('users', {
   latitude: numeric('latitude'),
   longitude: numeric('longitude'),
   pushToken: text('push_token'),
+  venmoHandle: text('venmo_handle'),
+  cashappHandle: text('cashapp_handle'),
   isChildAccount: boolean('is_child_account').notNull().default(false),
   childOfHouseholdId: text('child_of_household_id'),
   hasSeenWelcome: boolean('has_seen_welcome').notNull().default(false),

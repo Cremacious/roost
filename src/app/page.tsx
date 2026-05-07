@@ -730,7 +730,7 @@ export default async function HomePage() {
             fontFamily: ff,
           }}
         >
-          The household management app for families and roommates.
+          One App, Zero Excuses
         </h1>
         <p
           className="hero-copy text-[14px] md:text-[16px]"
@@ -743,9 +743,7 @@ export default async function HomePage() {
             fontFamily: ff,
           }}
         >
-          Chores, groceries, bills, reminders, a shared calendar, meal planning,
-          allowances, and notes. All under one roof, so your home runs on one
-          shared system instead of a pile of separate tools.
+          Chores. Groceries. Bills. Meals. One place, everyone on the same page.
         </p>
         <div className="hero-actions">
           <Link
@@ -753,7 +751,7 @@ export default async function HomePage() {
             className="hero-primary"
             style={{ fontFamily: ff }}
           >
-            Create your household
+            Get started free
           </Link>
           <Link
             href="/login"

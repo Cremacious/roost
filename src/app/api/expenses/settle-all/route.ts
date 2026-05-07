@@ -73,7 +73,7 @@ export async function POST(request: NextRequest): Promise<Response> {
   const payerName = currentUser?.name ?? "Someone";
 
   // Get payee push token
-  const [payeeUser] = await db.select({ push_token: users.push_token }).from(users).where(eq(users.id, toUserId)).limit(1);
+  const [_payeeUser] = await db.select({ push_token: users.push_token }).from(users).where(eq(users.id, toUserId)).limit(1);
 
   // Queue notification for payee
   if (result.length > 0) {

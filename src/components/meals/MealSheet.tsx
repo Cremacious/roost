@@ -76,6 +76,7 @@ export default function MealSheet({ open, onClose, meal, isPremium, mealCount, o
 
   useEffect(() => {
     if (open) {
+      /* eslint-disable react-hooks/set-state-in-effect */
       if (meal) {
         setName(meal.name);
         setCategory(meal.category);
@@ -92,6 +93,7 @@ export default function MealSheet({ open, onClose, meal, isPremium, mealCount, o
         setIngredients([{ name: "" }, { name: "" }, { name: "" }]);
         setSteps([]);
       }
+      /* eslint-enable react-hooks/set-state-in-effect */
     }
   }, [meal, open]);
 

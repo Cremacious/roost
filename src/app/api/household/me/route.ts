@@ -2,7 +2,7 @@ import { NextRequest } from "next/server";
 import { getUserMemberships, requireCurrentMembership } from "@/lib/auth/helpers";
 import { db } from "@/lib/db";
 import { households, member_permissions } from "@/db/schema";
-import { and, eq } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 
 export async function GET(request: NextRequest): Promise<Response> {
   let authContext;

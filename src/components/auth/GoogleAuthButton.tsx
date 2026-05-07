@@ -9,7 +9,6 @@ import { getGoogleAuthRedirects } from "@/lib/auth/client-redirects";
 import {
   ROOST_BRAND_BG,
   ROOST_BRAND_CARD_MUTED,
-  ROOST_BRAND_CARD_TEXT,
 } from "@/lib/brand";
 
 type GoogleAuthButtonMode = "login" | "signup";

@@ -1,7 +1,7 @@
 import { NextRequest } from "next/server";
 import { requireSession } from "@/lib/auth/helpers";
 import { db } from "@/lib/db";
-import { expenses, expense_splits, user, users, households } from "@/db/schema";
+import { expenses, expense_splits, user, households } from "@/db/schema";
 import { and, desc, eq, gte, inArray, isNull, lte } from "drizzle-orm";
 import { getUserHousehold } from "@/app/api/chores/route";
 import { format } from "date-fns";

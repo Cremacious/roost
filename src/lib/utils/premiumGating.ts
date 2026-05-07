@@ -1,6 +1,6 @@
 import { db } from "@/lib/db";
 import { chores, tasks, notes, calendar_events, reminders, meals, household_members } from "@/db/schema";
-import { and, count, eq, gte, isNull, lt, ne, sql as drizzleSql } from "drizzle-orm";
+import { and, count, eq, gte, isNull, lt, ne } from "drizzle-orm";
 import { FREE_TIER_LIMITS } from "@/lib/constants/freeTierLimits";
 
 // ---- Chores -----------------------------------------------------------------

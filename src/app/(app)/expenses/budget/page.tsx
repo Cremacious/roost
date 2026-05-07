@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useHousehold } from "@/lib/hooks/useHousehold";
 import { motion } from "framer-motion";
-import { ArrowLeft, Plus, RefreshCw, Target } from "lucide-react";
+import { ArrowLeft, Plus, Target } from "lucide-react";
 import Link from "next/link";
 import { PageContainer } from "@/components/layout/PageContainer";
 import { Skeleton } from "@/components/ui/skeleton";

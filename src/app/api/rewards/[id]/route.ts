@@ -4,7 +4,6 @@ import { db } from "@/lib/db";
 import { reward_rules, reward_payouts } from "@/db/schema";
 import { and, count, eq } from "drizzle-orm";
 import { getUserHousehold } from "@/app/api/chores/route";
-import { format } from "date-fns";
 
 // ---- PATCH ------------------------------------------------------------------
 

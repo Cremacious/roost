@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { motion } from "framer-motion";
@@ -76,16 +76,7 @@ export default function InvitePage() {
       .catch(() => setInviteState({ status: "error" }));
   }, [token]);
 
-  useEffect(() => {
-    if (!isLoggedIn) return;
-    if (inviteState.status !== "valid") return;
-    if (inviteState.info.invite_type !== "member") return;
-    if (joining || joined) return;
-
-    void handleJoin();
-  }, [inviteState, isLoggedIn, joining, joined]);
-
-  async function handleJoin() {
+  const handleJoin = useCallback(async () => {
     setJoining(true);
     try {
       const r = await fetch(`/api/invite/${token}`, { method: "POST" });
@@ -106,7 +97,17 @@ export default function InvitePage() {
       alert("Could not join. Please try again.");
       setJoining(false);
     }
-  }
+  }, [token, router]);
+
+  useEffect(() => {
+    if (!isLoggedIn) return;
+    if (inviteState.status !== "valid") return;
+    if (inviteState.info.invite_type !== "member") return;
+    if (joining || joined) return;
+
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    void handleJoin();
+  }, [inviteState, isLoggedIn, joining, joined, handleJoin]);
 
   // ---- Loading ---------------------------------------------------------------
 

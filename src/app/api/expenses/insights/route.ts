@@ -4,7 +4,7 @@ import { db } from "@/lib/db";
 import { expenses, expense_splits, expense_categories, user, users, households } from "@/db/schema";
 import { and, eq, gte, isNull, lte, sql } from "drizzle-orm";
 import { getUserHousehold } from "@/app/api/chores/route";
-import { format, startOfMonth, endOfMonth, parseISO } from "date-fns";
+import { format, startOfMonth, endOfMonth } from "date-fns";
 
 export async function GET(request: NextRequest): Promise<Response> {
   let session;

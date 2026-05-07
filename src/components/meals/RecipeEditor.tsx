@@ -33,7 +33,6 @@ export default function RecipeEditor({
   hideSteps = false,
 }: RecipeEditorProps) {
   const [expanded, setExpanded] = useState(false);
-  const colorDark = "#C4581A";
 
   function updateIngredientName(i: number, name: string) {
     const next = ingredients.map((item, idx) => (idx === i ? { ...item, name } : item));

@@ -83,7 +83,7 @@ export function ExpenseSheet({ open, onClose, members, currentUserId, isPremium,
   const [title, setTitle] = useState('')
   const [amount, setAmount] = useState('')
   const [paidBy, setPaidBy] = useState(currentUserId ?? '')
-  const [splitMethod, setSplitMethod] = useState<SplitMethod>('equal')
+  const [splitMethod, setSplitMethod] = useState<SplitMethod>('payer')
   const [customSplits, setCustomSplits] = useState<CustomSplit[]>([])
   const [percentSplits, setPercentSplits] = useState<PercentSplit[]>([])
   const [shareSplits, setShareSplits] = useState<ShareSplit[]>([])
@@ -160,7 +160,7 @@ export function ExpenseSheet({ open, onClose, members, currentUserId, isPremium,
     setTitle('')
     setAmount('')
     setPaidBy(currentUserId)
-    setSplitMethod('equal')
+    setSplitMethod('payer')
     setCustomSplits([])
     setPercentSplits([])
     setShareSplits([])
@@ -583,11 +583,11 @@ export function ExpenseSheet({ open, onClose, members, currentUserId, isPremium,
             <label style={labelStyle}>Split</label>
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
               {([
+                { value: 'payer', label: 'Just me' },
                 { value: 'equal', label: 'Equal' },
                 { value: 'custom', label: 'Custom $' },
                 { value: 'percent', label: '%' },
                 { value: 'shares', label: 'Shares' },
-                { value: 'payer', label: 'Just me' },
               ] as const).map(({ value, label }) => (
                 <button key={value} onClick={() => handleSplitMethodChange(value)} style={pillStyle(splitMethod === value)}>
                   {label}

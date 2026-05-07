@@ -8,6 +8,7 @@ import { HeroCard } from '@/components/today/HeroCard'
 import { ChoreRow } from '@/components/today/ChoreRow'
 import { SnapshotStrip } from '@/components/today/SnapshotStrip'
 import { SkeletonCard, Skeleton } from '@/components/ui/Skeleton'
+import WelcomeModal from '@/components/shared/WelcomeModal'
 
 interface ChoreItem { id: string; title: string; nextDueAt: string | null; overdue: boolean }
 interface TodayData {
@@ -24,6 +25,24 @@ interface TodayData {
 export default function TodayPage() {
   const queryClient = useQueryClient()
   const [completedIds, setCompletedIds] = useState<Set<string>>(new Set())
+
+  const [welcomeDismissed, setWelcomeDismissed] = useState(false)
+
+  const { data: profile } = useQuery<{ hasSeenWelcome: boolean; isChildAccount: boolean }>({
+    queryKey: ['user-profile'],
+    queryFn: async () => {
+      const r = await fetch('/api/user/profile')
+      if (!r.ok) throw new Error('Failed to load profile')
+      return r.json()
+    },
+    staleTime: Infinity,
+  })
+
+  const showWelcome =
+    !welcomeDismissed &&
+    profile !== undefined &&
+    profile.hasSeenWelcome === false &&
+    profile.isChildAccount === false
 
   const { data, isLoading, isError } = useQuery<TodayData>({
     queryKey: ['today'],
@@ -88,52 +107,58 @@ export default function TodayPage() {
   const visibleChores = data.chores.filter(c => !completedIds.has(c.id))
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 12 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.18 }}
-      style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 12, maxWidth: 680, margin: '0 auto', width: '100%' }}
-    >
-      <p style={{ fontSize: 11, fontWeight: 800, color: '#9B9590', letterSpacing: '0.08em', margin: 0 }}>
-        {dateLabel}
-      </p>
-
-      <HeroCard
-        type={data.hero.type}
-        item={data.hero.item}
-        onCompleteChore={id => completeMutation.mutate(id)}
+    <>
+      <WelcomeModal
+        open={showWelcome}
+        onDismiss={() => setWelcomeDismissed(true)}
       />
+      <motion.div
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.18 }}
+        style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 12, maxWidth: 680, margin: '0 auto', width: '100%' }}
+      >
+        <p style={{ fontSize: 11, fontWeight: 800, color: '#9B9590', letterSpacing: '0.08em', margin: 0 }}>
+          {dateLabel}
+        </p>
 
-      {visibleChores.length > 0 && (
-        <>
-          <p style={{ fontSize: 10, fontWeight: 800, color: '#EF4444', letterSpacing: '0.08em', margin: 0 }}>
-            CHORES &middot; {visibleChores.length} DUE TODAY
-          </p>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-            {visibleChores.map((chore, i) => (
-              <motion.div
-                key={chore.id}
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: Math.min(i * 0.04, 0.2), duration: 0.15 }}
-              >
-                <ChoreRow
-                  id={chore.id}
-                  title={chore.title}
-                  overdue={chore.overdue}
-                  completed={completedIds.has(chore.id)}
-                  onComplete={id => completeMutation.mutate(id)}
-                />
-              </motion.div>
-            ))}
-          </div>
-        </>
-      )}
+        <HeroCard
+          type={data.hero.type}
+          item={data.hero.item}
+          onCompleteChore={id => completeMutation.mutate(id)}
+        />
 
-      <p style={{ fontSize: 10, fontWeight: 800, color: 'var(--roost-text-muted)', letterSpacing: '0.08em', margin: 0 }}>
-        SNAPSHOT
-      </p>
-      <SnapshotStrip data={data.snapshot} />
-    </motion.div>
+        {visibleChores.length > 0 && (
+          <>
+            <p style={{ fontSize: 10, fontWeight: 800, color: '#EF4444', letterSpacing: '0.08em', margin: 0 }}>
+              CHORES &middot; {visibleChores.length} DUE TODAY
+            </p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              {visibleChores.map((chore, i) => (
+                <motion.div
+                  key={chore.id}
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: Math.min(i * 0.04, 0.2), duration: 0.15 }}
+                >
+                  <ChoreRow
+                    id={chore.id}
+                    title={chore.title}
+                    overdue={chore.overdue}
+                    completed={completedIds.has(chore.id)}
+                    onComplete={id => completeMutation.mutate(id)}
+                  />
+                </motion.div>
+              ))}
+            </div>
+          </>
+        )}
+
+        <p style={{ fontSize: 10, fontWeight: 800, color: 'var(--roost-text-muted)', letterSpacing: '0.08em', margin: 0 }}>
+          SNAPSHOT
+        </p>
+        <SnapshotStrip data={data.snapshot} />
+      </motion.div>
+    </>
   )
 }

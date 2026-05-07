@@ -270,19 +270,6 @@ export default async function HomePage() {
             One App, Zero Excuses
           </h1>
 
-          <p
-            style={{
-              fontSize: 20,
-              fontWeight: 700,
-              color: 'rgba(255,255,255,0.7)',
-              margin: '0 0 36px',
-              fontFamily: 'var(--font-nunito)',
-            }}
-            className="hp-tagline"
-          >
-            Home, sorted.
-          </p>
-
           <div className="hp-hero-btns" style={{ marginBottom: 16 }}>
             <Link href="/signup" className="hp-btn-primary">
               Get started free
@@ -292,17 +279,6 @@ export default async function HomePage() {
             </Link>
           </div>
 
-          <p
-            style={{
-              fontSize: 13,
-              fontWeight: 600,
-              color: 'rgba(255,255,255,0.5)',
-              margin: 0,
-              fontFamily: 'var(--font-nunito)',
-            }}
-          >
-            Free to start. No credit card needed.
-          </p>
         </div>
       </section>
 

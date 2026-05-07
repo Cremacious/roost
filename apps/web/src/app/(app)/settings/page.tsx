@@ -1145,6 +1145,8 @@ export default function SettingsPage() {
   const [profileTimezone, setProfileTimezone] = useState('America/New_York');
   const [selectedColor, setSelectedColor] = useState<string | null>(null);
   const [profileSaving, setProfileSaving] = useState(false);
+  const [venmoHandle, setVenmoHandle] = useState('');
+  const [cashappHandle, setCashappHandle] = useState('');
 
   // Password change
   const [currentPw, setCurrentPw] = useState('');
@@ -1276,6 +1278,8 @@ export default function SettingsPage() {
       email: string;
       avatar_color: string | null;
       timezone: string;
+      venmo_handle: string | null;
+      cashapp_handle: string | null;
     };
   }>({
     queryKey: ['user-profile'],
@@ -1293,6 +1297,8 @@ export default function SettingsPage() {
     setProfileEmail(profileData.user.email ?? '');
     setProfileTimezone(profileData.user.timezone);
     setSelectedColor(profileData.user.avatar_color);
+    setVenmoHandle(profileData.user.venmo_handle ?? '');
+    setCashappHandle(profileData.user.cashapp_handle ?? '');
   }, [profileData]);
 
   // ---- Sync household state -------------------------------------------------
@@ -1804,6 +1810,85 @@ export default function SettingsPage() {
                     </option>
                   ))}
                 </select>
+              </div>
+
+              {/* Payment handles */}
+              <div
+                className="px-4 pb-3 pt-3 space-y-3"
+                style={{ borderTop: '1px solid var(--roost-border)' }}
+              >
+                <div>
+                  <p className="text-xs mb-1" style={{ color: '#374151', fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase' }}>
+                    Payment handles
+                  </p>
+                  <p className="text-xs" style={{ color: 'var(--roost-text-muted)', fontWeight: 600 }}>
+                    Visible to household members only. Payment buttons appear when settling up.
+                  </p>
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-xs" style={{ color: 'var(--roost-text-muted)', fontWeight: 700 }}>
+                    Venmo username
+                  </label>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={venmoHandle}
+                      onChange={(e) => setVenmoHandle(e.target.value)}
+                      className={inputClass}
+                      style={inputStyle}
+                      placeholder="@yourhandle"
+                    />
+                    {venmoHandle !== (profileData?.user?.venmo_handle ?? '') && (
+                      <motion.button
+                        type="button"
+                        whileTap={{ y: 1 }}
+                        disabled={profileSaving}
+                        onClick={() => saveProfileField('venmo_handle', venmoHandle)}
+                        className="h-11 shrink-0 rounded-xl px-4 text-sm text-white"
+                        style={{
+                          backgroundColor: 'var(--roost-text-primary)',
+                          border: '1.5px solid var(--roost-border)',
+                          borderBottom: '3px solid rgba(0,0,0,0.2)',
+                          fontWeight: 700,
+                        }}
+                      >
+                        Save
+                      </motion.button>
+                    )}
+                  </div>
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-xs" style={{ color: 'var(--roost-text-muted)', fontWeight: 700 }}>
+                    Cash App $cashtag
+                  </label>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={cashappHandle}
+                      onChange={(e) => setCashappHandle(e.target.value)}
+                      className={inputClass}
+                      style={inputStyle}
+                      placeholder="$yourcashtag"
+                    />
+                    {cashappHandle !== (profileData?.user?.cashapp_handle ?? '') && (
+                      <motion.button
+                        type="button"
+                        whileTap={{ y: 1 }}
+                        disabled={profileSaving}
+                        onClick={() => saveProfileField('cashapp_handle', cashappHandle)}
+                        className="h-11 shrink-0 rounded-xl px-4 text-sm text-white"
+                        style={{
+                          backgroundColor: 'var(--roost-text-primary)',
+                          border: '1.5px solid var(--roost-border)',
+                          borderBottom: '3px solid rgba(0,0,0,0.2)',
+                          fontWeight: 700,
+                        }}
+                      >
+                        Save
+                      </motion.button>
+                    )}
+                  </div>
+                </div>
               </div>
             </SlabCard>
 

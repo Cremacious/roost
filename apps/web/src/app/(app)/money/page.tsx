@@ -193,6 +193,8 @@ interface DebtItem {
   amount: number
   splitIds: string[]
   pendingClaim?: { settledByPayer: boolean; settledByPayee: boolean } | null
+  toVenmoHandle?: string | null
+  toCashappHandle?: string | null
 }
 
 interface Member {
@@ -872,6 +874,8 @@ export default function MoneyPage() {
         debt={settleDebt}
         currentUserId={currentUserId}
         members={members}
+        payeeVenmoHandle={settleDebt?.toVenmoHandle}
+        payeeCashappHandle={settleDebt?.toCashappHandle}
       />
 
       <GoalSheet

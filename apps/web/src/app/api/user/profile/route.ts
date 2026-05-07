@@ -18,6 +18,8 @@ export async function GET() {
       language: users.language,
       theme: users.theme,
       has_seen_welcome: users.hasSeenWelcome,
+      venmo_handle: users.venmoHandle,
+      cashapp_handle: users.cashappHandle,
     })
     .from(users)
     .where(eq(users.id, session.user.id))
@@ -39,6 +41,8 @@ export async function PATCH(request: Request) {
     timezone?: string
     language?: string
     push_token?: string
+    venmo_handle?: string
+    cashapp_handle?: string
   }
 
   const normalizedEmail =
@@ -76,6 +80,8 @@ export async function PATCH(request: Request) {
   if (body.timezone !== undefined) updates.timezone = body.timezone
   if (body.language !== undefined) updates.language = body.language
   if (body.push_token !== undefined) updates.pushToken = body.push_token
+  if (body.venmo_handle !== undefined) updates.venmoHandle = body.venmo_handle.trim() || null
+  if (body.cashapp_handle !== undefined) updates.cashappHandle = body.cashapp_handle.trim() || null
 
   if (normalizedEmail !== undefined) {
     const previousEmail = session.user.email?.trim().toLowerCase()

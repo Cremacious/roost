@@ -30,9 +30,11 @@ interface Props {
   debt: DebtItem | null
   currentUserId: string
   members: Member[]
+  payeeVenmoHandle?: string | null
+  payeeCashappHandle?: string | null
 }
 
-export function SettleSheet({ open, onClose, debt, currentUserId, members }: Props) {
+export function SettleSheet({ open, onClose, debt, currentUserId, members, payeeVenmoHandle, payeeCashappHandle }: Props) {
   const qc = useQueryClient()
   const [loading, setLoading] = useState(false)
 
@@ -129,8 +131,81 @@ export function SettleSheet({ open, onClose, debt, currentUserId, members }: Pro
         {mode === 'initial' && iDebtor && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--roost-text-secondary)', marginBottom: 4 }}>
-              Pay {creditorName} outside the app (cash, Venmo, etc.), then mark as paid here.
+              Pay {creditorName} outside the app, then mark as paid here.
             </p>
+
+            {(payeeVenmoHandle || payeeCashappHandle) && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 4 }}>
+                <p style={{ fontSize: 11, fontWeight: 700, color: 'var(--roost-text-muted)', letterSpacing: '0.07em', textTransform: 'uppercase', margin: 0 }}>
+                  Pay via
+                </p>
+
+                {payeeVenmoHandle && (() => {
+                  const handle = payeeVenmoHandle.replace(/^@/, '')
+                  const venmoUrl = `venmo://paycharge?txn=pay&recipients=${encodeURIComponent(handle)}&amount=${debt.amount.toFixed(2)}&note=Roost+expense`
+                  return (
+                    <a
+                      href={venmoUrl}
+                      style={{
+                        display: 'flex', alignItems: 'center', gap: 12,
+                        padding: '12px 14px', borderRadius: 14, textDecoration: 'none',
+                        backgroundColor: '#3d95ce', borderBottom: '3px solid #2d7ab0',
+                        border: '1.5px solid #2d7ab0', borderBottomWidth: 3,
+                        cursor: 'pointer',
+                      }}
+                    >
+                      <div style={{
+                        width: 32, height: 32, borderRadius: 8,
+                        backgroundColor: 'rgba(255,255,255,0.25)',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        fontWeight: 900, fontSize: 16, color: '#fff', flexShrink: 0,
+                      }}>V</div>
+                      <div style={{ flex: 1 }}>
+                        <p style={{ margin: 0, fontWeight: 800, fontSize: 14, color: '#fff' }}>Pay with Venmo</p>
+                        <p style={{ margin: 0, fontSize: 11, fontWeight: 600, color: 'rgba(255,255,255,0.8)' }}>
+                          Opens Venmo pre-filled with ${debt.amount.toFixed(2)}
+                        </p>
+                      </div>
+                    </a>
+                  )
+                })()}
+
+                {payeeCashappHandle && (() => {
+                  const handle = payeeCashappHandle.replace(/^\$/, '')
+                  const cashUrl = `cashme://cash.app/$${encodeURIComponent(handle)}/${debt.amount.toFixed(2)}`
+                  return (
+                    <a
+                      href={cashUrl}
+                      style={{
+                        display: 'flex', alignItems: 'center', gap: 12,
+                        padding: '12px 14px', borderRadius: 14, textDecoration: 'none',
+                        backgroundColor: '#5724c0', borderBottom: '3px solid #4118a0',
+                        border: '1.5px solid #4118a0', borderBottomWidth: 3,
+                        cursor: 'pointer',
+                      }}
+                    >
+                      <div style={{
+                        width: 32, height: 32, borderRadius: 8,
+                        backgroundColor: 'rgba(255,255,255,0.2)',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        fontWeight: 900, fontSize: 16, color: '#fff', flexShrink: 0,
+                      }}>$</div>
+                      <div style={{ flex: 1 }}>
+                        <p style={{ margin: 0, fontWeight: 800, fontSize: 14, color: '#fff' }}>Pay with Cash App</p>
+                        <p style={{ margin: 0, fontSize: 11, fontWeight: 600, color: 'rgba(255,255,255,0.8)' }}>
+                          Opens Cash App pre-filled with ${debt.amount.toFixed(2)}
+                        </p>
+                      </div>
+                    </a>
+                  )
+                })()}
+
+                <p style={{ fontSize: 12, fontWeight: 600, color: 'var(--roost-text-muted)', margin: 0 }}>
+                  After paying, tap the button below to notify {creditorName}.
+                </p>
+              </div>
+            )}
+
             <button onClick={handleClaim} disabled={loading} style={{ ...btnBase, backgroundColor: COLOR, color: '#fff', borderBottom: `3px solid ${COLOR_DARK}` }}>
               I paid {creditorName}
             </button>

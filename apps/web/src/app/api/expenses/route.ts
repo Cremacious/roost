@@ -56,7 +56,7 @@ export async function GET(req: NextRequest) {
       .where(and(eq(expenseCategories.householdId, householdId), isNull(expenseCategories.deletedAt))),
 
     db
-      .select({ userId: householdMembers.userId, name: users.name, avatarColor: users.avatarColor })
+      .select({ userId: householdMembers.userId, name: users.name, avatarColor: users.avatarColor, venmoHandle: users.venmoHandle, cashappHandle: users.cashappHandle })
       .from(householdMembers)
       .leftJoin(users, eq(householdMembers.userId, users.id))
       .where(and(eq(householdMembers.householdId, householdId), isNull(householdMembers.deletedAt))),
@@ -143,7 +143,7 @@ export async function GET(req: NextRequest) {
     .filter(e => new Date(e.createdAt) >= monthStart)
     .reduce((s, e) => s + parseFloat(e.amount), 0)
 
-  const memberMap = new Map(memberRows.map(m => [m.userId, { name: m.name, avatarColor: m.avatarColor }]))
+  const memberMap = new Map(memberRows.map(m => [m.userId, { name: m.name, avatarColor: m.avatarColor, venmoHandle: m.venmoHandle, cashappHandle: m.cashappHandle }]))
 
   const enrichedDebts = debts.map(d => ({
     ...d,
@@ -151,6 +151,8 @@ export async function GET(req: NextRequest) {
     fromColor: memberMap.get(d.from)?.avatarColor ?? null,
     toName: memberMap.get(d.to)?.name ?? 'Unknown',
     toColor: memberMap.get(d.to)?.avatarColor ?? null,
+    toVenmoHandle: memberMap.get(d.to)?.venmoHandle ?? null,
+    toCashappHandle: memberMap.get(d.to)?.cashappHandle ?? null,
   }))
 
   return NextResponse.json({

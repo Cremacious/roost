@@ -1523,6 +1523,49 @@ Previous: 2026-04-08 (Custom categories + budgets + insights complete. Schema: e
   "var(--roost-text-primary)" so wordmark adapts to all 8 themes.
 
 
+## Analytics
+
+### Provider: Firebase Analytics (Google Analytics for Firebase)
+- Free, unlimited events at any scale — no per-event pricing ever
+- Purpose-built for mobile (iOS + Android). Works on web too via firebase/analytics SDK.
+- Integrates natively with RevenueCat: subscription revenue events (trial started,
+  conversion, renewal, churn) flow into Firebase automatically with zero extra code.
+- Do NOT use PostHog — caps at 1M events/month free, then $79–383/month at 5K–10K users.
+- Do NOT use Amplitude — Firebase is better integrated with the mobile + RevenueCat stack.
+
+### What to Track
+Core funnel (implement at launch):
+  household_created — user completes onboarding, creates or joins a household
+  subscription_started — premium purchase confirmed (RevenueCat fires this automatically)
+  subscription_cancelled — churn event
+  feature_used — one event with a feature_name param (chores, expenses, meals, etc.)
+    Use this to identify which features drive retention
+
+Retention signals (add after launch when you have data to measure):
+  chore_completed, expense_added, grocery_checked, meal_planned
+  session_start is fired automatically by Firebase — no code needed
+
+### Implementation Plan (do when building Expo app)
+Mobile (Expo iOS/Android):
+  @react-native-firebase/app + @react-native-firebase/analytics
+  logEvent('household_created', { role: 'admin' | 'member' })
+  RevenueCat Firebase integration: one toggle in RevenueCat dashboard, no code
+
+Web (Next.js):
+  firebase/analytics (client-side only, never import in server components or API routes)
+  Wrap in a useEffect with dynamic import — Firebase Analytics requires browser environment
+  Mirror the same event names as mobile for unified reporting
+
+### What NOT to Track
+- Never log PII (names, emails, household codes) in analytics events
+- Never log financial amounts in events (use RevenueCat revenue reporting for that)
+- Child accounts: skip analytics initialization entirely (COPPA)
+  Check is_child_account on session before initializing Firebase
+
+### Cost
+$0 forever. Firebase Analytics has no usage limits, no paid tier.
+RevenueCat revenue reporting (also free) handles subscription metrics separately.
+
 ## Scale Architecture Plan
 
 ### Current Stack (good up to ~10,000 users)

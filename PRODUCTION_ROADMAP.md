@@ -373,8 +373,8 @@ Two high-signal funnel events now emit analytics logs:
   at `POST /api/household/create` — marks onboarding completion
 - Premium conversion is already tracked in the Stripe webhook via `logActivity` (household_activity
   table) as well as the `[stripe.webhook.handled] outcome=subscription_started` log.
-- These logs are immediately useful in Vercel's log explorer and forward cleanly to PostHog
-  or Segment post-launch without code changes (just update `logger.ts`).
+- These logs are immediately useful in Vercel's log explorer and forward cleanly to
+  Firebase Analytics or Segment post-launch without code changes (just update `logger.ts`).
 Files:
   - `src/app/api/stripe/checkout/route.ts`
   - `src/app/api/household/create/route.ts`
@@ -398,11 +398,18 @@ Alerting:
 Full analytics funnel:
 - Signup event: better-auth handles registration internally (no hook point without modifying
   auth config or adding a databaseHook). Deferred — not a launch blocker.
-- Retention metrics (DAU/WAU/churn): require a time-series analytics tool (PostHog, Amplitude).
-  Deferred — not useful until there are enough users to measure.
-- Recommended post-launch analytics provider: PostHog (free up to 1M events/month, self-hostable).
-  Install `posthog-js` client and `posthog-node` server package.
+- Retention metrics (DAU/WAU/churn): require a time-series analytics tool. Deferred — not
+  useful until there are enough users to measure.
+- Recommended analytics provider: Firebase Analytics (Google Analytics for Firebase).
+  Free, unlimited events, no per-event pricing at any scale. Purpose-built for mobile
+  (iOS + Android via Expo) with a solid web SDK for the Next.js side. Revenue events
+  (purchases, subscription starts) integrate directly with RevenueCat via the Firebase
+  integration — zero extra code.
+  Setup: add @react-native-firebase/analytics to Expo app, add firebase/analytics to Next.js.
   Server events (checkout, household creation) already have the log structure to forward.
+  Do NOT use PostHog — free tier caps at 1M events/month ($79–383/month at 5K–10K users).
+  Do NOT use Amplitude free tier as a fallback — Firebase is better integrated with the
+  mobile stack and RevenueCat natively.
 
 #### Summary: what you get on day one without any additional setup
 - Every Stripe billing event visible and attributable to a household in Vercel logs

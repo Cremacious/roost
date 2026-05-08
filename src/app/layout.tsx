@@ -17,9 +17,45 @@ const nunito = Nunito({
   display: 'swap',
 })
 
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://roost.app'
+
 export const metadata: Metadata = {
-  title: 'Roost',
-  description: 'Home, sorted.',
+  title: {
+    default: 'Roost',
+    template: '%s | Roost',
+  },
+  description: 'Home, sorted. The household OS for families, roommates, and college students.',
+  metadataBase: new URL(APP_URL),
+  openGraph: {
+    title: 'Roost',
+    description: 'Home, sorted. The household OS for families, roommates, and college students.',
+    url: APP_URL,
+    siteName: 'Roost',
+    images: [
+      {
+        url: '/og-image.png',
+        width: 1200,
+        height: 630,
+        alt: 'Roost — Home, sorted.',
+      },
+    ],
+    locale: 'en_US',
+    type: 'website',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Roost',
+    description: 'Home, sorted. The household OS for families, roommates, and college students.',
+    images: ['/og-image.png'],
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+    },
+  },
 }
 
 export const viewport: Viewport = {

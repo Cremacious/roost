@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getSession, getUserHousehold } from '@/lib/auth/helpers'
 import { db } from '@/lib/db'
 import { notes } from '@/db/schema'
-import { eq } from 'drizzle-orm'
+import { eq, and, isNull } from 'drizzle-orm'
 
 export async function PATCH(
   req: NextRequest,
@@ -18,7 +18,7 @@ export async function PATCH(
   const { householdId, role } = membership
   const isPremium = membership.household.subscriptionStatus === 'premium'
 
-  const [existing] = await db.select().from(notes).where(eq(notes.id, id)).limit(1)
+  const [existing] = await db.select().from(notes).where(and(eq(notes.id, id), isNull(notes.deletedAt))).limit(1)
   if (!existing || existing.householdId !== householdId) {
     return NextResponse.json({ error: 'Not found' }, { status: 404 })
   }
@@ -61,7 +61,7 @@ export async function DELETE(
 
   const { householdId, role } = membership
 
-  const [existing] = await db.select().from(notes).where(eq(notes.id, id)).limit(1)
+  const [existing] = await db.select().from(notes).where(and(eq(notes.id, id), isNull(notes.deletedAt))).limit(1)
   if (!existing || existing.householdId !== householdId) {
     return NextResponse.json({ error: 'Not found' }, { status: 404 })
   }

@@ -16,7 +16,7 @@ export async function GET() {
   const rows = await db
     .select()
     .from(meals)
-    .where(and(eq(meals.householdId, householdId), isNull(meals.deletedAt)))
+    .where(and(eq(meals.householdId, householdId), isNull(meals.deletedAt), eq(meals.inBank, true)))
     .orderBy(asc(meals.name))
 
   return NextResponse.json({ meals: rows })
@@ -31,7 +31,7 @@ export async function POST(req: NextRequest) {
 
   const { householdId } = membership
   const body = await req.json()
-  const { name, category, description, prepTime, ingredients } = body
+  const { name, category, description, prepTime, ingredients, inBank } = body
 
   if (!name?.trim()) return NextResponse.json({ error: 'Name is required' }, { status: 400 })
 
@@ -45,6 +45,7 @@ export async function POST(req: NextRequest) {
       prepTime: prepTime ? parseInt(prepTime, 10) : null,
       ingredients: JSON.stringify(ingredients ?? []),
       createdBy: session.user.id,
+      inBank: inBank !== false, // default true unless explicitly false
     })
     .returning()
 

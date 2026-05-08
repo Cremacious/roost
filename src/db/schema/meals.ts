@@ -13,6 +13,7 @@ export const meals = pgTable('meals', {
   prepTime: integer('prep_time'),
   ingredients: text('ingredients').notNull().default('[]'),
   rotation: boolean('rotation').notNull().default(false),
+  inBank: boolean('in_bank').notNull().default(true),
   createdBy: text('created_by')
     .notNull()
     .references(() => users.id),

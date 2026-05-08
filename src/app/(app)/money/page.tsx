@@ -6,7 +6,7 @@ import { motion } from 'framer-motion'
 import { toast } from 'sonner'
 import {
   Plus, Wallet, Receipt, BarChart3, Target, ListChecks, TrendingUp,
-  CheckCircle, Clock, AlertCircle, ChevronRight, Edit2, Trash2,
+  CheckCircle, Clock, AlertCircle, ChevronRight, Edit2, Trash2, ChevronDown, ChevronUp,
 } from 'lucide-react'
 import { format, parseISO } from 'date-fns'
 import { AreaChart, Area, XAxis, YAxis, Tooltip, PieChart, Pie, Cell, ResponsiveContainer } from 'recharts'
@@ -731,6 +731,92 @@ function BudgetTab({ isPremium, isAdmin, onAddBudget, onEditBudget }: {
   )
 }
 
+// ─── Goal History ─────────────────────────────────────────────────────────────
+
+function GoalHistory({ goalId }: { goalId: string }) {
+  const { data, isLoading } = useQuery({
+    queryKey: ['goal-contributions', goalId],
+    queryFn: () => fetch(`/api/money/goals/${goalId}/contributions`).then(r => r.json()),
+    staleTime: 30_000,
+  })
+
+  if (isLoading) {
+    return (
+      <div style={{ padding: '12px 0' }}>
+        {[1, 2, 3].map(i => (
+          <div key={i} style={{ height: 40, borderRadius: 10, backgroundColor: 'var(--roost-border)', opacity: 0.4, marginBottom: 8, animation: 'pulse 2s infinite' }} />
+        ))}
+      </div>
+    )
+  }
+
+  const { contributions = [], perMember = [] } = data ?? {}
+
+  if (contributions.length === 0) {
+    return (
+      <p style={{ margin: '12px 0 4px', fontSize: 13, fontWeight: 600, color: 'var(--roost-text-muted)', textAlign: 'center' }}>
+        No contributions yet.
+      </p>
+    )
+  }
+
+  return (
+    <div style={{ marginTop: 12 }}>
+      {/* Per-member totals */}
+      {perMember.length > 1 && (
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 10 }}>
+          {perMember.map((m: any) => (
+            <div
+              key={m.userId}
+              style={{
+                padding: '4px 10px', borderRadius: 8,
+                backgroundColor: COLOR + '18',
+                border: `1px solid ${COLOR}40`,
+                display: 'flex', gap: 6, alignItems: 'center',
+              }}
+            >
+              <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--roost-text-primary)' }}>{m.userName}</span>
+              <span style={{ fontSize: 12, fontWeight: 800, color: COLOR }}>${m.total.toFixed(2)}</span>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Contribution list */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+        {contributions.map((c: any) => (
+          <div
+            key={c.id}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 10,
+              padding: '10px 12px', borderRadius: 10,
+              backgroundColor: 'var(--roost-bg)',
+              border: '1.5px solid var(--roost-border)',
+            }}
+          >
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <p style={{ margin: 0, fontWeight: 700, fontSize: 13, color: 'var(--roost-text-primary)' }}>
+                {c.userName ?? 'Unknown'}
+              </p>
+              {c.note && (
+                <p style={{ margin: '1px 0 0', fontSize: 12, fontWeight: 600, color: 'var(--roost-text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {c.note}
+                </p>
+              )}
+            </div>
+            <div style={{ textAlign: 'right', flexShrink: 0 }}>
+              <p style={{ margin: 0, fontWeight: 800, fontSize: 14, color: COLOR }}>${c.amount.toFixed(2)}</p>
+              <p style={{ margin: '1px 0 0', fontSize: 11, fontWeight: 600, color: 'var(--roost-text-muted)' }}>
+                {format(new Date(c.createdAt), 'MMM d')}
+              </p>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
 // ─── Goals Tab ────────────────────────────────────────────────────────────────
 
 function GoalsTab({ isPremium, isAdmin, onNewGoal, onEditGoal, onContribute }: {
@@ -741,6 +827,30 @@ function GoalsTab({ isPremium, isAdmin, onNewGoal, onEditGoal, onContribute }: {
   onContribute: (goal: any) => void
 }) {
   const qc = useQueryClient()
+  const [expandedGoalId, setExpandedGoalId] = useState<string | null>(null)
+  const [pendingDelete, setPendingDelete] = useState<{ id: string; name: string } | null>(null)
+  const [deletingId, setDeletingId] = useState<string | null>(null)
+
+  async function confirmDeleteGoal() {
+    if (!pendingDelete) return
+    const { id, name } = pendingDelete
+    setDeletingId(id)
+    setPendingDelete(null)
+    try {
+      const res = await fetch(`/api/money/goals/${id}`, { method: 'DELETE' })
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}))
+        toast.error('Could not delete goal', { description: data.error ?? 'Something went wrong.' })
+        return
+      }
+      toast.success(`"${name}" deleted`)
+      qc.invalidateQueries({ queryKey: ['goals'] })
+      qc.invalidateQueries({ queryKey: ['money-dashboard'] })
+    } finally {
+      setDeletingId(null)
+    }
+  }
+
   const { data, isLoading } = useQuery({
     queryKey: ['goals'],
     queryFn: () => fetch('/api/money/goals').then(r => r.json()),
@@ -795,71 +905,152 @@ function GoalsTab({ isPremium, isAdmin, onNewGoal, onEditGoal, onContribute }: {
           body="Create a savings goal to track the household's progress together." />
       )}
 
-      {active.map((goal: any) => (
-        <SlabCard key={goal.id} color={COLOR}>
-          <div style={{ padding: '16px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
-              <div>
-                <p style={{ margin: 0, fontWeight: 800, fontSize: 15, color: 'var(--roost-text-primary)' }}>{goal.name}</p>
-                {goal.targetDate && (
-                  <p style={{ margin: '2px 0 0', fontSize: 12, fontWeight: 600, color: 'var(--roost-text-muted)' }}>
-                    Target: {format(parseISO(goal.targetDate), 'MMM d, yyyy')}
-                  </p>
+      {active.map((goal: any) => {
+        const isExpanded = expandedGoalId === goal.id
+        return (
+          <SlabCard key={goal.id} color={COLOR}>
+            <div style={{ padding: '16px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
+                <div>
+                  <p style={{ margin: 0, fontWeight: 800, fontSize: 15, color: 'var(--roost-text-primary)' }}>{goal.name}</p>
+                  {goal.targetDate && (
+                    <p style={{ margin: '2px 0 0', fontSize: 12, fontWeight: 600, color: 'var(--roost-text-muted)' }}>
+                      Target: {format(parseISO(goal.targetDate), 'MMM d, yyyy')}
+                    </p>
+                  )}
+                </div>
+                {isAdmin && (
+                  <div style={{ display: 'flex', gap: 2 }}>
+                    <button onClick={() => onEditGoal(goal)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4 }}>
+                      <Edit2 size={15} color="var(--roost-text-muted)" />
+                    </button>
+                    <button
+                      onClick={() => setPendingDelete({ id: goal.id, name: goal.name })}
+                      disabled={deletingId === goal.id}
+                      style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, opacity: deletingId === goal.id ? 0.3 : 0.6 }}
+                    >
+                      <Trash2 size={15} color="#EF4444" />
+                    </button>
+                  </div>
                 )}
               </div>
-              {isAdmin && (
-                <button onClick={() => onEditGoal(goal)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4 }}>
-                  <Edit2 size={15} color="var(--roost-text-muted)" />
-                </button>
-              )}
-            </div>
 
-            <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginBottom: 8 }}>
-              <span style={{ fontWeight: 900, fontSize: 22, color: 'var(--roost-text-primary)' }}>${goal.savedAmount.toFixed(2)}</span>
-              <span style={{ fontWeight: 600, fontSize: 13, color: 'var(--roost-text-muted)' }}>of ${parseFloat(goal.targetAmount).toFixed(2)}</span>
-              <span style={{ fontWeight: 700, fontSize: 13, color: COLOR }}>{goal.progressPercent}%</span>
-            </div>
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginBottom: 8 }}>
+                <span style={{ fontWeight: 900, fontSize: 22, color: 'var(--roost-text-primary)' }}>${goal.savedAmount.toFixed(2)}</span>
+                <span style={{ fontWeight: 600, fontSize: 13, color: 'var(--roost-text-muted)' }}>of ${parseFloat(goal.targetAmount).toFixed(2)}</span>
+                <span style={{ fontWeight: 700, fontSize: 13, color: COLOR }}>{goal.progressPercent}%</span>
+              </div>
 
-            <div style={{ height: 8, borderRadius: 99, backgroundColor: 'var(--roost-border)', overflow: 'hidden', marginBottom: 12 }}>
-              <div style={{ height: '100%', borderRadius: 99, width: `${goal.progressPercent}%`, backgroundColor: COLOR, transition: 'width 0.4s' }} />
-            </div>
+              <div style={{ height: 8, borderRadius: 99, backgroundColor: 'var(--roost-border)', overflow: 'hidden', marginBottom: 12 }}>
+                <div style={{ height: '100%', borderRadius: 99, width: `${goal.progressPercent}%`, backgroundColor: COLOR, transition: 'width 0.4s' }} />
+              </div>
 
-            <div style={{ display: 'flex', gap: 8 }}>
-              <button
-                onClick={() => onContribute(goal)}
-                style={{ flex: 1, padding: '10px', borderRadius: 10, fontWeight: 700, fontSize: 13, backgroundColor: COLOR, color: '#fff', border: 'none', borderBottom: `3px solid ${COLOR_DARK}`, cursor: 'pointer' }}
-              >
-                Log contribution
-              </button>
-              {isAdmin && goal.progressPercent >= 100 && (
+              <div style={{ display: 'flex', gap: 8 }}>
                 <button
-                  onClick={() => markComplete(goal.id)}
-                  style={{ padding: '10px 14px', borderRadius: 10, fontWeight: 700, fontSize: 13, backgroundColor: 'var(--roost-surface)', color: COLOR, border: `1.5px solid ${COLOR}`, borderBottom: `3px solid ${COLOR_DARK}`, cursor: 'pointer' }}
+                  onClick={() => onContribute(goal)}
+                  style={{ flex: 1, padding: '10px', borderRadius: 10, fontWeight: 700, fontSize: 13, backgroundColor: COLOR, color: '#fff', border: 'none', borderBottom: `3px solid ${COLOR_DARK}`, cursor: 'pointer' }}
                 >
-                  Mark done
+                  Log contribution
                 </button>
-              )}
+                <button
+                  onClick={() => setExpandedGoalId(isExpanded ? null : goal.id)}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 4,
+                    padding: '10px 14px', borderRadius: 10, fontWeight: 700, fontSize: 13,
+                    backgroundColor: 'var(--roost-surface)', color: 'var(--roost-text-secondary)',
+                    border: '1.5px solid var(--roost-border)', borderBottom: '3px solid var(--roost-border-bottom)',
+                    cursor: 'pointer',
+                  }}
+                >
+                  {isExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                  History
+                </button>
+                {isAdmin && goal.progressPercent >= 100 && (
+                  <button
+                    onClick={() => markComplete(goal.id)}
+                    style={{ padding: '10px 14px', borderRadius: 10, fontWeight: 700, fontSize: 13, backgroundColor: 'var(--roost-surface)', color: COLOR, border: `1.5px solid ${COLOR}`, borderBottom: `3px solid ${COLOR_DARK}`, cursor: 'pointer' }}
+                  >
+                    Mark done
+                  </button>
+                )}
+              </div>
+
+              {isExpanded && <GoalHistory goalId={goal.id} />}
             </div>
-          </div>
-        </SlabCard>
-      ))}
+          </SlabCard>
+        )
+      })}
 
       {completed.length > 0 && (
         <div>
           <p style={{ fontWeight: 800, fontSize: 13, color: 'var(--roost-text-muted)', marginBottom: 8 }}>Completed</p>
-          {completed.map((goal: any) => (
-            <SlabCard key={goal.id} color="var(--roost-border-bottom)">
-              <div style={{ padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 10 }}>
-                <CheckCircle size={18} color={COLOR} />
-                <div style={{ flex: 1 }}>
-                  <p style={{ margin: 0, fontWeight: 700, fontSize: 14, color: 'var(--roost-text-secondary)' }}>{goal.name}</p>
-                  <p style={{ margin: '2px 0 0', fontSize: 12, color: 'var(--roost-text-muted)' }}>${parseFloat(goal.targetAmount).toFixed(2)} saved</p>
+          {completed.map((goal: any) => {
+            const isExpanded = expandedGoalId === goal.id
+            return (
+              <SlabCard key={goal.id} color="var(--roost-border-bottom)">
+                <div style={{ padding: '14px 16px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <CheckCircle size={18} color={COLOR} />
+                    <div style={{ flex: 1 }}>
+                      <p style={{ margin: 0, fontWeight: 700, fontSize: 14, color: 'var(--roost-text-secondary)' }}>{goal.name}</p>
+                      <p style={{ margin: '2px 0 0', fontSize: 12, color: 'var(--roost-text-muted)' }}>${parseFloat(goal.targetAmount).toFixed(2)} saved</p>
+                    </div>
+
+                    <button
+                      onClick={() => setExpandedGoalId(isExpanded ? null : goal.id)}
+                      style={{
+                        display: 'flex', alignItems: 'center', gap: 4,
+                        padding: '6px 10px', borderRadius: 8, fontWeight: 700, fontSize: 12,
+                        backgroundColor: 'var(--roost-surface)', color: 'var(--roost-text-muted)',
+                        border: '1.5px solid var(--roost-border)', borderBottom: '3px solid var(--roost-border-bottom)',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      {isExpanded ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+                      History
+                    </button>
+                    {isAdmin && (
+                      <button
+                        onClick={() => setPendingDelete({ id: goal.id, name: goal.name })}
+                        disabled={deletingId === goal.id}
+                        style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, opacity: deletingId === goal.id ? 0.3 : 0.6 }}
+                      >
+                        <Trash2 size={15} color="#EF4444" />
+                      </button>
+                    )}
+                  </div>
+                  {isExpanded && <GoalHistory goalId={goal.id} />}
                 </div>
-              </div>
-            </SlabCard>
-          ))}
+              </SlabCard>
+            )
+          })}
         </div>
       )}
+
+      <AlertDialog open={!!pendingDelete} onOpenChange={(v) => { if (!v) setPendingDelete(null) }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete goal?</AlertDialogTitle>
+            <AlertDialogDescription>
+              "{pendingDelete?.name}" and all its contribution history will be permanently deleted.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <button
+              onClick={() => setPendingDelete(null)}
+              style={{ padding: '10px 18px', borderRadius: 10, fontWeight: 700, fontSize: 14, backgroundColor: 'var(--roost-surface)', color: 'var(--roost-text-primary)', border: '1.5px solid var(--roost-border)', borderBottom: '3px solid var(--roost-border-bottom)', cursor: 'pointer' }}
+            >
+              Cancel
+            </button>
+            <button
+              onClick={confirmDeleteGoal}
+              style={{ padding: '10px 18px', borderRadius: 10, fontWeight: 700, fontSize: 14, backgroundColor: '#EF4444', color: '#fff', border: 'none', borderBottom: '3px solid #C93B3B', cursor: 'pointer' }}
+            >
+              Delete
+            </button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

@@ -52,6 +52,7 @@ export function ContributeSheet({ open, onClose, goal }: Props) {
       }
       toast.success('Contribution logged')
       qc.invalidateQueries({ queryKey: ['goals'] })
+      qc.invalidateQueries({ queryKey: ['goal-contributions', goal.id] })
       qc.invalidateQueries({ queryKey: ['money-dashboard'] })
       resetForm()
       onClose()

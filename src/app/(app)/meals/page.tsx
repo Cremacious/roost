@@ -6,7 +6,7 @@ import { motion } from 'framer-motion'
 import {
   Plus, ChevronLeft, ChevronRight, UtensilsCrossed, Search,
   ThumbsUp, ThumbsDown, Trophy, ShoppingCart, Pencil, Trash2,
-  Clock, BookmarkCheck, X,
+  Clock, BookmarkCheck, X, Eye, CalendarCheck,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { useSession } from '@/lib/auth/client'
@@ -363,6 +363,107 @@ function MealSheet({
   )
 }
 
+// ── MealPreviewSheet ──────────────────────────────────────────────────────────
+
+function MealPreviewSheet({
+  open, onClose, meal, onAddToPlanner, onAddToGrocery,
+}: {
+  open: boolean
+  onClose: () => void
+  meal: Meal | null
+  onAddToPlanner: () => void
+  onAddToGrocery: () => void
+}) {
+  if (!meal) return null
+  const ingredients = parseIngredients(meal.ingredients)
+
+  return (
+    <DraggableSheet open={open} onOpenChange={(v: boolean) => !v && onClose()} featureColor={COLOR}>
+      <div className="px-4 pb-8">
+        <p className="mb-2 text-lg" style={{ color: 'var(--roost-text-primary)', fontWeight: 800 }}>
+          {meal.name}
+        </p>
+
+        {/* Meta row */}
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 16 }}>
+          {meal.category && (
+            <span style={{
+              fontSize: 11, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em',
+              color: COLOR, backgroundColor: `${COLOR}18`, padding: '3px 9px', borderRadius: 7,
+            }}>
+              {SLOT_LABELS[meal.category]}
+            </span>
+          )}
+          {meal.prepTime && (
+            <span style={{
+              display: 'flex', alignItems: 'center', gap: 4,
+              fontSize: 12, fontWeight: 700, color: 'var(--roost-text-muted)',
+            }}>
+              <Clock size={12} /> {meal.prepTime} min
+            </span>
+          )}
+        </div>
+
+        {/* Ingredients */}
+        {ingredients.length > 0 && (
+          <div style={{ marginBottom: 16 }}>
+            <p style={{ margin: '0 0 8px', fontSize: 11, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.07em', color: '#374151' }}>
+              Ingredients
+            </p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+              {ingredients.map((item, i) => {
+                const label = [item.quantity, item.unit, item.name].filter(Boolean).join(' ')
+                return (
+                  <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', borderRadius: 10, backgroundColor: 'var(--roost-bg)', border: '1.5px solid var(--roost-border)' }}>
+                    <div style={{ width: 6, height: 6, borderRadius: 99, backgroundColor: COLOR, flexShrink: 0 }} />
+                    <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--roost-text-primary)' }}>{label}</span>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* Notes */}
+        {meal.description && (
+          <div style={{ marginBottom: 20 }}>
+            <p style={{ margin: '0 0 6px', fontSize: 11, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.07em', color: '#374151' }}>Notes</p>
+            <p style={{ margin: 0, fontSize: 14, fontWeight: 600, color: 'var(--roost-text-secondary)', lineHeight: 1.5, padding: '10px 12px', borderRadius: 10, backgroundColor: 'var(--roost-bg)', border: '1.5px solid var(--roost-border)' }}>
+              {meal.description}
+            </p>
+          </div>
+        )}
+
+        {/* No details fallback */}
+        {ingredients.length === 0 && !meal.description && (
+          <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--roost-text-muted)', marginBottom: 20, textAlign: 'center', padding: '16px 0' }}>
+            No ingredients or notes saved for this meal.
+          </p>
+        )}
+
+        {/* Actions */}
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button type="button" onClick={() => { onClose(); onAddToPlanner() }} style={{
+            flex: 1, padding: '12px 0', borderRadius: 12, border: 'none', borderBottom: `3px solid ${COLOR_DARK}`,
+            backgroundColor: COLOR, color: '#fff', fontWeight: 800, fontSize: 14, cursor: 'pointer',
+          }}>
+            Add to planner
+          </button>
+          {ingredients.length > 0 && (
+            <button type="button" onClick={() => { onClose(); onAddToGrocery() }} style={{
+              padding: '12px 14px', borderRadius: 12, border: '1.5px solid var(--roost-border)', borderBottom: '3px solid var(--roost-border-bottom)',
+              backgroundColor: 'var(--roost-surface)', color: 'var(--roost-text-secondary)', fontWeight: 700, fontSize: 13, cursor: 'pointer',
+              display: 'flex', alignItems: 'center', gap: 6,
+            }}>
+              <ShoppingCart size={14} /> Grocery
+            </button>
+          )}
+        </div>
+      </div>
+    </DraggableSheet>
+  )
+}
+
 // ── SlotPickerSheet ───────────────────────────────────────────────────────────
 
 function SlotPickerSheet({
@@ -417,26 +518,13 @@ function SlotPickerSheet({
     if (!quickName.trim() || !effectiveDay || !effectiveSlotType) return
     setBusy(true)
     try {
-      let mealId: string
-      if (saveToBankToggle) {
-        const mealRes = await fetch('/api/meals', {
-          method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ name: quickName.trim(), ingredients: [] }),
-        })
-        if (!mealRes.ok) throw new Error((await mealRes.json()).error ?? 'Failed')
-        const { meal } = await mealRes.json()
-        mealId = meal.id
-      } else {
-        // Save without adding to bank: create a temporary meal entry for the slot
-        const mealRes = await fetch('/api/meals', {
-          method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ name: quickName.trim(), ingredients: [], skipBank: true }),
-        })
-        if (!mealRes.ok) throw new Error((await mealRes.json()).error ?? 'Failed')
-        const { meal } = await mealRes.json()
-        mealId = meal.id
-      }
-      await pickMeal(mealId)
+      const mealRes = await fetch('/api/meals', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: quickName.trim(), ingredients: [], inBank: saveToBankToggle }),
+      })
+      if (!mealRes.ok) throw new Error((await mealRes.json()).error ?? 'Failed')
+      const { meal } = await mealRes.json()
+      await pickMeal(meal.id)
     } catch (e) {
       toast.error('Could not add', { description: (e as Error).message })
       setBusy(false)
@@ -757,6 +845,9 @@ export default function MealsPage() {
   // Bank card grocery push
   const [groceryPushMeal, setGroceryPushMeal] = useState<Meal | null>(null)
 
+  // Bank card preview
+  const [previewMeal, setPreviewMeal] = useState<Meal | null>(null)
+
   // Suggestion sheet state
   const [suggestOpen, setSuggestOpen] = useState(false)
 
@@ -880,14 +971,25 @@ export default function MealsPage() {
   })
 
   const approveMutation = useMutation({
-    mutationFn: async ({ id, action }: { id: string; action: 'in_bank' | 'rejected' }) => {
+    mutationFn: async ({ id, action }: { id: string; action: 'in_bank' | 'rejected' | 'planner' }) => {
+      const destinationMap = { in_bank: 'bank', rejected: 'reject', planner: 'planner' } as const
       const r = await fetch(`/api/meals/suggestions/${id}/approve`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ destination: action === 'in_bank' ? 'bank' : 'reject' }),
+        body: JSON.stringify({ destination: destinationMap[action] }),
       })
       if (!r.ok) throw new Error((await r.json()).error ?? 'Failed')
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['suggestions'] }),
+    onSuccess: (_data, { action }) => {
+      qc.invalidateQueries({ queryKey: ['suggestions'] })
+      if (action === 'planner') {
+        qc.invalidateQueries({ queryKey: ['planner'] })
+        qc.invalidateQueries({ queryKey: ['meals'] })
+        toast.success('Added to planner')
+      } else if (action === 'in_bank') {
+        qc.invalidateQueries({ queryKey: ['meals'] })
+        toast.success('Added to meal bank')
+      }
+    },
     onError: (e) => toast.error('Action failed', { description: (e as Error).message }),
   })
 
@@ -1169,6 +1271,12 @@ export default function MealsPage() {
                             )}
                           </div>
                           <div style={{ display: 'flex', gap: 4, flexShrink: 0 }}>
+                            {/* View details */}
+                            <button type="button" title="View details"
+                              onClick={() => setPreviewMeal(m)}
+                              style={{ width: 34, height: 34, borderRadius: 9, border: 'none', backgroundColor: 'var(--roost-bg)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                              <Eye size={14} color="var(--roost-text-secondary)" />
+                            </button>
                             {/* Add to planner — opens date picker for this specific meal */}
                             <button type="button" title="Add to planner"
                               onClick={() => { setBankAddMeal(m); setSlotOpen(true) }}
@@ -1298,28 +1406,48 @@ export default function MealsPage() {
 
                           {/* Admin actions */}
                           {isAdmin && (
-                            <div style={{ display: 'flex', gap: 8, marginTop: 12, borderTop: '1px solid var(--roost-border)', paddingTop: 10 }}>
-                              <button type="button"
-                                onClick={() => approveMutation.mutate({ id: s.id, action: 'in_bank' })}
-                                disabled={s.status === 'in_bank' || approveMutation.isPending}
-                                style={{
-                                  flex: 1, padding: '9px 0', borderRadius: 10, fontSize: 13, fontWeight: 800,
-                                  border: 'none', borderBottom: `2px solid ${COLOR_DARK}`,
-                                  backgroundColor: COLOR, color: '#fff', cursor: s.status === 'in_bank' ? 'not-allowed' : 'pointer',
-                                  opacity: s.status === 'in_bank' ? 0.5 : 1,
-                                }}>
-                                Add to bank
-                              </button>
-                              <button type="button"
-                                onClick={() => approveMutation.mutate({ id: s.id, action: 'rejected' })}
-                                disabled={approveMutation.isPending}
-                                style={{
-                                  padding: '9px 14px', borderRadius: 10, fontSize: 13, fontWeight: 800,
-                                  border: '1.5px solid var(--roost-border)', borderBottom: '2px solid var(--roost-border)',
-                                  backgroundColor: 'var(--roost-surface)', color: '#EF4444', cursor: 'pointer',
-                                }}>
-                                Reject
-                              </button>
+                            <div style={{ marginTop: 12, borderTop: '1px solid var(--roost-border)', paddingTop: 10, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                              {/* Add to planner row — only shown when suggestion has a target date+slot */}
+                              {s.targetSlotDate && s.targetSlotType && (
+                                <button type="button"
+                                  onClick={() => approveMutation.mutate({ id: s.id, action: 'planner' })}
+                                  disabled={approveMutation.isPending}
+                                  style={{
+                                    width: '100%', padding: '9px 0', borderRadius: 10, fontSize: 13, fontWeight: 800,
+                                    border: 'none', borderBottom: `2px solid ${COLOR_DARK}`,
+                                    backgroundColor: COLOR, color: '#fff', cursor: 'pointer',
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                                    opacity: approveMutation.isPending ? 0.6 : 1,
+                                  }}>
+                                  <CalendarCheck size={13} />
+                                  Add to {new Date(s.targetSlotDate + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })} {SLOT_LABELS[s.targetSlotType]}
+                                </button>
+                              )}
+                              {/* Add to bank + Reject row */}
+                              <div style={{ display: 'flex', gap: 8 }}>
+                                <button type="button"
+                                  onClick={() => approveMutation.mutate({ id: s.id, action: 'in_bank' })}
+                                  disabled={s.status === 'in_bank' || approveMutation.isPending}
+                                  style={{
+                                    flex: 1, padding: '9px 0', borderRadius: 10, fontSize: 13, fontWeight: 800,
+                                    border: '1.5px solid var(--roost-border)', borderBottom: '2px solid var(--roost-border)',
+                                    backgroundColor: 'var(--roost-surface)', color: s.status === 'in_bank' ? 'var(--roost-text-muted)' : 'var(--roost-text-primary)',
+                                    cursor: s.status === 'in_bank' ? 'not-allowed' : 'pointer',
+                                    opacity: s.status === 'in_bank' ? 0.5 : 1,
+                                  }}>
+                                  {s.status === 'in_bank' ? 'In bank' : 'Add to bank'}
+                                </button>
+                                <button type="button"
+                                  onClick={() => approveMutation.mutate({ id: s.id, action: 'rejected' })}
+                                  disabled={approveMutation.isPending}
+                                  style={{
+                                    padding: '9px 14px', borderRadius: 10, fontSize: 13, fontWeight: 800,
+                                    border: '1.5px solid var(--roost-border)', borderBottom: '2px solid var(--roost-border)',
+                                    backgroundColor: 'var(--roost-surface)', color: '#EF4444', cursor: 'pointer',
+                                  }}>
+                                  Reject
+                                </button>
+                              </div>
                             </div>
                           )}
                         </div>
@@ -1370,6 +1498,14 @@ export default function MealsPage() {
           ingredients={parseIngredients(groceryPushMeal.ingredients)}
         />
       )}
+
+      <MealPreviewSheet
+        open={!!previewMeal}
+        onClose={() => setPreviewMeal(null)}
+        meal={previewMeal}
+        onAddToPlanner={() => { setBankAddMeal(previewMeal!); setSlotOpen(true) }}
+        onAddToGrocery={() => setGroceryPushMeal(previewMeal!)}
+      />
     </>
   )
 }

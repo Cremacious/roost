@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import Image from 'next/image'
 import { getSession } from '@/lib/auth/helpers'
 import { redirect } from 'next/navigation'
 import FaqAccordion from '@/components/home/FaqAccordion'
@@ -129,9 +130,10 @@ export default async function HomePage() {
           pointer-events: none;
         }
         .hero-logo {
-          width: 120px;
-          height: auto;
+          width: 120px !important;
+          height: 120px !important;
           margin-bottom: 32px;
+          border-radius: 28px;
           filter: drop-shadow(0 4px 24px rgba(0,0,0,0.15));
           animation: logoFloat 3s ease-in-out infinite;
         }
@@ -748,24 +750,14 @@ export default async function HomePage() {
 
       {/* 1. HERO */}
       <section className="hero">
-        <svg className="hero-logo" viewBox="0 0 681 753" fill="none" xmlns="http://www.w3.org/2000/svg" aria-label="Roost logo">
-          <g stroke="#fff" strokeWidth="18" strokeLinecap="round" strokeLinejoin="round" fill="none">
-            <path d="M140 520 L340 380 L540 520 L540 700 L140 700 Z"/>
-            <path d="M460 430 L460 340 L530 340 L530 480"/>
-            <rect x="300" y="540" width="80" height="80" rx="6"/>
-            <line x1="340" y1="540" x2="340" y2="620"/>
-            <line x1="300" y1="580" x2="380" y2="580"/>
-            <path d="M280 380 Q240 300 260 240 Q280 180 320 160 Q360 140 380 170 Q390 140 370 110 Q380 120 400 130 Q420 100 410 80 Q430 100 430 130 Q460 120 470 100 Q460 140 440 160 Q480 180 500 220 Q520 260 490 310 Q460 350 420 370 Q380 380 340 380"/>
-            <circle cx="340" cy="220" r="8" fill="#fff"/>
-            <path d="M480 240 Q520 200 510 160"/>
-            <path d="M490 260 Q540 230 530 180"/>
-            <path d="M495 280 Q550 260 545 210"/>
-            <path d="M270 240 Q250 230 240 250 Q250 260 270 255"/>
-            <path d="M280 270 Q260 290 275 300"/>
-            <path d="M330 160 Q320 130 340 120 Q350 130 360 120 Q370 130 380 125"/>
-            <line x1="360" y1="350" x2="340" y2="380"/>
-          </g>
-        </svg>
+        <Image
+          src="/brand/roost-icon.png"
+          alt="Roost"
+          width={120}
+          height={120}
+          className="hero-logo"
+          priority
+        />
 
         <h1>One App. No Excuses.</h1>
         <p className="hero-sub">Chores, groceries, meals, bills, calendar, reminders — your entire household in one place. Finally.</p>

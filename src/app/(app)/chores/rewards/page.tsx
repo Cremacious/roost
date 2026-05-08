@@ -4,15 +4,15 @@ import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
-import { Gift, Plus, ChevronLeft, Trophy, Users, Zap, ToggleLeft, ToggleRight, Edit2 } from 'lucide-react'
+import { Gift, Plus, ChevronLeft, Trophy, CheckCircle, Zap, ToggleLeft, ToggleRight, Edit2 } from 'lucide-react'
 import RewardRuleSheet, { type RewardRule, type RewardMember } from '@/components/chores/RewardRuleSheet'
 
 const COLOR = '#A855F7'
 const COLOR_DARK = '#7C28C8'
 
 interface RuleWithProgress extends RewardRule {
-  childName: string
-  childAvatarColor: string | null
+  memberName: string
+  memberAvatarColor: string | null
   startsAt: string
   createdAt: string
   periodStart: string
@@ -24,7 +24,7 @@ interface RuleWithProgress extends RewardRule {
 
 interface RewardsData {
   rules: RuleWithProgress[]
-  childMembers: RewardMember[]
+  members: RewardMember[]
   isPremium: boolean
 }
 
@@ -71,9 +71,21 @@ function rewardLabel(rule: RuleWithProgress) {
 
 function HowItWorks() {
   const steps = [
-    { icon: Zap, text: 'Set a completion threshold (e.g. 80% of chores done in a period)' },
-    { icon: Trophy, text: 'If the child hits the goal, they earn the reward automatically' },
-    { icon: Gift, text: 'Money rewards appear in the settle-up flow. Other rewards are tracked here.' },
+    {
+      icon: Zap,
+      title: 'Set a goal for any member',
+      text: 'Pick a household member (child, adult, or anyone), set a chore completion threshold like 80%, and choose the period (weekly, monthly, etc).',
+    },
+    {
+      icon: Trophy,
+      title: 'They hit the goal, they earn the reward',
+      text: 'At the end of each period, Roost checks completion automatically. If the threshold is met, the reward is recorded and the member is notified.',
+    },
+    {
+      icon: CheckCircle,
+      title: 'Track and settle up',
+      text: 'Money rewards appear directly in the settle-up flow so nothing gets forgotten. Gift, activity, and other rewards are tracked here for you to fulfill.',
+    },
   ]
   return (
     <div style={{
@@ -87,7 +99,7 @@ function HowItWorks() {
       <p style={{ fontSize: 13, fontWeight: 800, color: COLOR, marginBottom: 12, letterSpacing: '0.04em', textTransform: 'uppercase' }}>
         How it works
       </p>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
         {steps.map((s, i) => (
           <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
             <div style={{
@@ -97,9 +109,14 @@ function HowItWorks() {
             }}>
               <s.icon size={14} color={COLOR} />
             </div>
-            <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--roost-text-secondary)', lineHeight: 1.4 }}>
-              {s.text}
-            </p>
+            <div>
+              <p style={{ fontSize: 13, fontWeight: 800, color: 'var(--roost-text-primary)', marginBottom: 2 }}>
+                {s.title}
+              </p>
+              <p style={{ fontSize: 12, fontWeight: 600, color: 'var(--roost-text-secondary)', lineHeight: 1.4 }}>
+                {s.text}
+              </p>
+            </div>
           </div>
         ))}
       </div>
@@ -136,13 +153,13 @@ function RuleCard({
     >
       {/* Header row */}
       <div style={{ padding: '14px 16px 10px', display: 'flex', alignItems: 'center', gap: 10 }}>
-        <Avatar name={rule.childName} color={rule.childAvatarColor} size={36} />
+        <Avatar name={rule.memberName} color={rule.memberAvatarColor} size={36} />
         <div style={{ flex: 1, minWidth: 0 }}>
           <p style={{ fontSize: 15, fontWeight: 800, color: 'var(--roost-text-primary)', lineHeight: 1.2 }}>
             {rule.title}
           </p>
           <p style={{ fontSize: 12, color: 'var(--roost-text-muted)', fontWeight: 600, marginTop: 2 }}>
-            {rule.childName} · {periodLabel(rule)}
+            {rule.memberName} · {periodLabel(rule)}
           </p>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -247,7 +264,7 @@ export default function RewardsPage() {
   })
 
   const isPremium = data?.isPremium ?? false
-  const childMembers: RewardMember[] = data?.childMembers ?? []
+  const members: RewardMember[] = data?.members ?? []
   const rules = data?.rules ?? []
 
   function openAdd() {
@@ -315,7 +332,7 @@ export default function RewardsPage() {
             Rewards is a Premium feature
           </h2>
           <p style={{ fontSize: 14, color: 'var(--roost-text-secondary)', fontWeight: 600, marginBottom: 24, lineHeight: 1.5 }}>
-            Upgrade to set chore completion goals and give children money, gifts, or activity rewards when they hit the target.
+            Upgrade to set chore completion goals and reward any household member when they hit the target. Works for kids and adults alike.
           </p>
           <button
             type="button"
@@ -332,80 +349,6 @@ export default function RewardsPage() {
             }}
           >
             Upgrade to Premium
-          </button>
-        </div>
-      </motion.div>
-    )
-  }
-
-  if (childMembers.length === 0) {
-    return (
-      <motion.div
-        initial={{ opacity: 0, y: 12 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.18 }}
-        style={{ maxWidth: 896, margin: '0 auto', padding: '24px 16px 80px' }}
-      >
-        <button
-          type="button"
-          onClick={() => router.push('/chores')}
-          style={{
-            display: 'flex', alignItems: 'center', gap: 6,
-            background: 'none', border: 'none', cursor: 'pointer',
-            color: 'var(--roost-text-muted)', fontSize: 14, fontWeight: 700,
-            marginBottom: 24, padding: 0, fontFamily: 'inherit',
-          }}
-        >
-          <ChevronLeft size={16} />
-          Back to chores
-        </button>
-
-        <h1 style={{ fontSize: 26, fontWeight: 900, color: 'var(--roost-text-primary)', marginBottom: 6 }}>
-          Rewards
-        </h1>
-        <p style={{ fontSize: 14, color: 'var(--roost-text-muted)', fontWeight: 600, marginBottom: 24 }}>
-          Motivate kids with chore completion rewards
-        </p>
-
-        <div style={{
-          backgroundColor: 'var(--roost-surface)',
-          border: '2px dashed var(--roost-border)',
-          borderBottom: '4px dashed var(--roost-border-bottom)',
-          borderRadius: 20,
-          padding: 32,
-          textAlign: 'center',
-        }}>
-          <div style={{
-            width: 56, height: 56, borderRadius: 16,
-            backgroundColor: 'var(--roost-surface)',
-            border: '1.5px solid var(--roost-border)',
-            borderBottom: `4px solid ${COLOR}`,
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            margin: '0 auto 16px',
-          }}>
-            <Users size={24} color={COLOR} />
-          </div>
-          <h3 style={{ fontSize: 18, fontWeight: 800, color: 'var(--roost-text-primary)', marginBottom: 8 }}>
-            No children yet
-          </h3>
-          <p style={{ fontSize: 13, color: 'var(--roost-text-secondary)', fontWeight: 600, marginBottom: 20, lineHeight: 1.4 }}>
-            Add a child account in Settings, then come back here to set up their rewards.
-          </p>
-          <button
-            type="button"
-            onClick={() => router.push('/settings')}
-            style={{
-              height: 44, paddingLeft: 20, paddingRight: 20,
-              borderRadius: 12,
-              border: `1.5px solid ${COLOR}`,
-              borderBottom: `3px solid ${COLOR_DARK}`,
-              backgroundColor: COLOR,
-              color: '#fff',
-              fontWeight: 700, fontSize: 14,
-              cursor: 'pointer', fontFamily: 'inherit',
-            }}
-          >
-            Go to Settings
           </button>
         </div>
       </motion.div>
@@ -441,7 +384,7 @@ export default function RewardsPage() {
             Rewards
           </h1>
           <p style={{ fontSize: 14, color: 'var(--roost-text-muted)', fontWeight: 600 }}>
-            {rules.length} {rules.length === 1 ? 'rule' : 'rules'} · {childMembers.length} {childMembers.length === 1 ? 'child' : 'children'}
+            {rules.length} {rules.length === 1 ? 'rule' : 'rules'} · {members.length} {members.length === 1 ? 'member' : 'members'}
           </p>
         </div>
         <motion.button
@@ -492,7 +435,7 @@ export default function RewardsPage() {
             No reward rules yet
           </h3>
           <p style={{ fontSize: 13, color: 'var(--roost-text-secondary)', fontWeight: 600, marginBottom: 20, lineHeight: 1.4 }}>
-            Add a rule to start motivating your kids with chore completion goals.
+            Create a rule for any household member. Set a chore completion goal, pick a reward, and Roost handles the rest automatically.
           </p>
           <motion.button
             type="button"
@@ -533,7 +476,7 @@ export default function RewardsPage() {
         open={sheetOpen}
         onClose={() => { setSheetOpen(false); setEditingRule(null) }}
         rule={editingRule}
-        children={childMembers}
+        members={members}
       />
     </motion.div>
   )

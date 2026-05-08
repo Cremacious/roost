@@ -1,0 +1,21 @@
+{
+  "version": 1,
+  "kind": "html",
+  "title": "Roost — Settings (Desktop)",
+  "entry": "settings-page-desktop.html",
+  "renderer": "html",
+  "status": "complete",
+  "exports": [
+    "html",
+    "pdf",
+    "zip"
+  ],
+  "createdAt": "2026-05-08T22:22:35.738Z",
+  "updatedAt": "2026-05-08T22:22:35.743Z",
+  "sourceSkillId": "blog-post",
+  "metadata": {
+    "identifier": "settings-page-desktop",
+    "artifactType": "text/html",
+    "inferred": false
+  }
+}

@@ -1,0 +1,21 @@
+{
+  "version": 1,
+  "kind": "html",
+  "title": "Roost — Notes (Desktop)",
+  "entry": "notes-page-desktop.html",
+  "renderer": "html",
+  "status": "complete",
+  "exports": [
+    "html",
+    "pdf",
+    "zip"
+  ],
+  "createdAt": "2026-05-08T22:16:28.678Z",
+  "updatedAt": "2026-05-08T22:16:28.690Z",
+  "sourceSkillId": "blog-post",
+  "metadata": {
+    "identifier": "notes-page-desktop",
+    "artifactType": "text/html",
+    "inferred": false
+  }
+}

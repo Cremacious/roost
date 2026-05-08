@@ -1,0 +1,21 @@
+{
+  "version": 1,
+  "kind": "html",
+  "title": "Roost — Tasks (Desktop)",
+  "entry": "tasks-page-desktop.html",
+  "renderer": "html",
+  "status": "complete",
+  "exports": [
+    "html",
+    "pdf",
+    "zip"
+  ],
+  "createdAt": "2026-05-08T21:44:43.964Z",
+  "updatedAt": "2026-05-08T21:44:43.981Z",
+  "sourceSkillId": "blog-post",
+  "metadata": {
+    "identifier": "tasks-page-desktop",
+    "artifactType": "text/html",
+    "inferred": false
+  }
+}

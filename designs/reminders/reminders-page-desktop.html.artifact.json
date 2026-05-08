@@ -1,0 +1,21 @@
+{
+  "version": 1,
+  "kind": "html",
+  "title": "Roost — Reminders (Desktop)",
+  "entry": "reminders-page-desktop.html",
+  "renderer": "html",
+  "status": "complete",
+  "exports": [
+    "html",
+    "pdf",
+    "zip"
+  ],
+  "createdAt": "2026-05-08T21:52:06.028Z",
+  "updatedAt": "2026-05-08T21:52:06.033Z",
+  "sourceSkillId": "blog-post",
+  "metadata": {
+    "identifier": "reminders-page-desktop",
+    "artifactType": "text/html",
+    "inferred": false
+  }
+}

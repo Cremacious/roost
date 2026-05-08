@@ -6,7 +6,7 @@ import { motion } from 'framer-motion'
 import {
   Plus, ChevronLeft, ChevronRight, UtensilsCrossed, Search,
   ThumbsUp, ThumbsDown, Trophy, ShoppingCart, Pencil, Trash2,
-  Clock, BookmarkCheck, X, Eye, CalendarCheck, ShieldCheck, Users, CheckCircle,
+  Clock, BookmarkCheck, X, Eye, CalendarCheck, ShieldCheck, Users, CheckCircle, Send,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { useSession } from '@/lib/auth/client'
@@ -850,6 +850,15 @@ function SuggestionFormSheet({
   )
 }
 
+// ── Category color map ────────────────────────────────────────────────────────
+
+const CAT_COLORS: Record<string, { bg: string; text: string }> = {
+  breakfast: { bg: '#DBEAFE', text: '#3B82F6' },
+  lunch:     { bg: '#DCFCE7', text: '#15803D' },
+  dinner:    { bg: '#FFEDD5', text: '#F97316' },
+  snack:     { bg: '#FEF9C3', text: '#CA8A04' },
+}
+
 // ── Main Page ─────────────────────────────────────────────────────────────────
 
 export default function MealsPage() {
@@ -1059,6 +1068,185 @@ export default function MealsPage() {
 
   const existingSlot = slotDay && slotType ? getSlot(slotDay, slotType) : null
 
+  // Computed stats
+  const totalPlanned = slots.length
+  const totalEmpty = Math.max(0, 28 - slots.length)
+
+  // Map mealId → day label for "Planned [day]" badge on desktop bank cards
+  const plannedMealsMap = new Map<string, string>()
+  slots.forEach(slot => {
+    if (!plannedMealsMap.has(slot.mealId)) {
+      plannedMealsMap.set(slot.mealId, getDayLabel(new Date(slot.slotDate + 'T00:00:00')))
+    }
+  })
+
+  const TABS: { id: Tab; label: string }[] = [
+    { id: 'planner', label: 'Planner' },
+    { id: 'bank', label: 'Meal Bank' },
+    { id: 'suggestions', label: 'Suggestions' },
+  ]
+
+  // Suggestion card renderer (shared between mobile list and desktop grid)
+  const renderSuggestionCard = (s: Suggestion, i: number) => {
+    const ing = parseIngredients(s.ingredients)
+    const isTop = i === 0 && s.upvotes > 0
+    const effectiveMode: ApprovalMode = s.approvalMode ?? householdApprovalMode
+    const majorityReached = s.upvotes > s.downvotes
+    const canActAsNonAdmin = effectiveMode === 'open_vote' && majorityReached
+    const canAct = isAdmin || canActAsNonAdmin
+    const neededVotes = Math.max(1, s.downvotes - s.upvotes + 1)
+    const hasTarget = !!(s.targetSlotDate && s.targetSlotType)
+
+    return (
+      <motion.div key={s.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: Math.min(i * 0.04, 0.2), duration: 0.15 }}>
+        <SlabCard color={COLOR_DARK}>
+          <div style={{ padding: 14 }}>
+            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+              {/* Info column */}
+              <div style={{ flex: 1, minWidth: 0 }}>
+                {/* Badges */}
+                {(isTop || s.status === 'in_bank' || (s.approvalMode && s.approvalMode !== householdApprovalMode)) && (
+                  <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginBottom: 4 }}>
+                    {isTop && (
+                      <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 10, fontWeight: 800, color: '#92400E', backgroundColor: '#FEF3C7', padding: '2px 8px', borderRadius: 6 }}>
+                        <Trophy size={10} /> Top pick
+                      </span>
+                    )}
+                    {s.status === 'in_bank' && (
+                      <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 10, fontWeight: 800, color: COLOR, backgroundColor: `${COLOR}18`, padding: '2px 8px', borderRadius: 6 }}>
+                        <BookmarkCheck size={10} /> In meal bank
+                      </span>
+                    )}
+                    {s.approvalMode && s.approvalMode !== householdApprovalMode && (
+                      <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 10, fontWeight: 800, color: '#6B7280', backgroundColor: 'var(--roost-bg)', padding: '2px 7px', borderRadius: 6, border: '1px solid var(--roost-border)' }}>
+                        {s.approvalMode === 'admin_only' ? <ShieldCheck size={9} /> : <Users size={9} />}
+                        {s.approvalMode === 'admin_only' ? 'Admin only' : 'Open vote'}
+                      </span>
+                    )}
+                  </div>
+                )}
+                <p style={{ margin: 0, fontWeight: 800, fontSize: 15, color: 'var(--roost-text-primary)', marginBottom: 2 }}>{s.name}</p>
+                {(s.targetSlotDate || s.targetSlotType) && (
+                  <p style={{ margin: '0 0 4px', fontSize: 12, fontWeight: 700, color: 'var(--roost-text-muted)' }}>
+                    {s.targetSlotDate && new Date(s.targetSlotDate + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
+                    {s.targetSlotType && ` ${SLOT_LABELS[s.targetSlotType]}`}
+                  </p>
+                )}
+                {s.note && (
+                  <p style={{ margin: '0 0 4px', fontSize: 12, fontWeight: 600, color: 'var(--roost-text-secondary)', fontStyle: 'italic' }}>
+                    &ldquo;{s.note}&rdquo;
+                  </p>
+                )}
+                {ing.length > 0 && (
+                  <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginTop: 6 }}>
+                    {ing.slice(0, 4).map((item, idx) => (
+                      <span key={idx} style={{ fontSize: 11, fontWeight: 700, color: 'var(--roost-text-secondary)', backgroundColor: 'var(--roost-bg)', padding: '2px 8px', borderRadius: 6 }}>
+                        {[item.quantity, item.unit, item.name].filter(Boolean).join(' ')}
+                      </span>
+                    ))}
+                    {ing.length > 4 && <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--roost-text-muted)' }}>+{ing.length - 4} more</span>}
+                  </div>
+                )}
+                <p style={{ margin: '6px 0 0', fontSize: 11, fontWeight: 700, color: 'var(--roost-text-muted)' }}>
+                  Suggested by {s.suggesterName?.split(' ')[0] ?? 'someone'}
+                </p>
+              </div>
+              {/* Vote column */}
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, flexShrink: 0 }}>
+                <button type="button" onClick={() => voteMutation.mutate({ id: s.id, voteType: 'up' })} style={{
+                  width: 36, height: 36, borderRadius: 10, border: '1.5px solid var(--roost-border)',
+                  borderBottom: `2px solid ${s.userVote === 'up' ? COLOR_DARK : 'var(--roost-border)'}`,
+                  backgroundColor: s.userVote === 'up' ? COLOR : 'var(--roost-surface)',
+                  cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                }}>
+                  <ThumbsUp size={14} color={s.userVote === 'up' ? '#fff' : 'var(--roost-text-secondary)'} />
+                </button>
+                <span style={{ fontSize: 13, fontWeight: 800, color: s.upvotes > 0 ? COLOR : 'var(--roost-text-muted)' }}>{s.upvotes}</span>
+                <button type="button" onClick={() => voteMutation.mutate({ id: s.id, voteType: 'down' })} style={{
+                  width: 36, height: 36, borderRadius: 10, border: '1.5px solid var(--roost-border)',
+                  borderBottom: `2px solid ${s.userVote === 'down' ? '#DC2626' : 'var(--roost-border)'}`,
+                  backgroundColor: s.userVote === 'down' ? '#FEE2E2' : 'var(--roost-surface)',
+                  cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                }}>
+                  <ThumbsDown size={14} color={s.userVote === 'down' ? '#DC2626' : 'var(--roost-text-muted)'} />
+                </button>
+              </div>
+            </div>
+
+            {/* Action row */}
+            <div style={{ marginTop: 12, borderTop: '1px solid var(--roost-border)', paddingTop: 10 }}>
+              {canAct ? (
+                <>
+                  {!isAdmin && canActAsNonAdmin && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
+                      <CheckCircle size={13} color="#16A34A" />
+                      <span style={{ fontSize: 12, fontWeight: 700, color: '#16A34A' }}>Majority reached. You can approve this suggestion.</span>
+                    </div>
+                  )}
+                  {/* 3 admin buttons: Add to bank | Add to day | Reject */}
+                  <div style={{ display: 'flex', gap: 6 }}>
+                    <button type="button"
+                      onClick={() => approveMutation.mutate({ id: s.id, action: 'in_bank' })}
+                      disabled={s.status === 'in_bank' || approveMutation.isPending}
+                      style={{
+                        flex: 1, padding: '9px 4px', borderRadius: 10, fontSize: 12, fontWeight: 800,
+                        border: 'none', borderBottom: `2px solid ${COLOR_DARK}`,
+                        backgroundColor: s.status === 'in_bank' ? `${COLOR}60` : COLOR,
+                        color: '#fff', cursor: s.status === 'in_bank' ? 'not-allowed' : 'pointer',
+                        opacity: s.status === 'in_bank' ? 0.6 : approveMutation.isPending ? 0.7 : 1,
+                      }}>
+                      {s.status === 'in_bank' ? 'In bank' : 'Add to bank'}
+                    </button>
+                    <button type="button"
+                      onClick={() => hasTarget && approveMutation.mutate({ id: s.id, action: 'planner' })}
+                      disabled={!hasTarget || approveMutation.isPending}
+                      title={!hasTarget ? 'No target day set' : undefined}
+                      style={{
+                        flex: 1, padding: '9px 4px', borderRadius: 10, fontSize: 12, fontWeight: 800,
+                        border: '1.5px solid #BBF7D0', borderBottom: '2px solid #86EFAC',
+                        backgroundColor: '#DCFCE7', color: '#15803D',
+                        cursor: !hasTarget ? 'not-allowed' : 'pointer',
+                        opacity: !hasTarget || approveMutation.isPending ? 0.5 : 1,
+                      }}>
+                      Add to day
+                    </button>
+                    <button type="button"
+                      onClick={() => approveMutation.mutate({ id: s.id, action: 'rejected' })}
+                      disabled={approveMutation.isPending}
+                      style={{
+                        flex: 1, padding: '9px 4px', borderRadius: 10, fontSize: 12, fontWeight: 800,
+                        border: '1.5px solid var(--roost-border)', borderBottom: '2px solid var(--roost-border)',
+                        backgroundColor: 'var(--roost-surface)', color: '#EF4444',
+                        cursor: 'pointer', opacity: approveMutation.isPending ? 0.6 : 1,
+                      }}>
+                      Reject
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  {effectiveMode === 'admin_only' ? (
+                    <>
+                      <ShieldCheck size={13} color="#9CA3AF" />
+                      <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--roost-text-muted)' }}>Admin approval required</span>
+                    </>
+                  ) : (
+                    <>
+                      <ThumbsUp size={13} color={COLOR} />
+                      <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--roost-text-muted)' }}>
+                        {neededVotes} more upvote{neededVotes === 1 ? '' : 's'} needed to unlock approval
+                      </span>
+                    </>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+        </SlabCard>
+      </motion.div>
+    )
+  }
+
   return (
     <>
       <motion.div
@@ -1072,119 +1260,192 @@ export default function MealsPage() {
           <div>
             <h1 style={{ margin: 0, fontWeight: 900, fontSize: 26, color: 'var(--roost-text-primary)', letterSpacing: '-0.3px' }}>Meals</h1>
             <p style={{ margin: '2px 0 0', fontSize: 13, fontWeight: 600, color: 'var(--roost-text-muted)' }}>
-              {tab === 'planner' ? 'Weekly planner' : tab === 'bank' ? `${bankMeals.length} meal${bankMeals.length === 1 ? '' : 's'} saved` : `${suggestions.length} suggestion${suggestions.length === 1 ? '' : 's'}`}
+              Plan your week, save favorites, and vote on dinner.
             </p>
           </div>
+          {/* Mobile header action buttons */}
           {tab === 'bank' && (
             <motion.button whileTap={{ y: 2 }} type="button"
               onClick={() => { setEditMeal(null); setMealSheetOpen(true) }}
+              className="sm:hidden"
               style={{ width: 40, height: 40, borderRadius: 12, backgroundColor: COLOR, border: 'none', borderBottom: `3px solid ${COLOR_DARK}`, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0 }}>
               <Plus size={20} color="#fff" />
             </motion.button>
           )}
           {tab === 'suggestions' && (
             <motion.button whileTap={{ y: 2 }} type="button" onClick={() => setSuggestOpen(true)}
+              className="sm:hidden"
               style={{ width: 40, height: 40, borderRadius: 12, backgroundColor: COLOR, border: 'none', borderBottom: `3px solid ${COLOR_DARK}`, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0 }}>
               <Plus size={20} color="#fff" />
             </motion.button>
           )}
         </div>
 
-        {/* Tab row */}
-        <div style={{ display: 'flex', gap: 6, marginBottom: 20 }}>
-          {(['planner', 'bank', 'suggestions'] as Tab[]).map(t => (
-            <button key={t} type="button" onClick={() => setTab(t)} style={{
-              padding: '8px 16px', borderRadius: 12, fontSize: 13, fontWeight: 800, border: 'none',
-              borderBottom: `3px solid ${tab === t ? COLOR_DARK : 'var(--roost-border)'}`,
-              backgroundColor: tab === t ? COLOR : 'var(--roost-surface)',
-              color: tab === t ? '#fff' : 'var(--roost-text-secondary)', cursor: 'pointer',
-            }}>
-              {t === 'planner' ? 'Planner' : t === 'bank' ? 'Meal Bank' : 'Suggestions'}
-            </button>
+        {/* Mobile tab pills */}
+        <div className="flex sm:hidden" style={{ gap: 6, marginBottom: 16 }}>
+          {TABS.map(t => (
+            <button key={t.id} type="button" onClick={() => setTab(t.id)} style={{
+              padding: '8px 14px', borderRadius: 12, fontSize: 13, fontWeight: 800, border: 'none',
+              borderBottom: `3px solid ${tab === t.id ? COLOR_DARK : 'var(--roost-border)'}`,
+              backgroundColor: tab === t.id ? COLOR : 'var(--roost-surface)',
+              color: tab === t.id ? '#fff' : 'var(--roost-text-secondary)', cursor: 'pointer',
+            }}>{t.label}</button>
+          ))}
+        </div>
+
+        {/* Desktop underline tab bar */}
+        <div className="hidden sm:flex" style={{ borderBottom: '2px solid var(--roost-border)', marginBottom: 24 }}>
+          {TABS.map(t => (
+            <button key={t.id} type="button" onClick={() => setTab(t.id)} style={{
+              padding: '12px 20px', fontSize: 15, fontWeight: 800,
+              color: tab === t.id ? COLOR : 'var(--roost-text-muted)',
+              background: 'none', border: 'none',
+              borderBottom: `3px solid ${tab === t.id ? COLOR : 'transparent'}`,
+              marginBottom: -2, cursor: 'pointer',
+            }}>{t.label}</button>
           ))}
         </div>
 
         {/* ── PLANNER TAB ── */}
         {tab === 'planner' && (
           <>
+            {/* Desktop stats row */}
+            <div className="hidden sm:flex" style={{ gap: 12, marginBottom: 24 }}>
+              {[
+                { num: totalPlanned, label: 'Meals planned' },
+                { num: bankMeals.length, label: 'In meal bank' },
+                { num: suggestions.length, label: 'Suggestions' },
+              ].map(({ num, label }) => (
+                <div key={label} style={{ flex: 1, backgroundColor: 'var(--roost-surface)', border: '1.5px solid var(--roost-border)', borderBottom: `4px solid ${COLOR_DARK}`, borderRadius: 14, padding: 16, textAlign: 'center' }}>
+                  <div style={{ fontSize: 28, fontWeight: 900, color: COLOR, lineHeight: 1 }}>{num}</div>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--roost-text-muted)', marginTop: 2 }}>{label}</div>
+                </div>
+              ))}
+            </div>
+
             {/* Week nav */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
               <button type="button" onClick={() => setWeekStart(d => { const n = new Date(d); n.setDate(n.getDate() - 7); return n })}
-                style={{ width: 36, height: 36, borderRadius: 10, border: '1.5px solid var(--roost-border)', borderBottom: '3px solid var(--roost-border)', backgroundColor: 'var(--roost-surface)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                style={{ width: 36, height: 36, borderRadius: 10, border: '1.5px solid var(--roost-border)', borderBottom: '3px solid var(--roost-border-bottom)', backgroundColor: 'var(--roost-surface)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <ChevronLeft size={16} color="var(--roost-text-secondary)" />
               </button>
               <p style={{ margin: 0, fontWeight: 800, fontSize: 14, color: 'var(--roost-text-primary)', flex: 1, textAlign: 'center' }}>
                 {weekStart.toLocaleDateString('en-US', { month: 'long', day: 'numeric' })} {isThisWeek ? '(This week)' : ''}
               </p>
               <button type="button" onClick={() => setWeekStart(d => { const n = new Date(d); n.setDate(n.getDate() + 7); return n })}
-                style={{ width: 36, height: 36, borderRadius: 10, border: '1.5px solid var(--roost-border)', borderBottom: '3px solid var(--roost-border)', backgroundColor: 'var(--roost-surface)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                style={{ width: 36, height: 36, borderRadius: 10, border: '1.5px solid var(--roost-border)', borderBottom: '3px solid var(--roost-border-bottom)', backgroundColor: 'var(--roost-surface)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <ChevronRight size={16} color="var(--roost-text-secondary)" />
               </button>
               {!isThisWeek && (
                 <button type="button" onClick={() => setWeekStart(getMonday(new Date()))}
-                  style={{ padding: '6px 12px', borderRadius: 10, fontSize: 12, fontWeight: 800, border: '1.5px solid var(--roost-border)', borderBottom: '3px solid var(--roost-border)', backgroundColor: 'var(--roost-surface)', color: 'var(--roost-text-secondary)', cursor: 'pointer', flexShrink: 0 }}>
+                  style={{ padding: '6px 12px', borderRadius: 10, fontSize: 12, fontWeight: 800, border: '1.5px solid var(--roost-border)', borderBottom: '3px solid var(--roost-border-bottom)', backgroundColor: 'var(--roost-surface)', color: 'var(--roost-text-secondary)', cursor: 'pointer', flexShrink: 0 }}>
                   This week
                 </button>
               )}
             </div>
 
+            {/* Mobile: today hero card */}
+            {isThisWeek && (() => {
+              const todayDate = new Date()
+              const todaySlots = SLOT_TYPES.map(st => ({ st, slot: getSlot(todayDate, st) }))
+              const todayFilled = todaySlots.filter(x => x.slot).length
+              return (
+                <div className="block sm:hidden" style={{
+                  background: `linear-gradient(135deg, ${COLOR} 0%, #EA580C 100%)`,
+                  borderRadius: 16, padding: '18px 16px', marginBottom: 14,
+                  position: 'relative', overflow: 'hidden',
+                }}>
+                  <div style={{ position: 'absolute', top: -30, right: -30, width: 120, height: 120, borderRadius: '50%', background: 'rgba(255,255,255,0.08)' }} />
+                  <div style={{ fontSize: 11, fontWeight: 800, color: 'rgba(255,255,255,0.7)', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 6 }}>
+                    Today — {todayDate.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
+                  </div>
+                  <div style={{ fontSize: 20, fontWeight: 900, color: '#fff', marginBottom: 12 }}>
+                    {todayFilled} of 4 meals planned
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8 }}>
+                    {todaySlots.map(({ st, slot }) => (
+                      <button key={st} type="button" onClick={() => openSlot(todayDate, st)} style={{
+                        background: 'rgba(255,255,255,0.15)', borderRadius: 10, padding: '8px 6px',
+                        textAlign: 'center', border: 'none', cursor: 'pointer',
+                      }}>
+                        <div style={{ fontSize: 9, fontWeight: 800, color: 'rgba(255,255,255,0.6)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 3 }}>
+                          {SLOT_LABELS[st]}
+                        </div>
+                        {slot
+                          ? <div style={{ fontSize: 11, fontWeight: 800, color: '#fff', lineHeight: 1.2 }}>{slot.mealName}</div>
+                          : <div style={{ fontSize: 11, fontWeight: 600, color: 'rgba(255,255,255,0.45)', fontStyle: 'italic' }}>Tap to plan</div>
+                        }
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )
+            })()}
+
             {plannerLoading ? (
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 8 }} className="hidden sm:grid">
+              <div className="hidden sm:grid" style={{ gridTemplateColumns: 'repeat(7, 1fr)', gap: 10 }}>
                 {Array.from({ length: 7 }).map((_, i) => (
-                  <div key={i} style={{ borderRadius: 14, backgroundColor: 'var(--roost-surface)', border: '1.5px solid var(--roost-border)', height: 320 }} />
+                  <div key={i} style={{ borderRadius: 16, backgroundColor: 'var(--roost-surface)', border: '1.5px solid var(--roost-border)', height: 320 }} />
                 ))}
               </div>
             ) : (
               <>
                 {/* Desktop 7-col grid */}
-                <div className="hidden sm:grid w-full" style={{ gridTemplateColumns: 'repeat(7, 1fr)', gap: 8 }}>
+                <div className="hidden sm:grid w-full" style={{ gridTemplateColumns: 'repeat(7, 1fr)', gap: 10, marginBottom: 24 }}>
                   {days.map(day => {
                     const isCurrentDay = fmtDate(day) === todayStr()
                     return (
-                      <div key={fmtDate(day)}>
-                        <div style={{ height: 56, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', marginBottom: 6 }}>
-                          <p style={{ margin: 0, fontSize: 11, fontWeight: 700, color: 'var(--roost-text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                            {day.toLocaleDateString('en-US', { weekday: 'short' })}
+                      <div key={fmtDate(day)} style={{
+                        backgroundColor: 'var(--roost-surface)', border: '1.5px solid var(--roost-border)',
+                        borderBottom: `4px solid ${isCurrentDay ? COLOR_DARK : 'var(--roost-border-bottom)'}`,
+                        borderRadius: 16, overflow: 'hidden',
+                      }}>
+                        {/* Day column header */}
+                        <div style={{ padding: '12px 10px 10px', borderBottom: '1px solid var(--roost-border)', textAlign: 'center' }}>
+                          <p style={{ margin: 0, fontSize: 11, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.06em', color: isCurrentDay ? COLOR : 'var(--roost-text-muted)' }}>
+                            {isCurrentDay ? 'Today' : day.toLocaleDateString('en-US', { weekday: 'short' })}
                           </p>
-                          <div style={{ width: 28, height: 28, borderRadius: 14, display: 'flex', alignItems: 'center', justifyContent: 'center', marginTop: 2, backgroundColor: isCurrentDay ? COLOR : 'transparent' }}>
-                            <p style={{ margin: 0, fontSize: 14, fontWeight: 900, color: isCurrentDay ? '#fff' : 'var(--roost-text-primary)' }}>
+                          <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 30, height: 30, borderRadius: 9, marginTop: 2, backgroundColor: isCurrentDay ? COLOR : 'transparent' }}>
+                            <p style={{ margin: 0, fontSize: 15, fontWeight: 900, color: isCurrentDay ? '#fff' : 'var(--roost-text-primary)' }}>
                               {day.getDate()}
                             </p>
                           </div>
                         </div>
-                        {SLOT_TYPES.map(st => {
-                          const slot = getSlot(day, st)
-                          return (
-                            <motion.button
-                              key={st} type="button" whileTap={{ y: 1 }}
-                              onClick={() => openSlot(day, st)}
-                              style={{
-                                width: '100%', height: 72, marginBottom: 6, borderRadius: 12, border: '1.5px solid var(--roost-border)',
-                                borderBottom: slot ? `3px solid ${COLOR_DARK}` : '2px dashed var(--roost-border)',
-                                backgroundColor: slot ? `${COLOR}18` : 'var(--roost-surface)',
-                                cursor: 'pointer', padding: '6px 8px', display: 'flex', flexDirection: 'column', justifyContent: 'center', textAlign: 'left',
-                              }}
-                            >
-                              <p style={{ margin: 0, fontSize: 9, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.06em', color: slot ? COLOR : 'var(--roost-text-muted)' }}>
-                                {SLOT_LABELS[st]}
-                              </p>
-                              {slot ? (
-                                <p style={{ margin: '3px 0 0', fontSize: 12, fontWeight: 800, color: 'var(--roost-text-primary)', lineHeight: 1.2, wordBreak: 'break-word' }}>
-                                  {slot.mealName}
-                                </p>
-                              ) : (
-                                <p style={{ margin: '3px 0 0', fontSize: 11, fontWeight: 600, color: 'var(--roost-text-muted)' }}>Tap to plan</p>
-                              )}
-                            </motion.button>
-                          )
-                        })}
+                        {/* Slots */}
+                        <div style={{ padding: '8px 8px 10px' }}>
+                          {SLOT_TYPES.map(st => {
+                            const slot = getSlot(day, st)
+                            return slot ? (
+                              <motion.button key={st} type="button" whileTap={{ y: 1 }}
+                                onClick={() => openSlot(day, st)}
+                                style={{
+                                  width: '100%', padding: '7px 8px', borderRadius: 10, marginBottom: 5,
+                                  backgroundColor: `${COLOR}12`, border: 'none', cursor: 'pointer', textAlign: 'left',
+                                }}>
+                                <p style={{ margin: 0, fontSize: 9, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--roost-text-muted)' }}>{SLOT_LABELS[st]}</p>
+                                <p style={{ margin: '2px 0 0', fontSize: 11, fontWeight: 800, color: 'var(--roost-text-primary)', lineHeight: 1.2 }}>{slot.mealName}</p>
+                              </motion.button>
+                            ) : (
+                              <motion.button key={st} type="button" whileTap={{ y: 1 }}
+                                onClick={() => openSlot(day, st)}
+                                style={{
+                                  width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4,
+                                  padding: '7px 8px', borderRadius: 10, marginBottom: 5,
+                                  border: `1.5px dashed ${COLOR}50`, backgroundColor: `${COLOR}06`,
+                                  cursor: 'pointer', fontSize: 10, fontWeight: 800, color: COLOR + '90',
+                                }}>
+                                <Plus size={10} /> Add {SLOT_LABELS[st].toLowerCase()}
+                              </motion.button>
+                            )
+                          })}
+                        </div>
                       </div>
                     )
                   })}
                 </div>
 
-                {/* Mobile vertical list */}
-                <div className="block sm:hidden" style={{ flexDirection: 'column', gap: 10 }}>
+                {/* Mobile day cards */}
+                <div className="flex sm:hidden" style={{ flexDirection: 'column', gap: 10 }}>
                   {days.map(day => {
                     const isCurrentDay = fmtDate(day) === todayStr()
                     const daySlots = SLOT_TYPES.map(st => ({ st, slot: getSlot(day, st) }))
@@ -1192,7 +1453,8 @@ export default function MealsPage() {
                     return (
                       <SlabCard key={fmtDate(day)} color={isCurrentDay ? COLOR_DARK : 'var(--roost-border-bottom)'}>
                         <div style={{ padding: '12px 14px' }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+                          {/* Day header */}
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 8, paddingBottom: 10, borderBottom: '1px solid var(--roost-border)' }}>
                             <div style={{ width: 32, height: 32, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: isCurrentDay ? COLOR : 'var(--roost-bg)' }}>
                               <p style={{ margin: 0, fontSize: 14, fontWeight: 900, color: isCurrentDay ? '#fff' : 'var(--roost-text-primary)' }}>{day.getDate()}</p>
                             </div>
@@ -1203,29 +1465,43 @@ export default function MealsPage() {
                               </span>
                             )}
                           </div>
-                          {daySlots.map(({ st, slot }) => (
-                            <button key={st} type="button" onClick={() => openSlot(day, st)} style={{
-                              width: '100%', display: 'flex', alignItems: 'center', padding: '10px 0',
-                              borderTop: '1px solid var(--roost-border)', border: 'none', borderTopWidth: 1, borderTopStyle: 'solid', borderTopColor: 'var(--roost-border)',
-                              backgroundColor: 'transparent', cursor: 'pointer', gap: 10, textAlign: 'left',
-                            }}>
-                              <span style={{ fontSize: 11, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--roost-text-muted)', width: 70, flexShrink: 0 }}>
-                                {SLOT_LABELS[st]}
-                              </span>
-                              <span style={{ fontSize: 13, fontWeight: slot ? 800 : 600, color: slot ? 'var(--roost-text-primary)' : 'var(--roost-text-muted)' }}>
-                                {slot ? slot.mealName : 'Tap to plan'}
-                              </span>
-                            </button>
-                          ))}
+                          {/* Slot rows */}
+                          {daySlots.map(({ st, slot }, idx) => {
+                            const bankMeal = slot ? bankMeals.find(m => m.id === slot.mealId) : null
+                            const hasIngredients = bankMeal ? parseIngredients(bankMeal.ingredients).length > 0 : false
+                            return (
+                              <div key={st} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 0', borderBottom: idx < SLOT_TYPES.length - 1 ? '1px solid var(--roost-border)' : 'none' }}>
+                                <button type="button" onClick={() => openSlot(day, st)} style={{
+                                  flex: 1, display: 'flex', alignItems: 'center', gap: 10,
+                                  backgroundColor: 'transparent', border: 'none', cursor: 'pointer', textAlign: 'left', padding: 0,
+                                }}>
+                                  <span style={{ fontSize: 11, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--roost-text-muted)', width: 68, flexShrink: 0 }}>
+                                    {SLOT_LABELS[st]}
+                                  </span>
+                                  <span style={{ fontSize: 13, fontWeight: slot ? 800 : 600, color: slot ? 'var(--roost-text-primary)' : 'var(--roost-text-muted)' }}>
+                                    {slot ? slot.mealName : 'Tap to plan'}
+                                  </span>
+                                </button>
+                                {slot && hasIngredients && (
+                                  <button type="button"
+                                    onClick={() => bankMeal && setGroceryPushMeal(bankMeal)}
+                                    style={{ width: 28, height: 28, borderRadius: 8, backgroundColor: `${COLOR}18`, border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                                    <ShoppingCart size={12} color={COLOR} />
+                                  </button>
+                                )}
+                              </div>
+                            )
+                          })}
                         </div>
                       </SlabCard>
                     )
                   })}
                 </div>
 
+                {/* Desktop empty state (only when truly no slots planned) */}
                 {slots.length === 0 && (
                   <div className="hidden sm:flex" style={{
-                    marginTop: 24, backgroundColor: 'var(--roost-surface)', border: '2px dashed var(--roost-border)',
+                    marginTop: 8, backgroundColor: 'var(--roost-surface)', border: '2px dashed var(--roost-border)',
                     borderBottom: '4px dashed var(--roost-border-bottom)', borderRadius: 16,
                     flexDirection: 'column', alignItems: 'center', gap: 10, textAlign: 'center', padding: '32px 24px',
                   }}>
@@ -1246,15 +1522,29 @@ export default function MealsPage() {
         {/* ── BANK TAB ── */}
         {tab === 'bank' && (
           <>
-            <div style={{ marginBottom: 14 }}>
+            {/* Mobile: mini stats + search + category pills */}
+            <div className="block sm:hidden">
+              <div style={{ display: 'flex', gap: 8, marginBottom: 14 }}>
+                {[
+                  { num: bankMeals.length, label: 'Total' },
+                  { num: bankMeals.filter(m => m.category === 'dinner').length, label: 'Dinner' },
+                  { num: bankMeals.filter(m => m.category === 'lunch').length, label: 'Lunch' },
+                  { num: bankMeals.filter(m => m.category === 'breakfast').length, label: 'Breakfast' },
+                ].map(({ num, label }) => (
+                  <div key={label} style={{ flex: 1, backgroundColor: 'var(--roost-surface)', border: '1.5px solid var(--roost-border)', borderBottom: '3px solid var(--roost-border-bottom)', borderRadius: 12, padding: '10px 4px', textAlign: 'center' }}>
+                    <div style={{ fontSize: 18, fontWeight: 900, color: COLOR }}>{num}</div>
+                    <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--roost-text-muted)', letterSpacing: '0.05em', marginTop: 1 }}>{label.toUpperCase()}</div>
+                  </div>
+                ))}
+              </div>
               <div style={{ position: 'relative', marginBottom: 10 }}>
                 <Search size={14} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--roost-text-muted)' }} />
                 <input style={{ ...INPUT_STYLE, paddingLeft: 34 }} placeholder="Search your meal bank..." value={bankSearch} onChange={e => setBankSearch(e.target.value)} />
               </div>
-              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 14 }}>
                 {(['all', ...SLOT_TYPES] as const).map(c => (
                   <button key={c} type="button" onClick={() => setBankCategory(c as MealCategory | 'all')} style={{
-                    padding: '6px 14px', borderRadius: 10, fontSize: 12, fontWeight: 800, border: 'none',
+                    padding: '6px 13px', borderRadius: 10, fontSize: 12, fontWeight: 800, border: 'none',
                     borderBottom: `2px solid ${bankCategory === c ? COLOR_DARK : 'var(--roost-border)'}`,
                     backgroundColor: bankCategory === c ? COLOR : 'var(--roost-surface)',
                     color: bankCategory === c ? '#fff' : 'var(--roost-text-secondary)', cursor: 'pointer',
@@ -1265,12 +1555,41 @@ export default function MealsPage() {
               </div>
             </div>
 
-            {bankLoading ? (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                {[1, 2, 3].map(i => (
-                  <div key={i} style={{ height: 80, borderRadius: 16, backgroundColor: 'var(--roost-surface)', border: '1.5px solid var(--roost-border)', borderBottom: '4px solid var(--roost-border)' }} />
+            {/* Desktop toolbar: cat pills left | search + add right */}
+            <div className="hidden sm:flex" style={{ alignItems: 'center', gap: 12, marginBottom: 20, flexWrap: 'wrap' }}>
+              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                {(['all', ...SLOT_TYPES] as const).map(c => (
+                  <button key={c} type="button" onClick={() => setBankCategory(c as MealCategory | 'all')} style={{
+                    padding: '6px 13px', borderRadius: 10, fontSize: 12, fontWeight: 800, border: 'none',
+                    borderBottom: `2px solid ${bankCategory === c ? COLOR_DARK : 'var(--roost-border)'}`,
+                    backgroundColor: bankCategory === c ? COLOR : 'var(--roost-surface)',
+                    color: bankCategory === c ? '#fff' : 'var(--roost-text-secondary)', cursor: 'pointer',
+                  }}>
+                    {c === 'all' ? 'All' : SLOT_LABELS[c]}
+                  </button>
                 ))}
               </div>
+              <div style={{ flex: 1 }} />
+              <div style={{ position: 'relative', width: 260 }}>
+                <Search size={14} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--roost-text-muted)' }} />
+                <input style={{ ...INPUT_STYLE, paddingLeft: 34, backgroundColor: 'var(--roost-bg)' }} placeholder="Search meals..." value={bankSearch} onChange={e => setBankSearch(e.target.value)} />
+              </div>
+              <motion.button whileTap={{ y: 2 }} type="button"
+                onClick={() => { setEditMeal(null); setMealSheetOpen(true) }}
+                style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '10px 20px', borderRadius: 12, backgroundColor: COLOR, border: 'none', borderBottom: `3px solid ${COLOR_DARK}`, fontSize: 14, fontWeight: 800, color: '#fff', cursor: 'pointer', whiteSpace: 'nowrap' }}>
+                <Plus size={14} /> Add meal
+              </motion.button>
+            </div>
+
+            {bankLoading ? (
+              <>
+                <div className="flex sm:hidden" style={{ flexDirection: 'column', gap: 10 }}>
+                  {[1, 2, 3].map(i => <div key={i} style={{ height: 80, borderRadius: 16, backgroundColor: 'var(--roost-surface)', border: '1.5px solid var(--roost-border)', borderBottom: '4px solid var(--roost-border)' }} />)}
+                </div>
+                <div className="hidden sm:grid" style={{ gridTemplateColumns: 'repeat(3, 1fr)', gap: 14 }}>
+                  {[1, 2, 3, 4, 5].map(i => <div key={i} style={{ height: 190, borderRadius: 16, backgroundColor: 'var(--roost-surface)', border: '1.5px solid var(--roost-border)' }} />)}
+                </div>
+              </>
             ) : filteredBank.length === 0 ? (
               <div style={{
                 backgroundColor: 'var(--roost-surface)', border: '2px dashed var(--roost-border)',
@@ -1281,7 +1600,7 @@ export default function MealsPage() {
                   <UtensilsCrossed size={24} color={COLOR} />
                 </div>
                 <p style={{ margin: 0, fontWeight: 800, fontSize: 16, color: 'var(--roost-text-primary)' }}>
-                  {bankSearch || bankCategory !== 'all' ? 'No matches.' : 'Empty bank.'}
+                  {bankSearch || bankCategory !== 'all' ? 'No matches.' : 'Dinner TBD.'}
                 </p>
                 <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: 'var(--roost-text-secondary)' }}>
                   {bankSearch || bankCategory !== 'all' ? 'Try a different search or category.' : 'Add meals to your bank so you can plan them later.'}
@@ -1294,78 +1613,178 @@ export default function MealsPage() {
                 )}
               </div>
             ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                {filteredBank.map((m, i) => {
-                  const ing = parseIngredients(m.ingredients)
-                  return (
-                    <motion.div key={m.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: Math.min(i * 0.04, 0.2), duration: 0.15 }}>
-                      <SlabCard color={COLOR_DARK}>
-                        <div style={{ padding: 14, display: 'flex', alignItems: 'flex-start', gap: 12 }}>
-                          <div style={{ flex: 1, minWidth: 0 }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-                              <p style={{ margin: 0, fontWeight: 800, fontSize: 15, color: 'var(--roost-text-primary)' }}>{m.name}</p>
-                              {m.category && (
-                                <span style={{ fontSize: 10, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em', color: COLOR, backgroundColor: `${COLOR}18`, padding: '2px 7px', borderRadius: 6 }}>
-                                  {SLOT_LABELS[m.category]}
-                                </span>
-                              )}
-                            </div>
-                            <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-                              {m.prepTime && (
-                                <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, fontWeight: 700, color: 'var(--roost-text-muted)' }}>
-                                  <Clock size={11} /> {m.prepTime} min
-                                </span>
-                              )}
+              <>
+                {/* Mobile: vertical list */}
+                <div className="flex sm:hidden" style={{ flexDirection: 'column', gap: 10 }}>
+                  {filteredBank.map((m, i) => {
+                    const ing = parseIngredients(m.ingredients)
+                    return (
+                      <motion.div key={m.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: Math.min(i * 0.04, 0.2), duration: 0.15 }}>
+                        <SlabCard color={COLOR_DARK}>
+                          <div style={{ padding: 14, display: 'flex', alignItems: 'flex-start', gap: 12 }}>
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                                <p style={{ margin: 0, fontWeight: 800, fontSize: 15, color: 'var(--roost-text-primary)' }}>{m.name}</p>
+                                {m.category && (
+                                  <span style={{ fontSize: 10, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em', color: COLOR, backgroundColor: `${COLOR}18`, padding: '2px 7px', borderRadius: 6 }}>
+                                    {SLOT_LABELS[m.category]}
+                                  </span>
+                                )}
+                              </div>
+                              <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: ing.length > 0 ? 6 : 0 }}>
+                                {m.prepTime && (
+                                  <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, fontWeight: 700, color: 'var(--roost-text-muted)' }}>
+                                    <Clock size={11} /> {m.prepTime} min
+                                  </span>
+                                )}
+                                {ing.length > 0 && (
+                                  <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--roost-text-muted)' }}>
+                                    {ing.length} ingredient{ing.length === 1 ? '' : 's'}
+                                  </span>
+                                )}
+                              </div>
                               {ing.length > 0 && (
-                                <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--roost-text-muted)' }}>
-                                  {ing.length} ingredient{ing.length === 1 ? '' : 's'}
-                                </span>
+                                <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+                                  {ing.slice(0, 3).map((item, idx) => (
+                                    <span key={idx} style={{ fontSize: 11, fontWeight: 700, color: 'var(--roost-text-secondary)', backgroundColor: 'var(--roost-bg)', border: '1px solid var(--roost-border)', padding: '2px 8px', borderRadius: 6 }}>
+                                      {[item.quantity, item.unit, item.name].filter(Boolean).join(' ')}
+                                    </span>
+                                  ))}
+                                  {ing.length > 3 && <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--roost-text-muted)', alignSelf: 'center' }}>+{ing.length - 3}</span>}
+                                </div>
                               )}
                             </div>
-                            {m.description && (
-                              <p style={{ margin: '6px 0 0', fontSize: 12, fontWeight: 600, color: 'var(--roost-text-secondary)', lineHeight: 1.4 }}>
-                                {m.description.slice(0, 100)}{m.description.length > 100 ? '...' : ''}
-                              </p>
-                            )}
-                          </div>
-                          <div style={{ display: 'flex', gap: 4, flexShrink: 0 }}>
-                            {/* View details */}
-                            <button type="button" title="View details"
-                              onClick={() => setPreviewMeal(m)}
-                              style={{ width: 34, height: 34, borderRadius: 9, border: 'none', backgroundColor: 'var(--roost-bg)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                              <Eye size={14} color="var(--roost-text-secondary)" />
-                            </button>
-                            {/* Add to planner — opens date picker for this specific meal */}
-                            <button type="button" title="Add to planner"
-                              onClick={() => { setBankAddMeal(m); setSlotOpen(true) }}
-                              style={{ width: 34, height: 34, borderRadius: 9, border: 'none', backgroundColor: 'var(--roost-bg)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                              <Plus size={14} color={COLOR} />
-                            </button>
-                            {/* Push ingredients to grocery */}
-                            {ing.length > 0 && (
-                              <button type="button" title="Add ingredients to grocery list"
-                                onClick={() => setGroceryPushMeal(m)}
+                            <div style={{ display: 'flex', gap: 4, flexShrink: 0 }}>
+                              <button type="button" title="View details" onClick={() => setPreviewMeal(m)}
                                 style={{ width: 34, height: 34, borderRadius: 9, border: 'none', backgroundColor: 'var(--roost-bg)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                <ShoppingCart size={13} color="var(--roost-text-secondary)" />
+                                <Eye size={14} color="var(--roost-text-secondary)" />
                               </button>
-                            )}
-                            <button type="button" onClick={() => { setEditMeal(m); setMealSheetOpen(true) }}
-                              style={{ width: 34, height: 34, borderRadius: 9, border: 'none', backgroundColor: 'var(--roost-bg)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                              <Pencil size={13} color="var(--roost-text-secondary)" />
-                            </button>
-                            {m.createdBy === currentUserId && (
-                              <button type="button" onClick={() => deleteMealMutation.mutate(m.id)}
+                              <button type="button" title="Add to planner" onClick={() => { setBankAddMeal(m); setSlotOpen(true) }}
                                 style={{ width: 34, height: 34, borderRadius: 9, border: 'none', backgroundColor: 'var(--roost-bg)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                <Trash2 size={13} color="#EF4444" />
+                                <Plus size={14} color={COLOR} />
                               </button>
-                            )}
+                              {ing.length > 0 && (
+                                <button type="button" title="Add ingredients to grocery list" onClick={() => setGroceryPushMeal(m)}
+                                  style={{ width: 34, height: 34, borderRadius: 9, border: 'none', backgroundColor: 'var(--roost-bg)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                  <ShoppingCart size={13} color="var(--roost-text-secondary)" />
+                                </button>
+                              )}
+                              <button type="button" onClick={() => { setEditMeal(m); setMealSheetOpen(true) }}
+                                style={{ width: 34, height: 34, borderRadius: 9, border: 'none', backgroundColor: 'var(--roost-bg)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                <Pencil size={13} color="var(--roost-text-secondary)" />
+                              </button>
+                              {m.createdBy === currentUserId && (
+                                <button type="button" onClick={() => deleteMealMutation.mutate(m.id)}
+                                  style={{ width: 34, height: 34, borderRadius: 9, border: 'none', backgroundColor: 'var(--roost-bg)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                  <Trash2 size={13} color="#EF4444" />
+                                </button>
+                              )}
+                            </div>
                           </div>
+                        </SlabCard>
+                      </motion.div>
+                    )
+                  })}
+                </div>
+
+                {/* Desktop: 3-col card grid */}
+                <div className="hidden sm:grid" style={{ gridTemplateColumns: 'repeat(3, 1fr)', gap: 14 }}>
+                  {/* Add new meal card */}
+                  <motion.button whileTap={{ y: 2 }} type="button"
+                    onClick={() => { setEditMeal(null); setMealSheetOpen(true) }}
+                    style={{
+                      display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+                      textAlign: 'center', gap: 10, minHeight: 190,
+                      backgroundColor: `${COLOR}08`, border: `1.5px dashed ${COLOR}`,
+                      borderBottom: `4px dashed ${COLOR}`, borderRadius: 16, padding: 18, cursor: 'pointer',
+                    }}>
+                    <div style={{ width: 50, height: 50, borderRadius: 14, backgroundColor: COLOR, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <Plus size={24} color="#fff" />
+                    </div>
+                    <div style={{ fontSize: 15, fontWeight: 800, color: COLOR_DARK }}>Add new meal</div>
+                    <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--roost-text-muted)' }}>Save a recipe to reuse in your planner</div>
+                  </motion.button>
+
+                  {filteredBank.map((m, i) => {
+                    const ing = parseIngredients(m.ingredients)
+                    const plannedDay = plannedMealsMap.get(m.id)
+                    const catColor = m.category ? CAT_COLORS[m.category] : null
+                    return (
+                      <motion.div key={m.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: Math.min(i * 0.04, 0.2), duration: 0.15 }}
+                        style={{ backgroundColor: 'var(--roost-surface)', border: '1.5px solid var(--roost-border)', borderBottom: `4px solid ${COLOR_DARK}`, borderRadius: 16, padding: 18, display: 'flex', flexDirection: 'column' }}>
+                        {/* Top: name + category badge */}
+                        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 6 }}>
+                          <p style={{ margin: 0, fontWeight: 800, fontSize: 15, color: 'var(--roost-text-primary)', flex: 1, marginRight: 8 }}>{m.name}</p>
+                          {m.category && catColor && (
+                            <span style={{ fontSize: 10, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em', padding: '3px 8px', borderRadius: 6, backgroundColor: catColor.bg, color: catColor.text, flexShrink: 0 }}>
+                              {SLOT_LABELS[m.category]}
+                            </span>
+                          )}
                         </div>
-                      </SlabCard>
-                    </motion.div>
-                  )
-                })}
-              </div>
+                        {/* Meta */}
+                        <div style={{ display: 'flex', gap: 10, marginBottom: plannedDay || m.description ? 6 : 8 }}>
+                          {m.prepTime && (
+                            <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, fontWeight: 700, color: 'var(--roost-text-muted)' }}>
+                              <Clock size={11} /> {m.prepTime} min
+                            </span>
+                          )}
+                          {ing.length > 0 && (
+                            <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--roost-text-muted)' }}>
+                              {ing.length} ingredient{ing.length === 1 ? '' : 's'}
+                            </span>
+                          )}
+                        </div>
+                        {/* Planned badge */}
+                        {plannedDay && (
+                          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 11, fontWeight: 800, color: COLOR, marginBottom: 8 }}>
+                            <CalendarCheck size={10} /> Planned {plannedDay}
+                          </div>
+                        )}
+                        {/* Description */}
+                        {m.description && (
+                          <p style={{ margin: '0 0 8px', fontSize: 12, fontWeight: 600, color: 'var(--roost-text-secondary)', lineHeight: 1.5 }}>
+                            {m.description.slice(0, 80)}{m.description.length > 80 ? '...' : ''}
+                          </p>
+                        )}
+                        {/* Ingredient chips */}
+                        {ing.length > 0 && (
+                          <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginBottom: 10, flex: 1 }}>
+                            {ing.slice(0, 4).map((item, idx) => (
+                              <span key={idx} style={{ fontSize: 11, fontWeight: 700, color: 'var(--roost-text-secondary)', backgroundColor: 'var(--roost-bg)', border: '1px solid var(--roost-border)', padding: '3px 8px', borderRadius: 6 }}>
+                                {[item.quantity, item.unit, item.name].filter(Boolean).join(' ')}
+                              </span>
+                            ))}
+                            {ing.length > 4 && <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--roost-text-muted)', alignSelf: 'center' }}>+{ing.length - 4}</span>}
+                          </div>
+                        )}
+                        {/* Actions */}
+                        <div style={{ display: 'flex', gap: 6, borderTop: '1px solid var(--roost-border)', paddingTop: 10, marginTop: 'auto' }}>
+                          <button type="button" onClick={() => { setBankAddMeal(m); setSlotOpen(true) }}
+                            style={{ flex: 1, height: 34, borderRadius: 9, border: 'none', fontSize: 12, fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5, backgroundColor: COLOR, color: '#fff' }}>
+                            <Plus size={12} /> Plan
+                          </button>
+                          {ing.length > 0 && (
+                            <button type="button" onClick={() => setGroceryPushMeal(m)}
+                              style={{ flex: 1, height: 34, borderRadius: 9, border: '1px solid var(--roost-border)', fontSize: 12, fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5, backgroundColor: 'var(--roost-bg)', color: 'var(--roost-text-secondary)' }}>
+                              <ShoppingCart size={12} /> Grocery
+                            </button>
+                          )}
+                          <button type="button" onClick={() => { setEditMeal(m); setMealSheetOpen(true) }}
+                            style={{ width: 34, height: 34, borderRadius: 9, border: '1px solid var(--roost-border)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: 'var(--roost-bg)', color: 'var(--roost-text-secondary)' }}>
+                            <Pencil size={13} />
+                          </button>
+                          {m.createdBy === currentUserId && (
+                            <button type="button" onClick={() => deleteMealMutation.mutate(m.id)}
+                              style={{ width: 34, height: 34, borderRadius: 9, border: '1px solid var(--roost-border)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: 'var(--roost-bg)', color: '#EF4444' }}>
+                              <Trash2 size={13} />
+                            </button>
+                          )}
+                        </div>
+                      </motion.div>
+                    )
+                  })}
+                </div>
+              </>
             )}
           </>
         )}
@@ -1373,29 +1792,40 @@ export default function MealsPage() {
         {/* ── SUGGESTIONS TAB ── */}
         {tab === 'suggestions' && (
           <>
-            {/* Approval mode context bar */}
+            {/* Suggest hero (desktop: gradient, mobile: compact orange slab) */}
             <div style={{
-              display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16,
-              padding: '10px 14px', borderRadius: 12,
-              backgroundColor: 'var(--roost-surface)', border: '1.5px solid var(--roost-border)',
-              borderBottom: '3px solid var(--roost-border-bottom)',
+              display: 'flex', background: `linear-gradient(135deg, ${COLOR} 0%, #EA580C 100%)`,
+              borderRadius: 18, padding: '24px 28px', marginBottom: 20,
+              alignItems: 'center', gap: 20, position: 'relative', overflow: 'hidden',
             }}>
-              {householdApprovalMode === 'admin_only'
-                ? <ShieldCheck size={15} color="#6B7280" />
-                : <Users size={15} color={COLOR} />
-              }
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <p style={{ margin: 0, fontSize: 12, fontWeight: 800, color: 'var(--roost-text-primary)' }}>
-                  {householdApprovalMode === 'admin_only' ? 'Admin approves suggestions' : 'Open vote'}
-                </p>
-                <p style={{ margin: 0, fontSize: 11, fontWeight: 600, color: 'var(--roost-text-muted)', lineHeight: 1.4 }}>
-                  {householdApprovalMode === 'admin_only'
-                    ? 'Only admins can approve or reject suggestions.'
-                    : 'Anyone can approve once more members vote yes than no. Admins can always act.'}
-                </p>
+              <div style={{ position: 'absolute', top: -40, right: -40, width: 160, height: 160, borderRadius: '50%', background: 'rgba(255,255,255,0.08)' }} />
+              <div style={{ width: 52, height: 52, borderRadius: 14, backgroundColor: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <Send size={22} color="#fff" />
               </div>
-              {/* Admin toggle */}
-              {isAdmin && (
+              <div style={{ flex: 1, position: 'relative', zIndex: 1 }}>
+                <p style={{ margin: 0, fontSize: 20, fontWeight: 900, color: '#fff', marginBottom: 4 }}>What should we eat this week?</p>
+                <p style={{ margin: 0, fontSize: 14, fontWeight: 600, color: 'rgba(255,255,255,0.8)' }}>Anyone in the household can suggest meals. The family votes, you decide.</p>
+              </div>
+              <button type="button" onClick={() => setSuggestOpen(true)}
+                style={{ padding: '12px 24px', borderRadius: 12, backgroundColor: '#fff', border: 'none', borderBottom: '3px solid #E5E7EB', fontSize: 14, fontWeight: 800, color: COLOR, cursor: 'pointer', flexShrink: 0, whiteSpace: 'nowrap', position: 'relative', zIndex: 1 }}>
+                + Suggest a meal
+              </button>
+            </div>
+
+            {/* Admin approval mode control */}
+            {isAdmin && (
+              <div style={{
+                display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16,
+                padding: '10px 14px', borderRadius: 12,
+                backgroundColor: 'var(--roost-surface)', border: '1.5px solid var(--roost-border)',
+                borderBottom: '3px solid var(--roost-border-bottom)',
+              }}>
+                {householdApprovalMode === 'admin_only' ? <ShieldCheck size={15} color="#6B7280" /> : <Users size={15} color={COLOR} />}
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <p style={{ margin: 0, fontSize: 12, fontWeight: 800, color: 'var(--roost-text-primary)' }}>
+                    {householdApprovalMode === 'admin_only' ? 'Admin approves suggestions' : 'Open vote'}
+                  </p>
+                </div>
                 <div style={{ display: 'flex', gap: 4, flexShrink: 0 }}>
                   {(['admin_only', 'open_vote'] as ApprovalMode[]).map(mode => (
                     <button key={mode} type="button"
@@ -1413,8 +1843,8 @@ export default function MealsPage() {
                     </button>
                   ))}
                 </div>
-              )}
-            </div>
+              </div>
+            )}
 
             {suggestLoading ? (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -1433,181 +1863,24 @@ export default function MealsPage() {
                 <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: 'var(--roost-text-secondary)' }}>
                   Suggest a meal for the household to vote on.
                 </p>
-                <motion.button whileTap={{ y: 2 }} type="button" onClick={() => setSuggestOpen(true)}
-                  style={{ marginTop: 8, padding: '11px 20px', borderRadius: 12, border: 'none', borderBottom: `3px solid ${COLOR_DARK}`, backgroundColor: COLOR, color: '#fff', fontWeight: 800, fontSize: 14, cursor: 'pointer' }}>
-                  Make a suggestion
-                </motion.button>
               </div>
             ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                {suggestions.map((s, i) => {
-                  const ing = parseIngredients(s.ingredients)
-                  const isTop = i === 0 && s.upvotes > 0
-                  const effectiveMode: ApprovalMode = s.approvalMode ?? householdApprovalMode
-                  const majorityReached = s.upvotes > s.downvotes
-                  const canActAsNonAdmin = effectiveMode === 'open_vote' && majorityReached
-                  const canAct = isAdmin || canActAsNonAdmin
-                  const neededVotes = Math.max(1, s.downvotes - s.upvotes + 1)
-
-                  return (
-                    <motion.div key={s.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: Math.min(i * 0.04, 0.2), duration: 0.15 }}>
-                      <SlabCard color={COLOR_DARK}>
-                        <div style={{ padding: 14 }}>
-                          <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
-                            <div style={{ flex: 1, minWidth: 0 }}>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 4 }}>
-                                {isTop && (
-                                  <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, fontWeight: 800, color: '#D97706', backgroundColor: '#FEF3C7', padding: '2px 8px', borderRadius: 6 }}>
-                                    <Trophy size={11} /> Top pick
-                                  </span>
-                                )}
-                                {s.status === 'in_bank' && (
-                                  <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, fontWeight: 800, color: COLOR, backgroundColor: `${COLOR}18`, padding: '2px 8px', borderRadius: 6 }}>
-                                    <BookmarkCheck size={11} /> In meal bank
-                                  </span>
-                                )}
-                                {/* Per-suggestion approval mode badge (only shown when overriding default) */}
-                                {s.approvalMode && s.approvalMode !== householdApprovalMode && (
-                                  <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 10, fontWeight: 800, color: '#6B7280', backgroundColor: 'var(--roost-bg)', padding: '2px 7px', borderRadius: 6, border: '1px solid var(--roost-border)' }}>
-                                    {s.approvalMode === 'admin_only' ? <ShieldCheck size={9} /> : <Users size={9} />}
-                                    {s.approvalMode === 'admin_only' ? 'Admin only' : 'Open vote'}
-                                  </span>
-                                )}
-                                <p style={{ margin: 0, fontWeight: 800, fontSize: 15, color: 'var(--roost-text-primary)' }}>{s.name}</p>
-                              </div>
-                              {(s.targetSlotDate || s.targetSlotType) && (
-                                <p style={{ margin: '2px 0 4px', fontSize: 12, fontWeight: 700, color: 'var(--roost-text-muted)' }}>
-                                  {s.targetSlotDate && new Date(s.targetSlotDate + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
-                                  {s.targetSlotType && ` ${SLOT_LABELS[s.targetSlotType]}`}
-                                </p>
-                              )}
-                              {ing.length > 0 && (
-                                <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginBottom: 4 }}>
-                                  {ing.slice(0, 4).map((item, idx) => (
-                                    <span key={idx} style={{ fontSize: 11, fontWeight: 700, color: 'var(--roost-text-secondary)', backgroundColor: 'var(--roost-bg)', padding: '2px 8px', borderRadius: 6 }}>
-                                      {[item.quantity, item.unit, item.name].filter(Boolean).join(' ')}
-                                    </span>
-                                  ))}
-                                  {ing.length > 4 && <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--roost-text-muted)' }}>+{ing.length - 4} more</span>}
-                                </div>
-                              )}
-                              {s.note && <p style={{ margin: '4px 0 0', fontSize: 12, fontWeight: 600, color: 'var(--roost-text-secondary)' }}>{s.note}</p>}
-                              <p style={{ margin: '6px 0 0', fontSize: 11, fontWeight: 700, color: 'var(--roost-text-muted)' }}>
-                                Suggested by {s.suggesterName?.split(' ')[0] ?? 'someone'}
-                              </p>
-                            </div>
-                            {/* Voting */}
-                            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, flexShrink: 0 }}>
-                              <button type="button" onClick={() => voteMutation.mutate({ id: s.id, voteType: 'up' })} style={{
-                                width: 36, height: 36, borderRadius: 10, border: '1.5px solid var(--roost-border)',
-                                borderBottom: `2px solid ${s.userVote === 'up' ? COLOR_DARK : 'var(--roost-border)'}`,
-                                backgroundColor: s.userVote === 'up' ? COLOR : 'var(--roost-surface)',
-                                cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                              }}>
-                                <ThumbsUp size={14} color={s.userVote === 'up' ? '#fff' : 'var(--roost-text-secondary)'} />
-                              </button>
-                              <span style={{ fontSize: 13, fontWeight: 800, color: s.upvotes > 0 ? COLOR : 'var(--roost-text-muted)' }}>{s.upvotes}</span>
-                              <button type="button" onClick={() => voteMutation.mutate({ id: s.id, voteType: 'down' })} style={{
-                                width: 36, height: 36, borderRadius: 10, border: '1.5px solid var(--roost-border)',
-                                borderBottom: `2px solid ${s.userVote === 'down' ? '#DC2626' : 'var(--roost-border)'}`,
-                                backgroundColor: s.userVote === 'down' ? '#FEE2E2' : 'var(--roost-surface)',
-                                cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                              }}>
-                                <ThumbsDown size={14} color={s.userVote === 'down' ? '#DC2626' : 'var(--roost-text-muted)'} />
-                              </button>
-                            </div>
-                          </div>
-
-                          {/* Approval actions section */}
-                          <div style={{ marginTop: 12, borderTop: '1px solid var(--roost-border)', paddingTop: 10 }}>
-                            {canAct ? (
-                              // User can act — show approve/reject buttons
-                              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                                {/* "Majority reached" badge for non-admins in open vote mode */}
-                                {!isAdmin && canActAsNonAdmin && (
-                                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                                    <CheckCircle size={13} color="#16A34A" />
-                                    <span style={{ fontSize: 12, fontWeight: 700, color: '#16A34A' }}>
-                                      Majority reached. You can approve this suggestion.
-                                    </span>
-                                  </div>
-                                )}
-                                {/* Add to planner — only when suggestion has a target date+slot */}
-                                {s.targetSlotDate && s.targetSlotType && (
-                                  <button type="button"
-                                    onClick={() => approveMutation.mutate({ id: s.id, action: 'planner' })}
-                                    disabled={approveMutation.isPending}
-                                    style={{
-                                      width: '100%', padding: '9px 0', borderRadius: 10, fontSize: 13, fontWeight: 800,
-                                      border: 'none', borderBottom: `2px solid ${COLOR_DARK}`,
-                                      backgroundColor: COLOR, color: '#fff', cursor: 'pointer',
-                                      display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-                                      opacity: approveMutation.isPending ? 0.6 : 1,
-                                    }}>
-                                    <CalendarCheck size={13} />
-                                    Add to {new Date(s.targetSlotDate + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })} {SLOT_LABELS[s.targetSlotType]}
-                                  </button>
-                                )}
-                                {/* Add to bank + Reject */}
-                                <div style={{ display: 'flex', gap: 8 }}>
-                                  <button type="button"
-                                    onClick={() => approveMutation.mutate({ id: s.id, action: 'in_bank' })}
-                                    disabled={s.status === 'in_bank' || approveMutation.isPending}
-                                    style={{
-                                      flex: 1, padding: '9px 0', borderRadius: 10, fontSize: 13, fontWeight: 800,
-                                      border: '1.5px solid var(--roost-border)', borderBottom: '2px solid var(--roost-border)',
-                                      backgroundColor: 'var(--roost-surface)',
-                                      color: s.status === 'in_bank' ? 'var(--roost-text-muted)' : 'var(--roost-text-primary)',
-                                      cursor: s.status === 'in_bank' ? 'not-allowed' : 'pointer',
-                                      opacity: s.status === 'in_bank' ? 0.5 : 1,
-                                    }}>
-                                    {s.status === 'in_bank' ? 'In bank' : 'Add to bank'}
-                                  </button>
-                                  <button type="button"
-                                    onClick={() => approveMutation.mutate({ id: s.id, action: 'rejected' })}
-                                    disabled={approveMutation.isPending}
-                                    style={{
-                                      padding: '9px 14px', borderRadius: 10, fontSize: 13, fontWeight: 800,
-                                      border: '1.5px solid var(--roost-border)', borderBottom: '2px solid var(--roost-border)',
-                                      backgroundColor: 'var(--roost-surface)', color: '#EF4444', cursor: 'pointer',
-                                    }}>
-                                    Reject
-                                  </button>
-                                </div>
-                              </div>
-                            ) : (
-                              // User cannot act yet — show context label
-                              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                                {effectiveMode === 'admin_only' ? (
-                                  <>
-                                    <ShieldCheck size={13} color="#9CA3AF" />
-                                    <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--roost-text-muted)' }}>
-                                      Admin approval required
-                                    </span>
-                                  </>
-                                ) : (
-                                  <>
-                                    <ThumbsUp size={13} color={COLOR} />
-                                    <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--roost-text-muted)' }}>
-                                      {neededVotes} more upvote{neededVotes === 1 ? '' : 's'} needed to unlock approval
-                                    </span>
-                                  </>
-                                )}
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      </SlabCard>
-                    </motion.div>
-                  )
-                })}
-              </div>
+              <>
+                {/* Mobile: single column */}
+                <div className="flex sm:hidden" style={{ flexDirection: 'column', gap: 10 }}>
+                  {suggestions.map((s, i) => renderSuggestionCard(s, i))}
+                </div>
+                {/* Desktop: 2-col grid */}
+                <div className="hidden sm:grid" style={{ gridTemplateColumns: 'repeat(2, 1fr)', gap: 14 }}>
+                  {suggestions.map((s, i) => renderSuggestionCard(s, i))}
+                </div>
+              </>
             )}
           </>
         )}
       </motion.div>
 
-      {/* FAB (planner: suggest; mobile) */}
+      {/* FAB (planner tab, mobile only) */}
       {tab === 'planner' && (
         <motion.button whileTap={{ y: 2 }} type="button"
           onClick={() => setSuggestOpen(true)}

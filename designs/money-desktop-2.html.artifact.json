@@ -1,0 +1,21 @@
+{
+  "version": 1,
+  "kind": "html",
+  "title": "Roost — Money (Desktop)",
+  "entry": "money-desktop-2.html",
+  "renderer": "html",
+  "status": "complete",
+  "exports": [
+    "html",
+    "pdf",
+    "zip"
+  ],
+  "createdAt": "2026-05-08T20:08:36.791Z",
+  "updatedAt": "2026-05-08T20:08:36.814Z",
+  "sourceSkillId": "blog-post",
+  "metadata": {
+    "identifier": "money-desktop",
+    "artifactType": "text/html",
+    "inferred": false
+  }
+}

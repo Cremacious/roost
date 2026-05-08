@@ -1,0 +1,21 @@
+{
+  "version": 1,
+  "kind": "html",
+  "title": "Roost — Expenses · Mobile + Desktop",
+  "entry": "expenses-mockup.html",
+  "renderer": "html",
+  "status": "complete",
+  "exports": [
+    "html",
+    "pdf",
+    "zip"
+  ],
+  "createdAt": "2026-05-08T20:30:08.390Z",
+  "updatedAt": "2026-05-08T20:30:08.456Z",
+  "sourceSkillId": "blog-post",
+  "metadata": {
+    "identifier": "expenses-mockup",
+    "artifactType": "text/html",
+    "inferred": false
+  }
+}

@@ -1,0 +1,1066 @@
+
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=1400">
+<title>Roost — Expenses · Mockup</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@600;700;800;900&display=swap" rel="stylesheet">
+<style>
+/* ── Reset ─────────────────────────────────────────────── */
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  font-family: 'Nunito', system-ui, -apple-system, sans-serif;
+  background: #0f172a;
+  color: #f8fafc;
+  -webkit-font-smoothing: antialiased;
+  padding: 48px 40px 80px;
+  min-width: 1280px;
+}
+
+/* ── Gallery chrome ───────────────────────────────────── */
+.gallery-title { font-size: 26px; font-weight: 900; color: #f1f5f9; letter-spacing: -0.5px; }
+.gallery-sub { font-size: 14px; font-weight: 600; color: #64748b; margin-top: 4px; }
+.gallery-route {
+  display: inline-flex; align-items: center; gap: 8px;
+  background: #1e293b; border: 1px solid #334155; border-radius: 8px;
+  padding: 5px 12px; font-size: 12px; font-weight: 700; color: #94a3b8;
+  margin-top: 10px; font-family: ui-monospace, 'JetBrains Mono', monospace;
+}
+.gallery-route-dot { width: 6px; height: 6px; border-radius: 50%; background: #22c55e; }
+.section-label {
+  font-size: 11px; font-weight: 800; color: #475569;
+  letter-spacing: 0.1em; text-transform: uppercase;
+  margin: 44px 0 18px;
+  display: flex; align-items: center; gap: 14px;
+}
+.section-label::after { content: ''; flex: 1; height: 1px; background: #1e293b; }
+.frame-tag {
+  font-size: 11px; font-weight: 800; color: #475569;
+  letter-spacing: 0.08em; text-transform: uppercase;
+  margin-bottom: 12px;
+}
+.frames-row { display: flex; gap: 28px; align-items: flex-start; }
+
+/* ── Phone frame ─────────────────────────────────────── */
+.phone-shell {
+  flex-shrink: 0; width: 375px;
+  background: #1c1c1e; border-radius: 52px; padding: 14px;
+  box-shadow:
+    0 0 0 1px #3a3a3c,
+    0 0 0 2px #1c1c1e,
+    0 50px 100px rgba(0,0,0,0.7),
+    inset 0 0 0 1px rgba(255,255,255,0.06);
+}
+.phone-screen {
+  background: #f9fafb; border-radius: 40px;
+  height: 756px; overflow: hidden; position: relative;
+}
+.phone-notch {
+  position: absolute; top: 14px; left: 50%; transform: translateX(-50%);
+  width: 120px; height: 34px; background: #1c1c1e; border-radius: 20px;
+  z-index: 100;
+}
+.phone-content {
+  height: 100%; overflow-y: auto; overflow-x: hidden; padding-top: 48px;
+}
+.phone-content::-webkit-scrollbar { display: none; }
+
+/* ── Browser frame ───────────────────────────────────── */
+.browser-shell {
+  flex: 1; min-width: 0;
+  background: #1e293b; border-radius: 14px; overflow: hidden;
+  box-shadow: 0 0 0 1px #334155, 0 50px 100px rgba(0,0,0,0.5);
+}
+.browser-chrome {
+  background: #1e293b; border-bottom: 1px solid #334155;
+  padding: 11px 14px;
+  display: flex; align-items: center; gap: 12px;
+}
+.traffic-lights { display: flex; gap: 7px; flex-shrink: 0; }
+.tl { width: 12px; height: 12px; border-radius: 50%; }
+.tl-r { background: #ff5f56; } .tl-y { background: #ffbd2e; } .tl-g { background: #27c93f; }
+.browser-url {
+  flex: 1; background: #0f172a; border: 1px solid #334155; border-radius: 7px;
+  padding: 5px 12px; font-size: 12px; font-weight: 700; color: #64748b;
+  font-family: ui-monospace, 'JetBrains Mono', monospace;
+  text-align: center; max-width: 380px; margin: 0 auto;
+}
+.browser-content {
+  background: #f9fafb; height: 756px; overflow: hidden;
+  display: flex;
+}
+
+/* ══════════════════════════════════════════════════════
+   DESIGN SYSTEM TOKENS
+══════════════════════════════════════════════════════ */
+:root {
+  --green: #22C55E;  --green-dark: #15803D;  --green-light: #DCFCE7;  --green-50: #F0FDF4;
+  --red: #EF4444;    --red-dark: #B91C1C;    --red-light: #FEE2E2;
+  --amber: #F59E0B;  --amber-dark: #92400E;  --amber-light: #FEF3C7;
+  --blue: #3B82F6;   --blue-light: #DBEAFE;
+  --orange: #F97316; --orange-light: #FFEDD5;
+  --purple: #A855F7; --purple-light: #F3E8FF;
+  --pink: #EC4899;   --cyan: #06B6D4;
+  --white: #fff;
+  --gray-50: #F9FAFB;  --gray-100: #F3F4F6; --gray-200: #E5E7EB;
+  --gray-300: #D1D5DB; --gray-400: #9CA3AF; --gray-500: #6B7280;
+  --gray-600: #4B5563; --gray-700: #374151; --gray-800: #1F2937; --gray-900: #111827;
+  --surface: #fff; --border: #e5e7eb; --border-bottom: #d1d5db;
+}
+
+/* ══════════════════════════════════════════════════════
+   MOBILE APP SHELL
+══════════════════════════════════════════════════════ */
+.app-shell { background: var(--gray-50); min-height: 100%; }
+
+/* Topbar */
+.topbar {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 12px 16px;
+  background: var(--white); border-bottom: 1px solid var(--gray-100);
+  position: sticky; top: 0; z-index: 10;
+}
+.topbar-left h1 { font-size: 20px; font-weight: 900; color: var(--gray-900); }
+.topbar-left p { font-size: 12px; font-weight: 600; color: var(--gray-500); }
+.topbar-actions { display: flex; gap: 8px; }
+.topbar-btn {
+  padding: 7px 13px; border-radius: 10px;
+  border: 1.5px solid var(--border); border-bottom: 3px solid var(--border-bottom);
+  background: var(--surface); font-size: 12px; font-weight: 800; color: var(--gray-700);
+  display: flex; align-items: center; gap: 5px; font-family: inherit;
+}
+.topbar-btn.primary {
+  background: var(--green); border-color: var(--green); border-bottom-color: var(--green-dark); color: white;
+}
+.topbar-btn svg { width: 13px; height: 13px; }
+
+/* Tabs */
+.tabs {
+  display: flex; gap: 6px; padding: 10px 16px;
+  overflow-x: auto; -webkit-overflow-scrolling: touch;
+  background: var(--white); border-bottom: 1px solid var(--gray-100);
+}
+.tabs::-webkit-scrollbar { display: none; }
+.tab-pill {
+  display: flex; align-items: center; gap: 5px;
+  padding: 6px 12px; border-radius: 10px;
+  border: 1.5px solid var(--border); border-bottom: 3px solid var(--border-bottom);
+  background: var(--surface); font-size: 12px; font-weight: 700; color: var(--gray-700);
+  white-space: nowrap; cursor: pointer; font-family: inherit;
+}
+.tab-pill.active {
+  background: var(--green); color: white;
+  border-color: var(--green); border-bottom-color: var(--green-dark);
+}
+.tab-pill svg { width: 13px; height: 13px; flex-shrink: 0; }
+
+/* Page content */
+.page-content { padding: 14px; padding-bottom: 80px; }
+
+/* Slab */
+.slab {
+  background: var(--surface); border: 1.5px solid var(--border);
+  border-bottom: 4px solid var(--green-dark); border-radius: 16px;
+  margin-bottom: 14px; overflow: hidden;
+}
+.slab-red { border-bottom-color: var(--red-dark); }
+.slab-amber { border-bottom-color: var(--amber); }
+.slab-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 12px 16px 0;
+}
+.slab-title { font-size: 13px; font-weight: 800; color: var(--gray-900); }
+.slab-action { font-size: 11px; font-weight: 700; color: var(--green); cursor: pointer; }
+.slab-body { padding: 10px 16px 14px; }
+
+/* Debt cards (horizontal scroll) */
+.debt-scroll {
+  display: flex; gap: 10px;
+  overflow-x: auto; padding: 10px 16px 0; margin: 0 -16px;
+  -webkit-overflow-scrolling: touch;
+}
+.debt-scroll::-webkit-scrollbar { display: none; }
+.debt-card {
+  min-width: 185px; flex-shrink: 0;
+  background: var(--surface); border: 1.5px solid var(--border);
+  border-radius: 14px; padding: 12px 14px; cursor: pointer;
+}
+.debt-card.you-owe   { border-bottom: 4px solid var(--red); }
+.debt-card.owes-you  { border-bottom: 4px solid var(--green); }
+.debt-card.claim-pending { border-bottom: 4px solid var(--amber); }
+.debt-card.tap-confirm   { border-bottom: 4px solid var(--green); }
+.debt-card-top { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+.debt-avatar {
+  width: 28px; height: 28px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 900; color: white; flex-shrink: 0;
+}
+.debt-name { font-size: 12px; font-weight: 800; color: var(--gray-900); }
+.debt-dir  { font-size: 10px; font-weight: 700; color: var(--gray-400); }
+.debt-amount { font-size: 20px; font-weight: 900; letter-spacing: -0.5px; margin-bottom: 6px; line-height: 1; }
+.debt-amount.red   { color: var(--red); }
+.debt-amount.green { color: var(--green); }
+.debt-amount.amber { color: var(--amber); }
+.debt-cta {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-size: 10px; font-weight: 800; padding: 4px 10px; border-radius: 8px;
+  border: 1.5px solid transparent; font-family: inherit; cursor: pointer;
+}
+.debt-cta.red   { background: var(--red-light);   border-color: var(--red);   color: var(--red-dark); }
+.debt-cta.green { background: var(--green-light); border-color: var(--green); color: var(--green-dark); }
+.debt-cta.gray  { background: var(--gray-100);   border-color: var(--border); color: var(--gray-600); }
+.debt-cta.amber { background: var(--amber-light); border-color: var(--amber); color: var(--amber-dark); }
+
+/* Expense list */
+.exp-date { font-size: 10px; font-weight: 800; color: var(--gray-400); letter-spacing: 0.07em; text-transform: uppercase; padding: 8px 0 3px; }
+.exp-row { display: flex; align-items: center; gap: 10px; padding: 9px 0; border-bottom: 1px solid var(--gray-100); }
+.exp-row:last-child { border-bottom: none; }
+.exp-icon { width: 34px; height: 34px; border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.exp-info { flex: 1; min-width: 0; }
+.exp-name { font-size: 12px; font-weight: 800; color: var(--gray-900); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.exp-meta { font-size: 10px; font-weight: 600; color: var(--gray-400); }
+.exp-right { text-align: right; flex-shrink: 0; }
+.exp-amount { font-size: 12px; font-weight: 900; color: var(--gray-900); }
+.exp-share { font-size: 10px; font-weight: 600; color: var(--gray-400); }
+
+/* ══════════════════════════════════════════════════════
+   DESKTOP SIDEBAR
+══════════════════════════════════════════════════════ */
+.d-sidebar {
+  width: 210px; flex-shrink: 0; background: var(--white);
+  border-right: 1.5px solid var(--border); height: 100%; display: flex; flex-direction: column;
+}
+.d-sidebar-logo { padding: 16px 14px 12px; border-bottom: 1px solid var(--gray-100); }
+.d-logo-mark { display: flex; align-items: center; gap: 8px; }
+.d-logo-icon {
+  width: 30px; height: 30px; background: var(--green);
+  border: 1.5px solid var(--green); border-bottom: 3px solid var(--green-dark);
+  border-radius: 9px; display: flex; align-items: center; justify-content: center;
+}
+.d-logo-word { font-size: 17px; font-weight: 900; color: var(--gray-900); }
+.d-sidebar-nav { flex: 1; padding: 6px 10px; overflow-y: auto; }
+.d-sidebar-nav::-webkit-scrollbar { display: none; }
+.d-nav-item {
+  display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-radius: 10px;
+  border: 1.5px solid transparent; border-bottom: 3px solid transparent;
+  font-size: 13px; font-weight: 700; color: var(--gray-600); cursor: pointer; margin-bottom: 2px;
+}
+.d-nav-item:hover { background: var(--gray-50); border-color: var(--border); border-bottom-color: var(--border-bottom); }
+.d-nav-item.active { background: var(--green); color: white; border-color: var(--green); border-bottom-color: var(--green-dark); }
+.d-nav-item svg { width: 16px; height: 16px; flex-shrink: 0; }
+.d-nav-badge { margin-left: auto; background: var(--red); color: white; font-size: 10px; font-weight: 800; padding: 2px 5px; border-radius: 6px; }
+.d-nav-item.active .d-nav-badge { background: rgba(255,255,255,0.3); }
+.d-nav-divider { height: 1px; background: var(--gray-100); margin: 6px 10px; }
+.d-sidebar-footer { padding: 10px; border-top: 1px solid var(--gray-100); }
+.d-sidebar-user {
+  display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-radius: 10px;
+  border: 1.5px solid var(--border); border-bottom: 3px solid var(--border-bottom); cursor: pointer;
+}
+.d-user-avatar {
+  width: 26px; height: 26px; border-radius: 50%; background: var(--green);
+  display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 900; color: white;
+}
+.d-user-name { font-size: 12px; font-weight: 800; color: var(--gray-900); }
+.d-user-role { font-size: 10px; font-weight: 600; color: var(--gray-400); }
+
+/* Desktop main */
+.d-main { flex: 1; min-width: 0; display: flex; flex-direction: column; height: 100%; overflow: hidden; }
+
+/* Desktop page header */
+.d-page-header {
+  background: var(--white); border-bottom: 1.5px solid var(--border);
+  padding: 0 20px; flex-shrink: 0;
+}
+.d-header-top {
+  display: flex; align-items: center; justify-content: space-between; padding: 13px 0 9px;
+}
+.d-header-top h1 { font-size: 19px; font-weight: 900; color: var(--gray-900); }
+.d-header-top p { font-size: 12px; font-weight: 600; color: var(--gray-500); margin-top: 1px; }
+.d-header-actions { display: flex; gap: 7px; }
+.d-btn {
+  display: flex; align-items: center; gap: 5px; padding: 7px 12px; border-radius: 9px;
+  border: 1.5px solid var(--border); border-bottom: 3px solid var(--border-bottom);
+  background: var(--surface); font-size: 12px; font-weight: 800; color: var(--gray-700);
+  cursor: pointer; font-family: inherit;
+}
+.d-btn.primary { background: var(--green); border-color: var(--green); border-bottom-color: var(--green-dark); color: white; }
+.d-btn svg { width: 13px; height: 13px; }
+.d-tabs { display: flex; gap: 5px; padding: 0 0 11px; }
+.d-tab {
+  display: flex; align-items: center; gap: 5px; padding: 6px 12px; border-radius: 9px;
+  border: 1.5px solid var(--border); border-bottom: 3px solid var(--border-bottom);
+  background: var(--surface); font-size: 12px; font-weight: 700; color: var(--gray-700);
+  white-space: nowrap; cursor: pointer; font-family: inherit;
+}
+.d-tab.active { background: var(--green); color: white; border-color: var(--green); border-bottom-color: var(--green-dark); }
+.d-tab svg { width: 13px; height: 13px; flex-shrink: 0; }
+
+/* Desktop content area */
+.d-content { flex: 1; overflow-y: auto; padding: 16px 20px 32px; }
+.d-content::-webkit-scrollbar { display: none; }
+.d-content-grid { display: grid; grid-template-columns: 1fr 220px; gap: 14px; align-items: start; }
+
+/* Desktop slab */
+.d-slab {
+  background: var(--surface); border: 1.5px solid var(--border);
+  border-bottom: 4px solid var(--green-dark); border-radius: 14px;
+  margin-bottom: 14px; overflow: hidden;
+}
+.d-slab:last-child { margin-bottom: 0; }
+.d-slab-red { border-bottom-color: var(--red-dark); }
+.d-slab-header { display: flex; align-items: center; justify-content: space-between; padding: 11px 14px 0; }
+.d-slab-title { font-size: 13px; font-weight: 800; color: var(--gray-900); }
+.d-slab-action { font-size: 11px; font-weight: 700; color: var(--green); cursor: pointer; }
+.d-slab-body { padding: 10px 14px 14px; }
+
+/* Desktop debt grid */
+.d-debt-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.d-debt-card {
+  background: var(--surface); border: 1.5px solid var(--border);
+  border-radius: 12px; padding: 11px 13px; cursor: pointer;
+}
+.d-debt-card.you-owe   { border-bottom: 4px solid var(--red); }
+.d-debt-card.owes-you  { border-bottom: 4px solid var(--green); }
+.d-debt-card.claim-pending { border-bottom: 4px solid var(--amber); }
+.d-debt-card.tap-confirm   { border-bottom: 4px solid var(--green); }
+.d-debt-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 5px; }
+.d-debt-person { display: flex; align-items: center; gap: 6px; }
+.d-debt-av {
+  width: 24px; height: 24px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 10px; font-weight: 900; color: white;
+}
+.d-debt-name { font-size: 12px; font-weight: 800; color: var(--gray-900); }
+.d-debt-dir  { font-size: 10px; font-weight: 700; color: var(--gray-400); }
+.d-debt-amt { font-size: 15px; font-weight: 900; letter-spacing: -0.3px; }
+.d-debt-amt.red   { color: var(--red); }
+.d-debt-amt.green { color: var(--green); }
+.d-debt-amt.amber { color: var(--amber); }
+.d-debt-footer { display: flex; align-items: center; justify-content: space-between; margin-top: 7px; }
+.d-debt-label { font-size: 10px; font-weight: 700; }
+.d-debt-label.red   { color: var(--red-dark); }
+.d-debt-label.green { color: var(--green-dark); }
+.d-debt-label.amber { color: var(--amber-dark); }
+.d-debt-btn {
+  padding: 4px 9px; border-radius: 7px;
+  border: 1.5px solid var(--border); border-bottom: 2px solid var(--border-bottom);
+  font-size: 10px; font-weight: 800; color: var(--gray-700); background: var(--surface);
+  font-family: inherit; cursor: pointer;
+}
+.d-debt-btn.red   { border-color: var(--red);   background: var(--red-light);   color: var(--red-dark); }
+.d-debt-btn.green { border-color: var(--green); background: var(--green-light); color: var(--green-dark); }
+.d-debt-btn.amber { border-color: var(--amber); background: var(--amber-light); color: var(--amber-dark); }
+
+/* Desktop expense list */
+.d-exp-date { font-size: 10px; font-weight: 800; color: var(--gray-400); letter-spacing: 0.07em; text-transform: uppercase; padding: 6px 0 2px; }
+.d-exp-row { display: flex; align-items: center; gap: 9px; padding: 8px 0; border-bottom: 1px solid var(--gray-100); }
+.d-exp-row:last-child { border-bottom: none; }
+.d-exp-icon { width: 30px; height: 30px; border-radius: 8px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.d-exp-info { flex: 1; min-width: 0; }
+.d-exp-name { font-size: 12px; font-weight: 800; color: var(--gray-900); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.d-exp-meta { font-size: 10px; font-weight: 600; color: var(--gray-400); }
+.d-exp-right { text-align: right; flex-shrink: 0; }
+.d-exp-amount { font-size: 12px; font-weight: 900; color: var(--gray-900); }
+.d-exp-share { font-size: 10px; font-weight: 600; color: var(--gray-400); }
+
+/* Desktop side col */
+.d-summary-card {
+  background: var(--surface); border: 1.5px solid var(--border);
+  border-bottom: 4px solid var(--green-dark); border-radius: 14px; padding: 14px; margin-bottom: 14px;
+}
+.d-summary-label { font-size: 11px; font-weight: 800; color: var(--gray-400); margin-bottom: 10px; letter-spacing: 0.05em; text-transform: uppercase; }
+.d-summary-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+.d-summary-row:last-child { margin-bottom: 0; }
+.d-summary-key { font-size: 12px; font-weight: 700; color: var(--gray-600); }
+.d-summary-val { font-size: 13px; font-weight: 900; color: var(--gray-900); }
+.d-summary-val.green { color: var(--green); }
+.d-summary-val.red   { color: var(--red); }
+.d-settle-btn {
+  width: 100%; padding: 10px; border-radius: 10px;
+  background: var(--green); border: 1.5px solid var(--green); border-bottom: 3px solid var(--green-dark);
+  font-family: inherit; font-size: 13px; font-weight: 900; color: white;
+  cursor: pointer; margin-top: 10px;
+}
+
+/* ══════════════════════════════════════════════════════
+   SETTLE SHEET PANELS (gallery section)
+══════════════════════════════════════════════════════ */
+.sheet-panels { display: flex; gap: 20px; flex-wrap: wrap; }
+.sheet-panel-wrap { width: 290px; flex-shrink: 0; }
+.sheet-panel-label {
+  font-size: 11px; font-weight: 800; color: #475569;
+  letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 10px;
+}
+.sheet-panel-card {
+  background: #f9fafb; border-radius: 20px; overflow: hidden;
+  box-shadow: 0 20px 40px rgba(0,0,0,0.4), 0 0 0 1px #334155;
+}
+
+/* Sheet internals */
+.sheet-handle-wrap { padding: 10px 0 0; display: flex; justify-content: center; background: white; }
+.sheet-handle { width: 36px; height: 4px; background: var(--gray-200); border-radius: 2px; }
+.sheet-inner { background: white; padding: 14px 18px 22px; }
+.sheet-title { font-size: 17px; font-weight: 900; color: var(--gray-900); margin-bottom: 2px; }
+.sheet-sub   { font-size: 13px; font-weight: 600; color: var(--gray-500); margin-bottom: 14px; }
+.sheet-person {
+  display: flex; align-items: center; gap: 10px;
+  background: var(--gray-50); border: 1.5px solid var(--border); border-bottom: 3px solid var(--border-bottom);
+  border-radius: 12px; padding: 10px 12px; margin-bottom: 12px;
+}
+.sheet-avatar { width: 38px; height: 38px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 15px; font-weight: 900; color: white; flex-shrink: 0; }
+.sheet-p-name { font-size: 14px; font-weight: 800; color: var(--gray-900); }
+.sheet-p-sub  { font-size: 11px; font-weight: 600; color: var(--gray-400); }
+.sheet-amount-big { font-size: 38px; font-weight: 900; letter-spacing: -2px; color: var(--gray-900); text-align: center; margin: 10px 0 4px; line-height: 1; }
+.sheet-amount-note { font-size: 11px; font-weight: 700; color: var(--gray-400); text-align: center; margin-bottom: 14px; }
+.sheet-method-label { font-size: 11px; font-weight: 800; color: var(--gray-700); margin-bottom: 7px; }
+.sheet-methods { display: flex; gap: 5px; flex-wrap: wrap; margin-bottom: 14px; }
+.sheet-method {
+  padding: 5px 10px; border-radius: 8px;
+  border: 1.5px solid var(--border); border-bottom: 2px solid var(--border-bottom);
+  font-size: 11px; font-weight: 700; color: var(--gray-600); font-family: inherit;
+}
+.sheet-method.sel { background: var(--green-light); border-color: var(--green); color: var(--green-dark); }
+.sheet-primary-btn {
+  width: 100%; padding: 13px; border-radius: 12px;
+  background: var(--green); border: 1.5px solid var(--green); border-bottom: 4px solid var(--green-dark);
+  font-family: inherit; font-size: 14px; font-weight: 900; color: white; cursor: pointer; margin-bottom: 8px;
+}
+.sheet-secondary-btn {
+  width: 100%; padding: 9px; border-radius: 12px;
+  background: none; border: none;
+  font-family: inherit; font-size: 13px; font-weight: 700; color: var(--gray-500); cursor: pointer;
+}
+.sheet-danger-btn {
+  width: 100%; padding: 9px; background: none; border: none;
+  font-family: inherit; font-size: 12px; font-weight: 700; color: var(--red); cursor: pointer;
+}
+.sheet-note { font-size: 11px; font-weight: 600; color: var(--gray-400); text-align: center; margin-top: 4px; }
+
+/* Waiting state */
+.sheet-wait-badge {
+  display: flex; align-items: center; gap: 8px;
+  background: var(--amber-light); border: 1.5px solid var(--amber);
+  border-radius: 10px; padding: 10px 12px; margin-bottom: 12px;
+}
+.wait-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--amber); flex-shrink: 0; }
+.wait-text { font-size: 12px; font-weight: 700; color: var(--amber-dark); }
+
+/* Timeline */
+.timeline { display: flex; align-items: flex-start; margin: 14px 0; }
+.tl-step { display: flex; flex-direction: column; align-items: center; flex: 1; }
+.tl-dot {
+  width: 26px; height: 26px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 900; color: white; margin-bottom: 4px;
+}
+.tl-connector { flex: 1; height: 2px; align-self: flex-start; margin-top: 13px; }
+.tl-label { font-size: 9px; font-weight: 800; text-align: center; line-height: 1.3; }
+.tl-label.done { color: var(--green-dark); }
+.tl-label.pending { color: var(--amber-dark); }
+
+/* Confirm / dispute */
+.sheet-claim-card {
+  background: var(--green-50); border: 1.5px solid var(--green);
+  border-radius: 12px; padding: 12px 14px; margin-bottom: 14px;
+}
+.sheet-claim-eyebrow { font-size: 10px; font-weight: 800; color: var(--green-dark); margin-bottom: 3px; letter-spacing: 0.05em; text-transform: uppercase; }
+.sheet-claim-text { font-size: 13px; font-weight: 700; color: var(--gray-800); }
+.confirm-yes {
+  width: 100%; padding: 12px; border-radius: 12px; margin-bottom: 8px;
+  background: var(--green); border: 1.5px solid var(--green); border-bottom: 3px solid var(--green-dark);
+  font-family: inherit; font-size: 13px; font-weight: 900; color: white; cursor: pointer;
+}
+.confirm-no {
+  width: 100%; padding: 12px; border-radius: 12px;
+  background: var(--red-light); border: 1.5px solid var(--red);
+  font-family: inherit; font-size: 13px; font-weight: 900; color: var(--red-dark); cursor: pointer;
+}
+
+/* Settled */
+.settled-icon {
+  width: 64px; height: 64px; border-radius: 50%;
+  background: var(--green-light); border: 3px solid var(--green);
+  display: flex; align-items: center; justify-content: center;
+  margin: 10px auto 12px;
+}
+.settled-title { font-size: 20px; font-weight: 900; color: var(--gray-900); text-align: center; margin-bottom: 3px; }
+.settled-sub { font-size: 12px; font-weight: 600; color: var(--gray-500); text-align: center; margin-bottom: 14px; }
+.settled-detail {
+  background: var(--gray-50); border: 1.5px solid var(--border); border-radius: 12px;
+  padding: 10px 13px; margin-bottom: 12px;
+}
+.settled-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; }
+.settled-row:last-child { margin-bottom: 0; }
+.settled-key { font-size: 11px; font-weight: 700; color: var(--gray-500); }
+.settled-val { font-size: 12px; font-weight: 800; color: var(--gray-900); }
+.settled-val.green { color: var(--green-dark); }
+.sheet-ghost-btn {
+  width: 100%; padding: 10px; border-radius: 12px;
+  background: var(--gray-100); border: none;
+  font-family: inherit; font-size: 13px; font-weight: 700; color: var(--gray-600); cursor: pointer;
+}
+
+/* ══════════════════════════════════════════════════════
+   EMPTY STATE PANEL
+══════════════════════════════════════════════════════ */
+.empty-panel-wrap { width: 290px; }
+.empty-state { padding: 36px 20px 32px; text-align: center; }
+.empty-icon {
+  width: 64px; height: 64px; border-radius: 18px;
+  background: var(--gray-100); border: 1.5px solid var(--border); border-bottom: 3px solid var(--border-bottom);
+  display: flex; align-items: center; justify-content: center; margin: 0 auto 14px;
+}
+.empty-title { font-size: 16px; font-weight: 900; color: var(--gray-900); margin-bottom: 5px; }
+.empty-sub { font-size: 12px; font-weight: 600; color: var(--gray-500); max-width: 200px; margin: 0 auto 18px; line-height: 1.5; }
+.empty-btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 11px 18px; border-radius: 11px;
+  background: var(--green); border: 1.5px solid var(--green); border-bottom: 3px solid var(--green-dark);
+  font-family: inherit; font-size: 13px; font-weight: 900; color: white; cursor: pointer;
+}
+.empty-btn svg { width: 15px; height: 15px; }
+</style>
+</head>
+<body>
+
+<!-- ── Gallery header ────────────────────────────────── -->
+<div style="margin-bottom: 36px;">
+  <h1 class="gallery-title">Expenses</h1>
+  <p class="gallery-sub">Roost · /money → Expenses tab · Mobile + Desktop</p>
+  <div class="gallery-route">
+    <div class="gallery-route-dot"></div>
+    GET /api/expenses
+  </div>
+</div>
+
+<!-- ── Frames row ─────────────────────────────────────── -->
+<div class="section-label">Screens</div>
+<div class="frames-row">
+
+  <!-- ══ PHONE FRAME ══ -->
+  <div>
+    <div class="frame-tag">Mobile · iOS</div>
+    <div class="phone-shell">
+      <div class="phone-screen">
+        <div class="phone-notch"></div>
+        <div class="phone-content">
+          <div class="app-shell">
+
+            <!-- Topbar -->
+            <div class="topbar">
+              <div class="topbar-left">
+                <h1>Money</h1>
+                <p>Expenses, bills &amp; goals</p>
+              </div>
+              <div class="topbar-actions">
+                <button class="topbar-btn">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M16 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></svg>
+                  Split
+                </button>
+                <button class="topbar-btn primary">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                  Add
+                </button>
+              </div>
+            </div>
+
+            <!-- Tabs -->
+            <div class="tabs">
+              <button class="tab-pill">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/></svg>
+                Dashboard
+              </button>
+              <button class="tab-pill active">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>
+                Expenses
+              </button>
+              <button class="tab-pill">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8l-6-6z"/><path d="M14 2v6h6"/></svg>
+                Bills
+              </button>
+              <button class="tab-pill">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M9 12l2 2 4-4"/></svg>
+                Budget
+              </button>
+              <button class="tab-pill">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+                Goals
+              </button>
+            </div>
+
+            <!-- Page content -->
+            <div class="page-content">
+
+              <!-- Who Owes Who -->
+              <div class="slab slab-red">
+                <div class="slab-header">
+                  <span class="slab-title">Who owes who</span>
+                  <span class="slab-action">See all</span>
+                </div>
+                <div class="debt-scroll">
+
+                  <!-- You owe Alex (red) -->
+                  <div class="debt-card you-owe">
+                    <div class="debt-card-top">
+                      <div class="debt-avatar" style="background: #3B82F6;">A</div>
+                      <div>
+                        <div class="debt-name">Alex</div>
+                        <div class="debt-dir">You owe</div>
+                      </div>
+                    </div>
+                    <div class="debt-amount red">$45.00</div>
+                    <button class="debt-cta red">
+                      <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
+                      Settle
+                    </button>
+                  </div>
+
+                  <!-- Sarah owes you (green) -->
+                  <div class="debt-card owes-you">
+                    <div class="debt-card-top">
+                      <div class="debt-avatar" style="background: #EC4899;">S</div>
+                      <div>
+                        <div class="debt-name">Sarah</div>
+                        <div class="debt-dir">Owes you</div>
+                      </div>
+                    </div>
+                    <div class="debt-amount green">$52.25</div>
+                    <button class="debt-cta gray">
+                      <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 9.81a19.79 19.79 0 01-3.07-8.67A2 2 0 012 .99h3a2 2 0 012 1.72 12.84 12.84 0 00.7 2.81 2 2 0 01-.45 2.11L6.09 8.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45 12.84 12.84 0 002.81.7A2 2 0 0122 16.92z"/></svg>
+                      Remind
+                    </button>
+                  </div>
+
+                  <!-- Jordan — claim pending (amber) -->
+                  <div class="debt-card claim-pending">
+                    <div class="debt-card-top">
+                      <div class="debt-avatar" style="background: #A855F7;">J</div>
+                      <div>
+                        <div class="debt-name">Jordan</div>
+                        <div class="debt-dir">You claimed paid</div>
+                      </div>
+                    </div>
+                    <div class="debt-amount amber">$28.00</div>
+                    <button class="debt-cta amber">
+                      <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                      Awaiting confirmation
+                    </button>
+                  </div>
+
+                  <!-- Jake — tap to confirm (green) -->
+                  <div class="debt-card tap-confirm">
+                    <div class="debt-card-top">
+                      <div class="debt-avatar" style="background: #F59E0B;">K</div>
+                      <div>
+                        <div class="debt-name">Jake</div>
+                        <div class="debt-dir">Claims paid you</div>
+                      </div>
+                    </div>
+                    <div class="debt-amount green">$35.25</div>
+                    <button class="debt-cta green">
+                      <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 11l3 3L22 4"/></svg>
+                      Tap to confirm
+                    </button>
+                  </div>
+
+                </div>
+              </div>
+
+              <!-- All Expenses -->
+              <div class="slab">
+                <div class="slab-header">
+                  <span class="slab-title">All expenses</span>
+                  <span class="slab-action">Filter</span>
+                </div>
+                <div class="slab-body">
+                  <div class="exp-date">May 8</div>
+                  <div class="exp-row">
+                    <div class="exp-icon" style="background: var(--green-light);">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2.5" stroke-linecap="round"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 002 1.61h9.72a2 2 0 002-1.61L23 6H6"/></svg>
+                    </div>
+                    <div class="exp-info"><div class="exp-name">Trader Joe's run</div><div class="exp-meta">Groceries · Paid by you</div></div>
+                    <div class="exp-right"><div class="exp-amount">$67.42</div><div class="exp-share">Your share: $33.71</div></div>
+                  </div>
+                  <div class="exp-row">
+                    <div class="exp-icon" style="background: var(--orange-light);">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--orange)" stroke-width="2.5" stroke-linecap="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+                    </div>
+                    <div class="exp-info"><div class="exp-name">Pizza night — Domino's</div><div class="exp-meta">Dining · Paid by Alex</div></div>
+                    <div class="exp-right"><div class="exp-amount">$38.99</div><div class="exp-share">Your share: $13.00</div></div>
+                  </div>
+                  <div class="exp-date">May 7</div>
+                  <div class="exp-row">
+                    <div class="exp-icon" style="background: var(--blue-light);">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--blue)" stroke-width="2.5" stroke-linecap="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+                    </div>
+                    <div class="exp-info"><div class="exp-name">Paper towels + cleaning</div><div class="exp-meta">Household · Paid by Sarah</div></div>
+                    <div class="exp-right"><div class="exp-amount">$24.50</div><div class="exp-share">Your share: $8.17</div></div>
+                  </div>
+                  <div class="exp-date">May 5</div>
+                  <div class="exp-row">
+                    <div class="exp-icon" style="background: var(--purple-light);">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--purple)" stroke-width="2.5" stroke-linecap="round"><rect x="1" y="4" width="22" height="16" rx="2"/><path d="M1 10h22"/></svg>
+                    </div>
+                    <div class="exp-info"><div class="exp-name">Netflix subscription</div><div class="exp-meta">Subscriptions · Paid by you</div></div>
+                    <div class="exp-right"><div class="exp-amount">$15.49</div><div class="exp-share">Your share: $5.16</div></div>
+                  </div>
+                  <div class="exp-date">May 4</div>
+                  <div class="exp-row">
+                    <div class="exp-icon" style="background: var(--amber-light);">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--amber)" stroke-width="2.5" stroke-linecap="round"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg>
+                    </div>
+                    <div class="exp-info"><div class="exp-name">Dog food — PetSmart</div><div class="exp-meta">Pet · Paid by Jake</div></div>
+                    <div class="exp-right"><div class="exp-amount">$42.99</div><div class="exp-share">Your share: $14.33</div></div>
+                  </div>
+                  <div class="exp-date">May 3</div>
+                  <div class="exp-row">
+                    <div class="exp-icon" style="background: #FEF3C7;">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#B45309" stroke-width="2.5" stroke-linecap="round"><path d="M12 2a7 7 0 017 7c0 5.25-7 13-7 13S5 14.25 5 9a7 7 0 017-7z"/><circle cx="12" cy="9" r="2.5"/></svg>
+                    </div>
+                    <div class="exp-info"><div class="exp-name">Gas — Shell</div><div class="exp-meta">Transport · Paid by Jordan</div></div>
+                    <div class="exp-right"><div class="exp-amount">$52.00</div><div class="exp-share">Your share: $17.33</div></div>
+                  </div>
+                  <div class="exp-date">May 2</div>
+                  <div class="exp-row">
+                    <div class="exp-icon" style="background: var(--orange-light);">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--orange)" stroke-width="2.5" stroke-linecap="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+                    </div>
+                    <div class="exp-info"><div class="exp-name">Chipotle</div><div class="exp-meta">Dining · Paid by Alex</div></div>
+                    <div class="exp-right"><div class="exp-amount">$47.80</div><div class="exp-share">Your share: $15.93</div></div>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ DESKTOP BROWSER FRAME ══ -->
+  <div style="flex: 1; min-width: 0;">
+    <div class="frame-tag">Desktop · 1280px</div>
+    <div class="browser-shell">
+      <div class="browser-chrome">
+        <div class="traffic-lights">
+          <div class="tl tl-r"></div><div class="tl tl-y"></div><div class="tl tl-g"></div>
+        </div>
+        <div class="browser-url">localhost:3000/money</div>
+      </div>
+      <div class="browser-content">
+        <aside class="d-sidebar">
+          <div class="d-sidebar-logo">
+            <div class="d-logo-mark">
+              <div class="d-logo-icon">
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+              </div>
+              <span class="d-logo-word">Roost</span>
+            </div>
+          </div>
+          <nav class="d-sidebar-nav">
+            <div class="d-nav-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>Home</div>
+            <div class="d-nav-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>Calendar</div>
+            <div class="d-nav-item active"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>Money</div>
+            <div class="d-nav-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>Meals<span class="d-nav-badge">3</span></div>
+            <div class="d-nav-divider"></div>
+            <div class="d-nav-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M12 1v6M12 17v6M4.22 4.22l4.24 4.24M15.54 15.54l4.24 4.24M1 12h6M17 12h6M4.22 19.78l4.24-4.24M15.54 8.46l4.24-4.24"/></svg>Settings</div>
+          </nav>
+          <div class="d-sidebar-footer">
+            <div class="d-sidebar-user">
+              <div class="d-user-avatar">C</div>
+              <div><div class="d-user-name">Chris M.</div><div class="d-user-role">Household admin</div></div>
+              <svg style="margin-left: auto; color: var(--gray-400);" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M6 9l6 6 6-6"/></svg>
+            </div>
+          </div>
+        </aside>
+
+        <div class="d-main">
+          <div class="d-page-header">
+            <div class="d-header-top">
+              <div><h1>Money</h1><p>Expenses, bills &amp; goals</p></div>
+              <div class="d-header-actions">
+                <button class="d-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M16 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></svg>Split expense</button>
+                <button class="d-btn primary"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Add expense</button>
+              </div>
+            </div>
+            <div class="d-tabs">
+              <button class="d-tab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/></svg>Dashboard</button>
+              <button class="d-tab active"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>Expenses</button>
+              <button class="d-tab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8l-6-6z"/><path d="M14 2v6h6"/></svg>Bills</button>
+              <button class="d-tab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/><path d="M9 12l2 2 4-4"/></svg>Budget</button>
+              <button class="d-tab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>Goals</button>
+            </div>
+          </div>
+
+          <div class="d-content">
+            <div class="d-content-grid">
+              <div>
+                <!-- Who Owes Who 2×2 -->
+                <div class="d-slab d-slab-red">
+                  <div class="d-slab-header"><span class="d-slab-title">Who owes who</span><span class="d-slab-action">See all</span></div>
+                  <div class="d-slab-body">
+                    <div class="d-debt-grid">
+                      <div class="d-debt-card you-owe">
+                        <div class="d-debt-top">
+                          <div class="d-debt-person"><div class="d-debt-av" style="background:#3B82F6;">A</div><div><div class="d-debt-name">Alex</div><div class="d-debt-dir">You owe</div></div></div>
+                          <div class="d-debt-amt red">$45.00</div>
+                        </div>
+                        <div class="d-debt-footer"><span class="d-debt-label red">Chipotle, gas station</span><button class="d-debt-btn red">Settle</button></div>
+                      </div>
+                      <div class="d-debt-card owes-you">
+                        <div class="d-debt-top">
+                          <div class="d-debt-person"><div class="d-debt-av" style="background:#EC4899;">S</div><div><div class="d-debt-name">Sarah</div><div class="d-debt-dir">Owes you</div></div></div>
+                          <div class="d-debt-amt green">$52.25</div>
+                        </div>
+                        <div class="d-debt-footer"><span class="d-debt-label green">Costco, Netflix</span><button class="d-debt-btn">Remind</button></div>
+                      </div>
+                      <div class="d-debt-card claim-pending">
+                        <div class="d-debt-top">
+                          <div class="d-debt-person"><div class="d-debt-av" style="background:#A855F7;">J</div><div><div class="d-debt-name">Jordan</div><div class="d-debt-dir">You claimed paid</div></div></div>
+                          <div class="d-debt-amt amber">$28.00</div>
+                        </div>
+                        <div class="d-debt-footer"><span class="d-debt-label amber">Awaiting confirmation</span><button class="d-debt-btn amber">Withdraw</button></div>
+                      </div>
+                      <div class="d-debt-card tap-confirm">
+                        <div class="d-debt-top">
+                          <div class="d-debt-person"><div class="d-debt-av" style="background:#F59E0B;">K</div><div><div class="d-debt-name">Jake</div><div class="d-debt-dir">Claims paid you</div></div></div>
+                          <div class="d-debt-amt green">$35.25</div>
+                        </div>
+                        <div class="d-debt-footer"><span class="d-debt-label green">Tap to confirm</span><button class="d-debt-btn green">Confirm</button></div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- All Expenses -->
+                <div class="d-slab">
+                  <div class="d-slab-header"><span class="d-slab-title">All expenses</span><span class="d-slab-action">Filter</span></div>
+                  <div class="d-slab-body">
+                    <div class="d-exp-date">May 8</div>
+                    <div class="d-exp-row"><div class="d-exp-icon" style="background:var(--green-light);"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2.5" stroke-linecap="round"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 002 1.61h9.72a2 2 0 002-1.61L23 6H6"/></svg></div><div class="d-exp-info"><div class="d-exp-name">Trader Joe's run</div><div class="d-exp-meta">Groceries · Paid by you · Today</div></div><div class="d-exp-right"><div class="d-exp-amount">$67.42</div><div class="d-exp-share">Your share: $33.71</div></div></div>
+                    <div class="d-exp-row"><div class="d-exp-icon" style="background:var(--orange-light);"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--orange)" stroke-width="2.5" stroke-linecap="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg></div><div class="d-exp-info"><div class="d-exp-name">Pizza night — Domino's</div><div class="d-exp-meta">Dining · Paid by Alex · Today</div></div><div class="d-exp-right"><div class="d-exp-amount">$38.99</div><div class="d-exp-share">Your share: $13.00</div></div></div>
+                    <div class="d-exp-date">May 7</div>
+                    <div class="d-exp-row"><div class="d-exp-icon" style="background:var(--blue-light);"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--blue)" stroke-width="2.5" stroke-linecap="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></div><div class="d-exp-info"><div class="d-exp-name">Paper towels + cleaning</div><div class="d-exp-meta">Household · Paid by Sarah · Yesterday</div></div><div class="d-exp-right"><div class="d-exp-amount">$24.50</div><div class="d-exp-share">Your share: $8.17</div></div></div>
+                    <div class="d-exp-date">May 5</div>
+                    <div class="d-exp-row"><div class="d-exp-icon" style="background:var(--purple-light);"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--purple)" stroke-width="2.5" stroke-linecap="round"><rect x="1" y="4" width="22" height="16" rx="2"/><path d="M1 10h22"/></svg></div><div class="d-exp-info"><div class="d-exp-name">Netflix subscription</div><div class="d-exp-meta">Subscriptions · Paid by you · May 5</div></div><div class="d-exp-right"><div class="d-exp-amount">$15.49</div><div class="d-exp-share">Your share: $5.16</div></div></div>
+                    <div class="d-exp-date">May 4</div>
+                    <div class="d-exp-row"><div class="d-exp-icon" style="background:var(--amber-light);"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--amber)" stroke-width="2.5" stroke-linecap="round"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg></div><div class="d-exp-info"><div class="d-exp-name">Dog food — PetSmart</div><div class="d-exp-meta">Pet · Paid by Jake · May 4</div></div><div class="d-exp-right"><div class="d-exp-amount">$42.99</div><div class="d-exp-share">Your share: $14.33</div></div></div>
+                    <div class="d-exp-date">May 3</div>
+                    <div class="d-exp-row"><div class="d-exp-icon" style="background:#FEF3C7;"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#B45309" stroke-width="2.5" stroke-linecap="round"><path d="M12 2a7 7 0 017 7c0 5.25-7 13-7 13S5 14.25 5 9a7 7 0 017-7z"/><circle cx="12" cy="9" r="2.5"/></svg></div><div class="d-exp-info"><div class="d-exp-name">Gas — Shell</div><div class="d-exp-meta">Transport · Paid by Jordan · May 3</div></div><div class="d-exp-right"><div class="d-exp-amount">$52.00</div><div class="d-exp-share">Your share: $17.33</div></div></div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Right col: summary -->
+              <div>
+                <div class="d-summary-card">
+                  <div class="d-summary-label">May 2026</div>
+                  <div class="d-summary-row"><span class="d-summary-key">Total spent</span><span class="d-summary-val">$634.19</span></div>
+                  <div class="d-summary-row"><span class="d-summary-key">Your share</span><span class="d-summary-val">$107.63</span></div>
+                  <div class="d-summary-row"><span class="d-summary-key">You're owed</span><span class="d-summary-val green">$87.50</span></div>
+                  <div class="d-summary-row"><span class="d-summary-key">You owe</span><span class="d-summary-val red">$45.00</span></div>
+                  <div class="d-summary-row"><span class="d-summary-key">Net balance</span><span class="d-summary-val green">+$42.50</span></div>
+                  <button class="d-settle-btn">Settle all — $45.00</button>
+                </div>
+                <div class="d-slab" style="border-bottom-color: var(--blue);">
+                  <div class="d-slab-header"><span class="d-slab-title">Top payers</span></div>
+                  <div class="d-slab-body">
+                    <div class="d-summary-row" style="margin-bottom:10px;"><div style="display:flex;align-items:center;gap:7px;"><div style="width:22px;height:22px;border-radius:50%;background:#22C55E;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:900;color:white;">Y</div><span class="d-summary-key">You</span></div><span class="d-summary-val">$82.91</span></div>
+                    <div class="d-summary-row" style="margin-bottom:10px;"><div style="display:flex;align-items:center;gap:7px;"><div style="width:22px;height:22px;border-radius:50%;background:#3B82F6;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:900;color:white;">A</div><span class="d-summary-key">Alex</span></div><span class="d-summary-val">$86.79</span></div>
+                    <div class="d-summary-row" style="margin-bottom:10px;"><div style="display:flex;align-items:center;gap:7px;"><div style="width:22px;height:22px;border-radius:50%;background:#EC4899;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:900;color:white;">S</div><span class="d-summary-key">Sarah</span></div><span class="d-summary-val">$24.50</span></div>
+                    <div class="d-summary-row"><div style="display:flex;align-items:center;gap:7px;"><div style="width:22px;height:22px;border-radius:50%;background:#F59E0B;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:900;color:white;">K</div><span class="d-summary-key">Jake</span></div><span class="d-summary-val">$42.99</span></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /frames-row -->
+
+<!-- ══════════════════════════════════════════════════════
+     SETTLE SHEET — 4 STATES
+══════════════════════════════════════════════════════ -->
+<div class="section-label">SettleSheet · 4 states</div>
+<div class="sheet-panels">
+
+  <!-- State 1: Claim Paid -->
+  <div class="sheet-panel-wrap">
+    <div class="sheet-panel-label">1 — Claim paid</div>
+    <div class="sheet-panel-card">
+      <div style="background:var(--gray-50);height:50px;display:flex;align-items:flex-end;justify-content:center;padding-bottom:8px;"><div style="width:80px;height:4px;background:rgba(0,0,0,0.08);border-radius:2px;"></div></div>
+      <div class="sheet-handle-wrap"><div class="sheet-handle"></div></div>
+      <div class="sheet-inner">
+        <div class="sheet-title">Settle with Alex</div>
+        <div class="sheet-sub">You owe $45.00</div>
+        <div class="sheet-person">
+          <div class="sheet-avatar" style="background:#3B82F6;">A</div>
+          <div><div class="sheet-p-name">Alex Chen</div><div class="sheet-p-sub">Chipotle + gas, May 6</div></div>
+        </div>
+        <div class="sheet-amount-big">$45.00</div>
+        <div class="sheet-amount-note">Amount to settle</div>
+        <div class="sheet-method-label">How did you pay?</div>
+        <div class="sheet-methods">
+          <button class="sheet-method sel">Venmo</button>
+          <button class="sheet-method">Cash</button>
+          <button class="sheet-method">Zelle</button>
+          <button class="sheet-method">Bank</button>
+        </div>
+        <button class="sheet-primary-btn">I've paid · Claim sent</button>
+        <button class="sheet-secondary-btn">Cancel</button>
+        <div class="sheet-note">Alex will be notified to confirm.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- State 2: Waiting -->
+  <div class="sheet-panel-wrap">
+    <div class="sheet-panel-label">2 — Waiting</div>
+    <div class="sheet-panel-card">
+      <div style="background:var(--gray-50);height:50px;display:flex;align-items:flex-end;justify-content:center;padding-bottom:8px;"><div style="width:80px;height:4px;background:rgba(0,0,0,0.08);border-radius:2px;"></div></div>
+      <div class="sheet-handle-wrap"><div class="sheet-handle"></div></div>
+      <div class="sheet-inner">
+        <div class="sheet-title">Claim sent</div>
+        <div class="sheet-sub">Waiting for Alex to confirm</div>
+        <div class="sheet-wait-badge">
+          <div class="wait-dot"></div>
+          <span class="wait-text">Awaiting Alex's confirmation</span>
+        </div>
+        <div class="sheet-person">
+          <div class="sheet-avatar" style="background:#3B82F6;">A</div>
+          <div><div class="sheet-p-name">Alex Chen</div><div class="sheet-p-sub">Claimed via Venmo · May 8</div></div>
+        </div>
+        <div class="sheet-amount-big" style="font-size:28px;">$45.00</div>
+        <div class="sheet-amount-note">Claimed May 8, 2026</div>
+        <div class="timeline">
+          <div class="tl-step">
+            <div class="tl-dot" style="background:var(--green);">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" stroke-linecap="round"><path d="M20 6L9 17l-5-5"/></svg>
+            </div>
+            <div class="tl-label done">You<br>claimed</div>
+          </div>
+          <div class="tl-connector" style="background:var(--amber);"></div>
+          <div class="tl-step">
+            <div class="tl-dot" style="background:var(--amber);">
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" stroke-linecap="round"><circle cx="12" cy="12" r="1" fill="white"/></svg>
+            </div>
+            <div class="tl-label pending">Alex<br>confirms</div>
+          </div>
+          <div class="tl-connector" style="background:var(--gray-200);"></div>
+          <div class="tl-step">
+            <div class="tl-dot" style="background:var(--gray-300);">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" stroke-linecap="round"><path d="M9 11l3 3L22 4"/></svg>
+            </div>
+            <div class="tl-label" style="color:var(--gray-400);">Settled</div>
+          </div>
+        </div>
+        <button class="sheet-danger-btn">Withdraw claim</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- State 3: Confirm or Dispute -->
+  <div class="sheet-panel-wrap">
+    <div class="sheet-panel-label">3 — Confirm or dispute</div>
+    <div class="sheet-panel-card">
+      <div style="background:var(--gray-50);height:50px;display:flex;align-items:flex-end;justify-content:center;padding-bottom:8px;"><div style="width:80px;height:4px;background:rgba(0,0,0,0.08);border-radius:2px;"></div></div>
+      <div class="sheet-handle-wrap"><div class="sheet-handle"></div></div>
+      <div class="sheet-inner">
+        <div class="sheet-title">Alex says they paid</div>
+        <div class="sheet-sub">Does this look right?</div>
+        <div class="sheet-claim-card">
+          <div class="sheet-claim-eyebrow">Alex's claim · May 7, 2026</div>
+          <div class="sheet-claim-text">"Paid $45.00 to Chris via Venmo on May 7 — Chipotle and gas split."</div>
+        </div>
+        <div class="sheet-person">
+          <div class="sheet-avatar" style="background:#3B82F6;">A</div>
+          <div><div class="sheet-p-name">Alex Chen</div><div class="sheet-p-sub">$45.00 · via Venmo</div></div>
+        </div>
+        <div class="sheet-amount-big" style="font-size:28px;margin:8px 0 14px;">$45.00</div>
+        <button class="confirm-yes">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" style="display:inline;vertical-align:middle;margin-right:4px;"><path d="M20 6L9 17l-5-5"/></svg>
+          Confirm — yes, I received it
+        </button>
+        <button class="confirm-no" style="margin-top:8px;">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" style="display:inline;vertical-align:middle;margin-right:4px;"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          Dispute — I didn't receive it
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- State 4: Settled -->
+  <div class="sheet-panel-wrap">
+    <div class="sheet-panel-label">4 — Settled</div>
+    <div class="sheet-panel-card">
+      <div style="background:var(--gray-50);height:50px;display:flex;align-items:flex-end;justify-content:center;padding-bottom:8px;"><div style="width:80px;height:4px;background:rgba(0,0,0,0.08);border-radius:2px;"></div></div>
+      <div class="sheet-handle-wrap"><div class="sheet-handle"></div></div>
+      <div class="sheet-inner">
+        <div class="settled-icon">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2.5" stroke-linecap="round"><path d="M20 6L9 17l-5-5"/></svg>
+        </div>
+        <div class="settled-title">Settled ✓</div>
+        <div class="settled-sub">Both parties confirmed</div>
+        <div class="settled-detail">
+          <div class="settled-row"><span class="settled-key">Amount</span><span class="settled-val">$45.00</span></div>
+          <div class="settled-row"><span class="settled-key">Paid by</span><span class="settled-val">Alex → Chris</span></div>
+          <div class="settled-row"><span class="settled-key">Method</span><span class="settled-val">Venmo</span></div>
+          <div class="settled-row"><span class="settled-key">Date</span><span class="settled-val">May 8, 2026</span></div>
+          <div class="settled-row"><span class="settled-key">Status</span><span class="settled-val green">✓ Confirmed</span></div>
+        </div>
+        <button class="sheet-ghost-btn">View expense</button>
+        <button class="sheet-secondary-btn">Close</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ══════════════════════════════════════════════════════
+     EMPTY STATES
+══════════════════════════════════════════════════════ -->
+<div class="section-label">Empty states</div>
+<div style="display:flex;gap:20px;">
+
+  <div class="empty-panel-wrap">
+    <div class="sheet-panel-label">No expenses yet</div>
+    <div class="sheet-panel-card">
+      <div class="empty-state">
+        <div class="empty-icon">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="var(--gray-400)" stroke-width="2" stroke-linecap="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8l-6-6z"/><path d="M14 2v6h6"/><line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/></svg>
+        </div>
+        <div class="empty-title">No expenses yet</div>
+        <div class="empty-sub">Add your first shared expense to start splitting costs with your household.</div>
+        <button class="empty-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Add expense</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="empty-panel-wrap">
+    <div class="sheet-panel-label">All settled up</div>
+    <div class="sheet-panel-card">
+      <div class="empty-state">
+        <div class="empty-icon" style="background:var(--green-light);border-color:var(--green);border-bottom-color:var(--green-dark);">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2" stroke-linecap="round"><path d="M20 6L9 17l-5-5"/></svg>
+        </div>
+        <div class="empty-title">All settled up!</div>
+        <div class="empty-sub">No outstanding debts with your household. Everyone's square.</div>
+        <button class="empty-btn" style="background:var(--gray-100);border-color:var(--border);border-bottom-color:var(--border-bottom);color:var(--gray-700);">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>
+          View history
+        </button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+</body>
+</html>

@@ -176,10 +176,6 @@ export async function POST(req: NextRequest) {
   const { householdId, role } = membership
   if (role === 'child') return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
-  if (membership.household.subscriptionStatus !== 'premium') {
-    return NextResponse.json({ error: 'Premium required', code: 'EXPENSES_PREMIUM' }, { status: 403 })
-  }
-
   const body = await req.json()
   const { title, amount, categoryId, paidBy, notes, receiptData, splits } = body
 

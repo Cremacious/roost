@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
-import { Camera, ChevronDown, ChevronUp, DollarSign, Lock, Percent, Users } from 'lucide-react'
+import { Camera, ChevronDown, ChevronUp, DollarSign, Lock, Percent, Trash2, Users } from 'lucide-react'
 import { DraggableSheet } from '@/components/shared/DraggableSheet'
 import { ReceiptScanner } from './ReceiptScanner'
 import { LineItemReview, type LineItem } from './LineItemReview'
@@ -102,10 +102,21 @@ export function ExpenseSheet({ open, onClose, members, currentUserId, isPremium,
   const [saveAsTemplate, setSaveAsTemplate] = useState(false)
   const [templateName, setTemplateName] = useState('My split')
 
-  // Fetch saved templates
+  // Fetch saved templates — parse `splits` from JSON string to array
   const { data: templates = [] } = useQuery<SplitTemplate[]>({
     queryKey: ['splitTemplates'],
-    queryFn: () => fetch('/api/split-templates').then(r => r.ok ? r.json() : []),
+    queryFn: async () => {
+      const r = await fetch('/api/split-templates')
+      if (!r.ok) return []
+      const data = await r.json()
+      const raw: { id: string; name: string; method: string; splits: string | { userId: string; value: number }[] }[] =
+        Array.isArray(data.templates) ? data.templates : []
+      return raw.map(t => ({
+        ...t,
+        method: t.method as SplitTemplate['method'],
+        splits: typeof t.splits === 'string' ? JSON.parse(t.splits) : t.splits,
+      }))
+    },
     staleTime: 60_000,
   })
 
@@ -234,6 +245,22 @@ export function ExpenseSheet({ open, onClose, members, currentUserId, isPremium,
     setScanStep('idle')
   }
 
+  // ── Delete template ────────────────────────────────────────────────────
+
+  async function deleteTemplate(id: string, name: string) {
+    try {
+      const r = await fetch(`/api/split-templates/${id}`, { method: 'DELETE' })
+      if (r.ok) {
+        toast.success('Template deleted', { description: `"${name}" removed.` })
+        qc.invalidateQueries({ queryKey: ['splitTemplates'] })
+      } else {
+        toast.error('Could not delete template', { description: 'Try again.' })
+      }
+    } catch {
+      toast.error('Could not delete template', { description: 'Network error.' })
+    }
+  }
+
   // ── Apply template ─────────────────────────────────────────────────────
 
   function applyTemplate(tmpl: SplitTemplate) {
@@ -352,15 +379,22 @@ export function ExpenseSheet({ open, onClose, members, currentUserId, isPremium,
           splitMethod === 'percent' ? percentSplits.map(p => ({ userId: p.userId, value: parseFloat(p.percent) })) :
           shareSplits.map(sh => ({ userId: sh.userId, value: sh.shares }))
 
-        fetch('/api/split-templates', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ name: templateName.trim(), method: splitMethod, splits: templateSplits }),
-        }).then(() => {
-          qc.invalidateQueries({ queryKey: ['splitTemplates'] })
-        }).catch(() => {
-          // Non-fatal: template save failed silently
-        })
+        try {
+          const tr = await fetch('/api/split-templates', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name: templateName.trim(), method: splitMethod, splits: templateSplits }),
+          })
+          if (tr.ok) {
+            toast.success('Split template saved', { description: `"${templateName.trim()}" is ready to reuse.` })
+            qc.invalidateQueries({ queryKey: ['splitTemplates'] })
+          } else {
+            const td = await tr.json().catch(() => ({}))
+            toast.error('Could not save template', { description: (td as { error?: string }).error ?? 'Try again.' })
+          }
+        } catch {
+          toast.error('Could not save template', { description: 'Network error. Try again.' })
+        }
       }
 
       toast.success('Expense added')
@@ -566,30 +600,50 @@ export function ExpenseSheet({ open, onClose, members, currentUserId, isPremium,
                   {templates.map(tmpl => (
                     <div key={tmpl.id} style={{
                       display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                      gap: 8,
                       padding: '10px 14px',
                       borderRadius: 10,
                       backgroundColor: 'var(--roost-surface)',
                       border: '1.5px solid var(--roost-border)',
+                      borderBottom: '3px solid var(--roost-border-bottom)',
                     }}>
-                      <div>
+                      <div style={{ flex: 1, minWidth: 0 }}>
                         <p style={{ color: 'var(--roost-text-primary)', fontWeight: 700, fontSize: 14, margin: 0 }}>
                           {tmpl.name}
                         </p>
-                        <p style={{ color: 'var(--roost-text-muted)', fontWeight: 600, fontSize: 12, margin: 0 }}>
-                          {templateSummary(tmpl)}
+                        <p style={{
+                          color: 'var(--roost-text-muted)', fontWeight: 600, fontSize: 12, margin: 0,
+                          overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                        }}>
+                          {tmpl.method} · {templateSummary(tmpl)}
                         </p>
                       </div>
-                      <button
-                        onClick={() => applyTemplate(tmpl)}
-                        style={{
-                          padding: '6px 12px', borderRadius: 8, fontWeight: 700, fontSize: 13,
-                          backgroundColor: COLOR, color: '#fff',
-                          border: 'none', borderBottom: `2px solid ${COLOR_DARK}`,
-                          cursor: 'pointer', flexShrink: 0,
-                        }}
-                      >
-                        Apply
-                      </button>
+                      <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
+                        <button
+                          onClick={() => applyTemplate(tmpl)}
+                          style={{
+                            padding: '6px 12px', borderRadius: 8, fontWeight: 700, fontSize: 13,
+                            backgroundColor: COLOR, color: '#fff',
+                            border: 'none', borderBottom: `2px solid ${COLOR_DARK}`,
+                            cursor: 'pointer',
+                          }}
+                        >
+                          Apply
+                        </button>
+                        <button
+                          onClick={() => deleteTemplate(tmpl.id, tmpl.name)}
+                          style={{
+                            width: 34, height: 34, borderRadius: 8,
+                            backgroundColor: 'var(--roost-surface)',
+                            border: '1.5px solid var(--roost-border)',
+                            borderBottom: '2px solid var(--roost-border-bottom)',
+                            cursor: 'pointer', flexShrink: 0,
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          }}
+                        >
+                          <Trash2 size={14} style={{ color: '#EF4444' }} />
+                        </button>
+                      </div>
                     </div>
                   ))}
                 </div>

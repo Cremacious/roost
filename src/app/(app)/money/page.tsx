@@ -167,7 +167,7 @@ function DashboardTab({ currentUserId, members, isPremium, onOpenExpense, onOpen
         background: 'linear-gradient(135deg, #22C55E 0%, #16A34A 100%)',
         borderRadius: 20,
         padding: '28px',
-        marginBottom: 20,
+        marginBottom: 32,
         position: 'relative',
         overflow: 'hidden',
       }}>
@@ -1337,32 +1337,36 @@ export default function MoneyPage() {
 
   return (
     <div>
-      {/* ── Sticky page header ── */}
+      {/* ── Page title (non-sticky, flows naturally below TopBar) ── */}
+      <div
+        className="px-6 md:px-7"
+        style={{ backgroundColor: 'var(--roost-surface)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 24px 10px' }}
+      >
+        <div>
+          <h1 style={{ margin: 0, fontWeight: 900, fontSize: 24, color: 'var(--roost-text-primary)', letterSpacing: '-0.5px', lineHeight: 1 }}>Money</h1>
+          <p style={{ margin: '3px 0 0', fontSize: 13, fontWeight: 600, color: 'var(--roost-text-secondary)' }}>Expenses, bills and goals</p>
+        </div>
+        <button
+          onClick={() => setExpenseSheetOpen(true)}
+          style={{
+            display: 'flex', alignItems: 'center', gap: 6,
+            padding: '9px 16px', borderRadius: 10,
+            backgroundColor: COLOR, color: '#fff',
+            border: `1.5px solid ${COLOR}`,
+            borderBottom: `3px solid ${COLOR_DARK}`,
+            fontFamily: 'inherit', fontSize: 13, fontWeight: 800, cursor: 'pointer',
+          }}
+        >
+          <Plus size={15} /> Add expense
+        </button>
+      </div>
+
+      {/* ── Tab strip (sticky — sticks below TopBar when title scrolls away) ── */}
       <div
         className="sticky top-14 z-10 px-6 md:px-7"
         style={{ backgroundColor: 'var(--roost-surface)', borderBottom: '1.5px solid var(--roost-border)' }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '18px 0 12px' }}>
-          <div>
-            <h1 style={{ margin: 0, fontWeight: 900, fontSize: 24, color: 'var(--roost-text-primary)', letterSpacing: '-0.5px', lineHeight: 1 }}>Money</h1>
-            <p style={{ margin: '3px 0 0', fontSize: 13, fontWeight: 600, color: 'var(--roost-text-secondary)' }}>Expenses, bills and goals</p>
-          </div>
-          <button
-            onClick={() => setExpenseSheetOpen(true)}
-            style={{
-              display: 'flex', alignItems: 'center', gap: 6,
-              padding: '9px 16px', borderRadius: 10,
-              backgroundColor: COLOR, color: '#fff',
-              border: `1.5px solid ${COLOR}`,
-              borderBottom: `3px solid ${COLOR_DARK}`,
-              fontFamily: 'inherit', fontSize: 13, fontWeight: 800, cursor: 'pointer',
-            }}
-          >
-            <Plus size={15} /> Add expense
-          </button>
-        </div>
-        {/* Tab strip */}
-        <div style={{ display: 'flex', gap: 6, paddingBottom: 14, overflowX: 'auto', scrollbarWidth: 'none' as any }}>
+        <div style={{ display: 'flex', gap: 6, padding: '8px 0 12px', overflowX: 'auto', scrollbarWidth: 'none' as any }}>
           {TABS.map(t => (
             <TabPill key={t.id} {...t} active={tab === t.id} onClick={() => setTab(t.id)} />
           ))}

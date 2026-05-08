@@ -5,10 +5,11 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { motion } from 'framer-motion'
 import { toast } from 'sonner'
 import {
-  Plus, Wallet, Receipt, BarChart3, Target, ListChecks, TrendingUp,
+  Plus, Wallet, Receipt, BarChart3, Target, TrendingUp,
   CheckCircle, Clock, AlertCircle, ChevronRight, Edit2, Trash2, ChevronDown, ChevronUp,
+  LayoutGrid, DollarSign, FileText, Camera, Users,
 } from 'lucide-react'
-import { format, parseISO } from 'date-fns'
+import { format, parseISO, subDays } from 'date-fns'
 import { AreaChart, Area, XAxis, YAxis, Tooltip, PieChart, Pie, Cell, ResponsiveContainer } from 'recharts'
 import { SlabCard } from '@/components/ui/SlabCard'
 import {
@@ -40,13 +41,14 @@ function EmptyState({ color, icon, title, body, buttonLabel, onButtonClick }: {
 
 const COLOR = '#22C55E'
 const COLOR_DARK = '#15803D'
+const SPEND_COLORS = ['#22C55E', '#3B82F6', '#F59E0B', '#A855F7', '#F97316']
 
 type Tab = 'dashboard' | 'expenses' | 'bills' | 'budget' | 'goals' | 'insights'
 
 const TABS: { id: Tab; label: string; icon: React.ReactNode }[] = [
-  { id: 'dashboard', label: 'Overview', icon: <Wallet size={14} /> },
-  { id: 'expenses', label: 'Expenses', icon: <Receipt size={14} /> },
-  { id: 'bills', label: 'Bills', icon: <ListChecks size={14} /> },
+  { id: 'dashboard', label: 'Dashboard', icon: <LayoutGrid size={14} /> },
+  { id: 'expenses', label: 'Expenses', icon: <DollarSign size={14} /> },
+  { id: 'bills', label: 'Bills', icon: <FileText size={14} /> },
   { id: 'budget', label: 'Budget', icon: <BarChart3 size={14} /> },
   { id: 'goals', label: 'Goals', icon: <Target size={14} /> },
   { id: 'insights', label: 'Insights', icon: <TrendingUp size={14} /> },
@@ -59,18 +61,18 @@ const STATUS_CONFIG = {
   upcoming: { label: 'Upcoming', color: 'var(--roost-text-muted)', icon: null },
 }
 
-function TabPill({ id, label, icon, active, onClick }: { id: Tab; label: string; icon: React.ReactNode; active: boolean; onClick: () => void }) {
+function TabPill({ label, icon, active, onClick }: { id: Tab; label: string; icon: React.ReactNode; active: boolean; onClick: () => void }) {
   return (
     <button
       onClick={onClick}
       style={{
         display: 'flex', alignItems: 'center', gap: 5,
-        padding: '7px 12px', borderRadius: 10, fontWeight: 700, fontSize: 13,
+        padding: '7px 14px', borderRadius: 10, fontWeight: 700, fontSize: 13,
         backgroundColor: active ? COLOR : 'var(--roost-surface)',
         color: active ? '#fff' : 'var(--roost-text-secondary)',
         border: `1.5px solid ${active ? COLOR : 'var(--roost-border)'}`,
         borderBottom: `3px solid ${active ? COLOR_DARK : 'var(--roost-border-bottom)'}`,
-        cursor: 'pointer', whiteSpace: 'nowrap',
+        cursor: 'pointer', whiteSpace: 'nowrap', fontFamily: 'inherit',
       }}
     >
       {icon}{label}
@@ -78,121 +80,7 @@ function TabPill({ id, label, icon, active, onClick }: { id: Tab; label: string;
   )
 }
 
-// ─── Dashboard Tab ────────────────────────────────────────────────────────────
-
-function DashboardTab({ currentUserId, members, isPremium, onOpenExpense, onOpenSettle }: {
-  currentUserId: string
-  members: Member[]
-  isPremium: boolean
-  onOpenExpense: () => void
-  onOpenSettle: (debt: DebtItem) => void
-}) {
-  const { data, isLoading } = useQuery({
-    queryKey: ['money-dashboard'],
-    queryFn: () => fetch('/api/money/dashboard').then(r => r.json()),
-    staleTime: 10_000,
-  })
-
-  if (isLoading) return <LoadingRows />
-
-  const { balances, bills, budgetSummary, activeGoal, recentExpenses } = data ?? {}
-
-  const netPositive = (balances?.netBalance ?? 0) >= 0
-
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-      {/* Balance hero */}
-      <SlabCard color={netPositive ? COLOR : '#EF4444'}>
-        <div style={{ padding: '16px', display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>
-          <StatBox label="You're owed" value={`$${(balances?.totalOwed ?? 0).toFixed(2)}`} color={COLOR} />
-          <StatBox label="You owe" value={`$${(balances?.totalOwe ?? 0).toFixed(2)}`} color="#EF4444" />
-          <StatBox label="Spent this month" value={`$${(balances?.totalSpentThisMonth ?? 0).toFixed(2)}`} color="var(--roost-text-primary)" />
-        </div>
-      </SlabCard>
-
-      {/* Bills preview */}
-      {isPremium && bills?.length > 0 && (
-        <div>
-          <p style={{ fontWeight: 800, fontSize: 14, color: 'var(--roost-text-primary)', marginBottom: 8 }}>Bills this month</p>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            {bills.slice(0, 4).map((bill: Bill) => <BillRow key={bill.id} bill={bill} />)}
-          </div>
-        </div>
-      )}
-
-      {/* Budget summary */}
-      {isPremium && budgetSummary && (
-        <SlabCard color={budgetSummary.overBudgetCount > 0 ? '#EF4444' : COLOR}>
-          <div style={{ padding: '14px 16px' }}>
-            <p style={{ margin: 0, fontWeight: 800, fontSize: 13, color: 'var(--roost-text-secondary)' }}>Budget this month</p>
-            <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginTop: 4 }}>
-              <span style={{ fontWeight: 900, fontSize: 22, color: 'var(--roost-text-primary)' }}>${budgetSummary.totalSpent.toFixed(2)}</span>
-              <span style={{ fontWeight: 600, fontSize: 13, color: 'var(--roost-text-muted)' }}>of ${budgetSummary.totalCap.toFixed(2)}</span>
-            </div>
-            {budgetSummary.overBudgetCount > 0 && (
-              <p style={{ margin: '4px 0 0', fontSize: 12, fontWeight: 700, color: '#EF4444' }}>
-                {budgetSummary.overBudgetCount} {budgetSummary.overBudgetCount === 1 ? 'category' : 'categories'} over budget
-              </p>
-            )}
-            <div style={{ marginTop: 8, height: 6, borderRadius: 99, backgroundColor: 'var(--roost-border)', overflow: 'hidden' }}>
-              <div style={{ height: '100%', borderRadius: 99, width: `${Math.min(100, (budgetSummary.totalSpent / budgetSummary.totalCap) * 100)}%`, backgroundColor: budgetSummary.overBudgetCount > 0 ? '#EF4444' : COLOR, transition: 'width 0.3s' }} />
-            </div>
-          </div>
-        </SlabCard>
-      )}
-
-      {/* Active goal */}
-      {isPremium && activeGoal && (
-        <SlabCard color={COLOR}>
-          <div style={{ padding: '14px 16px' }}>
-            <p style={{ margin: 0, fontWeight: 800, fontSize: 13, color: 'var(--roost-text-secondary)' }}>Savings goal: {activeGoal.name}</p>
-            <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginTop: 4 }}>
-              <span style={{ fontWeight: 900, fontSize: 22, color: 'var(--roost-text-primary)' }}>${activeGoal.savedAmount.toFixed(2)}</span>
-              <span style={{ fontWeight: 600, fontSize: 13, color: 'var(--roost-text-muted)' }}>of ${activeGoal.targetAmount.toFixed(2)}</span>
-              <span style={{ fontWeight: 700, fontSize: 13, color: COLOR }}>{activeGoal.progressPercent}%</span>
-            </div>
-            <div style={{ marginTop: 8, height: 6, borderRadius: 99, backgroundColor: 'var(--roost-border)', overflow: 'hidden' }}>
-              <div style={{ height: '100%', borderRadius: 99, width: `${activeGoal.progressPercent}%`, backgroundColor: COLOR, transition: 'width 0.3s' }} />
-            </div>
-          </div>
-        </SlabCard>
-      )}
-
-      {/* Recent expenses */}
-      {recentExpenses?.length > 0 && (
-        <div>
-          <p style={{ fontWeight: 800, fontSize: 14, color: 'var(--roost-text-primary)', marginBottom: 8 }}>Recent expenses</p>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-            {recentExpenses.map((e: RecentExpense) => (
-              <SlabCard key={e.id} color="var(--roost-border-bottom)">
-                <div style={{ padding: '12px 14px', display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <p style={{ margin: 0, fontWeight: 700, fontSize: 14, color: 'var(--roost-text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{e.title}</p>
-                    <p style={{ margin: '2px 0 0', fontSize: 12, fontWeight: 600, color: 'var(--roost-text-muted)' }}>{e.paidByName} &bull; {format(new Date(e.createdAt), 'MMM d')}</p>
-                  </div>
-                  <span style={{ fontWeight: 800, fontSize: 16, color: 'var(--roost-text-primary)' }}>${parseFloat(String(e.amount)).toFixed(2)}</span>
-                </div>
-              </SlabCard>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {!recentExpenses?.length && (
-        <EmptyState
-          color={COLOR}
-          icon={<Wallet size={28} />}
-          title="All square."
-          body="No expenses tracked. Either everyone is being weirdly generous, or nobody has added anything yet."
-          buttonLabel="Add expense"
-          onButtonClick={onOpenExpense}
-        />
-      )}
-    </div>
-  )
-}
-
-// ─── Expenses Tab ─────────────────────────────────────────────────────────────
+// ─── Interfaces ───────────────────────────────────────────────────────────────
 
 interface DebtItem {
   from: string
@@ -227,6 +115,407 @@ interface RecentExpense {
   createdAt: string
 }
 
+// ─── Dashboard Tab ────────────────────────────────────────────────────────────
+
+function DashboardTab({ currentUserId, members, isPremium, onOpenExpense, onOpenSettle, onTabChange }: {
+  currentUserId: string
+  members: Member[]
+  isPremium: boolean
+  onOpenExpense: () => void
+  onOpenSettle: (debt: DebtItem) => void
+  onTabChange: (tab: Tab) => void
+}) {
+  const { data, isLoading } = useQuery({
+    queryKey: ['money-dashboard'],
+    queryFn: () => fetch('/api/money/dashboard').then(r => r.json()),
+    staleTime: 10_000,
+  })
+
+  const { data: expData } = useQuery({
+    queryKey: ['expenses'],
+    queryFn: () => fetch('/api/expenses').then(r => r.json()),
+    staleTime: 10_000,
+  })
+
+  const from30d = subDays(new Date(), 30).toISOString().split('T')[0]
+  const to = new Date().toISOString().split('T')[0]
+  const { data: insightsData, isLoading: insightsLoading } = useQuery({
+    queryKey: ['dashboard-spending', from30d],
+    queryFn: () => fetch(`/api/money/insights?from=${from30d}&to=${to}`).then(r => r.json()),
+    staleTime: 60_000,
+    enabled: isPremium,
+  })
+
+  if (isLoading) return <LoadingRows />
+
+  const { balances, bills, budgetSummary, activeGoal, recentExpenses } = data ?? {}
+  const { debts = [] } = expData ?? {}
+  const { byCategory = [], spendingOverTime = [] } = insightsData ?? {}
+
+  const netBalance = balances?.netBalance ?? 0
+  const netPositive = netBalance >= 0
+
+  const myDebts: DebtItem[] = debts.filter(
+    (d: DebtItem) => d.from === currentUserId || d.to === currentUserId
+  )
+  const firstOweDebt = myDebts.find((d: DebtItem) => d.from === currentUserId) ?? null
+
+  return (
+    <div>
+      {/* ── Balance Hero ── */}
+      <div style={{
+        background: 'linear-gradient(135deg, #22C55E 0%, #16A34A 100%)',
+        borderRadius: 20,
+        padding: '28px',
+        marginBottom: 20,
+        position: 'relative',
+        overflow: 'hidden',
+      }}>
+        <div style={{ position: 'absolute', top: -50, right: -50, width: 220, height: 220, borderRadius: '50%', background: 'rgba(255,255,255,0.07)', pointerEvents: 'none' }} />
+        <div style={{ position: 'absolute', bottom: -40, left: -30, width: 140, height: 140, borderRadius: '50%', background: 'rgba(255,255,255,0.05)', pointerEvents: 'none' }} />
+
+        {/* Three-column desktop / stacked mobile */}
+        <div className="relative z-10 flex flex-col gap-5 md:grid md:items-center md:gap-x-10" style={{ gridTemplateColumns: 'auto 1fr auto' }}>
+          {/* Net balance */}
+          <div>
+            <div style={{ fontSize: 11, fontWeight: 800, color: 'rgba(255,255,255,0.7)', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 6 }}>Net balance</div>
+            <div style={{ fontSize: 48, fontWeight: 900, color: 'white', letterSpacing: -2, lineHeight: 1 }}>
+              {netPositive ? '+' : ''}{netBalance < 0 ? '-' : ''}${Math.abs(netBalance).toFixed(2)}
+            </div>
+          </div>
+
+          {/* Stat chips */}
+          <div className="grid grid-cols-2 gap-3 md:flex md:flex-wrap md:gap-3">
+            <div style={{ background: 'rgba(255,255,255,0.15)', backdropFilter: 'blur(8px)', borderRadius: 14, padding: '14px 18px' }}>
+              <div style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.7)', marginBottom: 4 }}>You're owed</div>
+              <div style={{ fontSize: 20, fontWeight: 900, color: '#BBF7D0' }}>${(balances?.totalOwed ?? 0).toFixed(2)}</div>
+            </div>
+            <div style={{ background: 'rgba(255,255,255,0.15)', backdropFilter: 'blur(8px)', borderRadius: 14, padding: '14px 18px' }}>
+              <div style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.7)', marginBottom: 4 }}>You owe</div>
+              <div style={{ fontSize: 20, fontWeight: 900, color: '#FECACA' }}>${(balances?.totalOwe ?? 0).toFixed(2)}</div>
+            </div>
+            <div style={{ background: 'rgba(255,255,255,0.15)', backdropFilter: 'blur(8px)', borderRadius: 14, padding: '14px 18px' }}>
+              <div style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.7)', marginBottom: 4 }}>Spent this month</div>
+              <div style={{ fontSize: 20, fontWeight: 900, color: 'white' }}>${(balances?.totalSpentThisMonth ?? 0).toFixed(2)}</div>
+            </div>
+            {isPremium && budgetSummary && (
+              <div style={{ background: 'rgba(255,255,255,0.15)', backdropFilter: 'blur(8px)', borderRadius: 14, padding: '14px 18px' }}>
+                <div style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.7)', marginBottom: 4 }}>Budget remaining</div>
+                <div style={{ fontSize: 20, fontWeight: 900, color: '#BBF7D0' }}>${Math.max(0, (budgetSummary.totalCap ?? 0) - (budgetSummary.totalSpent ?? 0)).toFixed(2)}</div>
+              </div>
+            )}
+          </div>
+
+          {/* Action buttons */}
+          <div className="flex flex-row gap-2 md:flex-col md:gap-2">
+            <button
+              onClick={() => firstOweDebt ? onOpenSettle(firstOweDebt) : onTabChange('expenses')}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 8, padding: '9px 16px', borderRadius: 10,
+                background: 'rgba(255,255,255,0.2)', border: '1.5px solid rgba(255,255,255,0.3)',
+                fontFamily: 'inherit', fontSize: 13, fontWeight: 800, color: 'white', cursor: 'pointer', whiteSpace: 'nowrap',
+              }}
+            >
+              <CheckCircle size={15} color="white" /> Settle up
+            </button>
+            <button
+              onClick={() => onTabChange('insights')}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 8, padding: '9px 16px', borderRadius: 10,
+                background: 'rgba(255,255,255,0.2)', border: '1.5px solid rgba(255,255,255,0.3)',
+                fontFamily: 'inherit', fontSize: 13, fontWeight: 800, color: 'white', cursor: 'pointer', whiteSpace: 'nowrap',
+                opacity: isPremium ? 1 : 0.5,
+              }}
+            >
+              <TrendingUp size={15} color="white" /> View insights
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* ── Two-column grid ── */}
+      <div className="grid gap-4 md:grid-cols-[1fr_360px] items-start">
+
+        {/* ── Main column ── */}
+        <div>
+          {/* Spending this month */}
+          <div style={{ background: 'var(--roost-surface)', border: '1.5px solid var(--roost-border)', borderBottom: `4px solid ${COLOR_DARK}`, borderRadius: 16, marginBottom: 16, overflow: 'hidden' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 18px 0' }}>
+              <span style={{ fontSize: 14, fontWeight: 800, color: 'var(--roost-text-primary)' }}>Spending this month</span>
+              {isPremium && (
+                <button onClick={() => onTabChange('insights')} style={{ fontSize: 12, fontWeight: 700, color: COLOR, background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}>Details</button>
+              )}
+            </div>
+            <div style={{ padding: '14px 18px 16px' }}>
+              {!isPremium ? (
+                <div>
+                  <p style={{ margin: 0, fontSize: 28, fontWeight: 900, color: 'var(--roost-text-primary)' }}>${(balances?.totalSpentThisMonth ?? 0).toFixed(2)}</p>
+                  <p style={{ margin: '6px 0 0', fontSize: 12, fontWeight: 600, color: 'var(--roost-text-muted)' }}>Upgrade to see category breakdown and spending trends.</p>
+                </div>
+              ) : insightsLoading ? (
+                <div style={{ height: 120, borderRadius: 10, backgroundColor: 'var(--roost-border)', opacity: 0.5, animation: 'pulse 2s infinite' }} />
+              ) : byCategory.length > 0 ? (
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 24 }}>
+                    {/* Donut ring */}
+                    <div style={{ position: 'relative', width: 120, height: 120, flexShrink: 0 }}>
+                      <PieChart width={120} height={120}>
+                        <Pie
+                          data={byCategory.slice(0, 5)}
+                          dataKey="total"
+                          cx={60} cy={60}
+                          outerRadius={54} innerRadius={34}
+                          strokeWidth={0}
+                        >
+                          {byCategory.slice(0, 5).map((_: any, i: number) => (
+                            <Cell key={i} fill={SPEND_COLORS[i % SPEND_COLORS.length]} />
+                          ))}
+                        </Pie>
+                      </PieChart>
+                      <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', textAlign: 'center', pointerEvents: 'none' }}>
+                        <div style={{ fontSize: 15, fontWeight: 900, color: 'var(--roost-text-primary)', lineHeight: 1 }}>${(balances?.totalSpentThisMonth ?? 0).toFixed(0)}</div>
+                        <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--roost-text-muted)' }}>spent</div>
+                      </div>
+                    </div>
+                    {/* Breakdown */}
+                    <div style={{ flex: 1 }}>
+                      {byCategory.slice(0, 5).map((cat: any, i: number) => (
+                        <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: i < 4 ? 9 : 0 }}>
+                          <div style={{ width: 8, height: 8, borderRadius: '50%', backgroundColor: SPEND_COLORS[i % SPEND_COLORS.length], flexShrink: 0 }} />
+                          <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--roost-text-secondary)', flex: 1 }}>{cat.categoryName ?? 'Other'}</span>
+                          <div style={{ width: 80, height: 6, backgroundColor: 'var(--roost-border)', borderRadius: 3, overflow: 'hidden' }}>
+                            <div style={{ height: '100%', borderRadius: 3, width: `${cat.percent ?? 0}%`, backgroundColor: SPEND_COLORS[i % SPEND_COLORS.length] }} />
+                          </div>
+                          <span style={{ fontSize: 12, fontWeight: 800, color: 'var(--roost-text-secondary)', minWidth: 44, textAlign: 'right' }}>${parseFloat(String(cat.total ?? 0)).toFixed(0)}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                  {/* Spending trend mini chart */}
+                  {spendingOverTime.length > 1 && (
+                    <div style={{ marginTop: 16 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+                        <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--roost-text-secondary)' }}>Spending trend</span>
+                        <span style={{ fontSize: 11, fontWeight: 800, padding: '4px 10px', borderRadius: 8, backgroundColor: `${COLOR}20`, color: COLOR }}>30d</span>
+                      </div>
+                      <ResponsiveContainer width="100%" height={80}>
+                        <AreaChart data={spendingOverTime} margin={{ top: 2, right: 0, bottom: 0, left: 0 }}>
+                          <defs>
+                            <linearGradient id="dbAreaGrad" x1="0" y1="0" x2="0" y2="1">
+                              <stop offset="5%" stopColor={COLOR} stopOpacity={0.25} />
+                              <stop offset="95%" stopColor={COLOR} stopOpacity={0} />
+                            </linearGradient>
+                          </defs>
+                          <XAxis dataKey="date" hide />
+                          <YAxis hide />
+                          <Area type="monotone" dataKey="total" stroke={COLOR} strokeWidth={2.5} fill="url(#dbAreaGrad)" dot={false} />
+                        </AreaChart>
+                      </ResponsiveContainer>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: 'var(--roost-text-muted)', padding: '12px 0' }}>No spending data for this period.</p>
+              )}
+            </div>
+          </div>
+
+          {/* Recent expenses */}
+          <div style={{ background: 'var(--roost-surface)', border: '1.5px solid var(--roost-border)', borderBottom: `4px solid ${COLOR_DARK}`, borderRadius: 16, overflow: 'hidden' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 18px 0' }}>
+              <span style={{ fontSize: 14, fontWeight: 800, color: 'var(--roost-text-primary)' }}>Recent expenses</span>
+              <button onClick={() => onTabChange('expenses')} style={{ fontSize: 12, fontWeight: 700, color: COLOR, background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}>See all</button>
+            </div>
+            <div style={{ padding: '4px 18px 16px' }}>
+              {recentExpenses?.length > 0 ? recentExpenses.map((e: RecentExpense, i: number) => (
+                <div key={e.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '11px 0', borderBottom: i < recentExpenses.length - 1 ? '1px solid var(--roost-border)' : 'none' }}>
+                  <div style={{ width: 38, height: 38, borderRadius: 11, backgroundColor: `${COLOR}18`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                    <Receipt size={16} color={COLOR} />
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <p style={{ margin: 0, fontWeight: 800, fontSize: 13, color: 'var(--roost-text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{e.title}</p>
+                    <p style={{ margin: '2px 0 0', fontSize: 11, fontWeight: 600, color: 'var(--roost-text-muted)' }}>Paid by {e.paidByName} · {format(new Date(e.createdAt), 'MMM d')}</p>
+                  </div>
+                  <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                    <div style={{ fontSize: 14, fontWeight: 900, color: 'var(--roost-text-primary)' }}>${parseFloat(String(e.amount)).toFixed(2)}</div>
+                  </div>
+                </div>
+              )) : (
+                <p style={{ margin: '16px 0 8px', fontSize: 13, fontWeight: 600, color: 'var(--roost-text-muted)', textAlign: 'center' }}>No expenses yet.</p>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* ── Sidebar column ── */}
+        <div>
+          {/* Quick actions */}
+          <div style={{ background: 'var(--roost-surface)', border: '1.5px solid var(--roost-border)', borderBottom: `4px solid ${COLOR_DARK}`, borderRadius: 16, marginBottom: 16, overflow: 'hidden' }}>
+            <div style={{ padding: '14px 18px 0' }}>
+              <span style={{ fontSize: 14, fontWeight: 800, color: 'var(--roost-text-primary)' }}>Quick actions</span>
+            </div>
+            <div style={{ padding: '14px 18px 16px', display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8 }}>
+              {[
+                { label: 'Add', icon: <Plus size={18} color={COLOR} />, bg: `${COLOR}1A`, onClick: onOpenExpense },
+                { label: 'Scan', icon: <Camera size={18} color="#3B82F6" />, bg: '#3B82F61A', onClick: onOpenExpense },
+                { label: 'Split', icon: <Users size={18} color="#F59E0B" />, bg: '#F59E0B1A', onClick: onOpenExpense },
+                { label: 'Settle', icon: <CheckCircle size={18} color="#A855F7" />, bg: '#A855F71A', onClick: () => firstOweDebt ? onOpenSettle(firstOweDebt) : onTabChange('expenses') },
+              ].map(({ label, icon, bg, onClick }) => (
+                <button
+                  key={label}
+                  onClick={onClick}
+                  style={{
+                    background: 'var(--roost-surface)', border: '1.5px solid var(--roost-border)',
+                    borderBottom: '3px solid var(--roost-border-bottom)', borderRadius: 14,
+                    padding: '16px 8px', textAlign: 'center', cursor: 'pointer', fontFamily: 'inherit',
+                  }}
+                >
+                  <div style={{ width: 40, height: 40, borderRadius: 12, backgroundColor: bg, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 8px' }}>
+                    {icon}
+                  </div>
+                  <div style={{ fontSize: 12, fontWeight: 800, color: 'var(--roost-text-secondary)' }}>{label}</div>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Who owes who */}
+          <div style={{ background: 'var(--roost-surface)', border: '1.5px solid var(--roost-border)', borderBottom: '4px solid #B91C1C', borderRadius: 16, marginBottom: 16, overflow: 'hidden' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 18px 0' }}>
+              <span style={{ fontSize: 14, fontWeight: 800, color: 'var(--roost-text-primary)' }}>Who owes who</span>
+              <button onClick={() => onTabChange('expenses')} style={{ fontSize: 12, fontWeight: 700, color: COLOR, background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}>See all</button>
+            </div>
+            <div style={{ padding: '14px 18px 16px' }}>
+              {myDebts.length === 0 ? (
+                <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: 'var(--roost-text-muted)', textAlign: 'center', padding: '8px 0' }}>All settled up.</p>
+              ) : myDebts.slice(0, 3).map((debt: DebtItem, i: number) => {
+                const iOwe = debt.from === currentUserId
+                const other = members.find(m => m.id === (iOwe ? debt.to : debt.from))
+                const otherName = other?.name ?? 'Unknown'
+                const initial = otherName.charAt(0).toUpperCase()
+                const avatarColors = ['#3B82F6', '#EC4899', '#F59E0B', '#A855F7', '#06B6D4']
+                const avatarBg = avatarColors[i % avatarColors.length]
+                return (
+                  <div
+                    key={i}
+                    onClick={() => onOpenSettle(debt)}
+                    style={{
+                      background: 'var(--roost-surface)', border: '1.5px solid var(--roost-border)',
+                      borderBottom: `4px solid ${iOwe ? '#EF4444' : COLOR}`,
+                      borderRadius: 14, padding: '14px 16px', cursor: 'pointer', marginBottom: i < Math.min(myDebts.length, 3) - 1 ? 10 : 0,
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <div style={{ width: 30, height: 30, borderRadius: '50%', backgroundColor: avatarBg, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 900, color: 'white', flexShrink: 0 }}>
+                          {initial}
+                        </div>
+                        <div>
+                          <div style={{ fontSize: 13, fontWeight: 800, color: 'var(--roost-text-primary)' }}>{otherName}</div>
+                          <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--roost-text-muted)' }}>{iOwe ? 'You owe' : 'Owes you'}</div>
+                        </div>
+                      </div>
+                      <div style={{ fontSize: 18, fontWeight: 900, letterSpacing: -0.5, color: iOwe ? '#EF4444' : COLOR }}>
+                        ${debt.amount.toFixed(2)}
+                      </div>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end' }}>
+                      <button
+                        onClick={(e) => { e.stopPropagation(); onOpenSettle(debt) }}
+                        style={{
+                          padding: '5px 12px', borderRadius: 8, border: '1.5px solid var(--roost-border)',
+                          borderBottom: '2px solid var(--roost-border-bottom)', background: 'var(--roost-surface)',
+                          fontFamily: 'inherit', fontSize: 11, fontWeight: 800, color: 'var(--roost-text-secondary)', cursor: 'pointer',
+                        }}
+                      >
+                        {iOwe ? 'Settle' : 'Remind'}
+                      </button>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+
+          {/* Active goal (premium) */}
+          {isPremium && activeGoal ? (
+            <div style={{ background: 'var(--roost-surface)', border: '1.5px solid var(--roost-border)', borderBottom: '4px solid #7C3AED', borderRadius: 16, marginBottom: 16, overflow: 'hidden' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 18px 0' }}>
+                <span style={{ fontSize: 14, fontWeight: 800, color: 'var(--roost-text-primary)' }}>Active goal</span>
+                <button onClick={() => onTabChange('goals')} style={{ fontSize: 12, fontWeight: 700, color: '#A855F7', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}>All goals</button>
+              </div>
+              <div style={{ padding: '14px 18px 16px', display: 'flex', alignItems: 'center', gap: 16 }}>
+                <div style={{ position: 'relative', width: 60, height: 60, flexShrink: 0 }}>
+                  <PieChart width={60} height={60}>
+                    <Pie data={[{ value: activeGoal.progressPercent }, { value: 100 - activeGoal.progressPercent }]} dataKey="value" cx={30} cy={30} outerRadius={28} innerRadius={20} strokeWidth={0} startAngle={90} endAngle={-270}>
+                      <Cell fill="#A855F7" />
+                      <Cell fill="var(--roost-border)" />
+                    </Pie>
+                  </PieChart>
+                  <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', fontSize: 11, fontWeight: 900, color: 'var(--roost-text-primary)' }}>
+                    {activeGoal.progressPercent}%
+                  </div>
+                </div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 14, fontWeight: 800, color: 'var(--roost-text-primary)', marginBottom: 2 }}>{activeGoal.name}</div>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--roost-text-muted)' }}>
+                    <span style={{ color: COLOR, fontWeight: 900 }}>${activeGoal.savedAmount.toFixed(2)}</span> of ${parseFloat(activeGoal.targetAmount).toFixed(2)}
+                  </div>
+                  <div style={{ height: 6, backgroundColor: 'var(--roost-border)', borderRadius: 3, overflow: 'hidden', marginTop: 6 }}>
+                    <div style={{ height: '100%', borderRadius: 3, width: `${activeGoal.progressPercent}%`, backgroundColor: '#A855F7' }} />
+                  </div>
+                </div>
+              </div>
+            </div>
+          ) : isPremium ? null : (
+            <div style={{ background: 'var(--roost-surface)', border: '1.5px solid var(--roost-border)', borderBottom: '4px solid #7C3AED', borderRadius: 16, marginBottom: 16, padding: '16px 18px', opacity: 0.5 }}>
+              <div style={{ fontSize: 14, fontWeight: 800, color: 'var(--roost-text-primary)', marginBottom: 4 }}>Active goal</div>
+              <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--roost-text-muted)' }}>Upgrade to track shared savings goals.</div>
+            </div>
+          )}
+
+          {/* Bills this month (premium) */}
+          {isPremium && bills?.length > 0 ? (
+            <div style={{ background: 'var(--roost-surface)', border: '1.5px solid var(--roost-border)', borderBottom: '4px solid #D97706', borderRadius: 16, overflow: 'hidden' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 18px 0' }}>
+                <span style={{ fontSize: 14, fontWeight: 800, color: 'var(--roost-text-primary)' }}>Bills this month</span>
+                <button onClick={() => onTabChange('bills')} style={{ fontSize: 12, fontWeight: 700, color: '#F59E0B', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}>Manage</button>
+              </div>
+              <div style={{ padding: '4px 18px 16px' }}>
+                {bills.slice(0, 4).map((bill: Bill, i: number) => {
+                  const cfg = STATUS_CONFIG[bill.status]
+                  return (
+                    <div key={bill.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 0', borderBottom: i < Math.min(bills.length, 4) - 1 ? '1px solid var(--roost-border)' : 'none' }}>
+                      <div style={{ width: 36, height: 36, borderRadius: 10, backgroundColor: `${cfg.color}1A`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                        {cfg.icon ?? <Clock size={16} color={cfg.color} />}
+                      </div>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontSize: 13, fontWeight: 800, color: 'var(--roost-text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{bill.title}</div>
+                        <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--roost-text-muted)' }}>{bill.dueDay ? `Due on the ${bill.dueDay}${ordinal(bill.dueDay)}` : 'No due date'}</div>
+                      </div>
+                      <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                        <div style={{ fontSize: 14, fontWeight: 900, color: 'var(--roost-text-primary)' }}>${parseFloat(String(bill.amount)).toFixed(2)}</div>
+                        <div style={{ fontSize: 10, fontWeight: 800, padding: '2px 8px', borderRadius: 6, display: 'inline-block', marginTop: 2, backgroundColor: `${cfg.color}1A`, color: cfg.color }}>{cfg.label}</div>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          ) : !isPremium ? (
+            <div style={{ background: 'var(--roost-surface)', border: '1.5px solid var(--roost-border)', borderBottom: '4px solid #D97706', borderRadius: 16, padding: '16px 18px', opacity: 0.5 }}>
+              <div style={{ fontSize: 14, fontWeight: 800, color: 'var(--roost-text-primary)', marginBottom: 4 }}>Bills this month</div>
+              <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--roost-text-muted)' }}>Upgrade to track recurring bills.</div>
+            </div>
+          ) : null}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ─── Expenses Tab ─────────────────────────────────────────────────────────────
+
 function ExpensesTab({ currentUserId, members, isPremium, onOpenExpense, onOpenSettle, onUpgradeRequired }: {
   currentUserId: string
   members: Member[]
@@ -249,7 +538,6 @@ function ExpensesTab({ currentUserId, members, isPremium, onOpenExpense, onOpenS
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-      {/* Debt cards */}
       {myDebts.length > 0 && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           <p style={{ fontWeight: 800, fontSize: 14, color: 'var(--roost-text-primary)', marginBottom: 0 }}>Who owes who</p>
@@ -286,7 +574,6 @@ function ExpensesTab({ currentUserId, members, isPremium, onOpenExpense, onOpenS
         </div>
       )}
 
-      {/* Expense list */}
       {expenseList.length > 0 ? (
         <div>
           <p style={{ fontWeight: 800, fontSize: 14, color: 'var(--roost-text-primary)', marginBottom: 8 }}>All expenses</p>
@@ -351,11 +638,7 @@ function BillRow({ bill, isAdmin = false, onMarkPaid, marking = false, onDelete,
               <button
                 onClick={() => onDelete(bill.id, bill.title)}
                 disabled={deleting}
-                style={{
-                  padding: 6, borderRadius: 8, border: 'none',
-                  backgroundColor: 'transparent', cursor: deleting ? 'not-allowed' : 'pointer',
-                  opacity: deleting ? 0.4 : 0.6, display: 'flex', alignItems: 'center',
-                }}
+                style={{ padding: 6, borderRadius: 8, border: 'none', backgroundColor: 'transparent', cursor: deleting ? 'not-allowed' : 'pointer', opacity: deleting ? 0.4 : 0.6, display: 'flex', alignItems: 'center' }}
               >
                 <Trash2 size={15} color="#EF4444" />
               </button>
@@ -369,14 +652,7 @@ function BillRow({ bill, isAdmin = false, onMarkPaid, marking = false, onDelete,
             <button
               onClick={() => onMarkPaid(bill.id)}
               disabled={marking}
-              style={{
-                padding: '5px 10px', borderRadius: 8,
-                fontWeight: 700, fontSize: 12,
-                backgroundColor: COLOR, color: '#fff',
-                border: 'none', borderBottom: `2px solid ${COLOR_DARK}`,
-                cursor: marking ? 'not-allowed' : 'pointer',
-                opacity: marking ? 0.6 : 1,
-              }}
+              style={{ padding: '5px 10px', borderRadius: 8, fontWeight: 700, fontSize: 12, backgroundColor: COLOR, color: '#fff', border: 'none', borderBottom: `2px solid ${COLOR_DARK}`, cursor: marking ? 'not-allowed' : 'pointer', opacity: marking ? 0.6 : 1 }}
             >
               {marking ? 'Saving...' : 'Mark paid'}
             </button>
@@ -453,7 +729,7 @@ function BillsTab({ isPremium, isAdmin, currentUserId, onAddBill }: {
 
   if (!isPremium) {
     return (
-      <EmptyState color={COLOR} icon={<ListChecks size={28} />} title="Premium feature"
+      <EmptyState color={COLOR} icon={<FileText size={28} />} title="Premium feature"
         body="Track your recurring bills and see which ones are paid, due soon, or overdue. Upgrade to unlock." />
     )
   }
@@ -464,7 +740,6 @@ function BillsTab({ isPremium, isAdmin, currentUserId, onAddBill }: {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-      {/* Header row with add button */}
       {isAdmin && (
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <p style={{ margin: 0, fontWeight: 700, fontSize: 14, color: 'var(--roost-text-secondary)' }}>
@@ -472,33 +747,21 @@ function BillsTab({ isPremium, isAdmin, currentUserId, onAddBill }: {
           </p>
           <button
             onClick={onAddBill}
-            style={{
-              display: 'flex', alignItems: 'center', gap: 6,
-              padding: '8px 14px', borderRadius: 10,
-              fontWeight: 700, fontSize: 13,
-              backgroundColor: COLOR, color: '#fff',
-              border: 'none', borderBottom: `3px solid ${COLOR_DARK}`,
-              cursor: 'pointer',
-            }}
+            style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 14px', borderRadius: 10, fontWeight: 700, fontSize: 13, backgroundColor: COLOR, color: '#fff', border: 'none', borderBottom: `3px solid ${COLOR_DARK}`, cursor: 'pointer' }}
           >
-            <Plus size={14} />
-            Add bill
+            <Plus size={14} /> Add bill
           </button>
         </div>
       )}
 
       {!bills.length ? (
-        <EmptyState
-          color={COLOR}
-          icon={<ListChecks size={28} />}
-          title="No bills tracked."
+        <EmptyState color={COLOR} icon={<FileText size={28} />} title="No bills tracked."
           body="Add a recurring bill to track what is due each month."
           buttonLabel={isAdmin ? 'Add bill' : undefined}
           onButtonClick={isAdmin ? onAddBill : undefined}
         />
       ) : (
         <>
-          {/* Summary */}
           <SlabCard color={COLOR}>
             <div style={{ padding: '14px 16px', display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>
               <StatBox label="Total" value={`$${(summary?.total ?? 0).toFixed(2)}`} color="var(--roost-text-primary)" />
@@ -506,19 +769,9 @@ function BillsTab({ isPremium, isAdmin, currentUserId, onAddBill }: {
               <StatBox label="Remaining" value={`$${(summary?.remaining ?? 0).toFixed(2)}`} color="#EF4444" />
             </div>
           </SlabCard>
-
-          {/* Bill list */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             {bills.map((bill: Bill) => (
-              <BillRow
-                key={bill.id}
-                bill={bill}
-                isAdmin={isAdmin}
-                onMarkPaid={handleMarkPaid}
-                marking={markingId === bill.id}
-                onDelete={handleDelete}
-                deleting={deletingId === bill.id}
-              />
+              <BillRow key={bill.id} bill={bill} isAdmin={isAdmin} onMarkPaid={handleMarkPaid} marking={markingId === bill.id} onDelete={handleDelete} deleting={deletingId === bill.id} />
             ))}
           </div>
         </>
@@ -533,28 +786,8 @@ function BillsTab({ isPremium, isAdmin, currentUserId, onAddBill }: {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <button
-              onClick={() => setPendingDelete(null)}
-              style={{
-                padding: '10px 18px', borderRadius: 10, fontWeight: 700, fontSize: 14,
-                backgroundColor: 'var(--roost-surface)', color: 'var(--roost-text-primary)',
-                border: '1.5px solid var(--roost-border)', borderBottom: '3px solid var(--roost-border-bottom)',
-                cursor: 'pointer',
-              }}
-            >
-              Cancel
-            </button>
-            <button
-              onClick={confirmDelete}
-              style={{
-                padding: '10px 18px', borderRadius: 10, fontWeight: 700, fontSize: 14,
-                backgroundColor: '#EF4444', color: '#fff',
-                border: 'none', borderBottom: '3px solid #C93B3B',
-                cursor: 'pointer',
-              }}
-            >
-              Remove
-            </button>
+            <button onClick={() => setPendingDelete(null)} style={{ padding: '10px 18px', borderRadius: 10, fontWeight: 700, fontSize: 14, backgroundColor: 'var(--roost-surface)', color: 'var(--roost-text-primary)', border: '1.5px solid var(--roost-border)', borderBottom: '3px solid var(--roost-border-bottom)', cursor: 'pointer' }}>Cancel</button>
+            <button onClick={confirmDelete} style={{ padding: '10px 18px', borderRadius: 10, fontWeight: 700, fontSize: 14, backgroundColor: '#EF4444', color: '#fff', border: 'none', borderBottom: '3px solid #C93B3B', cursor: 'pointer' }}>Remove</button>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
@@ -614,41 +847,25 @@ function BudgetTab({ isPremium, isAdmin, onAddBudget, onEditBudget }: {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-      {/* Header row with add button */}
       {isAdmin && (
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <p style={{ margin: 0, fontWeight: 700, fontSize: 14, color: 'var(--roost-text-secondary)' }}>
             {budgets.length} budget{budgets.length !== 1 ? 's' : ''} set
           </p>
-          <button
-            onClick={onAddBudget}
-            style={{
-              display: 'flex', alignItems: 'center', gap: 6,
-              padding: '8px 14px', borderRadius: 10,
-              fontWeight: 700, fontSize: 13,
-              backgroundColor: COLOR, color: '#fff',
-              border: 'none', borderBottom: `3px solid ${COLOR_DARK}`,
-              cursor: 'pointer',
-            }}
-          >
-            <Plus size={14} />
-            Add budget
+          <button onClick={onAddBudget} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 14px', borderRadius: 10, fontWeight: 700, fontSize: 13, backgroundColor: COLOR, color: '#fff', border: 'none', borderBottom: `3px solid ${COLOR_DARK}`, cursor: 'pointer' }}>
+            <Plus size={14} /> Add budget
           </button>
         </div>
       )}
 
       {!budgets.length ? (
-        <EmptyState
-          color={COLOR}
-          icon={<BarChart3 size={28} />}
-          title="No budgets set."
+        <EmptyState color={COLOR} icon={<BarChart3 size={28} />} title="No budgets set."
           body="Set a monthly spending limit per category to track where your money goes."
           buttonLabel={isAdmin ? 'Add budget' : undefined}
           onButtonClick={isAdmin ? onAddBudget : undefined}
         />
       ) : (
         <>
-          {/* Summary */}
           <SlabCard color={COLOR}>
             <div style={{ padding: '14px 16px' }}>
               <p style={{ margin: 0, fontWeight: 800, fontSize: 13, color: 'var(--roost-text-secondary)' }}>Monthly total</p>
@@ -674,17 +891,10 @@ function BudgetTab({ isPremium, isAdmin, onAddBudget, onEditBudget }: {
                       <span style={{ fontWeight: 800, fontSize: 13, color: 'var(--roost-text-muted)' }}>${b.spent.toFixed(2)} / ${parseFloat(b.amount).toFixed(2)}</span>
                       {isAdmin && (
                         <div style={{ display: 'flex', gap: 2 }}>
-                          <button
-                            onClick={() => onEditBudget({ id: b.id, categoryId: b.categoryId, categoryName: b.categoryName ?? 'Budget', amount: b.amount, warningThreshold: b.warningThreshold })}
-                            style={{ padding: 5, borderRadius: 7, border: 'none', backgroundColor: 'transparent', cursor: 'pointer', opacity: 0.6, display: 'flex', alignItems: 'center' }}
-                          >
+                          <button onClick={() => onEditBudget({ id: b.id, categoryId: b.categoryId, categoryName: b.categoryName ?? 'Budget', amount: b.amount, warningThreshold: b.warningThreshold })} style={{ padding: 5, borderRadius: 7, border: 'none', backgroundColor: 'transparent', cursor: 'pointer', opacity: 0.6, display: 'flex', alignItems: 'center' }}>
                             <Edit2 size={14} color="var(--roost-text-primary)" />
                           </button>
-                          <button
-                            onClick={() => setPendingDelete({ id: b.id, name: b.categoryName ?? 'Budget' })}
-                            disabled={deletingId === b.id}
-                            style={{ padding: 5, borderRadius: 7, border: 'none', backgroundColor: 'transparent', cursor: 'pointer', opacity: deletingId === b.id ? 0.3 : 0.6, display: 'flex', alignItems: 'center' }}
-                          >
+                          <button onClick={() => setPendingDelete({ id: b.id, name: b.categoryName ?? 'Budget' })} disabled={deletingId === b.id} style={{ padding: 5, borderRadius: 7, border: 'none', backgroundColor: 'transparent', cursor: 'pointer', opacity: deletingId === b.id ? 0.3 : 0.6, display: 'flex', alignItems: 'center' }}>
                             <Trash2 size={14} color="#EF4444" />
                           </button>
                         </div>
@@ -707,23 +917,11 @@ function BudgetTab({ isPremium, isAdmin, onAddBudget, onEditBudget }: {
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Remove budget?</AlertDialogTitle>
-            <AlertDialogDescription>
-              The {pendingDelete?.name} budget will be removed. Past expenses are not affected.
-            </AlertDialogDescription>
+            <AlertDialogDescription>The {pendingDelete?.name} budget will be removed. Past expenses are not affected.</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <button
-              onClick={() => setPendingDelete(null)}
-              style={{ padding: '10px 18px', borderRadius: 10, fontWeight: 700, fontSize: 14, backgroundColor: 'var(--roost-surface)', color: 'var(--roost-text-primary)', border: '1.5px solid var(--roost-border)', borderBottom: '3px solid var(--roost-border-bottom)', cursor: 'pointer' }}
-            >
-              Cancel
-            </button>
-            <button
-              onClick={confirmDelete}
-              style={{ padding: '10px 18px', borderRadius: 10, fontWeight: 700, fontSize: 14, backgroundColor: '#EF4444', color: '#fff', border: 'none', borderBottom: '3px solid #C93B3B', cursor: 'pointer' }}
-            >
-              Remove
-            </button>
+            <button onClick={() => setPendingDelete(null)} style={{ padding: '10px 18px', borderRadius: 10, fontWeight: 700, fontSize: 14, backgroundColor: 'var(--roost-surface)', color: 'var(--roost-text-primary)', border: '1.5px solid var(--roost-border)', borderBottom: '3px solid var(--roost-border-bottom)', cursor: 'pointer' }}>Cancel</button>
+            <button onClick={confirmDelete} style={{ padding: '10px 18px', borderRadius: 10, fontWeight: 700, fontSize: 14, backgroundColor: '#EF4444', color: '#fff', border: 'none', borderBottom: '3px solid #C93B3B', cursor: 'pointer' }}>Remove</button>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
@@ -753,62 +951,31 @@ function GoalHistory({ goalId }: { goalId: string }) {
   const { contributions = [], perMember = [] } = data ?? {}
 
   if (contributions.length === 0) {
-    return (
-      <p style={{ margin: '12px 0 4px', fontSize: 13, fontWeight: 600, color: 'var(--roost-text-muted)', textAlign: 'center' }}>
-        No contributions yet.
-      </p>
-    )
+    return <p style={{ margin: '12px 0 4px', fontSize: 13, fontWeight: 600, color: 'var(--roost-text-muted)', textAlign: 'center' }}>No contributions yet.</p>
   }
 
   return (
     <div style={{ marginTop: 12 }}>
-      {/* Per-member totals */}
       {perMember.length > 1 && (
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 10 }}>
           {perMember.map((m: any) => (
-            <div
-              key={m.userId}
-              style={{
-                padding: '4px 10px', borderRadius: 8,
-                backgroundColor: COLOR + '18',
-                border: `1px solid ${COLOR}40`,
-                display: 'flex', gap: 6, alignItems: 'center',
-              }}
-            >
+            <div key={m.userId} style={{ padding: '4px 10px', borderRadius: 8, backgroundColor: COLOR + '18', border: `1px solid ${COLOR}40`, display: 'flex', gap: 6, alignItems: 'center' }}>
               <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--roost-text-primary)' }}>{m.userName}</span>
               <span style={{ fontSize: 12, fontWeight: 800, color: COLOR }}>${m.total.toFixed(2)}</span>
             </div>
           ))}
         </div>
       )}
-
-      {/* Contribution list */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
         {contributions.map((c: any) => (
-          <div
-            key={c.id}
-            style={{
-              display: 'flex', alignItems: 'center', gap: 10,
-              padding: '10px 12px', borderRadius: 10,
-              backgroundColor: 'var(--roost-bg)',
-              border: '1.5px solid var(--roost-border)',
-            }}
-          >
+          <div key={c.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 10, backgroundColor: 'var(--roost-bg)', border: '1.5px solid var(--roost-border)' }}>
             <div style={{ flex: 1, minWidth: 0 }}>
-              <p style={{ margin: 0, fontWeight: 700, fontSize: 13, color: 'var(--roost-text-primary)' }}>
-                {c.userName ?? 'Unknown'}
-              </p>
-              {c.note && (
-                <p style={{ margin: '1px 0 0', fontSize: 12, fontWeight: 600, color: 'var(--roost-text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                  {c.note}
-                </p>
-              )}
+              <p style={{ margin: 0, fontWeight: 700, fontSize: 13, color: 'var(--roost-text-primary)' }}>{c.userName ?? 'Unknown'}</p>
+              {c.note && <p style={{ margin: '1px 0 0', fontSize: 12, fontWeight: 600, color: 'var(--roost-text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.note}</p>}
             </div>
             <div style={{ textAlign: 'right', flexShrink: 0 }}>
               <p style={{ margin: 0, fontWeight: 800, fontSize: 14, color: COLOR }}>${c.amount.toFixed(2)}</p>
-              <p style={{ margin: '1px 0 0', fontSize: 11, fontWeight: 600, color: 'var(--roost-text-muted)' }}>
-                {format(new Date(c.createdAt), 'MMM d')}
-              </p>
+              <p style={{ margin: '1px 0 0', fontSize: 11, fontWeight: 600, color: 'var(--roost-text-muted)' }}>{format(new Date(c.createdAt), 'MMM d')}</p>
             </div>
           </div>
         ))}
@@ -868,16 +1035,11 @@ function GoalsTab({ isPremium, isAdmin, onNewGoal, onEditGoal, onContribute }: {
   if (isLoading) return <LoadingRows />
 
   const { goals = [] } = data ?? {}
-
   const active = goals.filter((g: any) => !g.completedAt)
   const completed = goals.filter((g: any) => g.completedAt)
 
   async function markComplete(id: string) {
-    const res = await fetch(`/api/money/goals/${id}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ completed: true }),
-    })
+    const res = await fetch(`/api/money/goals/${id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ completed: true }) })
     if (res.ok) {
       toast.success('Goal marked complete!')
       qc.invalidateQueries({ queryKey: ['goals'] })
@@ -887,22 +1049,13 @@ function GoalsTab({ isPremium, isAdmin, onNewGoal, onEditGoal, onContribute }: {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
       {isAdmin && (
-        <button
-          onClick={onNewGoal}
-          style={{
-            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-            padding: '12px', borderRadius: 14, fontWeight: 800, fontSize: 14,
-            backgroundColor: COLOR, color: '#fff', border: 'none',
-            borderBottom: `3px solid ${COLOR_DARK}`, cursor: 'pointer',
-          }}
-        >
+        <button onClick={onNewGoal} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '12px', borderRadius: 14, fontWeight: 800, fontSize: 14, backgroundColor: COLOR, color: '#fff', border: 'none', borderBottom: `3px solid ${COLOR_DARK}`, cursor: 'pointer' }}>
           <Plus size={16} /> New goal
         </button>
       )}
 
       {active.length === 0 && completed.length === 0 && (
-        <EmptyState color={COLOR} icon={<Target size={28} />} title="No goals yet."
-          body="Create a savings goal to track the household's progress together." />
+        <EmptyState color={COLOR} icon={<Target size={28} />} title="No goals yet." body="Create a savings goal to track the household's progress together." />
       )}
 
       {active.map((goal: any) => {
@@ -913,68 +1066,32 @@ function GoalsTab({ isPremium, isAdmin, onNewGoal, onEditGoal, onContribute }: {
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
                 <div>
                   <p style={{ margin: 0, fontWeight: 800, fontSize: 15, color: 'var(--roost-text-primary)' }}>{goal.name}</p>
-                  {goal.targetDate && (
-                    <p style={{ margin: '2px 0 0', fontSize: 12, fontWeight: 600, color: 'var(--roost-text-muted)' }}>
-                      Target: {format(parseISO(goal.targetDate), 'MMM d, yyyy')}
-                    </p>
-                  )}
+                  {goal.targetDate && <p style={{ margin: '2px 0 0', fontSize: 12, fontWeight: 600, color: 'var(--roost-text-muted)' }}>Target: {format(parseISO(goal.targetDate), 'MMM d, yyyy')}</p>}
                 </div>
                 {isAdmin && (
                   <div style={{ display: 'flex', gap: 2 }}>
-                    <button onClick={() => onEditGoal(goal)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4 }}>
-                      <Edit2 size={15} color="var(--roost-text-muted)" />
-                    </button>
-                    <button
-                      onClick={() => setPendingDelete({ id: goal.id, name: goal.name })}
-                      disabled={deletingId === goal.id}
-                      style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, opacity: deletingId === goal.id ? 0.3 : 0.6 }}
-                    >
-                      <Trash2 size={15} color="#EF4444" />
-                    </button>
+                    <button onClick={() => onEditGoal(goal)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4 }}><Edit2 size={15} color="var(--roost-text-muted)" /></button>
+                    <button onClick={() => setPendingDelete({ id: goal.id, name: goal.name })} disabled={deletingId === goal.id} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, opacity: deletingId === goal.id ? 0.3 : 0.6 }}><Trash2 size={15} color="#EF4444" /></button>
                   </div>
                 )}
               </div>
-
               <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginBottom: 8 }}>
                 <span style={{ fontWeight: 900, fontSize: 22, color: 'var(--roost-text-primary)' }}>${goal.savedAmount.toFixed(2)}</span>
                 <span style={{ fontWeight: 600, fontSize: 13, color: 'var(--roost-text-muted)' }}>of ${parseFloat(goal.targetAmount).toFixed(2)}</span>
                 <span style={{ fontWeight: 700, fontSize: 13, color: COLOR }}>{goal.progressPercent}%</span>
               </div>
-
               <div style={{ height: 8, borderRadius: 99, backgroundColor: 'var(--roost-border)', overflow: 'hidden', marginBottom: 12 }}>
                 <div style={{ height: '100%', borderRadius: 99, width: `${goal.progressPercent}%`, backgroundColor: COLOR, transition: 'width 0.4s' }} />
               </div>
-
               <div style={{ display: 'flex', gap: 8 }}>
-                <button
-                  onClick={() => onContribute(goal)}
-                  style={{ flex: 1, padding: '10px', borderRadius: 10, fontWeight: 700, fontSize: 13, backgroundColor: COLOR, color: '#fff', border: 'none', borderBottom: `3px solid ${COLOR_DARK}`, cursor: 'pointer' }}
-                >
-                  Log contribution
-                </button>
-                <button
-                  onClick={() => setExpandedGoalId(isExpanded ? null : goal.id)}
-                  style={{
-                    display: 'flex', alignItems: 'center', gap: 4,
-                    padding: '10px 14px', borderRadius: 10, fontWeight: 700, fontSize: 13,
-                    backgroundColor: 'var(--roost-surface)', color: 'var(--roost-text-secondary)',
-                    border: '1.5px solid var(--roost-border)', borderBottom: '3px solid var(--roost-border-bottom)',
-                    cursor: 'pointer',
-                  }}
-                >
-                  {isExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
-                  History
+                <button onClick={() => onContribute(goal)} style={{ flex: 1, padding: '10px', borderRadius: 10, fontWeight: 700, fontSize: 13, backgroundColor: COLOR, color: '#fff', border: 'none', borderBottom: `3px solid ${COLOR_DARK}`, cursor: 'pointer' }}>Log contribution</button>
+                <button onClick={() => setExpandedGoalId(isExpanded ? null : goal.id)} style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '10px 14px', borderRadius: 10, fontWeight: 700, fontSize: 13, backgroundColor: 'var(--roost-surface)', color: 'var(--roost-text-secondary)', border: '1.5px solid var(--roost-border)', borderBottom: '3px solid var(--roost-border-bottom)', cursor: 'pointer' }}>
+                  {isExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />} History
                 </button>
                 {isAdmin && goal.progressPercent >= 100 && (
-                  <button
-                    onClick={() => markComplete(goal.id)}
-                    style={{ padding: '10px 14px', borderRadius: 10, fontWeight: 700, fontSize: 13, backgroundColor: 'var(--roost-surface)', color: COLOR, border: `1.5px solid ${COLOR}`, borderBottom: `3px solid ${COLOR_DARK}`, cursor: 'pointer' }}
-                  >
-                    Mark done
-                  </button>
+                  <button onClick={() => markComplete(goal.id)} style={{ padding: '10px 14px', borderRadius: 10, fontWeight: 700, fontSize: 13, backgroundColor: 'var(--roost-surface)', color: COLOR, border: `1.5px solid ${COLOR}`, borderBottom: `3px solid ${COLOR_DARK}`, cursor: 'pointer' }}>Mark done</button>
                 )}
               </div>
-
               {isExpanded && <GoalHistory goalId={goal.id} />}
             </div>
           </SlabCard>
@@ -995,26 +1112,11 @@ function GoalsTab({ isPremium, isAdmin, onNewGoal, onEditGoal, onContribute }: {
                       <p style={{ margin: 0, fontWeight: 700, fontSize: 14, color: 'var(--roost-text-secondary)' }}>{goal.name}</p>
                       <p style={{ margin: '2px 0 0', fontSize: 12, color: 'var(--roost-text-muted)' }}>${parseFloat(goal.targetAmount).toFixed(2)} saved</p>
                     </div>
-
-                    <button
-                      onClick={() => setExpandedGoalId(isExpanded ? null : goal.id)}
-                      style={{
-                        display: 'flex', alignItems: 'center', gap: 4,
-                        padding: '6px 10px', borderRadius: 8, fontWeight: 700, fontSize: 12,
-                        backgroundColor: 'var(--roost-surface)', color: 'var(--roost-text-muted)',
-                        border: '1.5px solid var(--roost-border)', borderBottom: '3px solid var(--roost-border-bottom)',
-                        cursor: 'pointer',
-                      }}
-                    >
-                      {isExpanded ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
-                      History
+                    <button onClick={() => setExpandedGoalId(isExpanded ? null : goal.id)} style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '6px 10px', borderRadius: 8, fontWeight: 700, fontSize: 12, backgroundColor: 'var(--roost-surface)', color: 'var(--roost-text-muted)', border: '1.5px solid var(--roost-border)', borderBottom: '3px solid var(--roost-border-bottom)', cursor: 'pointer' }}>
+                      {isExpanded ? <ChevronUp size={12} /> : <ChevronDown size={12} />} History
                     </button>
                     {isAdmin && (
-                      <button
-                        onClick={() => setPendingDelete({ id: goal.id, name: goal.name })}
-                        disabled={deletingId === goal.id}
-                        style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, opacity: deletingId === goal.id ? 0.3 : 0.6 }}
-                      >
+                      <button onClick={() => setPendingDelete({ id: goal.id, name: goal.name })} disabled={deletingId === goal.id} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, opacity: deletingId === goal.id ? 0.3 : 0.6 }}>
                         <Trash2 size={15} color="#EF4444" />
                       </button>
                     )}
@@ -1031,23 +1133,11 @@ function GoalsTab({ isPremium, isAdmin, onNewGoal, onEditGoal, onContribute }: {
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Delete goal?</AlertDialogTitle>
-            <AlertDialogDescription>
-              "{pendingDelete?.name}" and all its contribution history will be permanently deleted.
-            </AlertDialogDescription>
+            <AlertDialogDescription>"{pendingDelete?.name}" and all its contribution history will be permanently deleted.</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <button
-              onClick={() => setPendingDelete(null)}
-              style={{ padding: '10px 18px', borderRadius: 10, fontWeight: 700, fontSize: 14, backgroundColor: 'var(--roost-surface)', color: 'var(--roost-text-primary)', border: '1.5px solid var(--roost-border)', borderBottom: '3px solid var(--roost-border-bottom)', cursor: 'pointer' }}
-            >
-              Cancel
-            </button>
-            <button
-              onClick={confirmDeleteGoal}
-              style={{ padding: '10px 18px', borderRadius: 10, fontWeight: 700, fontSize: 14, backgroundColor: '#EF4444', color: '#fff', border: 'none', borderBottom: '3px solid #C93B3B', cursor: 'pointer' }}
-            >
-              Delete
-            </button>
+            <button onClick={() => setPendingDelete(null)} style={{ padding: '10px 18px', borderRadius: 10, fontWeight: 700, fontSize: 14, backgroundColor: 'var(--roost-surface)', color: 'var(--roost-text-primary)', border: '1.5px solid var(--roost-border)', borderBottom: '3px solid var(--roost-border-bottom)', cursor: 'pointer' }}>Cancel</button>
+            <button onClick={confirmDeleteGoal} style={{ padding: '10px 18px', borderRadius: 10, fontWeight: 700, fontSize: 14, backgroundColor: '#EF4444', color: '#fff', border: 'none', borderBottom: '3px solid #C93B3B', cursor: 'pointer' }}>Delete</button>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
@@ -1091,27 +1181,14 @@ function InsightsTab({ isPremium }: { isPremium: boolean }) {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-      {/* Range selector */}
       <div style={{ display: 'flex', gap: 8 }}>
         {rangePills.map(p => (
-          <button
-            key={p.value}
-            onClick={() => setRange(p.value)}
-            style={{
-              padding: '6px 12px', borderRadius: 8, fontWeight: 700, fontSize: 12,
-              backgroundColor: range === p.value ? COLOR : 'var(--roost-surface)',
-              color: range === p.value ? '#fff' : 'var(--roost-text-secondary)',
-              border: `1.5px solid ${range === p.value ? COLOR : 'var(--roost-border)'}`,
-              borderBottom: `3px solid ${range === p.value ? COLOR_DARK : 'var(--roost-border-bottom)'}`,
-              cursor: 'pointer',
-            }}
-          >
+          <button key={p.value} onClick={() => setRange(p.value)} style={{ padding: '6px 12px', borderRadius: 8, fontWeight: 700, fontSize: 12, backgroundColor: range === p.value ? COLOR : 'var(--roost-surface)', color: range === p.value ? '#fff' : 'var(--roost-text-secondary)', border: `1.5px solid ${range === p.value ? COLOR : 'var(--roost-border)'}`, borderBottom: `3px solid ${range === p.value ? COLOR_DARK : 'var(--roost-border-bottom)'}`, cursor: 'pointer' }}>
             {p.label}
           </button>
         ))}
       </div>
 
-      {/* Total */}
       <SlabCard color={COLOR}>
         <div style={{ padding: '14px 16px' }}>
           <p style={{ margin: 0, fontWeight: 700, fontSize: 13, color: 'var(--roost-text-secondary)' }}>Total spent</p>
@@ -1119,7 +1196,6 @@ function InsightsTab({ isPremium }: { isPremium: boolean }) {
         </div>
       </SlabCard>
 
-      {/* Spending over time chart */}
       {spendingOverTime.length > 1 && (
         <SlabCard color="var(--roost-border-bottom)">
           <div style={{ padding: '14px 16px' }}>
@@ -1134,10 +1210,7 @@ function InsightsTab({ isPremium }: { isPremium: boolean }) {
                 </defs>
                 <XAxis dataKey="date" tick={{ fontSize: 10, fill: 'var(--roost-text-muted)' as string }} tickLine={false} axisLine={false} />
                 <YAxis hide />
-                <Tooltip
-                  contentStyle={{ backgroundColor: 'var(--roost-surface)', border: '1px solid var(--roost-border)', borderRadius: 8, fontSize: 12 }}
-                  formatter={(v: unknown) => [typeof v === 'number' ? `$${v.toFixed(2)}` : '$0.00', 'Spent']}
-                />
+                <Tooltip contentStyle={{ backgroundColor: 'var(--roost-surface)', border: '1px solid var(--roost-border)', borderRadius: 8, fontSize: 12 }} formatter={(v: unknown) => [typeof v === 'number' ? `$${v.toFixed(2)}` : '$0.00', 'Spent']} />
                 <Area type="monotone" dataKey="total" stroke={COLOR} strokeWidth={2} fill="url(#greenGrad)" />
               </AreaChart>
             </ResponsiveContainer>
@@ -1145,7 +1218,6 @@ function InsightsTab({ isPremium }: { isPremium: boolean }) {
         </SlabCard>
       )}
 
-      {/* By category */}
       {byCategory.length > 0 && (
         <SlabCard color="var(--roost-border-bottom)">
           <div style={{ padding: '14px 16px' }}>
@@ -1172,7 +1244,6 @@ function InsightsTab({ isPremium }: { isPremium: boolean }) {
         </SlabCard>
       )}
 
-      {/* By member */}
       {byMember.length > 0 && (
         <SlabCard color="var(--roost-border-bottom)">
           <div style={{ padding: '14px 16px' }}>
@@ -1195,8 +1266,7 @@ function InsightsTab({ isPremium }: { isPremium: boolean }) {
       )}
 
       {grandTotal === 0 && (
-        <EmptyState color={COLOR} icon={<TrendingUp size={28} />} title="No data yet."
-          body="Add some expenses to see spending insights here." />
+        <EmptyState color={COLOR} icon={<TrendingUp size={28} />} title="No data yet." body="Add some expenses to see spending insights here." />
       )}
     </div>
   )
@@ -1229,7 +1299,7 @@ function ordinal(n: number) {
   return s[(v - 20) % 10] ?? s[v] ?? s[0]
 }
 
-// ─── Main page ────────────────────────────────────────────────────────────────
+// ─── Main Page ────────────────────────────────────────────────────────────────
 
 export default function MoneyPage() {
   const [tab, setTab] = useState<Tab>('dashboard')
@@ -1266,66 +1336,81 @@ export default function MoneyPage() {
   const currentUserId = sessionQuery.data?.id ?? ''
 
   return (
-    <div style={{ maxWidth: 896, margin: '0 auto', padding: '0 16px 32px' }}>
-      <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.18 }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+    <div>
+      {/* ── Sticky page header ── */}
+      <div
+        className="sticky top-14 z-10 px-6 md:px-7"
+        style={{ backgroundColor: 'var(--roost-surface)', borderBottom: '1.5px solid var(--roost-border)' }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '18px 0 12px' }}>
           <div>
-            <h1 style={{ margin: 0, fontWeight: 900, fontSize: 22, color: 'var(--roost-text-primary)' }}>Money</h1>
-            <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: 'var(--roost-text-muted)' }}>Expenses, bills, and goals</p>
+            <h1 style={{ margin: 0, fontWeight: 900, fontSize: 24, color: 'var(--roost-text-primary)', letterSpacing: '-0.5px', lineHeight: 1 }}>Money</h1>
+            <p style={{ margin: '3px 0 0', fontSize: 13, fontWeight: 600, color: 'var(--roost-text-secondary)' }}>Expenses, bills and goals</p>
           </div>
           <button
             onClick={() => setExpenseSheetOpen(true)}
             style={{
-              width: 40, height: 40, borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center',
-              backgroundColor: COLOR, color: '#fff', border: 'none',
-              borderBottom: `3px solid ${COLOR_DARK}`, cursor: 'pointer',
+              display: 'flex', alignItems: 'center', gap: 6,
+              padding: '9px 16px', borderRadius: 10,
+              backgroundColor: COLOR, color: '#fff',
+              border: `1.5px solid ${COLOR}`,
+              borderBottom: `3px solid ${COLOR_DARK}`,
+              fontFamily: 'inherit', fontSize: 13, fontWeight: 800, cursor: 'pointer',
             }}
           >
-            <Plus size={20} />
+            <Plus size={15} /> Add expense
           </button>
         </div>
-
         {/* Tab strip */}
-        <div style={{ display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 4, scrollbarWidth: 'none', marginBottom: 16 }}>
+        <div style={{ display: 'flex', gap: 6, paddingBottom: 14, overflowX: 'auto', scrollbarWidth: 'none' as any }}>
           {TABS.map(t => (
             <TabPill key={t.id} {...t} active={tab === t.id} onClick={() => setTab(t.id)} />
           ))}
         </div>
+      </div>
 
-        {/* Tab content */}
-        {tab === 'dashboard' && (
-          <DashboardTab
-            currentUserId={currentUserId}
-            members={members}
-            isPremium={isPremium}
-            onOpenExpense={() => setExpenseSheetOpen(true)}
-            onOpenSettle={setSettleDebt}
-          />
-        )}
-        {tab === 'expenses' && (
-          <ExpensesTab
-            currentUserId={currentUserId}
-            members={members}
-            isPremium={isPremium}
-            onOpenExpense={() => setExpenseSheetOpen(true)}
-            onOpenSettle={setSettleDebt}
-          />
-        )}
-        {tab === 'bills' && <BillsTab isPremium={isPremium} isAdmin={isAdmin} currentUserId={currentUserId} onAddBill={() => setBillSheetOpen(true)} />}
-        {tab === 'budget' && <BudgetTab isPremium={isPremium} isAdmin={isAdmin} onAddBudget={() => setBudgetSheetOpen(true)} onEditBudget={(b) => { setEditingBudget(b); setBudgetSheetOpen(true) }} />}
-        {tab === 'goals' && (
-          <GoalsTab
-            isPremium={isPremium}
-            isAdmin={isAdmin}
-            onNewGoal={() => { setEditingGoal(null); setGoalSheetOpen(true) }}
-            onEditGoal={(g) => { setEditingGoal(g); setGoalSheetOpen(true) }}
-            onContribute={setContributeGoal}
-          />
-        )}
-        {tab === 'insights' && <InsightsTab isPremium={isPremium} />}
+      {/* ── Tab content ── */}
+      <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.18 }}>
+        <div className="px-6 md:px-7" style={{ paddingTop: 24, paddingBottom: 40 }}>
+          {/* Dashboard is full-width, other tabs are max-w constrained */}
+          {tab === 'dashboard' ? (
+            <DashboardTab
+              currentUserId={currentUserId}
+              members={members}
+              isPremium={isPremium}
+              onOpenExpense={() => setExpenseSheetOpen(true)}
+              onOpenSettle={setSettleDebt}
+              onTabChange={setTab}
+            />
+          ) : (
+            <div style={{ maxWidth: 896, margin: '0 auto' }}>
+              {tab === 'expenses' && (
+                <ExpensesTab
+                  currentUserId={currentUserId}
+                  members={members}
+                  isPremium={isPremium}
+                  onOpenExpense={() => setExpenseSheetOpen(true)}
+                  onOpenSettle={setSettleDebt}
+                />
+              )}
+              {tab === 'bills' && <BillsTab isPremium={isPremium} isAdmin={isAdmin} currentUserId={currentUserId} onAddBill={() => setBillSheetOpen(true)} />}
+              {tab === 'budget' && <BudgetTab isPremium={isPremium} isAdmin={isAdmin} onAddBudget={() => setBudgetSheetOpen(true)} onEditBudget={(b) => { setEditingBudget(b); setBudgetSheetOpen(true) }} />}
+              {tab === 'goals' && (
+                <GoalsTab
+                  isPremium={isPremium}
+                  isAdmin={isAdmin}
+                  onNewGoal={() => { setEditingGoal(null); setGoalSheetOpen(true) }}
+                  onEditGoal={(g) => { setEditingGoal(g); setGoalSheetOpen(true) }}
+                  onContribute={setContributeGoal}
+                />
+              )}
+              {tab === 'insights' && <InsightsTab isPremium={isPremium} />}
+            </div>
+          )}
+        </div>
       </motion.div>
 
-      {/* Sheets — rendered outside motion.div so they aren't clipped */}
+      {/* ── Sheets ── */}
       <ExpenseSheet
         open={expenseSheetOpen}
         onClose={() => setExpenseSheetOpen(false)}

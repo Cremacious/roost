@@ -87,6 +87,7 @@ export function ExpenseSheet({ open, onClose, members, currentUserId, isPremium,
   const [customSplits, setCustomSplits] = useState<CustomSplit[]>([])
   const [percentSplits, setPercentSplits] = useState<PercentSplit[]>([])
   const [shareSplits, setShareSplits] = useState<ShareSplit[]>([])
+  const [equalSelectedIds, setEqualSelectedIds] = useState<Set<string>>(new Set())
   const [saving, setSaving] = useState(false)
 
   // Receipt scan flow
@@ -140,8 +141,14 @@ export function ExpenseSheet({ open, onClose, members, currentUserId, isPremium,
     setShareSplits(members.map(m => ({ userId: m.id, shares: 1 })))
   }
 
+  function initEqualSplits(payerId: string) {
+    const others = members.filter(m => m.id !== payerId)
+    setEqualSelectedIds(new Set(others.map(m => m.id)))
+  }
+
   function handleSplitMethodChange(method: SplitMethod) {
     setSplitMethod(method)
+    if (method === 'equal') initEqualSplits(paidBy)
     if (method === 'custom') initCustomSplits(paidBy)
     if (method === 'percent') initPercentSplits()
     if (method === 'shares') initShareSplits()
@@ -149,6 +156,10 @@ export function ExpenseSheet({ open, onClose, members, currentUserId, isPremium,
 
   function handlePaidByChange(userId: string) {
     setPaidBy(userId)
+    if (splitMethod === 'equal') {
+      const others = members.filter(m => m.id !== userId)
+      setEqualSelectedIds(new Set(others.map(m => m.id)))
+    }
     if (splitMethod === 'custom') {
       const others = members.filter(m => m.id !== userId)
       const each = others.length > 0 && amount ? (parseFloat(amount) / others.length).toFixed(2) : ''
@@ -164,6 +175,7 @@ export function ExpenseSheet({ open, onClose, members, currentUserId, isPremium,
     setCustomSplits([])
     setPercentSplits([])
     setShareSplits([])
+    setEqualSelectedIds(new Set())
     setScanStep('idle')
     setScannedReceipt(null)
     setReviewedItems([])
@@ -264,9 +276,16 @@ export function ExpenseSheet({ open, onClose, members, currentUserId, isPremium,
     let splits: CustomSplit[] = []
 
     if (splitMethod === 'equal') {
-      splits = members.filter(m => m.id !== effectivePaidBy).map(m => ({
+      const equalMembers = equalSelectedIds.size > 0
+        ? [...equalSelectedIds].map(id => members.find(m => m.id === id)).filter(Boolean) as Member[]
+        : members.filter(m => m.id !== effectivePaidBy)
+      // Include payer's share in the per-person calculation
+      const totalIncluding = equalMembers.some(m => m.id === effectivePaidBy)
+        ? equalMembers.length
+        : equalMembers.length + 1
+      splits = equalMembers.filter(m => m.id !== effectivePaidBy).map(m => ({
         userId: m.id,
-        amount: (totalAmount / members.length).toFixed(2),
+        amount: (totalAmount / totalIncluding).toFixed(2),
       }))
     } else if (splitMethod === 'custom') {
       splits = customSplits.filter(s => s.amount && parseFloat(s.amount) > 0)
@@ -595,6 +614,70 @@ export function ExpenseSheet({ open, onClose, members, currentUserId, isPremium,
               ))}
             </div>
           </div>
+
+          {/* Equal split member selector */}
+          {splitMethod === 'equal' && (() => {
+            const participantCount = equalSelectedIds.size + 1 // +1 for payer
+            const perPerson = participantCount > 1 && totalAmount > 0
+              ? (totalAmount / participantCount).toFixed(2)
+              : null
+            return (
+              <div style={{ marginBottom: 16, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                <p style={{ color: 'var(--roost-text-muted)', fontWeight: 600, fontSize: 12, marginBottom: 2 }}>
+                  Split with (payer always included)
+                </p>
+                {members.filter(m => m.id !== paidBy).map(m => {
+                  const checked = equalSelectedIds.has(m.id)
+                  return (
+                    <button
+                      key={m.id}
+                      onClick={() => setEqualSelectedIds(prev => {
+                        const next = new Set(prev)
+                        if (next.has(m.id)) next.delete(m.id)
+                        else next.add(m.id)
+                        return next
+                      })}
+                      style={{
+                        display: 'flex', alignItems: 'center', gap: 10,
+                        padding: '10px 12px', borderRadius: 12, cursor: 'pointer',
+                        backgroundColor: checked ? `${COLOR}11` : 'var(--roost-surface)',
+                        border: `1.5px solid ${checked ? COLOR : 'var(--roost-border)'}`,
+                        borderBottom: `3px solid ${checked ? COLOR_DARK : 'var(--roost-border-bottom)'}`,
+                        textAlign: 'left',
+                      }}
+                    >
+                      <div style={{
+                        width: 20, height: 20, borderRadius: 5, flexShrink: 0,
+                        backgroundColor: checked ? COLOR : 'var(--roost-surface)',
+                        border: `2px solid ${checked ? COLOR : 'var(--roost-border)'}`,
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      }}>
+                        {checked && (
+                          <svg width="11" height="9" viewBox="0 0 11 9" fill="none">
+                            <path d="M1 4L4 7L10 1" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                          </svg>
+                        )}
+                      </div>
+                      <MiniAvatar member={m} />
+                      <span style={{ flex: 1, fontWeight: 700, fontSize: 14, color: 'var(--roost-text-primary)' }}>
+                        {m.name}
+                      </span>
+                      {checked && perPerson && (
+                        <span style={{ fontWeight: 700, fontSize: 13, color: COLOR_DARK }}>
+                          ${perPerson}
+                        </span>
+                      )}
+                    </button>
+                  )
+                })}
+                {totalAmount > 0 && equalSelectedIds.size > 0 && (
+                  <p style={{ color: 'var(--roost-text-muted)', fontWeight: 600, fontSize: 12, marginTop: 2 }}>
+                    {participantCount} people · ${(totalAmount / participantCount).toFixed(2)} each
+                  </p>
+                )}
+              </div>
+            )
+          })()}
 
           {/* Custom $ splits */}
           {splitMethod === 'custom' && (

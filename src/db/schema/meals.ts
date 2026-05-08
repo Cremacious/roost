@@ -52,6 +52,7 @@ export const mealSuggestions = pgTable('meal_suggestions', {
   status: text('status').notNull().default('suggested').$type<
     'suggested' | 'in_bank' | 'accepted' | 'rejected'
   >(),
+  approvalMode: text('approval_mode').$type<'admin_only' | 'open_vote'>(),
   respondedBy: text('responded_by').references(() => users.id),
   respondedAt: timestamp('responded_at'),
   acceptedMealId: text('accepted_meal_id'),

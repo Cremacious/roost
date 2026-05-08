@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSession, getUserHousehold } from '@/lib/auth/helpers'
 import { db } from '@/lib/db'
-import { mealSuggestions, mealSuggestionVotes, users } from '@/db/schema'
+import { mealSuggestions, mealSuggestionVotes, users, households } from '@/db/schema'
 import { eq, and, inArray, sql } from 'drizzle-orm'
 
 export async function GET() {
@@ -13,6 +13,15 @@ export async function GET() {
 
   const { householdId } = membership
 
+  // Get household approval mode default
+  const [household] = await db
+    .select({ meal_approval_mode: households.meal_approval_mode })
+    .from(households)
+    .where(eq(households.id, householdId))
+    .limit(1)
+
+  const householdApprovalMode = household?.meal_approval_mode ?? 'admin_only'
+
   const rows = await db
     .select({
       id: mealSuggestions.id,
@@ -23,6 +32,7 @@ export async function GET() {
       targetSlotDate: mealSuggestions.targetSlotDate,
       targetSlotType: mealSuggestions.targetSlotType,
       status: mealSuggestions.status,
+      approvalMode: mealSuggestions.approvalMode,
       suggestedBy: mealSuggestions.suggestedBy,
       createdAt: mealSuggestions.createdAt,
       suggesterName: users.name,
@@ -51,7 +61,7 @@ export async function GET() {
 
   const suggestions = rows.map(r => ({ ...r, userVote: voteMap.get(r.id) ?? null }))
 
-  return NextResponse.json({ suggestions })
+  return NextResponse.json({ suggestions, householdApprovalMode })
 }
 
 export async function POST(req: NextRequest) {
@@ -63,7 +73,7 @@ export async function POST(req: NextRequest) {
 
   const { householdId } = membership
   const body = await req.json()
-  const { name, ingredients, note, prepTime, targetSlotDate, targetSlotType } = body
+  const { name, ingredients, note, prepTime, targetSlotDate, targetSlotType, approvalMode } = body
 
   if (!name?.trim()) return NextResponse.json({ error: 'Name is required' }, { status: 400 })
 
@@ -77,6 +87,7 @@ export async function POST(req: NextRequest) {
       prepTime: prepTime ? parseInt(prepTime, 10) : null,
       targetSlotDate: targetSlotDate ?? null,
       targetSlotType: targetSlotType ?? null,
+      approvalMode: approvalMode ?? null, // null = use household default
       suggestedBy: session.user.id,
     })
     .returning()

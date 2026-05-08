@@ -11,6 +11,7 @@ export const households = pgTable("households", {
   premium_expires_at: timestamp("premium_expires_at"),
   subscription_upgraded_at: timestamp("subscription_upgraded_at"),
   stats_visibility: text("stats_visibility"), // JSON: { leaderboard, chores, expenses, tasks, meals, grocery }
+  meal_approval_mode: text("meal_approval_mode").notNull().default("admin_only").$type<'admin_only' | 'open_vote'>(),
   created_by: text("created_by"),
   created_at: timestamp("created_at").defaultNow(),
   updated_at: timestamp("updated_at").defaultNow(),

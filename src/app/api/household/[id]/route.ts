@@ -37,7 +37,7 @@ export async function PATCH(
     return r as Response;
   }
 
-  let body: { name?: string; statsVisibility?: Record<string, boolean> };
+  let body: { name?: string; statsVisibility?: Record<string, boolean>; mealApprovalMode?: 'admin_only' | 'open_vote' };
   try {
     body = await request.json();
   } catch {
@@ -45,7 +45,7 @@ export async function PATCH(
   }
 
   // Build update payload — at least one field must be present
-  const updates: { name?: string; stats_visibility?: string; updated_at: Date } = {
+  const updates: { name?: string; stats_visibility?: string; meal_approval_mode?: 'admin_only' | 'open_vote'; updated_at: Date } = {
     updated_at: new Date(),
   };
 
@@ -61,7 +61,14 @@ export async function PATCH(
     updates.stats_visibility = JSON.stringify(body.statsVisibility);
   }
 
-  if (!updates.name && !updates.stats_visibility) {
+  if (body.mealApprovalMode !== undefined) {
+    if (body.mealApprovalMode !== 'admin_only' && body.mealApprovalMode !== 'open_vote') {
+      return Response.json({ error: "Invalid mealApprovalMode" }, { status: 400 });
+    }
+    updates.meal_approval_mode = body.mealApprovalMode;
+  }
+
+  if (!updates.name && !updates.stats_visibility && !updates.meal_approval_mode) {
     return Response.json({ error: "Nothing to update" }, { status: 400 });
   }
 

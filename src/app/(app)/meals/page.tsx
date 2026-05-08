@@ -6,7 +6,7 @@ import { motion } from 'framer-motion'
 import {
   Plus, ChevronLeft, ChevronRight, UtensilsCrossed, Search,
   ThumbsUp, ThumbsDown, Trophy, ShoppingCart, Pencil, Trash2,
-  Clock, BookmarkCheck, X, Eye, CalendarCheck,
+  Clock, BookmarkCheck, X, Eye, CalendarCheck, ShieldCheck, Users, CheckCircle,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { useSession } from '@/lib/auth/client'
@@ -49,6 +49,8 @@ interface PlannerSlot {
   createdBy: string
 }
 
+type ApprovalMode = 'admin_only' | 'open_vote'
+
 interface Suggestion {
   id: string
   name: string
@@ -58,6 +60,7 @@ interface Suggestion {
   targetSlotDate: string | null
   targetSlotType: SlotType | null
   status: 'suggested' | 'in_bank'
+  approvalMode: ApprovalMode | null // null = use household default
   upvotes: number
   downvotes: number
   userVote: 'up' | 'down' | null
@@ -697,14 +700,15 @@ function SlotPickerSheet({
 // ── SuggestionFormSheet ───────────────────────────────────────────────────────
 
 function SuggestionFormSheet({
-  open, onClose, onSaved,
-}: { open: boolean; onClose: () => void; onSaved: () => void }) {
+  open, onClose, onSaved, householdApprovalMode,
+}: { open: boolean; onClose: () => void; onSaved: () => void; householdApprovalMode: ApprovalMode }) {
   const [name, setName] = useState('')
   const [targetDate, setTargetDate] = useState(todayStr())
   const [quickDateKey, setQuickDateKey] = useState<'today' | 'tomorrow' | 'weekend' | null>('today')
   const [targetSlot, setTargetSlot] = useState<SlotType | ''>('')
   const [ingredients, setIngredients] = useState<IngredientItem[]>([{ name: '' }])
   const [note, setNote] = useState('')
+  const [approvalMode, setApprovalMode] = useState<ApprovalMode | null>(null) // null = use household default
   const [saving, setSaving] = useState(false)
 
   const todayS = todayStr()
@@ -715,6 +719,7 @@ function SuggestionFormSheet({
   if (open && !prevOpen.current) {
     setName(''); setTargetDate(todayS); setQuickDateKey('today')
     setTargetSlot(''); setIngredients([{ name: '' }]); setNote('')
+    setApprovalMode(null)
   }
   prevOpen.current = open
 
@@ -738,7 +743,7 @@ function SuggestionFormSheet({
       const filtered = ingredients.filter(i => i.name.trim())
       const r = await fetch('/api/meals/suggestions', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: name.trim(), targetSlotDate: targetDate, targetSlotType: targetSlot, ingredients: filtered, note: note.trim() || null }),
+        body: JSON.stringify({ name: name.trim(), targetSlotDate: targetDate, targetSlotType: targetSlot, ingredients: filtered, note: note.trim() || null, approvalMode }),
       })
       if (!r.ok) throw new Error((await r.json()).error ?? 'Failed')
       toast.success('Suggestion submitted')
@@ -804,10 +809,37 @@ function SuggestionFormSheet({
           </label>
           <IngredientEditor ingredients={ingredients} onChange={setIngredients} />
         </div>
-        <div style={{ marginBottom: 24 }}>
+        <div style={{ marginBottom: 16 }}>
           <label style={LABEL_STYLE}>Note (optional)</label>
           <input style={INPUT_STYLE} placeholder="Any context for the household" value={note} onChange={e => setNote(e.target.value)} />
         </div>
+
+        {/* Who can approve? */}
+        <div style={{ marginBottom: 24 }}>
+          <label style={LABEL_STYLE}>Who can approve this?</label>
+          <div style={{ display: 'flex', gap: 8, marginBottom: 6 }}>
+            {([null, 'admin_only', 'open_vote'] as (ApprovalMode | null)[]).map(mode => {
+              const isActive = approvalMode === mode
+              const label = mode === null
+                ? `Default (${householdApprovalMode === 'admin_only' ? 'Admin only' : 'Open vote'})`
+                : mode === 'admin_only' ? 'Admin only' : 'Open vote'
+              return (
+                <button key={String(mode)} type="button" onClick={() => setApprovalMode(mode)} style={{
+                  flex: 1, padding: '8px 6px', borderRadius: 10, fontSize: 12, fontWeight: 800,
+                  border: 'none', borderBottom: `2px solid ${isActive ? COLOR_DARK : 'var(--roost-border)'}`,
+                  backgroundColor: isActive ? COLOR : 'var(--roost-surface)',
+                  color: isActive ? '#fff' : 'var(--roost-text-secondary)', cursor: 'pointer',
+                }}>{label}</button>
+              )
+            })}
+          </div>
+          <p style={{ margin: 0, fontSize: 11, fontWeight: 600, color: 'var(--roost-text-muted)' }}>
+            {approvalMode === 'open_vote' || (approvalMode === null && householdApprovalMode === 'open_vote')
+              ? 'Anyone in the household can approve once more members vote yes than no. Admins can always act.'
+              : 'Only admins can approve or reject this suggestion.'}
+          </p>
+        </div>
+
         <button type="button" onClick={handleSave} disabled={saving} style={{
           width: '100%', padding: '14px 0', borderRadius: 14, border: 'none', borderBottom: `3px solid ${COLOR_DARK}`,
           backgroundColor: COLOR, color: '#fff', fontWeight: 800, fontSize: 15,
@@ -895,7 +927,7 @@ export default function MealsPage() {
     queryFn: async () => {
       const r = await fetch('/api/meals/suggestions')
       if (!r.ok) throw new Error('Failed')
-      return r.json() as Promise<{ suggestions: Suggestion[] }>
+      return r.json() as Promise<{ suggestions: Suggestion[]; householdApprovalMode: ApprovalMode }>
     },
     staleTime: 10_000,
     refetchInterval: 30_000,
@@ -905,6 +937,32 @@ export default function MealsPage() {
   const slots = plannerData?.slots ?? []
   const bankMeals = bankData?.meals ?? []
   const suggestions = suggestData?.suggestions ?? []
+  const householdApprovalMode: ApprovalMode = suggestData?.householdApprovalMode ?? 'admin_only'
+
+  // Household ID for PATCH requests (from existing household query)
+  const householdId = householdData?.household?.id as string | undefined
+
+  const [savingApprovalMode, setSavingApprovalMode] = useState(false)
+
+  async function handleHouseholdApprovalModeChange(mode: ApprovalMode) {
+    if (!householdId || savingApprovalMode) return
+    setSavingApprovalMode(true)
+    try {
+      const r = await fetch(`/api/household/${householdId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ mealApprovalMode: mode }),
+      })
+      if (!r.ok) throw new Error('Failed')
+      qc.invalidateQueries({ queryKey: ['household-me'] })
+      qc.invalidateQueries({ queryKey: ['suggestions'] })
+      toast.success(mode === 'admin_only' ? 'Set to admin approval' : 'Set to open vote')
+    } catch {
+      toast.error('Could not update setting', { description: 'Please try again.' })
+    } finally {
+      setSavingApprovalMode(false)
+    }
+  }
 
   const getSlot = (day: Date, st: SlotType) =>
     slots.find(s => s.slotDate === fmtDate(day) && s.slotType === st) ?? null
@@ -1315,6 +1373,49 @@ export default function MealsPage() {
         {/* ── SUGGESTIONS TAB ── */}
         {tab === 'suggestions' && (
           <>
+            {/* Approval mode context bar */}
+            <div style={{
+              display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16,
+              padding: '10px 14px', borderRadius: 12,
+              backgroundColor: 'var(--roost-surface)', border: '1.5px solid var(--roost-border)',
+              borderBottom: '3px solid var(--roost-border-bottom)',
+            }}>
+              {householdApprovalMode === 'admin_only'
+                ? <ShieldCheck size={15} color="#6B7280" />
+                : <Users size={15} color={COLOR} />
+              }
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <p style={{ margin: 0, fontSize: 12, fontWeight: 800, color: 'var(--roost-text-primary)' }}>
+                  {householdApprovalMode === 'admin_only' ? 'Admin approves suggestions' : 'Open vote'}
+                </p>
+                <p style={{ margin: 0, fontSize: 11, fontWeight: 600, color: 'var(--roost-text-muted)', lineHeight: 1.4 }}>
+                  {householdApprovalMode === 'admin_only'
+                    ? 'Only admins can approve or reject suggestions.'
+                    : 'Anyone can approve once more members vote yes than no. Admins can always act.'}
+                </p>
+              </div>
+              {/* Admin toggle */}
+              {isAdmin && (
+                <div style={{ display: 'flex', gap: 4, flexShrink: 0 }}>
+                  {(['admin_only', 'open_vote'] as ApprovalMode[]).map(mode => (
+                    <button key={mode} type="button"
+                      onClick={() => handleHouseholdApprovalModeChange(mode)}
+                      disabled={savingApprovalMode || householdApprovalMode === mode}
+                      style={{
+                        padding: '5px 9px', borderRadius: 8, fontSize: 11, fontWeight: 800, border: 'none',
+                        borderBottom: `2px solid ${householdApprovalMode === mode ? COLOR_DARK : 'var(--roost-border)'}`,
+                        backgroundColor: householdApprovalMode === mode ? COLOR : 'var(--roost-bg)',
+                        color: householdApprovalMode === mode ? '#fff' : 'var(--roost-text-secondary)',
+                        cursor: householdApprovalMode === mode ? 'default' : 'pointer',
+                        opacity: savingApprovalMode ? 0.6 : 1,
+                      }}>
+                      {mode === 'admin_only' ? 'Admin only' : 'Open vote'}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
             {suggestLoading ? (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                 {[1, 2, 3].map(i => <div key={i} style={{ height: 100, borderRadius: 16, backgroundColor: 'var(--roost-surface)', border: '1.5px solid var(--roost-border)', borderBottom: '4px solid var(--roost-border)' }} />)}
@@ -1342,6 +1443,12 @@ export default function MealsPage() {
                 {suggestions.map((s, i) => {
                   const ing = parseIngredients(s.ingredients)
                   const isTop = i === 0 && s.upvotes > 0
+                  const effectiveMode: ApprovalMode = s.approvalMode ?? householdApprovalMode
+                  const majorityReached = s.upvotes > s.downvotes
+                  const canActAsNonAdmin = effectiveMode === 'open_vote' && majorityReached
+                  const canAct = isAdmin || canActAsNonAdmin
+                  const neededVotes = Math.max(1, s.downvotes - s.upvotes + 1)
+
                   return (
                     <motion.div key={s.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: Math.min(i * 0.04, 0.2), duration: 0.15 }}>
                       <SlabCard color={COLOR_DARK}>
@@ -1357,6 +1464,13 @@ export default function MealsPage() {
                                 {s.status === 'in_bank' && (
                                   <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, fontWeight: 800, color: COLOR, backgroundColor: `${COLOR}18`, padding: '2px 8px', borderRadius: 6 }}>
                                     <BookmarkCheck size={11} /> In meal bank
+                                  </span>
+                                )}
+                                {/* Per-suggestion approval mode badge (only shown when overriding default) */}
+                                {s.approvalMode && s.approvalMode !== householdApprovalMode && (
+                                  <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 10, fontWeight: 800, color: '#6B7280', backgroundColor: 'var(--roost-bg)', padding: '2px 7px', borderRadius: 6, border: '1px solid var(--roost-border)' }}>
+                                    {s.approvalMode === 'admin_only' ? <ShieldCheck size={9} /> : <Users size={9} />}
+                                    {s.approvalMode === 'admin_only' ? 'Admin only' : 'Open vote'}
                                   </span>
                                 )}
                                 <p style={{ margin: 0, fontWeight: 800, fontSize: 15, color: 'var(--roost-text-primary)' }}>{s.name}</p>
@@ -1404,52 +1518,84 @@ export default function MealsPage() {
                             </div>
                           </div>
 
-                          {/* Admin actions */}
-                          {isAdmin && (
-                            <div style={{ marginTop: 12, borderTop: '1px solid var(--roost-border)', paddingTop: 10, display: 'flex', flexDirection: 'column', gap: 8 }}>
-                              {/* Add to planner row — only shown when suggestion has a target date+slot */}
-                              {s.targetSlotDate && s.targetSlotType && (
-                                <button type="button"
-                                  onClick={() => approveMutation.mutate({ id: s.id, action: 'planner' })}
-                                  disabled={approveMutation.isPending}
-                                  style={{
-                                    width: '100%', padding: '9px 0', borderRadius: 10, fontSize: 13, fontWeight: 800,
-                                    border: 'none', borderBottom: `2px solid ${COLOR_DARK}`,
-                                    backgroundColor: COLOR, color: '#fff', cursor: 'pointer',
-                                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-                                    opacity: approveMutation.isPending ? 0.6 : 1,
-                                  }}>
-                                  <CalendarCheck size={13} />
-                                  Add to {new Date(s.targetSlotDate + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })} {SLOT_LABELS[s.targetSlotType]}
-                                </button>
-                              )}
-                              {/* Add to bank + Reject row */}
-                              <div style={{ display: 'flex', gap: 8 }}>
-                                <button type="button"
-                                  onClick={() => approveMutation.mutate({ id: s.id, action: 'in_bank' })}
-                                  disabled={s.status === 'in_bank' || approveMutation.isPending}
-                                  style={{
-                                    flex: 1, padding: '9px 0', borderRadius: 10, fontSize: 13, fontWeight: 800,
-                                    border: '1.5px solid var(--roost-border)', borderBottom: '2px solid var(--roost-border)',
-                                    backgroundColor: 'var(--roost-surface)', color: s.status === 'in_bank' ? 'var(--roost-text-muted)' : 'var(--roost-text-primary)',
-                                    cursor: s.status === 'in_bank' ? 'not-allowed' : 'pointer',
-                                    opacity: s.status === 'in_bank' ? 0.5 : 1,
-                                  }}>
-                                  {s.status === 'in_bank' ? 'In bank' : 'Add to bank'}
-                                </button>
-                                <button type="button"
-                                  onClick={() => approveMutation.mutate({ id: s.id, action: 'rejected' })}
-                                  disabled={approveMutation.isPending}
-                                  style={{
-                                    padding: '9px 14px', borderRadius: 10, fontSize: 13, fontWeight: 800,
-                                    border: '1.5px solid var(--roost-border)', borderBottom: '2px solid var(--roost-border)',
-                                    backgroundColor: 'var(--roost-surface)', color: '#EF4444', cursor: 'pointer',
-                                  }}>
-                                  Reject
-                                </button>
+                          {/* Approval actions section */}
+                          <div style={{ marginTop: 12, borderTop: '1px solid var(--roost-border)', paddingTop: 10 }}>
+                            {canAct ? (
+                              // User can act — show approve/reject buttons
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                                {/* "Majority reached" badge for non-admins in open vote mode */}
+                                {!isAdmin && canActAsNonAdmin && (
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                    <CheckCircle size={13} color="#16A34A" />
+                                    <span style={{ fontSize: 12, fontWeight: 700, color: '#16A34A' }}>
+                                      Majority reached. You can approve this suggestion.
+                                    </span>
+                                  </div>
+                                )}
+                                {/* Add to planner — only when suggestion has a target date+slot */}
+                                {s.targetSlotDate && s.targetSlotType && (
+                                  <button type="button"
+                                    onClick={() => approveMutation.mutate({ id: s.id, action: 'planner' })}
+                                    disabled={approveMutation.isPending}
+                                    style={{
+                                      width: '100%', padding: '9px 0', borderRadius: 10, fontSize: 13, fontWeight: 800,
+                                      border: 'none', borderBottom: `2px solid ${COLOR_DARK}`,
+                                      backgroundColor: COLOR, color: '#fff', cursor: 'pointer',
+                                      display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                                      opacity: approveMutation.isPending ? 0.6 : 1,
+                                    }}>
+                                    <CalendarCheck size={13} />
+                                    Add to {new Date(s.targetSlotDate + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })} {SLOT_LABELS[s.targetSlotType]}
+                                  </button>
+                                )}
+                                {/* Add to bank + Reject */}
+                                <div style={{ display: 'flex', gap: 8 }}>
+                                  <button type="button"
+                                    onClick={() => approveMutation.mutate({ id: s.id, action: 'in_bank' })}
+                                    disabled={s.status === 'in_bank' || approveMutation.isPending}
+                                    style={{
+                                      flex: 1, padding: '9px 0', borderRadius: 10, fontSize: 13, fontWeight: 800,
+                                      border: '1.5px solid var(--roost-border)', borderBottom: '2px solid var(--roost-border)',
+                                      backgroundColor: 'var(--roost-surface)',
+                                      color: s.status === 'in_bank' ? 'var(--roost-text-muted)' : 'var(--roost-text-primary)',
+                                      cursor: s.status === 'in_bank' ? 'not-allowed' : 'pointer',
+                                      opacity: s.status === 'in_bank' ? 0.5 : 1,
+                                    }}>
+                                    {s.status === 'in_bank' ? 'In bank' : 'Add to bank'}
+                                  </button>
+                                  <button type="button"
+                                    onClick={() => approveMutation.mutate({ id: s.id, action: 'rejected' })}
+                                    disabled={approveMutation.isPending}
+                                    style={{
+                                      padding: '9px 14px', borderRadius: 10, fontSize: 13, fontWeight: 800,
+                                      border: '1.5px solid var(--roost-border)', borderBottom: '2px solid var(--roost-border)',
+                                      backgroundColor: 'var(--roost-surface)', color: '#EF4444', cursor: 'pointer',
+                                    }}>
+                                    Reject
+                                  </button>
+                                </div>
                               </div>
-                            </div>
-                          )}
+                            ) : (
+                              // User cannot act yet — show context label
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                {effectiveMode === 'admin_only' ? (
+                                  <>
+                                    <ShieldCheck size={13} color="#9CA3AF" />
+                                    <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--roost-text-muted)' }}>
+                                      Admin approval required
+                                    </span>
+                                  </>
+                                ) : (
+                                  <>
+                                    <ThumbsUp size={13} color={COLOR} />
+                                    <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--roost-text-muted)' }}>
+                                      {neededVotes} more upvote{neededVotes === 1 ? '' : 's'} needed to unlock approval
+                                    </span>
+                                  </>
+                                )}
+                              </div>
+                            )}
+                          </div>
                         </div>
                       </SlabCard>
                     </motion.div>
@@ -1487,6 +1633,7 @@ export default function MealsPage() {
       />
 
       <SuggestionFormSheet open={suggestOpen} onClose={() => setSuggestOpen(false)}
+        householdApprovalMode={householdApprovalMode}
         onSaved={() => qc.invalidateQueries({ queryKey: ['suggestions'] })} />
 
       {groceryPushMeal && (

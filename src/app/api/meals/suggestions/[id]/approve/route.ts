@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSession, getUserHousehold } from '@/lib/auth/helpers'
 import { db } from '@/lib/db'
-import { mealSuggestions, meals, mealPlanSlots } from '@/db/schema'
-import { eq, and } from 'drizzle-orm'
+import { mealSuggestions, meals, mealPlanSlots, mealSuggestionVotes, households } from '@/db/schema'
+import { eq, and, sql } from 'drizzle-orm'
 
 export async function POST(
   req: NextRequest,
@@ -15,12 +15,10 @@ export async function POST(
   const membership = await getUserHousehold(session.user.id)
   if (!membership) return NextResponse.json({ error: 'No household' }, { status: 403 })
 
-  if (membership.role !== 'admin') {
-    return NextResponse.json({ error: 'Admin only' }, { status: 403 })
-  }
+  const { householdId, role } = membership
+  const isAdmin = role === 'admin'
 
-  const { householdId } = membership
-
+  // Fetch the suggestion
   const [suggestion] = await db
     .select()
     .from(mealSuggestions)
@@ -31,8 +29,47 @@ export async function POST(
     return NextResponse.json({ error: 'Not found' }, { status: 404 })
   }
 
+  // Fetch household approval mode default
+  const [household] = await db
+    .select({ meal_approval_mode: households.meal_approval_mode })
+    .from(households)
+    .where(eq(households.id, householdId))
+    .limit(1)
+
+  const householdApprovalMode = household?.meal_approval_mode ?? 'admin_only'
+  const effectiveMode = suggestion.approvalMode ?? householdApprovalMode
+
+  // Permission check
+  if (effectiveMode === 'admin_only') {
+    // Only admins allowed
+    if (!isAdmin) {
+      return NextResponse.json({ error: 'Admin only' }, { status: 403 })
+    }
+  } else {
+    // open_vote: admin always allowed; others need upvotes > downvotes
+    if (!isAdmin) {
+      const [votes] = await db
+        .select({
+          upvotes: sql<number>`count(case when ${mealSuggestionVotes.voteType} = 'up' then 1 end)::int`,
+          downvotes: sql<number>`count(case when ${mealSuggestionVotes.voteType} = 'down' then 1 end)::int`,
+        })
+        .from(mealSuggestionVotes)
+        .where(eq(mealSuggestionVotes.suggestionId, id))
+
+      const upvotes = votes?.upvotes ?? 0
+      const downvotes = votes?.downvotes ?? 0
+
+      if (upvotes <= downvotes) {
+        return NextResponse.json(
+          { error: 'Majority not reached. More upvotes needed to approve this suggestion.' },
+          { status: 403 }
+        )
+      }
+    }
+  }
+
   const body = await req.json()
-  const { destination } = body // 'bank' | 'reject'
+  const { destination } = body // 'bank' | 'reject' | 'planner'
 
   if (destination === 'reject') {
     await db
@@ -43,7 +80,6 @@ export async function POST(
   }
 
   if (destination === 'bank') {
-    // Create a meal bank entry from the suggestion
     const [meal] = await db
       .insert(meals)
       .values({
@@ -87,14 +123,20 @@ export async function POST(
       .returning()
 
     // Delete any existing slot in the same position before inserting
-    const existing = await db.select({ id: mealPlanSlots.id }).from(mealPlanSlots).where(
-      and(
-        eq(mealPlanSlots.householdId, householdId),
-        eq(mealPlanSlots.slotDate, suggestion.targetSlotDate),
-        eq(mealPlanSlots.slotType, suggestion.targetSlotType)
+    const existing = await db
+      .select({ id: mealPlanSlots.id })
+      .from(mealPlanSlots)
+      .where(
+        and(
+          eq(mealPlanSlots.householdId, householdId),
+          eq(mealPlanSlots.slotDate, suggestion.targetSlotDate),
+          eq(mealPlanSlots.slotType, suggestion.targetSlotType)
+        )
       )
-    ).limit(1)
-    if (existing.length > 0) await db.delete(mealPlanSlots).where(eq(mealPlanSlots.id, existing[0].id))
+      .limit(1)
+    if (existing.length > 0) {
+      await db.delete(mealPlanSlots).where(eq(mealPlanSlots.id, existing[0].id))
+    }
 
     const [slot] = await db
       .insert(mealPlanSlots)

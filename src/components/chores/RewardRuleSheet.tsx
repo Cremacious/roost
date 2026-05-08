@@ -14,6 +14,7 @@ export interface RewardMember {
   userId: string
   name: string
   avatarColor: string | null
+  role?: string
 }
 
 export interface RewardRule {
@@ -32,7 +33,7 @@ interface RewardRuleSheetProps {
   open: boolean
   onClose: () => void
   rule?: RewardRule | null
-  children: RewardMember[]
+  members: RewardMember[]
 }
 
 const PERIOD_OPTIONS = [
@@ -73,11 +74,11 @@ const inputStyle: React.CSSProperties = {
   fontFamily: 'inherit',
 }
 
-export default function RewardRuleSheet({ open, onClose, rule, children }: RewardRuleSheetProps) {
+export default function RewardRuleSheet({ open, onClose, rule, members }: RewardRuleSheetProps) {
   const queryClient = useQueryClient()
   const isEditing = !!rule?.id
 
-  const [childId, setChildId] = useState('')
+  const [memberId, setMemberId] = useState('')
   const [title, setTitle] = useState('')
   const [periodType, setPeriodType] = useState<'week' | 'month' | 'year' | 'custom'>('week')
   const [periodDays, setPeriodDays] = useState(30)
@@ -87,7 +88,7 @@ export default function RewardRuleSheet({ open, onClose, rule, children }: Rewar
 
   useEffect(() => {
     if (open) {
-      setChildId(rule?.userId ?? children[0]?.userId ?? '')
+      setMemberId(rule?.userId ?? members[0]?.userId ?? '')
       setTitle(rule?.title ?? '')
       setPeriodType(rule?.periodType ?? 'week')
       setPeriodDays(rule?.periodDays ?? 30)
@@ -95,12 +96,12 @@ export default function RewardRuleSheet({ open, onClose, rule, children }: Rewar
       setRewardType(rule?.rewardType ?? 'money')
       setRewardDetail(rule?.rewardDetail ?? '')
     }
-  }, [open, rule, children])
+  }, [open, rule, members])
 
   const saveMutation = useMutation({
     mutationFn: async () => {
       const body = {
-        userId: childId,
+        userId: memberId,
         title: title.trim(),
         periodType,
         periodDays: periodType === 'custom' ? periodDays : null,
@@ -123,6 +124,7 @@ export default function RewardRuleSheet({ open, onClose, rule, children }: Rewar
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['rewards'] })
+      queryClient.invalidateQueries({ queryKey: ['rewards-child'] })
       toast.success(isEditing ? 'Reward updated' : 'Reward rule added')
       onClose()
     },
@@ -138,6 +140,7 @@ export default function RewardRuleSheet({ open, onClose, rule, children }: Rewar
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['rewards'] })
+      queryClient.invalidateQueries({ queryKey: ['rewards-child'] })
       toast.success('Reward rule removed')
       onClose()
     },
@@ -147,8 +150,8 @@ export default function RewardRuleSheet({ open, onClose, rule, children }: Rewar
   })
 
   function handleSave() {
-    if (!childId) {
-      toast.error('Select a child', { description: 'Choose who this reward is for.' })
+    if (!memberId) {
+      toast.error('Select a member', { description: 'Choose who this reward is for.' })
       return
     }
     if (!title.trim()) {
@@ -167,26 +170,32 @@ export default function RewardRuleSheet({ open, onClose, rule, children }: Rewar
   return (
     <DraggableSheet open={open} onOpenChange={v => !v && onClose()} featureColor={COLOR}>
       <div style={{ padding: '4px 16px 32px' }}>
-        <p style={{ fontSize: 18, fontWeight: 800, color: 'var(--roost-text-primary)', marginBottom: 20 }}>
+        <p style={{ fontSize: 18, fontWeight: 800, color: 'var(--roost-text-primary)', marginBottom: 4 }}>
           {isEditing ? 'Edit reward' : 'Add reward rule'}
+        </p>
+        <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--roost-text-muted)', marginBottom: 20 }}>
+          Set a chore completion goal and define the reward for hitting it.
         </p>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-          {/* Child selector */}
-          {!isEditing && children.length > 0 && (
+          {/* Member selector */}
+          {!isEditing && members.length > 0 && (
             <div>
-              <label style={labelStyle}>For</label>
+              <label style={labelStyle}>Reward for</label>
               <select
                 style={{ ...inputStyle, cursor: 'pointer' }}
-                value={childId}
-                onChange={e => setChildId(e.target.value)}
+                value={memberId}
+                onChange={e => setMemberId(e.target.value)}
               >
-                {children.map(c => (
-                  <option key={c.userId} value={c.userId}>
-                    {c.name}
+                {members.map(m => (
+                  <option key={m.userId} value={m.userId}>
+                    {m.name}{m.role === 'child' ? ' (child)' : m.role === 'admin' ? ' (admin)' : ''}
                   </option>
                 ))}
               </select>
+              <p style={{ fontSize: 11, fontWeight: 600, color: 'var(--roost-text-muted)', marginTop: 5 }}>
+                Rewards work for any household member, including children and adults.
+              </p>
             </div>
           )}
 
@@ -265,7 +274,7 @@ export default function RewardRuleSheet({ open, onClose, rule, children }: Rewar
               <span style={{ fontSize: 11, color: 'var(--roost-text-muted)', fontWeight: 600 }}>100%</span>
             </div>
             <p style={{ fontSize: 12, color: 'var(--roost-text-muted)', marginTop: 4, fontWeight: 600 }}>
-              Complete {threshold}% of assigned chores to earn the reward
+              Complete {threshold}% of assigned chores in the period to earn the reward
             </p>
           </div>
 
@@ -298,6 +307,11 @@ export default function RewardRuleSheet({ open, onClose, rule, children }: Rewar
                 )
               })}
             </div>
+            {rewardType === 'money' && (
+              <p style={{ fontSize: 11, fontWeight: 600, color: 'var(--roost-text-muted)', marginTop: 5 }}>
+                Money rewards are tracked as expenses in the settle-up flow.
+              </p>
+            )}
           </div>
 
           {/* Reward detail */}

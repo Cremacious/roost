@@ -107,8 +107,8 @@ export async function GET() {
       startsAt: rewardRules.startsAt,
       enabled: rewardRules.enabled,
       createdAt: rewardRules.createdAt,
-      childName: users.name,
-      childAvatarColor: users.avatarColor,
+      memberName: users.name,
+      memberAvatarColor: users.avatarColor,
     })
     .from(rewardRules)
     .innerJoin(users, eq(rewardRules.userId, users.id))
@@ -136,24 +136,25 @@ export async function GET() {
     })
   )
 
-  // Get child members for the create form
-  const childMembers = await db
+  // Get all active members for the create form (any role can have reward rules)
+  const members = await db
     .select({
       userId: householdMembers.userId,
       name: users.name,
       avatarColor: users.avatarColor,
+      role: householdMembers.role,
     })
     .from(householdMembers)
     .innerJoin(users, eq(householdMembers.userId, users.id))
     .where(
       and(
         eq(householdMembers.householdId, householdId),
-        eq(householdMembers.role, 'child'),
         isNull(householdMembers.deletedAt),
       )
     )
+    .orderBy(householdMembers.createdAt)
 
-  return NextResponse.json({ rules: rulesWithProgress, childMembers, isPremium })
+  return NextResponse.json({ rules: rulesWithProgress, members, isPremium })
 }
 
 export async function POST(request: Request) {

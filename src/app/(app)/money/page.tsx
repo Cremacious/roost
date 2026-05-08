@@ -6,15 +6,21 @@ import { motion } from 'framer-motion'
 import { toast } from 'sonner'
 import {
   Plus, Wallet, Receipt, BarChart3, Target, ListChecks, TrendingUp,
-  CheckCircle, Clock, AlertCircle, ChevronRight, Edit2,
+  CheckCircle, Clock, AlertCircle, ChevronRight, Edit2, Trash2,
 } from 'lucide-react'
 import { format, parseISO } from 'date-fns'
 import { AreaChart, Area, XAxis, YAxis, Tooltip, PieChart, Pie, Cell, ResponsiveContainer } from 'recharts'
 import { SlabCard } from '@/components/ui/SlabCard'
+import {
+  AlertDialog, AlertDialogContent, AlertDialogHeader,
+  AlertDialogTitle, AlertDialogDescription, AlertDialogFooter,
+} from '@/components/ui/alert-dialog'
 import { ExpenseSheet } from '@/components/money/ExpenseSheet'
 import { SettleSheet } from '@/components/money/SettleSheet'
 import { GoalSheet } from '@/components/money/GoalSheet'
 import { ContributeSheet } from '@/components/money/ContributeSheet'
+import { BillSheet } from '@/components/money/BillSheet'
+import { BudgetSheet, type EditableBudget } from '@/components/money/BudgetSheet'
 import { useHousehold } from '@/lib/hooks/useHousehold'
 
 function EmptyState({ color, icon, title, body, buttonLabel, onButtonClick }: {
@@ -318,8 +324,17 @@ function ExpensesTab({ currentUserId, members, isPremium, onOpenExpense, onOpenS
 
 // ─── Bills Tab ────────────────────────────────────────────────────────────────
 
-function BillRow({ bill }: { bill: Bill }) {
+function BillRow({ bill, isAdmin = false, onMarkPaid, marking = false, onDelete, deleting = false }: {
+  bill: Bill
+  isAdmin?: boolean
+  onMarkPaid?: (id: string) => void
+  marking?: boolean
+  onDelete?: (id: string, title: string) => void
+  deleting?: boolean
+}) {
   const cfg = STATUS_CONFIG[bill.status]
+  const isPaid = bill.status === 'paid'
+
   return (
     <SlabCard color={cfg.color}>
       <div style={{ padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -329,25 +344,112 @@ function BillRow({ bill }: { bill: Bill }) {
             {bill.dueDay ? `Due on the ${bill.dueDay}${ordinal(bill.dueDay)}` : 'No due date set'}
           </p>
         </div>
-        <div style={{ textAlign: 'right' }}>
-          <span style={{ fontWeight: 800, fontSize: 16, color: 'var(--roost-text-primary)' }}>${parseFloat(String(bill.amount)).toFixed(2)}</span>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 4, justifyContent: 'flex-end', marginTop: 2 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 6 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span style={{ fontWeight: 800, fontSize: 16, color: 'var(--roost-text-primary)' }}>${parseFloat(String(bill.amount)).toFixed(2)}</span>
+            {isAdmin && onDelete && (
+              <button
+                onClick={() => onDelete(bill.id, bill.title)}
+                disabled={deleting}
+                style={{
+                  padding: 6, borderRadius: 8, border: 'none',
+                  backgroundColor: 'transparent', cursor: deleting ? 'not-allowed' : 'pointer',
+                  opacity: deleting ? 0.4 : 0.6, display: 'flex', alignItems: 'center',
+                }}
+              >
+                <Trash2 size={15} color="#EF4444" />
+              </button>
+            )}
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 4, justifyContent: 'flex-end' }}>
             {cfg.icon}
             <span style={{ fontSize: 12, fontWeight: 700, color: cfg.color }}>{cfg.label}</span>
           </div>
+          {isAdmin && !isPaid && onMarkPaid && (
+            <button
+              onClick={() => onMarkPaid(bill.id)}
+              disabled={marking}
+              style={{
+                padding: '5px 10px', borderRadius: 8,
+                fontWeight: 700, fontSize: 12,
+                backgroundColor: COLOR, color: '#fff',
+                border: 'none', borderBottom: `2px solid ${COLOR_DARK}`,
+                cursor: marking ? 'not-allowed' : 'pointer',
+                opacity: marking ? 0.6 : 1,
+              }}
+            >
+              {marking ? 'Saving...' : 'Mark paid'}
+            </button>
+          )}
         </div>
       </div>
     </SlabCard>
   )
 }
 
-function BillsTab({ isPremium }: { isPremium: boolean }) {
+function BillsTab({ isPremium, isAdmin, currentUserId, onAddBill }: {
+  isPremium: boolean
+  isAdmin: boolean
+  currentUserId: string
+  onAddBill: () => void
+}) {
+  const qc = useQueryClient()
+  const [markingId, setMarkingId] = useState<string | null>(null)
+  const [deletingId, setDeletingId] = useState<string | null>(null)
+  const [pendingDelete, setPendingDelete] = useState<{ id: string; title: string } | null>(null)
+
   const { data, isLoading } = useQuery({
     queryKey: ['bills'],
     queryFn: () => fetch('/api/money/bills').then(r => r.json()),
     staleTime: 30_000,
     enabled: isPremium,
   })
+
+  function handleDelete(billId: string, billTitle: string) {
+    setPendingDelete({ id: billId, title: billTitle })
+  }
+
+  async function confirmDelete() {
+    if (!pendingDelete) return
+    const { id, title } = pendingDelete
+    setDeletingId(id)
+    setPendingDelete(null)
+    try {
+      const res = await fetch(`/api/expenses/recurring/${id}`, { method: 'DELETE' })
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}))
+        toast.error('Could not delete bill', { description: data.error ?? 'Something went wrong.' })
+        return
+      }
+      toast.success(`"${title}" removed`)
+      qc.invalidateQueries({ queryKey: ['bills'] })
+      qc.invalidateQueries({ queryKey: ['money-dashboard'] })
+    } finally {
+      setDeletingId(null)
+    }
+  }
+
+  async function handleMarkPaid(billId: string) {
+    setMarkingId(billId)
+    try {
+      const res = await fetch(`/api/expenses/recurring/${billId}/post`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ paidBy: currentUserId }),
+      })
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}))
+        toast.error('Could not mark bill as paid', { description: data.error ?? 'Something went wrong.' })
+        return
+      }
+      toast.success('Bill marked as paid')
+      qc.invalidateQueries({ queryKey: ['bills'] })
+      qc.invalidateQueries({ queryKey: ['money-dashboard'] })
+      qc.invalidateQueries({ queryKey: ['expenses'] })
+    } finally {
+      setMarkingId(null)
+    }
+  }
 
   if (!isPremium) {
     return (
@@ -360,41 +462,144 @@ function BillsTab({ isPremium }: { isPremium: boolean }) {
 
   const { bills = [], summary } = data ?? {}
 
-  if (!bills.length) {
-    return (
-      <EmptyState color={COLOR} icon={<ListChecks size={28} />} title="No bills tracked."
-        body="Add recurring expenses marked as bills to see them here." />
-    )
-  }
-
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-      {/* Summary */}
-      <SlabCard color={COLOR}>
-        <div style={{ padding: '14px 16px', display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>
-          <StatBox label="Total" value={`$${(summary?.total ?? 0).toFixed(2)}`} color="var(--roost-text-primary)" />
-          <StatBox label="Paid" value={`$${(summary?.paid ?? 0).toFixed(2)}`} color={COLOR} />
-          <StatBox label="Remaining" value={`$${(summary?.remaining ?? 0).toFixed(2)}`} color="#EF4444" />
+      {/* Header row with add button */}
+      {isAdmin && (
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <p style={{ margin: 0, fontWeight: 700, fontSize: 14, color: 'var(--roost-text-secondary)' }}>
+            {bills.length} bill{bills.length !== 1 ? 's' : ''} tracked
+          </p>
+          <button
+            onClick={onAddBill}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 6,
+              padding: '8px 14px', borderRadius: 10,
+              fontWeight: 700, fontSize: 13,
+              backgroundColor: COLOR, color: '#fff',
+              border: 'none', borderBottom: `3px solid ${COLOR_DARK}`,
+              cursor: 'pointer',
+            }}
+          >
+            <Plus size={14} />
+            Add bill
+          </button>
         </div>
-      </SlabCard>
+      )}
 
-      {/* Bill list */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-        {bills.map((bill: Bill) => <BillRow key={bill.id} bill={bill} />)}
-      </div>
+      {!bills.length ? (
+        <EmptyState
+          color={COLOR}
+          icon={<ListChecks size={28} />}
+          title="No bills tracked."
+          body="Add a recurring bill to track what is due each month."
+          buttonLabel={isAdmin ? 'Add bill' : undefined}
+          onButtonClick={isAdmin ? onAddBill : undefined}
+        />
+      ) : (
+        <>
+          {/* Summary */}
+          <SlabCard color={COLOR}>
+            <div style={{ padding: '14px 16px', display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>
+              <StatBox label="Total" value={`$${(summary?.total ?? 0).toFixed(2)}`} color="var(--roost-text-primary)" />
+              <StatBox label="Paid" value={`$${(summary?.paid ?? 0).toFixed(2)}`} color={COLOR} />
+              <StatBox label="Remaining" value={`$${(summary?.remaining ?? 0).toFixed(2)}`} color="#EF4444" />
+            </div>
+          </SlabCard>
+
+          {/* Bill list */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {bills.map((bill: Bill) => (
+              <BillRow
+                key={bill.id}
+                bill={bill}
+                isAdmin={isAdmin}
+                onMarkPaid={handleMarkPaid}
+                marking={markingId === bill.id}
+                onDelete={handleDelete}
+                deleting={deletingId === bill.id}
+              />
+            ))}
+          </div>
+        </>
+      )}
+
+      <AlertDialog open={!!pendingDelete} onOpenChange={(v) => { if (!v) setPendingDelete(null) }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remove bill?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {pendingDelete?.title} will be removed from your bills list. Past expenses are kept.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <button
+              onClick={() => setPendingDelete(null)}
+              style={{
+                padding: '10px 18px', borderRadius: 10, fontWeight: 700, fontSize: 14,
+                backgroundColor: 'var(--roost-surface)', color: 'var(--roost-text-primary)',
+                border: '1.5px solid var(--roost-border)', borderBottom: '3px solid var(--roost-border-bottom)',
+                cursor: 'pointer',
+              }}
+            >
+              Cancel
+            </button>
+            <button
+              onClick={confirmDelete}
+              style={{
+                padding: '10px 18px', borderRadius: 10, fontWeight: 700, fontSize: 14,
+                backgroundColor: '#EF4444', color: '#fff',
+                border: 'none', borderBottom: '3px solid #C93B3B',
+                cursor: 'pointer',
+              }}
+            >
+              Remove
+            </button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }
 
 // ─── Budget Tab ───────────────────────────────────────────────────────────────
 
-function BudgetTab({ isPremium }: { isPremium: boolean }) {
+function BudgetTab({ isPremium, isAdmin, onAddBudget, onEditBudget }: {
+  isPremium: boolean
+  isAdmin: boolean
+  onAddBudget: () => void
+  onEditBudget: (b: EditableBudget) => void
+}) {
+  const qc = useQueryClient()
+  const [pendingDelete, setPendingDelete] = useState<{ id: string; name: string } | null>(null)
+  const [deletingId, setDeletingId] = useState<string | null>(null)
+
   const { data, isLoading } = useQuery({
     queryKey: ['budgets'],
     queryFn: () => fetch('/api/expenses/budgets').then(r => r.json()),
     staleTime: 30_000,
     enabled: isPremium,
   })
+
+  async function confirmDelete() {
+    if (!pendingDelete) return
+    const { id, name } = pendingDelete
+    setDeletingId(id)
+    setPendingDelete(null)
+    try {
+      const res = await fetch(`/api/expenses/budgets/${id}`, { method: 'DELETE' })
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}))
+        toast.error('Could not delete budget', { description: data.error ?? 'Something went wrong.' })
+        return
+      }
+      toast.success(`${name} budget removed`)
+      qc.invalidateQueries({ queryKey: ['budgets'] })
+      qc.invalidateQueries({ queryKey: ['money-dashboard'] })
+    } finally {
+      setDeletingId(null)
+    }
+  }
 
   if (!isPremium) {
     return (
@@ -407,48 +612,121 @@ function BudgetTab({ isPremium }: { isPremium: boolean }) {
 
   const { budgets = [], totalCap, totalSpent } = data ?? {}
 
-  if (!budgets.length) {
-    return (
-      <EmptyState color={COLOR} icon={<BarChart3 size={28} />} title="No budgets set."
-        body="Add budgets in the settings to track your spending by category." />
-    )
-  }
-
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-      {/* Summary */}
-      <SlabCard color={COLOR}>
-        <div style={{ padding: '14px 16px' }}>
-          <p style={{ margin: 0, fontWeight: 800, fontSize: 13, color: 'var(--roost-text-secondary)' }}>Monthly total</p>
-          <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginTop: 4 }}>
-            <span style={{ fontWeight: 900, fontSize: 24, color: 'var(--roost-text-primary)' }}>${(totalSpent ?? 0).toFixed(2)}</span>
-            <span style={{ fontWeight: 600, fontSize: 14, color: 'var(--roost-text-muted)' }}>of ${(totalCap ?? 0).toFixed(2)}</span>
-          </div>
+      {/* Header row with add button */}
+      {isAdmin && (
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <p style={{ margin: 0, fontWeight: 700, fontSize: 14, color: 'var(--roost-text-secondary)' }}>
+            {budgets.length} budget{budgets.length !== 1 ? 's' : ''} set
+          </p>
+          <button
+            onClick={onAddBudget}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 6,
+              padding: '8px 14px', borderRadius: 10,
+              fontWeight: 700, fontSize: 13,
+              backgroundColor: COLOR, color: '#fff',
+              border: 'none', borderBottom: `3px solid ${COLOR_DARK}`,
+              cursor: 'pointer',
+            }}
+          >
+            <Plus size={14} />
+            Add budget
+          </button>
         </div>
-      </SlabCard>
+      )}
 
-      {budgets.map((b: any) => {
-        const pct = Math.min(100, (b.spent / parseFloat(b.amount)) * 100)
-        const isOver = b.status === 'over'
-        const isWarn = b.status === 'warning'
-        const barColor = isOver ? '#EF4444' : isWarn ? '#F59E0B' : COLOR
-
-        return (
-          <SlabCard key={b.id} color={barColor}>
+      {!budgets.length ? (
+        <EmptyState
+          color={COLOR}
+          icon={<BarChart3 size={28} />}
+          title="No budgets set."
+          body="Set a monthly spending limit per category to track where your money goes."
+          buttonLabel={isAdmin ? 'Add budget' : undefined}
+          onButtonClick={isAdmin ? onAddBudget : undefined}
+        />
+      ) : (
+        <>
+          {/* Summary */}
+          <SlabCard color={COLOR}>
             <div style={{ padding: '14px 16px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 6 }}>
-                <span style={{ fontWeight: 700, fontSize: 14, color: 'var(--roost-text-primary)' }}>{b.categoryName ?? 'Uncategorized'}</span>
-                <span style={{ fontWeight: 800, fontSize: 13, color: 'var(--roost-text-muted)' }}>${b.spent.toFixed(2)} / ${parseFloat(b.amount).toFixed(2)}</span>
+              <p style={{ margin: 0, fontWeight: 800, fontSize: 13, color: 'var(--roost-text-secondary)' }}>Monthly total</p>
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginTop: 4 }}>
+                <span style={{ fontWeight: 900, fontSize: 24, color: 'var(--roost-text-primary)' }}>${(totalSpent ?? 0).toFixed(2)}</span>
+                <span style={{ fontWeight: 600, fontSize: 14, color: 'var(--roost-text-muted)' }}>of ${(totalCap ?? 0).toFixed(2)}</span>
               </div>
-              <div style={{ height: 6, borderRadius: 99, backgroundColor: 'var(--roost-border)', overflow: 'hidden' }}>
-                <div style={{ height: '100%', borderRadius: 99, width: `${pct}%`, backgroundColor: barColor, transition: 'width 0.3s' }} />
-              </div>
-              {isOver && <p style={{ margin: '4px 0 0', fontSize: 11, fontWeight: 700, color: '#EF4444' }}>Over budget</p>}
-              {isWarn && !isOver && <p style={{ margin: '4px 0 0', fontSize: 11, fontWeight: 700, color: '#D97706' }}>{b.warningThreshold}% threshold reached</p>}
             </div>
           </SlabCard>
-        )
-      })}
+
+          {budgets.map((b: any) => {
+            const pct = Math.min(100, (b.spent / parseFloat(b.amount)) * 100)
+            const isOver = b.status === 'over'
+            const isWarn = b.status === 'warning'
+            const barColor = isOver ? '#EF4444' : isWarn ? '#F59E0B' : COLOR
+
+            return (
+              <SlabCard key={b.id} color={barColor}>
+                <div style={{ padding: '14px 16px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                    <span style={{ fontWeight: 700, fontSize: 14, color: 'var(--roost-text-primary)' }}>{b.categoryName ?? 'Uncategorized'}</span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                      <span style={{ fontWeight: 800, fontSize: 13, color: 'var(--roost-text-muted)' }}>${b.spent.toFixed(2)} / ${parseFloat(b.amount).toFixed(2)}</span>
+                      {isAdmin && (
+                        <div style={{ display: 'flex', gap: 2 }}>
+                          <button
+                            onClick={() => onEditBudget({ id: b.id, categoryId: b.categoryId, categoryName: b.categoryName ?? 'Budget', amount: b.amount, warningThreshold: b.warningThreshold })}
+                            style={{ padding: 5, borderRadius: 7, border: 'none', backgroundColor: 'transparent', cursor: 'pointer', opacity: 0.6, display: 'flex', alignItems: 'center' }}
+                          >
+                            <Edit2 size={14} color="var(--roost-text-primary)" />
+                          </button>
+                          <button
+                            onClick={() => setPendingDelete({ id: b.id, name: b.categoryName ?? 'Budget' })}
+                            disabled={deletingId === b.id}
+                            style={{ padding: 5, borderRadius: 7, border: 'none', backgroundColor: 'transparent', cursor: 'pointer', opacity: deletingId === b.id ? 0.3 : 0.6, display: 'flex', alignItems: 'center' }}
+                          >
+                            <Trash2 size={14} color="#EF4444" />
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  <div style={{ height: 6, borderRadius: 99, backgroundColor: 'var(--roost-border)', overflow: 'hidden' }}>
+                    <div style={{ height: '100%', borderRadius: 99, width: `${pct}%`, backgroundColor: barColor, transition: 'width 0.3s' }} />
+                  </div>
+                  {isOver && <p style={{ margin: '4px 0 0', fontSize: 11, fontWeight: 700, color: '#EF4444' }}>Over budget</p>}
+                  {isWarn && !isOver && <p style={{ margin: '4px 0 0', fontSize: 11, fontWeight: 700, color: '#D97706' }}>{b.warningThreshold}% threshold reached</p>}
+                </div>
+              </SlabCard>
+            )
+          })}
+        </>
+      )}
+
+      <AlertDialog open={!!pendingDelete} onOpenChange={(v) => { if (!v) setPendingDelete(null) }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remove budget?</AlertDialogTitle>
+            <AlertDialogDescription>
+              The {pendingDelete?.name} budget will be removed. Past expenses are not affected.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <button
+              onClick={() => setPendingDelete(null)}
+              style={{ padding: '10px 18px', borderRadius: 10, fontWeight: 700, fontSize: 14, backgroundColor: 'var(--roost-surface)', color: 'var(--roost-text-primary)', border: '1.5px solid var(--roost-border)', borderBottom: '3px solid var(--roost-border-bottom)', cursor: 'pointer' }}
+            >
+              Cancel
+            </button>
+            <button
+              onClick={confirmDelete}
+              style={{ padding: '10px 18px', borderRadius: 10, fontWeight: 700, fontSize: 14, backgroundColor: '#EF4444', color: '#fff', border: 'none', borderBottom: '3px solid #C93B3B', cursor: 'pointer' }}
+            >
+              Remove
+            </button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }
@@ -769,6 +1047,9 @@ export default function MoneyPage() {
   const [goalSheetOpen, setGoalSheetOpen] = useState(false)
   const [editingGoal, setEditingGoal] = useState<any | null>(null)
   const [contributeGoal, setContributeGoal] = useState<any | null>(null)
+  const [billSheetOpen, setBillSheetOpen] = useState(false)
+  const [budgetSheetOpen, setBudgetSheetOpen] = useState(false)
+  const [editingBudget, setEditingBudget] = useState<EditableBudget | null>(null)
 
   const { isPremium, role } = useHousehold()
   const isAdmin = role === 'admin'
@@ -839,8 +1120,8 @@ export default function MoneyPage() {
             onOpenSettle={setSettleDebt}
           />
         )}
-        {tab === 'bills' && <BillsTab isPremium={isPremium} />}
-        {tab === 'budget' && <BudgetTab isPremium={isPremium} />}
+        {tab === 'bills' && <BillsTab isPremium={isPremium} isAdmin={isAdmin} currentUserId={currentUserId} onAddBill={() => setBillSheetOpen(true)} />}
+        {tab === 'budget' && <BudgetTab isPremium={isPremium} isAdmin={isAdmin} onAddBudget={() => setBudgetSheetOpen(true)} onEditBudget={(b) => { setEditingBudget(b); setBudgetSheetOpen(true) }} />}
         {tab === 'goals' && (
           <GoalsTab
             isPremium={isPremium}
@@ -882,6 +1163,17 @@ export default function MoneyPage() {
         open={!!contributeGoal}
         onClose={() => setContributeGoal(null)}
         goal={contributeGoal}
+      />
+
+      <BillSheet
+        open={billSheetOpen}
+        onClose={() => setBillSheetOpen(false)}
+      />
+
+      <BudgetSheet
+        open={budgetSheetOpen}
+        onClose={() => { setBudgetSheetOpen(false); setEditingBudget(null) }}
+        budget={editingBudget}
       />
     </div>
   )

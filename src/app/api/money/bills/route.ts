@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import { getSession, getUserHousehold } from '@/lib/auth/helpers'
 import { db } from '@/lib/db'
 import { recurringExpenses, expenses } from '@/db/schema'
-import { eq, and, isNull } from 'drizzle-orm'
+import { eq, and, isNull, gte } from 'drizzle-orm'
 
 function getBillStatus(dueDay: number | null, hasDraftPosted: boolean): 'paid' | 'due_soon' | 'overdue' | 'upcoming' {
   if (hasDraftPosted) return 'paid'
@@ -49,7 +49,8 @@ export async function GET() {
         and(
           eq(expenses.householdId, householdId),
           eq(expenses.isRecurringDraft, false),
-          isNull(expenses.deletedAt)
+          isNull(expenses.deletedAt),
+          gte(expenses.createdAt, monthStart)
         )
       ),
   ])

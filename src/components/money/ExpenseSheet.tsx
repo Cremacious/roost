@@ -82,6 +82,7 @@ export function ExpenseSheet({ open, onClose, members, currentUserId, isPremium,
   // Form state
   const [title, setTitle] = useState('')
   const [amount, setAmount] = useState('')
+  const [categoryId, setCategoryId] = useState('')
   const [paidBy, setPaidBy] = useState(currentUserId ?? '')
   const [splitMethod, setSplitMethod] = useState<SplitMethod>('payer')
   const [customSplits, setCustomSplits] = useState<CustomSplit[]>([])
@@ -101,6 +102,18 @@ export function ExpenseSheet({ open, onClose, members, currentUserId, isPremium,
   const [templatesOpen, setTemplatesOpen] = useState(false)
   const [saveAsTemplate, setSaveAsTemplate] = useState(false)
   const [templateName, setTemplateName] = useState('My split')
+
+  // Fetch categories
+  const { data: categories = [] } = useQuery<{ id: string; name: string; color: string }[]>({
+    queryKey: ['expense-categories'],
+    queryFn: async () => {
+      const r = await fetch('/api/expenses/categories')
+      if (!r.ok) return []
+      return r.json()
+    },
+    staleTime: 60_000,
+    enabled: open,
+  })
 
   // Fetch saved templates — parse `splits` from JSON string to array
   const { data: templates = [] } = useQuery<SplitTemplate[]>({
@@ -181,6 +194,7 @@ export function ExpenseSheet({ open, onClose, members, currentUserId, isPremium,
   function resetForm() {
     setTitle('')
     setAmount('')
+    setCategoryId('')
     setPaidBy(currentUserId)
     setSplitMethod('payer')
     setCustomSplits([])
@@ -362,6 +376,7 @@ export function ExpenseSheet({ open, onClose, members, currentUserId, isPremium,
           amount: totalAmount.toFixed(2),
           paidBy: effectivePaidBy,
           splits,
+          ...(categoryId ? { categoryId } : {}),
           ...(receiptData ? { receiptData: JSON.stringify(receiptData) } : {}),
         }),
       })
@@ -561,6 +576,34 @@ export function ExpenseSheet({ open, onClose, members, currentUserId, isPremium,
               style={inputStyle}
             />
           </div>
+
+          {/* Category */}
+          {categories.length > 0 && (
+            <div style={{ marginBottom: 16 }}>
+              <label style={labelStyle}>Category</label>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                {categories.map(cat => {
+                  const active = categoryId === cat.id
+                  return (
+                    <button
+                      key={cat.id}
+                      onClick={() => setCategoryId(active ? '' : cat.id)}
+                      style={{
+                        padding: '6px 11px', borderRadius: 9,
+                        fontWeight: 700, fontSize: 12, cursor: 'pointer',
+                        backgroundColor: active ? cat.color + '22' : 'var(--roost-surface)',
+                        color: active ? cat.color : 'var(--roost-text-secondary)',
+                        border: `1.5px solid ${active ? cat.color : 'var(--roost-border)'}`,
+                        borderBottom: `3px solid ${active ? cat.color : 'var(--roost-border-bottom)'}`,
+                      }}
+                    >
+                      {cat.name}
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+          )}
 
           {/* Paid by */}
           <div style={{ marginBottom: 16 }}>

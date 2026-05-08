@@ -7,6 +7,7 @@ import { signIn } from '@/lib/auth/client'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { CheckSquare, ShoppingCart, DollarSign, CalendarDays, UtensilsCrossed, Bell } from 'lucide-react'
+import RoostLogo from '@/components/shared/RoostLogo'
 
 const FEATURES = [
   { icon: CheckSquare,     title: 'Chores',    desc: 'Track who does what and keep score' },
@@ -59,9 +60,8 @@ function LoginForm() {
         }}
       >
         <div style={{ marginBottom: 36 }}>
-          <div style={{ width: 42, height: 42, backgroundColor: 'rgba(255,255,255,0.18)', borderRadius: 12, marginBottom: 12 }} />
-          <p style={{ color: '#fff', fontWeight: 900, fontSize: 26, letterSpacing: '-0.5px', margin: 0 }}>Roost</p>
-          <p style={{ color: 'rgba(255,255,255,0.7)', fontWeight: 700, fontSize: 13, marginTop: 4 }}>Home, sorted.</p>
+          <RoostLogo size="md" wordmarkColor="#fff" />
+          <p style={{ color: 'rgba(255,255,255,0.7)', fontWeight: 700, fontSize: 13, marginTop: 10 }}>Home, sorted.</p>
         </div>
 
         {/* Feature list */}

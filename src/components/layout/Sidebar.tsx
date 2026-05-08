@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
+import RoostLogo from '@/components/shared/RoostLogo'
 import {
   Home,
   Users,
@@ -81,18 +82,7 @@ export function Sidebar() {
           borderBottom: '1px solid rgba(255,255,255,0.12)',
         }}
       >
-        <div
-          style={{
-            width: 30,
-            height: 30,
-            borderRadius: 8,
-            backgroundColor: 'rgba(255,255,255,0.18)',
-            flexShrink: 0,
-          }}
-        />
-        <span style={{ color: '#fff', fontWeight: 800, fontSize: 15, letterSpacing: '-0.3px' }}>
-          Roost
-        </span>
+        <RoostLogo size="sm" wordmarkColor="#fff" />
       </div>
 
       {/* Household switcher */}

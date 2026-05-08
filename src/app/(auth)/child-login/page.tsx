@@ -3,7 +3,8 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { Home, ChevronLeft, Loader2 } from 'lucide-react'
+import { ChevronLeft, Loader2 } from 'lucide-react'
+import RoostLogo from '@/components/shared/RoostLogo'
 import { motion, AnimatePresence } from 'framer-motion'
 
 // ─── Cookie helpers ───────────────────────────────────────────────────────────
@@ -97,19 +98,7 @@ function Step1({
     >
       {/* Logo block */}
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, marginBottom: 28 }}>
-        <div
-          style={{
-            width: 48,
-            height: 48,
-            borderRadius: 14,
-            backgroundColor: '#EF4444',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}
-        >
-          <Home size={26} color="#fff" />
-        </div>
+        <RoostLogo size="lg" wordmark={false} />
         <p style={{ fontSize: 22, fontWeight: 900, color: '#1A0505', margin: 0 }}>Roost</p>
       </div>
 
@@ -216,19 +205,7 @@ function Step2({
     >
       {/* Logo block */}
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, marginBottom: 28 }}>
-        <div
-          style={{
-            width: 48,
-            height: 48,
-            borderRadius: 14,
-            backgroundColor: '#EF4444',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}
-        >
-          <Home size={26} color="#fff" />
-        </div>
+        <RoostLogo size="lg" wordmark={false} />
         <p style={{ fontSize: 22, fontWeight: 900, color: '#1A0505', margin: 0 }}>Roost</p>
       </div>
 
@@ -398,19 +375,7 @@ function Step3({
     >
       {/* Logo block */}
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, marginBottom: 28 }}>
-        <div
-          style={{
-            width: 48,
-            height: 48,
-            borderRadius: 14,
-            backgroundColor: '#EF4444',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}
-        >
-          <Home size={26} color="#fff" />
-        </div>
+        <RoostLogo size="lg" wordmark={false} />
         <p style={{ fontSize: 22, fontWeight: 900, color: '#1A0505', margin: 0 }}>Roost</p>
       </div>
 

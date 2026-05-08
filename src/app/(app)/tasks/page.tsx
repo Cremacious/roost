@@ -365,8 +365,8 @@ export default function TasksPage() {
       if (!r.ok) throw new Error('Failed to load tasks')
       return r.json() as Promise<{ tasks: Task[]; pendingDelegations: PendingDelegation[] }>
     },
-    staleTime: 10_000,
-    refetchInterval: 10_000,
+    staleTime: 30_000,
+    refetchInterval: 60_000,
   })
 
   const { data: projectsData } = useQuery({

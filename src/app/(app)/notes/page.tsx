@@ -125,8 +125,8 @@ export default function NotesPage() {
       if (!r.ok) throw new Error('Failed')
       return r.json() as Promise<{ notes: Note[] }>
     },
-    staleTime: 10_000,
-    refetchInterval: 10_000,
+    staleTime: 30_000,
+    refetchInterval: 60_000,
   })
 
   const { data: householdData } = useQuery({

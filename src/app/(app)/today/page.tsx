@@ -56,7 +56,7 @@ export default function TodayPage() {
       if (!res.ok) throw new Error('Failed to load today data')
       return res.json()
     },
-    refetchInterval: 10_000,
+    refetchInterval: 30_000,
   })
 
   const completeMutation = useMutation({

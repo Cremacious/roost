@@ -1,0 +1,21 @@
+{
+  "version": 1,
+  "kind": "html",
+  "title": "Roost — Money Page Mockup",
+  "entry": "money-page-mockup.html",
+  "renderer": "html",
+  "status": "complete",
+  "exports": [
+    "html",
+    "pdf",
+    "zip"
+  ],
+  "createdAt": "2026-05-08T00:44:22.347Z",
+  "updatedAt": "2026-05-08T00:44:22.364Z",
+  "sourceSkillId": "blog-post",
+  "metadata": {
+    "identifier": "money-page-mockup",
+    "artifactType": "text/html",
+    "inferred": false
+  }
+}

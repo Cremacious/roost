@@ -1,0 +1,410 @@
+
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Roost — Meals</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@600;700;800;900&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  font-family: 'Nunito', system-ui, -apple-system, sans-serif;
+  background: #f9fafb;
+  color: #111827;
+  -webkit-font-smoothing: antialiased;
+  min-height: 100vh;
+}
+:root {
+  --orange: #F97316; --orange-dark: #C4581A; --orange-light: #FFEDD5; --orange-50: #FFF7ED;
+  --green: #22C55E; --green-dark: #15803D; --green-light: #DCFCE7;
+  --red: #EF4444; --red-light: #FEE2E2;
+  --amber: #F59E0B; --amber-light: #FEF3C7;
+  --blue: #3B82F6; --blue-light: #DBEAFE;
+  --purple: #A855F7; --purple-light: #F3E8FF;
+  --cyan: #06B6D4; --cyan-light: #CFFAFE;
+  --pink: #EC4899; --pink-light: #FCE7F3;
+  --white: #ffffff; --gray-50: #F9FAFB; --gray-100: #F3F4F6; --gray-200: #E5E7EB;
+  --gray-300: #D1D5DB; --gray-400: #9CA3AF; --gray-500: #6B7280; --gray-600: #4B5563;
+  --gray-700: #374151; --gray-800: #1F2937; --gray-900: #111827;
+  --surface: #ffffff; --border: #e5e7eb; --border-bottom: #d1d5db;
+}
+.app-shell { max-width: 480px; margin: 0 auto; min-height: 100vh; background: var(--gray-50); position: relative; overflow-x: hidden; }
+.topbar { display: flex; align-items: center; justify-content: space-between; padding: 16px 16px 12px; background: var(--white); border-bottom: 1px solid var(--gray-100); position: sticky; top: 0; z-index: 10; }
+.topbar-left { display: flex; align-items: center; gap: 10px; }
+.topbar-icon { width: 36px; height: 36px; border-radius: 10px; background: var(--orange-light); display: flex; align-items: center; justify-content: center; }
+.topbar-text h1 { font-size: 20px; font-weight: 900; color: var(--gray-900); line-height: 1.1; }
+.topbar-text p { font-size: 12px; font-weight: 600; color: var(--gray-500); }
+.topbar-btn { width: 36px; height: 36px; border-radius: 10px; border: none; background: var(--orange); border-bottom: 3px solid var(--orange-dark); display: flex; align-items: center; justify-content: center; cursor: pointer; transition: transform 0.15s; }
+.topbar-btn:active { transform: translateY(1px); }
+.tabs { display: flex; gap: 6px; padding: 12px 16px; background: var(--white); border-bottom: 1px solid var(--gray-100); }
+.tab-pill { padding: 8px 16px; border-radius: 12px; font-size: 13px; font-weight: 800; border: none; border-bottom: 3px solid var(--border-bottom); background: var(--surface); color: var(--gray-700); cursor: pointer; font-family: inherit; transition: all 0.15s; }
+.tab-pill:active { transform: translateY(1px); }
+.tab-pill.active { background: var(--orange); color: white; border-bottom-color: var(--orange-dark); }
+.page-content { padding: 16px; padding-bottom: 100px; }
+.tab-panel { display: none; }
+.tab-panel.active { display: block; }
+.week-nav { display: flex; align-items: center; gap: 8px; margin-bottom: 14px; }
+.week-nav-btn { width: 36px; height: 36px; border-radius: 10px; border: 1.5px solid var(--border); border-bottom: 3px solid var(--border-bottom); background: var(--surface); display: flex; align-items: center; justify-content: center; cursor: pointer; font-family: inherit; font-size: 16px; font-weight: 700; color: var(--gray-500); }
+.week-nav-label { flex: 1; text-align: center; font-size: 14px; font-weight: 800; color: var(--gray-900); }
+.today-hero { background: linear-gradient(135deg, var(--orange) 0%, #EA580C 100%); border-radius: 16px; padding: 18px 16px; margin-bottom: 14px; position: relative; overflow: hidden; }
+.today-hero::before { content: ''; position: absolute; top: -30px; right: -30px; width: 120px; height: 120px; border-radius: 50%; background: rgba(255,255,255,0.08); }
+.today-hero-label { font-size: 11px; font-weight: 800; color: rgba(255,255,255,0.7); letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 6px; }
+.today-hero-title { font-size: 20px; font-weight: 900; color: white; margin-bottom: 12px; line-height: 1.15; }
+.today-slots { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; position: relative; z-index: 1; }
+.today-slot { background: rgba(255,255,255,0.15); backdrop-filter: blur(8px); border-radius: 10px; padding: 8px 10px; text-align: center; cursor: pointer; transition: background 0.15s; }
+.today-slot:hover { background: rgba(255,255,255,0.25); }
+.today-slot-type { font-size: 9px; font-weight: 800; color: rgba(255,255,255,0.6); letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 3px; }
+.today-slot-meal { font-size: 11px; font-weight: 800; color: white; line-height: 1.2; }
+.today-slot-empty { font-size: 11px; font-weight: 600; color: rgba(255,255,255,0.4); font-style: italic; }
+.day-card { background: var(--surface); border: 1.5px solid var(--border); border-bottom: 4px solid var(--border-bottom); border-radius: 16px; margin-bottom: 10px; overflow: hidden; }
+.day-card.today { border-bottom-color: var(--orange-dark); }
+.day-card-header { display: flex; align-items: center; gap: 10px; padding: 12px 14px; border-bottom: 1px solid var(--gray-100); }
+.day-num { width: 32px; height: 32px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 900; background: var(--gray-50); color: var(--gray-700); }
+.day-card.today .day-num { background: var(--orange); color: white; }
+.day-name { font-size: 15px; font-weight: 800; color: var(--gray-900); }
+.day-planned { margin-left: auto; font-size: 11px; font-weight: 700; color: var(--orange); background: var(--orange-light); padding: 2px 8px; border-radius: 6px; }
+.day-slots { padding: 6px 14px 10px; }
+.slot-row { display: flex; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--gray-100); cursor: pointer; gap: 10px; }
+.slot-row:last-child { border-bottom: none; }
+.slot-label { font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; color: var(--gray-400); width: 70px; flex-shrink: 0; }
+.slot-meal { font-size: 13px; font-weight: 800; color: var(--gray-900); }
+.slot-empty { font-size: 13px; font-weight: 600; color: var(--gray-400); }
+.slot-badge { margin-left: auto; display: flex; align-items: center; gap: 4px; font-size: 10px; font-weight: 800; color: var(--orange); background: var(--orange-light); padding: 2px 8px; border-radius: 6px; }
+.slot-grocery-btn { margin-left: auto; width: 28px; height: 28px; border-radius: 8px; border: none; background: var(--orange-light); display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0; }
+.bank-search { position: relative; margin-bottom: 10px; }
+.bank-search input { width: 100%; height: 44px; border: 1.5px solid var(--border); border-bottom: 3px solid var(--border-bottom); border-radius: 12px; padding: 0 14px 0 36px; font-size: 14px; font-weight: 700; color: var(--gray-900); background: var(--surface); font-family: inherit; outline: none; }
+.bank-search input::placeholder { color: var(--gray-400); }
+.bank-search svg { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); }
+.cat-pills { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 14px; }
+.cat-pill { padding: 6px 14px; border-radius: 10px; font-size: 12px; font-weight: 800; border: none; border-bottom: 2px solid var(--border-bottom); background: var(--surface); color: var(--gray-500); cursor: pointer; font-family: inherit; }
+.cat-pill.active { background: var(--orange); color: white; border-bottom-color: var(--orange-dark); }
+.meal-card { background: var(--surface); border: 1.5px solid var(--border); border-bottom: 4px solid var(--orange-dark); border-radius: 16px; padding: 14px; margin-bottom: 10px; }
+.meal-card-top { display: flex; align-items: flex-start; gap: 12px; }
+.meal-card-info { flex: 1; min-width: 0; }
+.meal-card-name { font-size: 15px; font-weight: 800; color: var(--gray-900); margin-bottom: 2px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.meal-cat-badge { font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; color: var(--orange); background: var(--orange-light); padding: 2px 7px; border-radius: 6px; flex-shrink: 0; }
+.meal-meta { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 3px; }
+.meal-meta-item { display: flex; align-items: center; gap: 4px; font-size: 12px; font-weight: 700; color: var(--gray-400); }
+.meal-desc { font-size: 12px; font-weight: 600; color: var(--gray-500); line-height: 1.4; margin-top: 6px; }
+.meal-ingredients { display: flex; gap: 4px; flex-wrap: wrap; margin-top: 8px; }
+.meal-ing-chip { font-size: 11px; font-weight: 700; color: var(--gray-600); background: var(--gray-50); border: 1px solid var(--gray-200); padding: 3px 8px; border-radius: 6px; }
+.meal-actions { display: flex; gap: 4px; flex-shrink: 0; }
+.meal-action-btn { width: 34px; height: 34px; border-radius: 9px; border: none; background: var(--gray-50); cursor: pointer; display: flex; align-items: center; justify-content: center; }
+.bank-stats { display: flex; gap: 8px; margin-bottom: 14px; }
+.bank-stat { flex: 1; background: var(--surface); border: 1.5px solid var(--border); border-bottom: 3px solid var(--border-bottom); border-radius: 12px; padding: 10px; text-align: center; }
+.bank-stat-num { font-size: 18px; font-weight: 900; color: var(--orange); }
+.bank-stat-label { font-size: 10px; font-weight: 700; color: var(--gray-400); letter-spacing: 0.05em; }
+.suggest-banner { background: var(--orange-light); border: 1.5px solid var(--orange); border-bottom: 4px solid var(--orange-dark); border-radius: 16px; padding: 14px 16px; margin-bottom: 14px; display: flex; align-items: center; gap: 12px; }
+.suggest-banner-icon { width: 40px; height: 40px; border-radius: 12px; background: var(--orange); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.suggest-banner-text { flex: 1; }
+.suggest-banner-title { font-size: 14px; font-weight: 800; color: var(--gray-900); margin-bottom: 2px; }
+.suggest-banner-desc { font-size: 12px; font-weight: 600; color: var(--gray-600); }
+.suggest-banner-btn { padding: 8px 14px; border-radius: 10px; background: var(--orange); border: none; border-bottom: 3px solid var(--orange-dark); font-size: 12px; font-weight: 800; color: white; cursor: pointer; font-family: inherit; white-space: nowrap; }
+.suggestion-card { background: var(--surface); border: 1.5px solid var(--border); border-bottom: 4px solid var(--orange-dark); border-radius: 16px; padding: 14px; margin-bottom: 10px; }
+.suggestion-top { display: flex; align-items: flex-start; gap: 10px; }
+.suggestion-info { flex: 1; min-width: 0; }
+.suggestion-badges { display: flex; gap: 4px; flex-wrap: wrap; margin-bottom: 4px; }
+.suggestion-badge { display: flex; align-items: center; gap: 4px; font-size: 10px; font-weight: 800; padding: 2px 8px; border-radius: 6px; }
+.suggestion-name { font-size: 15px; font-weight: 800; color: var(--gray-900); margin-bottom: 2px; }
+.suggestion-target { font-size: 12px; font-weight: 700; color: var(--gray-400); margin-bottom: 4px; }
+.suggestion-note { font-size: 12px; font-weight: 600; color: var(--gray-500); margin-bottom: 4px; }
+.suggestion-by { font-size: 11px; font-weight: 700; color: var(--gray-400); }
+.suggestion-ing { display: flex; gap: 4px; flex-wrap: wrap; margin-top: 6px; }
+.suggestion-ing-chip { font-size: 11px; font-weight: 700; color: var(--gray-600); background: var(--gray-50); padding: 2px 8px; border-radius: 6px; }
+.vote-col { display: flex; flex-direction: column; align-items: center; gap: 4px; flex-shrink: 0; }
+.vote-btn { width: 36px; height: 36px; border-radius: 10px; border: 1.5px solid var(--border); border-bottom: 2px solid var(--border-bottom); background: var(--surface); cursor: pointer; display: flex; align-items: center; justify-content: center; }
+.vote-btn.active-up { background: var(--orange); border-color: var(--orange); border-bottom-color: var(--orange-dark); }
+.vote-btn.active-down { background: var(--red-light); border-color: var(--red); border-bottom-color: #DC2626; }
+.vote-count { font-size: 13px; font-weight: 800; }
+.admin-actions { display: flex; gap: 8px; margin-top: 12px; border-top: 1px solid var(--gray-100); padding-top: 10px; }
+.admin-btn { flex: 1; padding: 9px 0; border-radius: 10px; font-size: 13px; font-weight: 800; border: none; cursor: pointer; font-family: inherit; }
+.admin-btn.approve { background: var(--orange); color: white; border-bottom: 2px solid var(--orange-dark); }
+.admin-btn.reject { background: var(--surface); color: var(--red); border: 1.5px solid var(--border); border-bottom: 2px solid var(--border-bottom); }
+.bottom-nav { position: fixed; bottom: 0; left: 50%; transform: translateX(-50%); width: 100%; max-width: 480px; background: var(--white); border-top: 1px solid var(--gray-200); display: flex; justify-content: space-around; padding: 8px 0 20px; z-index: 20; }
+.nav-item { display: flex; flex-direction: column; align-items: center; gap: 2px; font-size: 10px; font-weight: 700; color: var(--gray-400); cursor: pointer; padding: 4px 12px; }
+.nav-item.active { color: var(--orange); }
+.nav-item svg { width: 22px; height: 22px; }
+.fade-in { opacity: 0; transform: translateY(20px); transition: opacity 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1); }
+.fade-in.visible { opacity: 1; transform: translateY(0); }
+.stagger-1 { transition-delay: 0.05s; } .stagger-2 { transition-delay: 0.1s; } .stagger-3 { transition-delay: 0.15s; }
+.stagger-4 { transition-delay: 0.2s; } .stagger-5 { transition-delay: 0.25s; } .stagger-6 { transition-delay: 0.3s; }
+@media (min-width: 520px) { body { background: #e5e7eb; } .app-shell { margin-top: 24px; margin-bottom: 24px; border-radius: 24px; overflow: hidden; box-shadow: 0 8px 32px rgba(0,0,0,0.12); min-height: calc(100vh - 48px); } .bottom-nav { border-radius: 0 0 24px 24px; } }
+</style>
+</head>
+<body>
+<div class="app-shell">
+  <div class="topbar">
+    <div class="topbar-left">
+      <div class="topbar-icon">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--orange)" stroke-width="2.5" stroke-linecap="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+      </div>
+      <div class="topbar-text">
+        <h1>Meals</h1>
+        <p id="topbar-sub">Weekly planner</p>
+      </div>
+    </div>
+    <button class="topbar-btn" aria-label="Add">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+    </button>
+  </div>
+  <div class="tabs">
+    <button class="tab-pill active" data-tab="planner" onclick="switchTab('planner')">Planner</button>
+    <button class="tab-pill" data-tab="bank" onclick="switchTab('bank')">Meal Bank</button>
+    <button class="tab-pill" data-tab="suggestions" onclick="switchTab('suggestions')">Suggestions</button>
+  </div>
+  <div class="page-content">
+    <div class="tab-panel active" id="panel-planner">
+      <div class="week-nav fade-in">
+        <button class="week-nav-btn">&lsaquo;</button>
+        <span class="week-nav-label">May 5 (This week)</span>
+        <button class="week-nav-btn">&rsaquo;</button>
+      </div>
+      <div class="today-hero fade-in stagger-1">
+        <div class="today-hero-label">Today — Wednesday, May 7</div>
+        <div class="today-hero-title">3 of 4 meals planned</div>
+        <div class="today-slots">
+          <div class="today-slot"><div class="today-slot-type">Breakfast</div><div class="today-slot-meal">Oatmeal</div></div>
+          <div class="today-slot"><div class="today-slot-type">Lunch</div><div class="today-slot-meal">Turkey wraps</div></div>
+          <div class="today-slot"><div class="today-slot-type">Dinner</div><div class="today-slot-meal">Chicken stir fry</div></div>
+          <div class="today-slot"><div class="today-slot-type">Snack</div><div class="today-slot-empty">Tap to plan</div></div>
+        </div>
+      </div>
+      <div class="day-card fade-in stagger-2">
+        <div class="day-card-header"><div class="day-num">5</div><span class="day-name">Monday</span><span class="day-planned">4 planned</span></div>
+        <div class="day-slots">
+          <div class="slot-row"><span class="slot-label">Breakfast</span><span class="slot-meal">Smoothie bowls</span><div class="slot-grocery-btn"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--orange)" stroke-width="2.5" stroke-linecap="round"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 002 1.61h9.72a2 2 0 002-1.61L23 6H6"/></svg></div></div>
+          <div class="slot-row"><span class="slot-label">Lunch</span><span class="slot-meal">Leftover pasta</span></div>
+          <div class="slot-row"><span class="slot-label">Dinner</span><span class="slot-meal">Taco Tuesday prep</span><span class="slot-badge"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 002 1.61h9.72a2 2 0 002-1.61L23 6H6"/></svg>4 items</span></div>
+          <div class="slot-row"><span class="slot-label">Snack</span><span class="slot-meal">Apple slices + PB</span></div>
+        </div>
+      </div>
+      <div class="day-card fade-in stagger-3">
+        <div class="day-card-header"><div class="day-num">6</div><span class="day-name">Tuesday</span><span class="day-planned">3 planned</span></div>
+        <div class="day-slots">
+          <div class="slot-row"><span class="slot-label">Breakfast</span><span class="slot-meal">Scrambled eggs</span></div>
+          <div class="slot-row"><span class="slot-label">Lunch</span><span class="slot-empty">Tap to plan</span></div>
+          <div class="slot-row"><span class="slot-label">Dinner</span><span class="slot-meal">Taco Tuesday</span><span class="slot-badge" style="background: var(--green-light); color: var(--green-dark);"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>Family fav</span></div>
+          <div class="slot-row"><span class="slot-label">Snack</span><span class="slot-meal">Trail mix</span></div>
+        </div>
+      </div>
+      <div class="day-card today fade-in stagger-4">
+        <div class="day-card-header"><div class="day-num">7</div><span class="day-name">Today</span><span class="day-planned">3 planned</span></div>
+        <div class="day-slots">
+          <div class="slot-row"><span class="slot-label">Breakfast</span><span class="slot-meal">Oatmeal</span></div>
+          <div class="slot-row"><span class="slot-label">Lunch</span><span class="slot-meal">Turkey wraps</span></div>
+          <div class="slot-row"><span class="slot-label">Dinner</span><span class="slot-meal">Chicken stir fry</span><div class="slot-grocery-btn"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--orange)" stroke-width="2.5" stroke-linecap="round"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 002 1.61h9.72a2 2 0 002-1.61L23 6H6"/></svg></div></div>
+          <div class="slot-row"><span class="slot-label">Snack</span><span class="slot-empty">Tap to plan</span></div>
+        </div>
+      </div>
+      <div class="day-card fade-in stagger-5">
+        <div class="day-card-header"><div class="day-num">8</div><span class="day-name">Thursday</span></div>
+        <div class="day-slots">
+          <div class="slot-row"><span class="slot-label">Breakfast</span><span class="slot-empty">Tap to plan</span></div>
+          <div class="slot-row"><span class="slot-label">Lunch</span><span class="slot-empty">Tap to plan</span></div>
+          <div class="slot-row"><span class="slot-label">Dinner</span><span class="slot-meal">Pasta night</span></div>
+          <div class="slot-row"><span class="slot-label">Snack</span><span class="slot-empty">Tap to plan</span></div>
+        </div>
+      </div>
+      <div class="day-card fade-in stagger-6">
+        <div class="day-card-header"><div class="day-num">9</div><span class="day-name">Friday</span></div>
+        <div class="day-slots">
+          <div class="slot-row"><span class="slot-label">Breakfast</span><span class="slot-empty">Tap to plan</span></div>
+          <div class="slot-row"><span class="slot-label">Lunch</span><span class="slot-empty">Tap to plan</span></div>
+          <div class="slot-row"><span class="slot-label">Dinner</span><span class="slot-meal">Pizza night</span><span class="slot-badge" style="background: var(--amber-light); color: #92400E;"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M16 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="8.5" cy="7" r="4"/></svg>Suggested</span></div>
+          <div class="slot-row"><span class="slot-label">Snack</span><span class="slot-empty">Tap to plan</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="tab-panel" id="panel-bank">
+      <div class="bank-stats fade-in">
+        <div class="bank-stat"><div class="bank-stat-num">14</div><div class="bank-stat-label">TOTAL</div></div>
+        <div class="bank-stat"><div class="bank-stat-num">5</div><div class="bank-stat-label">DINNER</div></div>
+        <div class="bank-stat"><div class="bank-stat-num">4</div><div class="bank-stat-label">LUNCH</div></div>
+        <div class="bank-stat"><div class="bank-stat-num">3</div><div class="bank-stat-label">BREAKFAST</div></div>
+      </div>
+      <div class="bank-search fade-in stagger-1">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--gray-400)" stroke-width="2.5" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input type="text" placeholder="Search your meal bank...">
+      </div>
+      <div class="cat-pills fade-in stagger-1">
+        <button class="cat-pill active">All</button><button class="cat-pill">Breakfast</button><button class="cat-pill">Lunch</button><button class="cat-pill">Dinner</button><button class="cat-pill">Snack</button>
+      </div>
+      <div class="meal-card fade-in stagger-2">
+        <div class="meal-card-top">
+          <div class="meal-card-info">
+            <div class="meal-card-name">Chicken Stir Fry <span class="meal-cat-badge">Dinner</span></div>
+            <div class="meal-meta"><span class="meal-meta-item"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>25 min</span><span class="meal-meta-item">6 ingredients</span><span class="meal-meta-item" style="color: var(--orange);">Planned Wed</span></div>
+            <div class="meal-ingredients"><span class="meal-ing-chip">Chicken thighs</span><span class="meal-ing-chip">Soy sauce</span><span class="meal-ing-chip">Broccoli</span><span class="meal-ing-chip">+3 more</span></div>
+          </div>
+          <div class="meal-actions">
+            <button class="meal-action-btn"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--orange)" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button>
+            <button class="meal-action-btn"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--gray-500)" stroke-width="2.5" stroke-linecap="round"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 002 1.61h9.72a2 2 0 002-1.61L23 6H6"/></svg></button>
+            <button class="meal-action-btn"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--gray-500)" stroke-width="2.5" stroke-linecap="round"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
+          </div>
+        </div>
+      </div>
+      <div class="meal-card fade-in stagger-3">
+        <div class="meal-card-top">
+          <div class="meal-card-info">
+            <div class="meal-card-name">Taco Tuesday <span class="meal-cat-badge">Dinner</span></div>
+            <div class="meal-meta"><span class="meal-meta-item"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>30 min</span><span class="meal-meta-item">8 ingredients</span></div>
+            <p class="meal-desc">Ground beef tacos with homemade pico, sour cream, shredded cheddar. Kids love it.</p>
+            <div class="meal-ingredients"><span class="meal-ing-chip">Ground beef</span><span class="meal-ing-chip">Taco shells</span><span class="meal-ing-chip">Cheddar</span><span class="meal-ing-chip">Tomatoes</span><span class="meal-ing-chip">+4 more</span></div>
+          </div>
+          <div class="meal-actions">
+            <button class="meal-action-btn"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--orange)" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button>
+            <button class="meal-action-btn"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--gray-500)" stroke-width="2.5" stroke-linecap="round"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 002 1.61h9.72a2 2 0 002-1.61L23 6H6"/></svg></button>
+            <button class="meal-action-btn"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--gray-500)" stroke-width="2.5" stroke-linecap="round"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
+          </div>
+        </div>
+      </div>
+      <div class="meal-card fade-in stagger-4">
+        <div class="meal-card-top">
+          <div class="meal-card-info">
+            <div class="meal-card-name">Smoothie Bowls <span class="meal-cat-badge" style="color: var(--blue); background: var(--blue-light);">Breakfast</span></div>
+            <div class="meal-meta"><span class="meal-meta-item"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>10 min</span><span class="meal-meta-item">5 ingredients</span></div>
+            <div class="meal-ingredients"><span class="meal-ing-chip">Frozen berries</span><span class="meal-ing-chip">Banana</span><span class="meal-ing-chip">Yogurt</span><span class="meal-ing-chip">Granola</span><span class="meal-ing-chip">Honey</span></div>
+          </div>
+          <div class="meal-actions">
+            <button class="meal-action-btn"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--orange)" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button>
+            <button class="meal-action-btn"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--gray-500)" stroke-width="2.5" stroke-linecap="round"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 002 1.61h9.72a2 2 0 002-1.61L23 6H6"/></svg></button>
+            <button class="meal-action-btn"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--gray-500)" stroke-width="2.5" stroke-linecap="round"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
+          </div>
+        </div>
+      </div>
+      <div class="meal-card fade-in stagger-5">
+        <div class="meal-card-top">
+          <div class="meal-card-info">
+            <div class="meal-card-name">Turkey Wraps <span class="meal-cat-badge" style="color: var(--green-dark); background: var(--green-light);">Lunch</span></div>
+            <div class="meal-meta"><span class="meal-meta-item"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>15 min</span><span class="meal-meta-item">4 ingredients</span><span class="meal-meta-item" style="color: var(--orange);">Planned Wed</span></div>
+          </div>
+          <div class="meal-actions">
+            <button class="meal-action-btn"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--orange)" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button>
+            <button class="meal-action-btn"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--gray-500)" stroke-width="2.5" stroke-linecap="round"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
+          </div>
+        </div>
+      </div>
+      <div class="meal-card fade-in stagger-6">
+        <div class="meal-card-top">
+          <div class="meal-card-info">
+            <div class="meal-card-name">Pasta Night <span class="meal-cat-badge">Dinner</span></div>
+            <div class="meal-meta"><span class="meal-meta-item"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>20 min</span><span class="meal-meta-item">5 ingredients</span></div>
+            <p class="meal-desc">Penne with marinara, Italian sausage, garlic bread on the side.</p>
+          </div>
+          <div class="meal-actions">
+            <button class="meal-action-btn"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--orange)" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button>
+            <button class="meal-action-btn"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--gray-500)" stroke-width="2.5" stroke-linecap="round"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 002 1.61h9.72a2 2 0 002-1.61L23 6H6"/></svg></button>
+            <button class="meal-action-btn"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--gray-500)" stroke-width="2.5" stroke-linecap="round"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="tab-panel" id="panel-suggestions">
+      <div class="suggest-banner fade-in">
+        <div class="suggest-banner-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/></svg></div>
+        <div class="suggest-banner-text"><div class="suggest-banner-title">What should we eat?</div><div class="suggest-banner-desc">Suggest a meal for the household to vote on.</div></div>
+        <button class="suggest-banner-btn">Suggest</button>
+      </div>
+      <div class="suggestion-card fade-in stagger-1">
+        <div class="suggestion-top">
+          <div class="suggestion-info">
+            <div class="suggestion-badges"><span class="suggestion-badge" style="background: var(--amber-light); color: #92400E;"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>Top pick</span></div>
+            <div class="suggestion-name">Homemade Pizza</div>
+            <div class="suggestion-target">Fri, May 9 — Dinner</div>
+            <div class="suggestion-note">"Let the kids pick their own toppings! Way cheaper than ordering."</div>
+            <div class="suggestion-ing"><span class="suggestion-ing-chip">Pizza dough</span><span class="suggestion-ing-chip">Mozzarella</span><span class="suggestion-ing-chip">Marinara</span><span class="suggestion-ing-chip">Pepperoni</span></div>
+            <div class="suggestion-by" style="margin-top: 6px;">Suggested by Sarah</div>
+          </div>
+          <div class="vote-col">
+            <button class="vote-btn active-up"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round"><path d="M14 9V5a3 3 0 00-3-3l-4 9v11h11.28a2 2 0 002-1.7l1.38-9a2 2 0 00-2-2.3H14z"/></svg></button>
+            <span class="vote-count" style="color: var(--orange);">4</span>
+            <button class="vote-btn"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--gray-400)" stroke-width="2.5" stroke-linecap="round"><path d="M10 15V19a3 3 0 003 3l4-9V2H5.72a2 2 0 00-2 1.7l-1.38 9a2 2 0 002 2.3H10z"/></svg></button>
+          </div>
+        </div>
+        <div class="admin-actions"><button class="admin-btn approve">Add to bank</button><button class="admin-btn reject">Reject</button></div>
+      </div>
+      <div class="suggestion-card fade-in stagger-2">
+        <div class="suggestion-top">
+          <div class="suggestion-info">
+            <div class="suggestion-name">Grilled Salmon</div>
+            <div class="suggestion-target">Sat, May 10 — Dinner</div>
+            <div class="suggestion-note">"With lemon butter and roasted asparagus. Healthy night."</div>
+            <div class="suggestion-ing"><span class="suggestion-ing-chip">Salmon fillets</span><span class="suggestion-ing-chip">Lemon</span><span class="suggestion-ing-chip">Asparagus</span></div>
+            <div class="suggestion-by" style="margin-top: 6px;">Suggested by Mom</div>
+          </div>
+          <div class="vote-col">
+            <button class="vote-btn"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--gray-400)" stroke-width="2.5" stroke-linecap="round"><path d="M14 9V5a3 3 0 00-3-3l-4 9v11h11.28a2 2 0 002-1.7l1.38-9a2 2 0 00-2-2.3H14z"/></svg></button>
+            <span class="vote-count" style="color: var(--orange);">2</span>
+            <button class="vote-btn"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--gray-400)" stroke-width="2.5" stroke-linecap="round"><path d="M10 15V19a3 3 0 003 3l4-9V2H5.72a2 2 0 00-2 1.7l-1.38 9a2 2 0 002 2.3H10z"/></svg></button>
+          </div>
+        </div>
+        <div class="admin-actions"><button class="admin-btn approve">Add to bank</button><button class="admin-btn reject">Reject</button></div>
+      </div>
+      <div class="suggestion-card fade-in stagger-3">
+        <div class="suggestion-top">
+          <div class="suggestion-info">
+            <div class="suggestion-badges"><span class="suggestion-badge" style="background: var(--orange-light); color: var(--orange);"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M19 21l-7-5-7 5V5a2 2 0 012-2h10a2 2 0 012 2z"/></svg>In meal bank</span></div>
+            <div class="suggestion-name">BBQ Chicken Quesadillas</div>
+            <div class="suggestion-target">Sun, May 11 — Lunch</div>
+            <div class="suggestion-ing"><span class="suggestion-ing-chip">Rotisserie chicken</span><span class="suggestion-ing-chip">BBQ sauce</span><span class="suggestion-ing-chip">Tortillas</span></div>
+            <div class="suggestion-by" style="margin-top: 6px;">Suggested by Jake</div>
+          </div>
+          <div class="vote-col">
+            <button class="vote-btn"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--gray-400)" stroke-width="2.5" stroke-linecap="round"><path d="M14 9V5a3 3 0 00-3-3l-4 9v11h11.28a2 2 0 002-1.7l1.38-9a2 2 0 00-2-2.3H14z"/></svg></button>
+            <span class="vote-count" style="color: var(--gray-400);">1</span>
+            <button class="vote-btn active-down"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#DC2626" stroke-width="2.5" stroke-linecap="round"><path d="M10 15V19a3 3 0 003 3l4-9V2H5.72a2 2 0 00-2 1.7l-1.38 9a2 2 0 002 2.3H10z"/></svg></button>
+          </div>
+        </div>
+      </div>
+      <div class="suggestion-card fade-in stagger-4">
+        <div class="suggestion-top">
+          <div class="suggestion-info">
+            <div class="suggestion-name">Mac &amp; Cheese (from scratch)</div>
+            <div class="suggestion-target">Thu, May 8 — Dinner</div>
+            <div class="suggestion-note">"Emma's been asking for this all week."</div>
+            <div class="suggestion-by" style="margin-top: 4px;">Suggested by Dad</div>
+          </div>
+          <div class="vote-col">
+            <button class="vote-btn"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--gray-400)" stroke-width="2.5" stroke-linecap="round"><path d="M14 9V5a3 3 0 00-3-3l-4 9v11h11.28a2 2 0 002-1.7l1.38-9a2 2 0 00-2-2.3H14z"/></svg></button>
+            <span class="vote-count" style="color: var(--orange);">3</span>
+            <button class="vote-btn"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--gray-400)" stroke-width="2.5" stroke-linecap="round"><path d="M10 15V19a3 3 0 003 3l4-9V2H5.72a2 2 0 00-2 1.7l-1.38 9a2 2 0 002 2.3H10z"/></svg></button>
+          </div>
+        </div>
+        <div class="admin-actions"><button class="admin-btn approve">Add to bank</button><button class="admin-btn reject">Reject</button></div>
+      </div>
+    </div>
+  </div>
+  <nav class="bottom-nav">
+    <div class="nav-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/></svg>Home</div>
+    <div class="nav-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>Calendar</div>
+    <div class="nav-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>Money</div>
+    <div class="nav-item active"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>Meals</div>
+    <div class="nav-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M12 1v6M12 17v6M4.22 4.22l4.24 4.24M15.54 15.54l4.24 4.24M1 12h6M17 12h6M4.22 19.78l4.24-4.24M15.54 8.46l4.24-4.24"/></svg>More</div>
+  </nav>
+</div>
+<script>
+function switchTab(tab) {
+  document.querySelectorAll('.tab-pill').forEach(function(el) { el.classList.remove('active'); });
+  document.querySelector('[data-tab="' + tab + '"]').classList.add('active');
+  document.querySelectorAll('.tab-panel').forEach(function(el) { el.classList.remove('active'); });
+  document.getElementById('panel-' + tab).classList.add('active');
+  var subs = { planner: 'Weekly planner', bank: '14 meals saved', suggestions: '4 suggestions' };
+  document.getElementById('topbar-sub').textContent = subs[tab] || '';
+  var panel = document.getElementById('panel-' + tab);
+  panel.querySelectorAll('.fade-in').forEach(function(el) {
+    el.classList.remove('visible');
+    void el.offsetWidth;
+    observer.observe(el);
+  });
+}
+var observer = new IntersectionObserver(function(entries) {
+  entries.forEach(function(entry) { if (entry.isIntersecting) entry.target.classList.add('visible'); });
+}, { threshold: 0.1, rootMargin: '0px 0px -20px 0px' });
+document.querySelectorAll('.fade-in').forEach(function(el) { observer.observe(el); });
+</script>
+</body>
+</html>

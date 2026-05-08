@@ -1,0 +1,21 @@
+{
+  "version": 1,
+  "kind": "html",
+  "title": "Roost — One App. No Excuses.",
+  "entry": "roost-homepage-v2-3.html",
+  "renderer": "html",
+  "status": "complete",
+  "exports": [
+    "html",
+    "pdf",
+    "zip"
+  ],
+  "createdAt": "2026-05-07T22:20:41.085Z",
+  "updatedAt": "2026-05-07T22:20:41.094Z",
+  "sourceSkillId": "blog-post",
+  "metadata": {
+    "identifier": "roost-homepage-v2",
+    "artifactType": "text/html",
+    "inferred": false
+  }
+}

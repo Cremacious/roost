@@ -1,0 +1,21 @@
+{
+  "version": 1,
+  "kind": "html",
+  "title": "Roost — Meals Page Mockup",
+  "entry": "meals-page-mockup.html",
+  "renderer": "html",
+  "status": "complete",
+  "exports": [
+    "html",
+    "pdf",
+    "zip"
+  ],
+  "createdAt": "2026-05-08T00:57:57.009Z",
+  "updatedAt": "2026-05-08T00:57:57.025Z",
+  "sourceSkillId": "blog-post",
+  "metadata": {
+    "identifier": "meals-page-mockup",
+    "artifactType": "text/html",
+    "inferred": false
+  }
+}

@@ -1,0 +1,21 @@
+{
+  "version": 1,
+  "kind": "html",
+  "title": "Roost — Shopping Lists Page Mockup",
+  "entry": "lists-page-mockup.html",
+  "renderer": "html",
+  "status": "complete",
+  "exports": [
+    "html",
+    "pdf",
+    "zip"
+  ],
+  "createdAt": "2026-05-08T00:50:05.666Z",
+  "updatedAt": "2026-05-08T00:50:05.679Z",
+  "sourceSkillId": "blog-post",
+  "metadata": {
+    "identifier": "lists-page-mockup",
+    "artifactType": "text/html",
+    "inferred": false
+  }
+}

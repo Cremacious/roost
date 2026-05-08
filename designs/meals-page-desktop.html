@@ -1,0 +1,899 @@
+
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Roost — Meals</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@600;700;800;900&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  font-family: 'Nunito', system-ui, -apple-system, sans-serif;
+  background: #f3f4f6;
+  color: #111827;
+  -webkit-font-smoothing: antialiased;
+  min-height: 100vh;
+  display: flex;
+}
+:root {
+  --orange: #F97316; --orange-dark: #C4581A; --orange-light: #FFEDD5; --orange-50: #FFF7ED;
+  --green: #22C55E; --green-dark: #15803D; --green-light: #DCFCE7;
+  --red: #EF4444; --red-light: #FEE2E2; --red-dark: #B91C1C;
+  --amber: #F59E0B; --amber-light: #FEF3C7;
+  --blue: #3B82F6; --blue-light: #DBEAFE;
+  --purple: #A855F7; --purple-light: #F3E8FF;
+  --cyan: #06B6D4; --cyan-light: #CFFAFE;
+  --pink: #EC4899; --pink-light: #FCE7F3;
+  --white: #ffffff; --gray-50: #F9FAFB; --gray-100: #F3F4F6; --gray-200: #E5E7EB;
+  --gray-300: #D1D5DB; --gray-400: #9CA3AF; --gray-500: #6B7280; --gray-600: #4B5563;
+  --gray-700: #374151; --gray-800: #1F2937; --gray-900: #111827;
+  --surface: #ffffff; --border: #e5e7eb; --border-bottom: #d1d5db;
+}
+
+/* ── Sidebar ───────────────────────────────────────────── */
+.sidebar {
+  width: 220px;
+  background: var(--white);
+  border-right: 1px solid var(--gray-200);
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  position: fixed;
+  top: 0;
+  left: 0;
+  height: 100vh;
+  z-index: 20;
+}
+.sidebar-brand {
+  padding: 24px 20px 20px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border-bottom: 1px solid var(--gray-100);
+}
+.sidebar-logo {
+  width: 36px;
+  height: 36px;
+  background: var(--red);
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.sidebar-brand-text { font-size: 20px; font-weight: 900; color: var(--gray-900); }
+.sidebar-nav { padding: 12px 10px; flex: 1; }
+.sidebar-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 11px 14px;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--gray-500);
+  cursor: pointer;
+  transition: all 0.15s;
+  margin-bottom: 2px;
+  border: none;
+  background: none;
+  width: 100%;
+  text-align: left;
+  font-family: inherit;
+}
+.sidebar-item:hover { background: var(--gray-50); color: var(--gray-700); }
+.sidebar-item.active { background: var(--orange-light); color: var(--orange-dark); font-weight: 800; }
+.sidebar-item svg { width: 20px; height: 20px; flex-shrink: 0; }
+.sidebar-item .sidebar-badge {
+  margin-left: auto;
+  font-size: 11px;
+  font-weight: 800;
+  padding: 2px 8px;
+  border-radius: 8px;
+  background: var(--orange);
+  color: white;
+}
+.sidebar-bottom {
+  padding: 16px 10px;
+  border-top: 1px solid var(--gray-100);
+}
+.sidebar-user {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 14px;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.sidebar-user:hover { background: var(--gray-50); }
+.sidebar-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--orange);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 900;
+  color: white;
+}
+.sidebar-user-info { flex: 1; }
+.sidebar-user-name { font-size: 13px; font-weight: 800; color: var(--gray-900); }
+.sidebar-user-role { font-size: 11px; font-weight: 600; color: var(--gray-400); }
+
+/* ── Main ──────────────────────────────────────────────── */
+.main { flex: 1; margin-left: 220px; min-height: 100vh; }
+
+/* ── Top bar ───────────────────────────────────────────── */
+.topbar {
+  background: var(--white);
+  border-bottom: 1px solid var(--gray-200);
+  padding: 0 32px;
+  height: 64px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+.topbar-title { font-size: 22px; font-weight: 900; color: var(--gray-900); }
+.topbar-divider { width: 1px; height: 28px; background: var(--gray-200); }
+.tab-pills { display: flex; gap: 6px; }
+.tab-pill {
+  padding: 8px 18px;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 800;
+  border: 1.5px solid var(--border);
+  border-bottom: 3px solid var(--border-bottom);
+  background: var(--surface);
+  color: var(--gray-500);
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.15s;
+}
+.tab-pill:hover { color: var(--gray-700); background: var(--gray-50); }
+.tab-pill.active { background: var(--orange); color: white; border-color: var(--orange); border-bottom-color: var(--orange-dark); }
+.topbar-spacer { flex: 1; }
+.topbar-search {
+  position: relative;
+  width: 240px;
+}
+.topbar-search input {
+  width: 100%;
+  height: 38px;
+  border: 1.5px solid var(--border);
+  border-radius: 10px;
+  padding: 0 14px 0 34px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--gray-900);
+  background: var(--gray-50);
+  font-family: inherit;
+  outline: none;
+}
+.topbar-search input::placeholder { color: var(--gray-400); }
+.topbar-search input:focus { border-color: var(--orange); background: var(--white); }
+.topbar-search svg { position: absolute; left: 11px; top: 50%; transform: translateY(-50%); }
+.topbar-action {
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  background: var(--orange);
+  border: none;
+  border-bottom: 3px solid var(--orange-dark);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: transform 0.15s;
+}
+.topbar-action:active { transform: translateY(1px); }
+
+/* ── Content ───────────────────────────────────────────── */
+.content { padding: 28px 32px; }
+.tab-panel { display: none; }
+.tab-panel.active { display: block; }
+
+/* ── Planner Tab ───────────────────────────────────────── */
+.week-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+.week-bar-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  border: 1.5px solid var(--border);
+  border-bottom: 3px solid var(--border-bottom);
+  background: var(--surface);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--gray-500);
+}
+.week-bar-label { font-size: 16px; font-weight: 800; color: var(--gray-900); }
+.week-bar-spacer { flex: 1; }
+.week-bar-stat {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--gray-500);
+  padding: 6px 14px;
+  border-radius: 10px;
+  background: var(--orange-light);
+  color: var(--orange-dark);
+}
+.week-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 10px;
+  margin-bottom: 24px;
+}
+.day-col {
+  background: var(--surface);
+  border: 1.5px solid var(--border);
+  border-bottom: 4px solid var(--border-bottom);
+  border-radius: 16px;
+  overflow: hidden;
+  transition: transform 0.15s;
+}
+.day-col:hover { transform: translateY(-2px); }
+.day-col.today { border-bottom-color: var(--orange-dark); }
+.day-col-header {
+  padding: 12px 12px 10px;
+  border-bottom: 1px solid var(--gray-100);
+  text-align: center;
+}
+.day-col-name {
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--gray-400);
+}
+.day-col.today .day-col-name { color: var(--orange); }
+.day-col-num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  font-size: 16px;
+  font-weight: 900;
+  color: var(--gray-900);
+  margin-top: 2px;
+}
+.day-col.today .day-col-num {
+  background: var(--orange);
+  color: white;
+}
+.day-col-slots { padding: 8px 10px 10px; }
+.day-slot {
+  padding: 8px 10px;
+  border-radius: 10px;
+  margin-bottom: 6px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.day-slot:last-child { margin-bottom: 0; }
+.day-slot:hover { background: var(--gray-50); }
+.day-slot-type {
+  font-size: 9px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--gray-400);
+  margin-bottom: 2px;
+}
+.day-slot-meal {
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--gray-900);
+  line-height: 1.2;
+}
+.day-slot-empty {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--gray-300);
+  font-style: italic;
+}
+.day-slot-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 9px;
+  font-weight: 800;
+  padding: 1px 6px;
+  border-radius: 4px;
+  margin-top: 2px;
+}
+.day-slot.filled { background: var(--orange-50); }
+
+/* Today hero stats */
+.today-stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  margin-bottom: 24px;
+}
+.today-stat {
+  background: var(--surface);
+  border: 1.5px solid var(--border);
+  border-bottom: 4px solid var(--orange-dark);
+  border-radius: 14px;
+  padding: 16px;
+  text-align: center;
+}
+.today-stat-num { font-size: 28px; font-weight: 900; color: var(--orange); line-height: 1; }
+.today-stat-label { font-size: 12px; font-weight: 700; color: var(--gray-500); margin-top: 2px; }
+
+/* ── Meal Bank Tab ─────────────────────────────────────── */
+.bank-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+.bank-stats-row { display: flex; gap: 10px; margin-bottom: 16px; }
+.bank-stat-card {
+  background: var(--surface);
+  border: 1.5px solid var(--border);
+  border-bottom: 3px solid var(--border-bottom);
+  border-radius: 12px;
+  padding: 14px 20px;
+  text-align: center;
+  min-width: 100px;
+}
+.bank-stat-num { font-size: 22px; font-weight: 900; color: var(--orange); }
+.bank-stat-label { font-size: 11px; font-weight: 700; color: var(--gray-400); letter-spacing: 0.05em; }
+.cat-pills { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 18px; }
+.cat-pill {
+  padding: 7px 16px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 800;
+  border: 1.5px solid var(--border);
+  border-bottom: 3px solid var(--border-bottom);
+  background: var(--surface);
+  color: var(--gray-500);
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.12s;
+}
+.cat-pill.active { background: var(--orange); color: white; border-color: var(--orange); border-bottom-color: var(--orange-dark); }
+.bank-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+}
+.bank-card {
+  background: var(--surface);
+  border: 1.5px solid var(--border);
+  border-bottom: 4px solid var(--orange-dark);
+  border-radius: 16px;
+  padding: 18px;
+  transition: transform 0.15s, box-shadow 0.15s;
+  cursor: pointer;
+}
+.bank-card:hover { transform: translateY(-3px); box-shadow: 0 8px 24px rgba(0,0,0,0.06); }
+.bank-card-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+.bank-card-name { font-size: 16px; font-weight: 800; color: var(--gray-900); line-height: 1.2; }
+.bank-card-badge {
+  font-size: 10px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 3px 8px;
+  border-radius: 6px;
+  flex-shrink: 0;
+}
+.bank-card-meta {
+  display: flex;
+  gap: 12px;
+  margin: 6px 0 8px;
+}
+.bank-card-meta-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--gray-400);
+}
+.bank-card-desc { font-size: 12px; font-weight: 600; color: var(--gray-500); line-height: 1.5; margin-bottom: 8px; }
+.bank-card-ings { display: flex; gap: 4px; flex-wrap: wrap; margin-bottom: 10px; }
+.bank-card-ing { font-size: 11px; font-weight: 700; color: var(--gray-600); background: var(--gray-50); border: 1px solid var(--gray-200); padding: 3px 8px; border-radius: 6px; }
+.bank-card-actions {
+  display: flex;
+  gap: 6px;
+  border-top: 1px solid var(--gray-100);
+  padding-top: 10px;
+}
+.bank-card-btn {
+  flex: 1;
+  height: 34px;
+  border-radius: 9px;
+  border: none;
+  font-size: 12px;
+  font-weight: 800;
+  cursor: pointer;
+  font-family: inherit;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  transition: all 0.12s;
+}
+.bank-card-btn.primary { background: var(--orange); color: white; }
+.bank-card-btn.secondary { background: var(--gray-50); color: var(--gray-600); border: 1px solid var(--gray-200); }
+.bank-card-planned {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--orange);
+  margin-bottom: 8px;
+}
+
+/* ── Suggestions Tab ───────────────────────────────────── */
+.suggest-hero {
+  background: linear-gradient(135deg, var(--orange) 0%, #EA580C 100%);
+  border-radius: 18px;
+  padding: 24px 28px;
+  margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  position: relative;
+  overflow: hidden;
+}
+.suggest-hero::before { content: ''; position: absolute; top: -40px; right: -40px; width: 160px; height: 160px; border-radius: 50%; background: rgba(255,255,255,0.08); }
+.suggest-hero-icon { width: 52px; height: 52px; border-radius: 14px; background: rgba(255,255,255,0.2); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.suggest-hero-text { flex: 1; position: relative; z-index: 1; }
+.suggest-hero-title { font-size: 20px; font-weight: 900; color: white; margin-bottom: 4px; }
+.suggest-hero-desc { font-size: 14px; font-weight: 600; color: rgba(255,255,255,0.8); }
+.suggest-hero-btn {
+  padding: 12px 24px;
+  border-radius: 12px;
+  background: white;
+  border: none;
+  border-bottom: 3px solid var(--gray-200);
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--orange);
+  cursor: pointer;
+  font-family: inherit;
+  flex-shrink: 0;
+  position: relative;
+  z-index: 1;
+}
+.suggest-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 14px;
+}
+.suggest-card {
+  background: var(--surface);
+  border: 1.5px solid var(--border);
+  border-bottom: 4px solid var(--orange-dark);
+  border-radius: 16px;
+  padding: 18px;
+  transition: transform 0.15s;
+}
+.suggest-card:hover { transform: translateY(-2px); }
+.suggest-card-top { display: flex; gap: 12px; }
+.suggest-card-info { flex: 1; min-width: 0; }
+.suggest-card-badges { display: flex; gap: 4px; flex-wrap: wrap; margin-bottom: 4px; }
+.suggest-card-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 10px;
+  font-weight: 800;
+  padding: 2px 8px;
+  border-radius: 6px;
+}
+.suggest-card-name { font-size: 17px; font-weight: 800; color: var(--gray-900); margin-bottom: 2px; }
+.suggest-card-target { font-size: 13px; font-weight: 700; color: var(--gray-400); margin-bottom: 6px; }
+.suggest-card-note { font-size: 13px; font-weight: 600; color: var(--gray-500); line-height: 1.5; margin-bottom: 6px; font-style: italic; }
+.suggest-card-ings { display: flex; gap: 4px; flex-wrap: wrap; margin-top: 6px; }
+.suggest-card-ing { font-size: 11px; font-weight: 700; color: var(--gray-600); background: var(--gray-50); padding: 2px 8px; border-radius: 6px; }
+.suggest-card-by { font-size: 12px; font-weight: 700; color: var(--gray-400); margin-top: 6px; }
+.vote-col { display: flex; flex-direction: column; align-items: center; gap: 4px; flex-shrink: 0; }
+.vote-btn {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  border: 1.5px solid var(--border);
+  border-bottom: 3px solid var(--border-bottom);
+  background: var(--surface);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.12s;
+}
+.vote-btn:hover { background: var(--gray-50); }
+.vote-btn.active-up { background: var(--orange); border-color: var(--orange); border-bottom-color: var(--orange-dark); }
+.vote-btn.active-down { background: var(--red-light); border-color: var(--red); border-bottom-color: var(--red-dark); }
+.vote-count { font-size: 15px; font-weight: 900; }
+.suggest-card-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 14px;
+  border-top: 1px solid var(--gray-100);
+  padding-top: 12px;
+}
+.suggest-action-btn {
+  flex: 1;
+  padding: 10px 0;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 800;
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+}
+.suggest-action-btn.approve { background: var(--orange); color: white; border-bottom: 2px solid var(--orange-dark); }
+.suggest-action-btn.reject { background: var(--surface); color: var(--red); border: 1.5px solid var(--border); border-bottom: 2px solid var(--border-bottom); }
+
+/* ── Animations ────────────────────────────────────────── */
+.fade-in {
+  opacity: 0;
+  transform: translateY(16px);
+  transition: opacity 0.45s cubic-bezier(0.34, 1.56, 0.64, 1),
+              transform 0.45s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.fade-in.visible { opacity: 1; transform: translateY(0); }
+.stagger-1 { transition-delay: 0.04s; } .stagger-2 { transition-delay: 0.08s; }
+.stagger-3 { transition-delay: 0.12s; } .stagger-4 { transition-delay: 0.16s; }
+.stagger-5 { transition-delay: 0.2s; } .stagger-6 { transition-delay: 0.24s; }
+
+/* ── Responsive ────────────────────────────────────────── */
+@media (max-width: 1100px) {
+  .bank-grid { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 900px) {
+  .sidebar { width: 72px; }
+  .sidebar-brand-text, .sidebar-item span, .sidebar-user-info, .sidebar-badge { display: none; }
+  .sidebar-item { justify-content: center; padding: 11px 8px; }
+  .sidebar-brand { justify-content: center; padding: 20px 8px 16px; }
+  .main { margin-left: 72px; }
+  .week-grid { grid-template-columns: repeat(4, 1fr); }
+  .bank-grid { grid-template-columns: 1fr; }
+  .suggest-grid { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════════════════
+     SIDEBAR
+     ═══════════════════════════════════════════════════════ -->
+<aside class="sidebar">
+  <div class="sidebar-brand">
+    <div class="sidebar-logo">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/></svg>
+    </div>
+    <span class="sidebar-brand-text">Roost</span>
+  </div>
+  <nav class="sidebar-nav">
+    <button class="sidebar-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/></svg><span>Home</span></button>
+    <button class="sidebar-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg><span>Calendar</span></button>
+    <button class="sidebar-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg><span>Money</span></button>
+    <button class="sidebar-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 002 1.61h9.72a2 2 0 002-1.61L23 6H6"/></svg><span>Lists</span></button>
+    <button class="sidebar-item active"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg><span>Meals</span><span class="sidebar-badge">3</span></button>
+    <button class="sidebar-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg><span>Chores</span></button>
+    <button class="sidebar-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8l-6-6z"/><path d="M14 2v6h6"/></svg><span>Notes</span></button>
+    <button class="sidebar-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg><span>Settings</span></button>
+  </nav>
+  <div class="sidebar-bottom">
+    <div class="sidebar-user">
+      <div class="sidebar-avatar">C</div>
+      <div class="sidebar-user-info">
+        <div class="sidebar-user-name">Chris</div>
+        <div class="sidebar-user-role">Admin</div>
+      </div>
+    </div>
+  </div>
+</aside>
+
+<!-- ═══════════════════════════════════════════════════════
+     MAIN CONTENT
+     ═══════════════════════════════════════════════════════ -->
+<div class="main">
+  <header class="topbar">
+    <span class="topbar-title">Meals</span>
+    <div class="topbar-divider"></div>
+    <div class="tab-pills">
+      <button class="tab-pill active" data-tab="planner" onclick="switchTab('planner')">Planner</button>
+      <button class="tab-pill" data-tab="bank" onclick="switchTab('bank')">Meal Bank</button>
+      <button class="tab-pill" data-tab="suggestions" onclick="switchTab('suggestions')">Suggestions</button>
+    </div>
+    <div class="topbar-spacer"></div>
+    <div class="topbar-search">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--gray-400)" stroke-width="2.5" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input type="text" placeholder="Search meals...">
+    </div>
+    <button class="topbar-action"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button>
+  </header>
+
+  <div class="content">
+
+    <!-- ══════════ PLANNER TAB ══════════ -->
+    <div class="tab-panel active" id="panel-planner">
+      <div class="today-stats fade-in">
+        <div class="today-stat"><div class="today-stat-num">18</div><div class="today-stat-label">Meals planned</div></div>
+        <div class="today-stat"><div class="today-stat-num">10</div><div class="today-stat-label">Empty slots</div></div>
+        <div class="today-stat"><div class="today-stat-num">14</div><div class="today-stat-label">In meal bank</div></div>
+        <div class="today-stat"><div class="today-stat-num">4</div><div class="today-stat-label">Suggestions</div></div>
+      </div>
+
+      <div class="week-bar fade-in stagger-1">
+        <button class="week-bar-btn">&lsaquo;</button>
+        <span class="week-bar-label">May 5 – 11, 2026</span>
+        <button class="week-bar-btn">&rsaquo;</button>
+        <div class="week-bar-spacer"></div>
+        <div class="week-bar-stat">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 002 1.61h9.72a2 2 0 002-1.61L23 6H6"/></svg>
+          Push 12 items to grocery list
+        </div>
+      </div>
+
+      <div class="week-grid fade-in stagger-2">
+        <!-- Mon -->
+        <div class="day-col">
+          <div class="day-col-header"><div class="day-col-name">Mon</div><div class="day-col-num">5</div></div>
+          <div class="day-col-slots">
+            <div class="day-slot filled"><div class="day-slot-type">Breakfast</div><div class="day-slot-meal">Smoothie bowls</div></div>
+            <div class="day-slot filled"><div class="day-slot-type">Lunch</div><div class="day-slot-meal">Leftover pasta</div></div>
+            <div class="day-slot filled"><div class="day-slot-type">Dinner</div><div class="day-slot-meal">Taco prep</div><div class="day-slot-badge" style="background: var(--orange-light); color: var(--orange);">4 items</div></div>
+            <div class="day-slot filled"><div class="day-slot-type">Snack</div><div class="day-slot-meal">Apple + PB</div></div>
+          </div>
+        </div>
+        <!-- Tue -->
+        <div class="day-col">
+          <div class="day-col-header"><div class="day-col-name">Tue</div><div class="day-col-num">6</div></div>
+          <div class="day-col-slots">
+            <div class="day-slot filled"><div class="day-slot-type">Breakfast</div><div class="day-slot-meal">Scrambled eggs</div></div>
+            <div class="day-slot"><div class="day-slot-type">Lunch</div><div class="day-slot-empty">—</div></div>
+            <div class="day-slot filled"><div class="day-slot-type">Dinner</div><div class="day-slot-meal">Taco Tuesday</div><div class="day-slot-badge" style="background: var(--green-light); color: var(--green-dark);">Fav</div></div>
+            <div class="day-slot filled"><div class="day-slot-type">Snack</div><div class="day-slot-meal">Trail mix</div></div>
+          </div>
+        </div>
+        <!-- Wed (today) -->
+        <div class="day-col today">
+          <div class="day-col-header"><div class="day-col-name">Today</div><div class="day-col-num">7</div></div>
+          <div class="day-col-slots">
+            <div class="day-slot filled"><div class="day-slot-type">Breakfast</div><div class="day-slot-meal">Oatmeal</div></div>
+            <div class="day-slot filled"><div class="day-slot-type">Lunch</div><div class="day-slot-meal">Turkey wraps</div></div>
+            <div class="day-slot filled"><div class="day-slot-type">Dinner</div><div class="day-slot-meal">Chicken stir fry</div><div class="day-slot-badge" style="background: var(--orange-light); color: var(--orange);">3 items</div></div>
+            <div class="day-slot"><div class="day-slot-type">Snack</div><div class="day-slot-empty">—</div></div>
+          </div>
+        </div>
+        <!-- Thu -->
+        <div class="day-col">
+          <div class="day-col-header"><div class="day-col-name">Thu</div><div class="day-col-num">8</div></div>
+          <div class="day-col-slots">
+            <div class="day-slot"><div class="day-slot-type">Breakfast</div><div class="day-slot-empty">—</div></div>
+            <div class="day-slot"><div class="day-slot-type">Lunch</div><div class="day-slot-empty">—</div></div>
+            <div class="day-slot filled"><div class="day-slot-type">Dinner</div><div class="day-slot-meal">Pasta night</div></div>
+            <div class="day-slot"><div class="day-slot-type">Snack</div><div class="day-slot-empty">—</div></div>
+          </div>
+        </div>
+        <!-- Fri -->
+        <div class="day-col">
+          <div class="day-col-header"><div class="day-col-name">Fri</div><div class="day-col-num">9</div></div>
+          <div class="day-col-slots">
+            <div class="day-slot"><div class="day-slot-type">Breakfast</div><div class="day-slot-empty">—</div></div>
+            <div class="day-slot"><div class="day-slot-type">Lunch</div><div class="day-slot-empty">—</div></div>
+            <div class="day-slot filled"><div class="day-slot-type">Dinner</div><div class="day-slot-meal">Pizza night</div><div class="day-slot-badge" style="background: var(--amber-light); color: #92400E;">Suggested</div></div>
+            <div class="day-slot"><div class="day-slot-type">Snack</div><div class="day-slot-empty">—</div></div>
+          </div>
+        </div>
+        <!-- Sat -->
+        <div class="day-col">
+          <div class="day-col-header"><div class="day-col-name">Sat</div><div class="day-col-num">10</div></div>
+          <div class="day-col-slots">
+            <div class="day-slot filled"><div class="day-slot-type">Breakfast</div><div class="day-slot-meal">Pancakes</div></div>
+            <div class="day-slot"><div class="day-slot-type">Lunch</div><div class="day-slot-empty">—</div></div>
+            <div class="day-slot filled"><div class="day-slot-type">Dinner</div><div class="day-slot-meal">Grilled salmon</div><div class="day-slot-badge" style="background: var(--amber-light); color: #92400E;">Suggested</div></div>
+            <div class="day-slot"><div class="day-slot-type">Snack</div><div class="day-slot-empty">—</div></div>
+          </div>
+        </div>
+        <!-- Sun -->
+        <div class="day-col">
+          <div class="day-col-header"><div class="day-col-name">Sun</div><div class="day-col-num">11</div></div>
+          <div class="day-col-slots">
+            <div class="day-slot filled"><div class="day-slot-type">Breakfast</div><div class="day-slot-meal">French toast</div></div>
+            <div class="day-slot filled"><div class="day-slot-type">Lunch</div><div class="day-slot-meal">BBQ quesadillas</div></div>
+            <div class="day-slot"><div class="day-slot-type">Dinner</div><div class="day-slot-empty">—</div></div>
+            <div class="day-slot"><div class="day-slot-type">Snack</div><div class="day-slot-empty">—</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════ MEAL BANK TAB ══════════ -->
+    <div class="tab-panel" id="panel-bank">
+      <div class="bank-stats-row fade-in">
+        <div class="bank-stat-card"><div class="bank-stat-num">14</div><div class="bank-stat-label">TOTAL</div></div>
+        <div class="bank-stat-card"><div class="bank-stat-num">5</div><div class="bank-stat-label">DINNER</div></div>
+        <div class="bank-stat-card"><div class="bank-stat-num">4</div><div class="bank-stat-label">LUNCH</div></div>
+        <div class="bank-stat-card"><div class="bank-stat-num">3</div><div class="bank-stat-label">BREAKFAST</div></div>
+        <div class="bank-stat-card"><div class="bank-stat-num">2</div><div class="bank-stat-label">SNACK</div></div>
+      </div>
+      <div class="cat-pills fade-in stagger-1">
+        <button class="cat-pill active">All</button><button class="cat-pill">Breakfast</button><button class="cat-pill">Lunch</button><button class="cat-pill">Dinner</button><button class="cat-pill">Snack</button>
+      </div>
+      <div class="bank-grid">
+        <div class="bank-card fade-in stagger-2">
+          <div class="bank-card-top"><div class="bank-card-name">Chicken Stir Fry</div><div class="bank-card-badge" style="background: var(--orange-light); color: var(--orange);">Dinner</div></div>
+          <div class="bank-card-meta"><span class="bank-card-meta-item"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>25 min</span><span class="bank-card-meta-item">6 ingredients</span></div>
+          <div class="bank-card-planned"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/></svg>Planned Wed</div>
+          <div class="bank-card-ings"><span class="bank-card-ing">Chicken thighs</span><span class="bank-card-ing">Soy sauce</span><span class="bank-card-ing">Broccoli</span><span class="bank-card-ing">+3</span></div>
+          <div class="bank-card-actions"><button class="bank-card-btn primary">+ Plan</button><button class="bank-card-btn secondary">Grocery</button></div>
+        </div>
+        <div class="bank-card fade-in stagger-3">
+          <div class="bank-card-top"><div class="bank-card-name">Taco Tuesday</div><div class="bank-card-badge" style="background: var(--orange-light); color: var(--orange);">Dinner</div></div>
+          <div class="bank-card-meta"><span class="bank-card-meta-item"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>30 min</span><span class="bank-card-meta-item">8 ingredients</span></div>
+          <div class="bank-card-desc">Ground beef tacos with homemade pico, sour cream, shredded cheddar. Kids love it.</div>
+          <div class="bank-card-ings"><span class="bank-card-ing">Ground beef</span><span class="bank-card-ing">Taco shells</span><span class="bank-card-ing">Cheddar</span><span class="bank-card-ing">+5</span></div>
+          <div class="bank-card-actions"><button class="bank-card-btn primary">+ Plan</button><button class="bank-card-btn secondary">Grocery</button></div>
+        </div>
+        <div class="bank-card fade-in stagger-4">
+          <div class="bank-card-top"><div class="bank-card-name">Smoothie Bowls</div><div class="bank-card-badge" style="background: var(--blue-light); color: var(--blue);">Breakfast</div></div>
+          <div class="bank-card-meta"><span class="bank-card-meta-item"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>10 min</span><span class="bank-card-meta-item">5 ingredients</span></div>
+          <div class="bank-card-ings"><span class="bank-card-ing">Frozen berries</span><span class="bank-card-ing">Banana</span><span class="bank-card-ing">Yogurt</span><span class="bank-card-ing">Granola</span><span class="bank-card-ing">Honey</span></div>
+          <div class="bank-card-actions"><button class="bank-card-btn primary">+ Plan</button><button class="bank-card-btn secondary">Grocery</button></div>
+        </div>
+        <div class="bank-card fade-in stagger-5">
+          <div class="bank-card-top"><div class="bank-card-name">Turkey Wraps</div><div class="bank-card-badge" style="background: var(--green-light); color: var(--green-dark);">Lunch</div></div>
+          <div class="bank-card-meta"><span class="bank-card-meta-item"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>15 min</span><span class="bank-card-meta-item">4 ingredients</span></div>
+          <div class="bank-card-planned"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/></svg>Planned Wed</div>
+          <div class="bank-card-ings"><span class="bank-card-ing">Turkey</span><span class="bank-card-ing">Tortilla</span><span class="bank-card-ing">Lettuce</span><span class="bank-card-ing">Cheese</span></div>
+          <div class="bank-card-actions"><button class="bank-card-btn primary">+ Plan</button><button class="bank-card-btn secondary">Grocery</button></div>
+        </div>
+        <div class="bank-card fade-in stagger-6">
+          <div class="bank-card-top"><div class="bank-card-name">Pasta Night</div><div class="bank-card-badge" style="background: var(--orange-light); color: var(--orange);">Dinner</div></div>
+          <div class="bank-card-meta"><span class="bank-card-meta-item"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>20 min</span><span class="bank-card-meta-item">5 ingredients</span></div>
+          <div class="bank-card-desc">Penne with marinara, Italian sausage, garlic bread on the side.</div>
+          <div class="bank-card-ings"><span class="bank-card-ing">Penne</span><span class="bank-card-ing">Marinara</span><span class="bank-card-ing">Italian sausage</span><span class="bank-card-ing">+2</span></div>
+          <div class="bank-card-actions"><button class="bank-card-btn primary">+ Plan</button><button class="bank-card-btn secondary">Grocery</button></div>
+        </div>
+        <div class="bank-card fade-in stagger-6">
+          <div class="bank-card-top"><div class="bank-card-name">Scrambled Eggs</div><div class="bank-card-badge" style="background: var(--blue-light); color: var(--blue);">Breakfast</div></div>
+          <div class="bank-card-meta"><span class="bank-card-meta-item"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>8 min</span><span class="bank-card-meta-item">3 ingredients</span></div>
+          <div class="bank-card-ings"><span class="bank-card-ing">Eggs</span><span class="bank-card-ing">Butter</span><span class="bank-card-ing">Salt</span></div>
+          <div class="bank-card-actions"><button class="bank-card-btn primary">+ Plan</button><button class="bank-card-btn secondary">Grocery</button></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════ SUGGESTIONS TAB ══════════ -->
+    <div class="tab-panel" id="panel-suggestions">
+      <div class="suggest-hero fade-in">
+        <div class="suggest-hero-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/></svg></div>
+        <div class="suggest-hero-text"><div class="suggest-hero-title">What should we eat this week?</div><div class="suggest-hero-desc">Anyone in the household can suggest meals. The family votes, you decide.</div></div>
+        <button class="suggest-hero-btn">+ Suggest a meal</button>
+      </div>
+      <div class="suggest-grid">
+        <div class="suggest-card fade-in stagger-1">
+          <div class="suggest-card-top">
+            <div class="suggest-card-info">
+              <div class="suggest-card-badges"><span class="suggest-card-badge" style="background: var(--amber-light); color: #92400E;"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>Top pick</span></div>
+              <div class="suggest-card-name">Homemade Pizza</div>
+              <div class="suggest-card-target">Fri, May 9 — Dinner</div>
+              <div class="suggest-card-note">"Let the kids pick their own toppings! Way cheaper than ordering."</div>
+              <div class="suggest-card-ings"><span class="suggest-card-ing">Pizza dough</span><span class="suggest-card-ing">Mozzarella</span><span class="suggest-card-ing">Marinara</span><span class="suggest-card-ing">Pepperoni</span></div>
+              <div class="suggest-card-by">Suggested by Sarah</div>
+            </div>
+            <div class="vote-col">
+              <button class="vote-btn active-up"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round"><path d="M14 9V5a3 3 0 00-3-3l-4 9v11h11.28a2 2 0 002-1.7l1.38-9a2 2 0 00-2-2.3H14z"/></svg></button>
+              <span class="vote-count" style="color: var(--orange);">4</span>
+              <button class="vote-btn"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--gray-400)" stroke-width="2.5" stroke-linecap="round"><path d="M10 15V19a3 3 0 003 3l4-9V2H5.72a2 2 0 00-2 1.7l-1.38 9a2 2 0 002 2.3H10z"/></svg></button>
+            </div>
+          </div>
+          <div class="suggest-card-actions"><button class="suggest-action-btn approve">Add to bank</button><button class="suggest-action-btn reject">Reject</button></div>
+        </div>
+
+        <div class="suggest-card fade-in stagger-2">
+          <div class="suggest-card-top">
+            <div class="suggest-card-info">
+              <div class="suggest-card-name">Mac &amp; Cheese (from scratch)</div>
+              <div class="suggest-card-target">Thu, May 8 — Dinner</div>
+              <div class="suggest-card-note">"Emma's been asking for this all week."</div>
+              <div class="suggest-card-ings"><span class="suggest-card-ing">Elbow pasta</span><span class="suggest-card-ing">Cheddar</span><span class="suggest-card-ing">Milk</span><span class="suggest-card-ing">Butter</span></div>
+              <div class="suggest-card-by">Suggested by Dad</div>
+            </div>
+            <div class="vote-col">
+              <button class="vote-btn"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--gray-400)" stroke-width="2.5" stroke-linecap="round"><path d="M14 9V5a3 3 0 00-3-3l-4 9v11h11.28a2 2 0 002-1.7l1.38-9a2 2 0 00-2-2.3H14z"/></svg></button>
+              <span class="vote-count" style="color: var(--orange);">3</span>
+              <button class="vote-btn"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--gray-400)" stroke-width="2.5" stroke-linecap="round"><path d="M10 15V19a3 3 0 003 3l4-9V2H5.72a2 2 0 00-2 1.7l-1.38 9a2 2 0 002 2.3H10z"/></svg></button>
+            </div>
+          </div>
+          <div class="suggest-card-actions"><button class="suggest-action-btn approve">Add to bank</button><button class="suggest-action-btn reject">Reject</button></div>
+        </div>
+
+        <div class="suggest-card fade-in stagger-3">
+          <div class="suggest-card-top">
+            <div class="suggest-card-info">
+              <div class="suggest-card-name">Grilled Salmon</div>
+              <div class="suggest-card-target">Sat, May 10 — Dinner</div>
+              <div class="suggest-card-note">"With lemon butter and roasted asparagus. Healthy night."</div>
+              <div class="suggest-card-ings"><span class="suggest-card-ing">Salmon fillets</span><span class="suggest-card-ing">Lemon</span><span class="suggest-card-ing">Asparagus</span></div>
+              <div class="suggest-card-by">Suggested by Mom</div>
+            </div>
+            <div class="vote-col">
+              <button class="vote-btn"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--gray-400)" stroke-width="2.5" stroke-linecap="round"><path d="M14 9V5a3 3 0 00-3-3l-4 9v11h11.28a2 2 0 002-1.7l1.38-9a2 2 0 00-2-2.3H14z"/></svg></button>
+              <span class="vote-count" style="color: var(--gray-400);">2</span>
+              <button class="vote-btn"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--gray-400)" stroke-width="2.5" stroke-linecap="round"><path d="M10 15V19a3 3 0 003 3l4-9V2H5.72a2 2 0 00-2 1.7l-1.38 9a2 2 0 002 2.3H10z"/></svg></button>
+            </div>
+          </div>
+          <div class="suggest-card-actions"><button class="suggest-action-btn approve">Add to bank</button><button class="suggest-action-btn reject">Reject</button></div>
+        </div>
+
+        <div class="suggest-card fade-in stagger-4">
+          <div class="suggest-card-top">
+            <div class="suggest-card-info">
+              <div class="suggest-card-badges"><span class="suggest-card-badge" style="background: var(--orange-light); color: var(--orange);"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M19 21l-7-5-7 5V5a2 2 0 012-2h10a2 2 0 012 2z"/></svg>In meal bank</span></div>
+              <div class="suggest-card-name">BBQ Chicken Quesadillas</div>
+              <div class="suggest-card-target">Sun, May 11 — Lunch</div>
+              <div class="suggest-card-ings"><span class="suggest-card-ing">Rotisserie chicken</span><span class="suggest-card-ing">BBQ sauce</span><span class="suggest-card-ing">Tortillas</span></div>
+              <div class="suggest-card-by">Suggested by Jake</div>
+            </div>
+            <div class="vote-col">
+              <button class="vote-btn"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--gray-400)" stroke-width="2.5" stroke-linecap="round"><path d="M14 9V5a3 3 0 00-3-3l-4 9v11h11.28a2 2 0 002-1.7l1.38-9a2 2 0 00-2-2.3H14z"/></svg></button>
+              <span class="vote-count" style="color: var(--gray-400);">1</span>
+              <button class="vote-btn active-down"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#DC2626" stroke-width="2.5" stroke-linecap="round"><path d="M10 15V19a3 3 0 003 3l4-9V2H5.72a2 2 0 00-2 1.7l-1.38 9a2 2 0 002 2.3H10z"/></svg></button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+function switchTab(tab) {
+  document.querySelectorAll('.tab-pill').forEach(function(el) { el.classList.remove('active'); });
+  document.querySelector('[data-tab="' + tab + '"]').classList.add('active');
+  document.querySelectorAll('.tab-panel').forEach(function(el) { el.classList.remove('active'); });
+  document.getElementById('panel-' + tab).classList.add('active');
+  var panel = document.getElementById('panel-' + tab);
+  panel.querySelectorAll('.fade-in').forEach(function(el) {
+    el.classList.remove('visible');
+    void el.offsetWidth;
+    observer.observe(el);
+  });
+}
+var observer = new IntersectionObserver(function(entries) {
+  entries.forEach(function(entry) { if (entry.isIntersecting) entry.target.classList.add('visible'); });
+}, { threshold: 0.1, rootMargin: '0px 0px -20px 0px' });
+document.querySelectorAll('.fade-in').forEach(function(el) { observer.observe(el); });
+</script>
+</body>
+</html>

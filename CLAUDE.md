@@ -1523,6 +1523,137 @@ Previous: 2026-04-08 (Custom categories + budgets + insights complete. Schema: e
   "var(--roost-text-primary)" so wordmark adapts to all 8 themes.
 
 
+## Scale Architecture Plan
+
+### Current Stack (good up to ~10,000 users)
+- Next.js API routes on Vercel serverless
+- Neon PostgreSQL via neon-http (serverless-compatible, no persistent connections)
+- This works well at small scale. Vercel serverless has per-invocation pricing that becomes
+  expensive at high volume. Each invocation also opens a new Neon connection.
+
+### Migration Trigger (~10,000–20,000 active users)
+When Vercel API costs exceed ~$100/month, migrate API to a persistent server:
+
+Option A: Railway (recommended)
+- Deploy the Next.js app as a persistent server (not serverless)
+- $5–20/month for a container that handles thousands of concurrent requests
+- Persistent connection pool to Neon (pg + pgBouncer or Neon's pooled URL)
+- Keep Vercel ONLY for the marketing homepage (/) — static, free forever
+- The Expo mobile apps hit the Railway API directly
+
+Option B: Render
+- Similar to Railway, slightly different DX
+- Also $7–25/month for a persistent web service
+
+### What This Requires at Migration Time
+- Switch Neon client from neon-http to standard pg (node-postgres) with a connection pool
+- Move NEXT_PUBLIC_API_URL env var so mobile apps point to Railway domain
+- Keep Vercel for marketing page + web PWA shell (almost free at low page-view volume)
+- Update Vercel deployment to be API-free (or keep for web UI, separate Railway for API)
+- All existing code works unchanged — it's a hosting change, not a code change
+
+### Connection Pooling (do now, not later)
+- Already using Neon's pooled connection string (neon-http handles this automatically)
+- When migrating to Railway: use @neondatabase/serverless with pool OR switch to pg + PgBouncer
+- Neon's pooled endpoint: use the -pooler.neon.tech hostname for all connections
+- Max connections on Neon free/launch: 20. On Scale: 100+. Never exceed this with raw pg connections.
+
+### Cost Projection
+| Scale | Architecture | Monthly Cost |
+|---|---|---|
+| 0–5,000 users | Vercel serverless + Neon Launch | $20–60 |
+| 5,000–20,000 users | Vercel serverless + Neon Scale | $100–200 |
+| 20,000+ users | Railway API + Vercel web + Neon Scale | $100–180 |
+| 50,000+ users | Railway API (larger) + Vercel web + Neon Scale | $150–300 |
+
+### Storage Optimization (do before costs matter)
+The household_activity table is the fastest-growing table in the DB and has no purge cron.
+Every chore completion, grocery check, expense, note, etc. writes a row. At 50,000 users
+this table alone is ~28 GB without trimming.
+
+TODO: Add a Vercel cron at /api/cron/activity-trim that runs weekly and deletes
+household_activity rows older than 90 days. The dashboard only shows 20 items and the
+activity page paginates 20 per page — there is zero user-visible value in keeping rows
+older than 90 days.
+
+## Ad Revenue Strategy
+
+### Business Model
+- Free tier: sees ads (subsidizes operating costs)
+- Premium tier: zero ads (makes premium feel meaningfully better)
+- Target: ad revenue covers 50–100% of infrastructure at scale
+
+### Why This Demographic Is Valuable to Advertisers
+Roost users are household decision-makers: homeowners/renters, grocery shoppers,
+bill payers, family budget managers. This commands 2–4x higher CPMs than generic apps.
+US-based households especially valuable (CPM $2–5 vs $0.30–1 internationally).
+
+### Ad Networks
+Mobile (Expo iOS/Android):
+  Google AdMob — standard for React Native/Expo, high fill rates, household/family
+  category commands $1.50–5 CPM. Rewarded ads ($5–15 CPM) viable for premium trial unlock.
+
+Web:
+  Google AdSense — easy integration, $0.80–3 CPM for this demographic
+  Carbon Ads — alternative for tech-savvy audience, higher CPM but selective about publishers
+
+### Placement Rules (non-negotiable)
+DO show ads:
+  Between dashboard tiles for free users (native card format, not banner)
+  Bottom of grocery list after the checked items section
+  Below the leaderboard on the chores page
+  Between activity feed items on the /activity page
+  Interstitial on app open (mobile, max once per day, skippable after 5s)
+
+NEVER show ads:
+  Inside any DraggableSheet or modal
+  During expense/settle-up flows (financial context kills trust)
+  Mid-task (while completing a chore, checking grocery items, etc.)
+  On the dashboard for premium users (zero ads, zero exceptions)
+  On child accounts (legal risk, bad optics)
+
+### Ad Unit Format
+Prefer native/card-style ads that match the slab card design system.
+Avoid banner strips at the bottom (clashes with BottomNav, terrible CTR anyway).
+AdMob native ads can be styled to match the app — this is the goal.
+
+### Revenue Projection at Scale
+Assumes 80% of users are free tier, 25% DAU, 2–3 ad impressions per active session:
+
+| Users | Daily Ad Impressions | Effective CPM | Monthly Ad Revenue |
+|---|---|---|---|
+| 10,000 | 60,000 | $1.50 | ~$2,700 |
+| 50,000 | 300,000 | $2.00 | ~$18,000 |
+| 100,000 | 600,000 | $2.50 | ~$45,000 |
+
+At 50,000 users: ~$18,000/month ad revenue vs ~$200–300/month infrastructure.
+Premium subscription revenue at 10% conversion: ~$20,000/month.
+Combined: ~$38,000 MRR with infrastructure at under 1% of revenue.
+
+### Implementation Notes
+- Ad SDK initialization goes in the Expo app entry point (mobile only)
+- Web ads go in a client component that checks isPremium before rendering
+- Never render ad components server-side
+- Always check isPremium from useHousehold() before showing any ad slot
+- Ad slots should be invisible divs (height: 0) for premium users, not conditionally mounted,
+  to avoid layout shift when premium status loads
+- COPPA compliance: child accounts must never see ads. Check is_child_account on user
+  and skip all ad initialization if true.
+
+## Cost Optimization Checklist
+
+Items to implement before scale becomes a concern:
+
+- [ ] Add /api/cron/activity-trim: delete household_activity rows older than 90 days (weekly)
+- [ ] Verify all Neon queries use the pooled connection string (-pooler hostname)
+- [ ] Audit TanStack Query polling intervals: 10s is aggressive for low-change data.
+      Chores/members/household data can be 30–60s. Only dashboard activity needs 10s.
+- [ ] Add HTTP caching headers to stable API routes (GET /api/chore-categories, etc.)
+- [ ] Implement stale-while-revalidate for meal bank (changes rarely)
+- [ ] Consider Vercel Edge Config for feature flags instead of DB queries
+- [ ] Add DB indexes audit before Railway migration (EXPLAIN ANALYZE on slow queries)
+
+
 Rules:
 - Follow all design rules in CLAUDE.md
 - No emojis, use Lucide icons

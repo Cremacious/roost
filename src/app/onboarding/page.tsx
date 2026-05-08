@@ -443,7 +443,7 @@ export default function OnboardingPage() {
                 {householdResult?.name}
               </h1>
               <button
-                onClick={() => router.push('/dashboard')}
+                onClick={() => router.push('/today')}
                 style={{
                   width: '100%',
                   minHeight: 48,

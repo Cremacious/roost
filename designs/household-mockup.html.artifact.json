@@ -1,0 +1,21 @@
+{
+  "version": 1,
+  "kind": "html",
+  "title": "Roost — Household · Mobile + Desktop",
+  "entry": "household-mockup.html",
+  "renderer": "html",
+  "status": "complete",
+  "exports": [
+    "html",
+    "pdf",
+    "zip"
+  ],
+  "createdAt": "2026-05-09T12:02:12.678Z",
+  "updatedAt": "2026-05-09T12:02:12.753Z",
+  "sourceSkillId": "blog-post",
+  "metadata": {
+    "identifier": "household-mockup",
+    "artifactType": "text/html",
+    "inferred": false
+  }
+}

@@ -1,0 +1,428 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=1400">
+<title>Roost — Sidebar Redesign</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@600;700;800;900&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'Nunito',system-ui,-apple-system,sans-serif;background:#0f172a;color:#f8fafc;-webkit-font-smoothing:antialiased;padding:48px 40px 80px;min-width:1100px;}
+
+.gallery-title{font-size:26px;font-weight:900;color:#f1f5f9;letter-spacing:-0.5px;}
+.gallery-sub{font-size:14px;font-weight:600;color:#64748b;margin-top:4px;margin-bottom:40px;}
+.col-label{font-size:11px;font-weight:800;color:#475569;letter-spacing:.1em;text-transform:uppercase;margin-bottom:14px;}
+
+.compare-row{display:flex;gap:32px;align-items:flex-start;}
+
+/* ── panel chrome ─────────────────────────────────────── */
+.panel-wrap{flex-shrink:0;}
+.panel-shell{border-radius:16px;overflow:hidden;box-shadow:0 0 0 1px #334155,0 40px 80px rgba(0,0,0,.6);}
+
+/* ═══════════════════════════════════════════════
+   CURRENT SIDEBAR
+═══════════════════════════════════════════════ */
+.cur-sidebar{
+  width:180px;
+  background:#DC2626;
+  height:700px;
+  display:flex;
+  flex-direction:column;
+}
+.cur-logo{
+  padding:18px 14px 12px;
+  display:flex;align-items:center;gap:9px;
+  border-bottom:1px solid rgba(255,255,255,0.12);
+}
+.cur-logo-icon{
+  width:26px;height:26px;border-radius:7px;
+  background:rgba(255,255,255,0.2);
+  display:flex;align-items:center;justify-content:center;
+  flex-shrink:0;
+}
+.cur-logo-word{font-size:17px;font-weight:900;color:white;}
+.cur-switcher{
+  padding:10px 8px;
+  border-bottom:1px solid rgba(255,255,255,0.12);
+}
+.cur-switcher-btn{
+  display:flex;align-items:center;gap:8px;
+  padding:7px 10px;border-radius:8px;
+  background:rgba(255,255,255,0.12);
+  cursor:pointer;
+}
+.cur-switcher-av{
+  width:18px;height:18px;border-radius:50%;
+  background:rgba(255,255,255,0.3);
+  display:flex;align-items:center;justify-content:center;
+  font-size:8px;font-weight:900;color:white;flex-shrink:0;
+}
+.cur-switcher-label{font-size:11px;font-weight:700;color:rgba(255,255,255,0.9);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.cur-nav{padding:10px 8px;display:flex;flex-direction:column;gap:2px;flex:1;overflow:hidden;}
+.cur-nav-item{
+  display:flex;align-items:center;gap:9px;
+  padding:9px 10px;border-radius:9px;
+  background:transparent;
+  cursor:pointer;
+}
+.cur-nav-item.active{background:rgba(255,255,255,0.22);}
+.cur-nav-dot{width:16px;height:16px;border-radius:4px;flex-shrink:0;}
+.cur-nav-label{font-size:13px;font-weight:700;color:rgba(255,255,255,0.6);}
+.cur-nav-item.active .cur-nav-label{color:#fff;}
+.cur-user{
+  padding:10px 8px;
+  border-top:1px solid rgba(255,255,255,0.12);
+}
+.cur-user-row{
+  display:flex;align-items:center;gap:8px;
+  padding:8px 10px;border-radius:9px;
+}
+.cur-user-av{
+  width:28px;height:28px;border-radius:50%;
+  background:rgba(255,255,255,0.18);
+  display:flex;align-items:center;justify-content:center;
+  font-size:10px;font-weight:800;color:white;flex-shrink:0;
+}
+.cur-user-name{font-size:12px;font-weight:700;color:white;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.cur-logout{
+  width:28px;height:28px;border-radius:7px;
+  background:transparent;border:none;
+  display:flex;align-items:center;justify-content:center;
+  cursor:pointer;flex-shrink:0;
+}
+
+/* ═══════════════════════════════════════════════
+   REDESIGNED SIDEBAR
+═══════════════════════════════════════════════ */
+.new-sidebar{
+  width:200px;
+  background:#C41E1E;  /* slightly deeper red — richer, less harsh */
+  height:700px;
+  display:flex;
+  flex-direction:column;
+  /* subtle vertical gradient: slightly lighter top, slightly darker bottom */
+  background:linear-gradient(180deg, #D42020 0%, #C01A1A 100%);
+}
+
+/* logo */
+.new-logo{
+  padding:20px 16px 14px;
+  display:flex;align-items:center;gap:10px;
+}
+.new-logo-icon{
+  width:30px;height:30px;
+  border-radius:9px;
+  background:rgba(255,255,255,0.15);
+  border:1px solid rgba(255,255,255,0.1);
+  display:flex;align-items:center;justify-content:center;
+  flex-shrink:0;
+}
+.new-logo-word{
+  font-size:19px;font-weight:900;color:white;
+  letter-spacing:-0.3px;
+}
+
+/* switcher */
+.new-switcher{
+  margin:0 10px 6px;
+  background:rgba(0,0,0,0.15);
+  border:1px solid rgba(255,255,255,0.08);
+  border-radius:11px;
+  padding:9px 11px;
+  display:flex;align-items:center;gap:8px;
+  cursor:pointer;
+}
+.new-switcher-house{
+  width:22px;height:22px;border-radius:7px;
+  background:rgba(255,255,255,0.15);
+  display:flex;align-items:center;justify-content:center;
+  flex-shrink:0;
+}
+.new-switcher-label{font-size:12px;font-weight:800;color:rgba(255,255,255,0.9);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.new-switcher-chev{opacity:0.4;}
+
+/* nav */
+.new-nav{
+  padding:8px 10px;
+  flex:1;
+  display:flex;flex-direction:column;
+  gap:1px;
+  overflow:hidden;
+}
+.new-nav-group-label{
+  font-size:9px;font-weight:900;
+  color:rgba(255,255,255,0.35);
+  letter-spacing:.1em;
+  text-transform:uppercase;
+  padding:8px 8px 3px;
+}
+.new-nav-group-label:first-child{padding-top:2px;}
+.new-nav-item{
+  display:flex;align-items:center;gap:9px;
+  padding:8px 10px;
+  border-radius:9px;
+  cursor:pointer;
+  position:relative;
+  transition:background 0.1s;
+}
+.new-nav-item:hover{background:rgba(255,255,255,0.07);}
+
+/* active: solid white pill, red icon + text */
+.new-nav-item.active{
+  background:#ffffff;
+}
+.new-nav-dot{
+  width:16px;height:16px;
+  border-radius:4px;
+  flex-shrink:0;
+  opacity:0.55;   /* inactive icon opacity */
+}
+.new-nav-item.active .new-nav-dot{opacity:1;}  /* override via sibling */
+.new-nav-label{
+  font-size:12.5px;font-weight:700;
+  color:rgba(255,255,255,0.6);
+  flex:1;
+}
+.new-nav-item.active .new-nav-label{
+  color:#C41E1E;
+  font-weight:800;
+}
+/* active icon color handled inline */
+
+/* divider between groups */
+.new-nav-div{
+  height:1px;
+  background:rgba(255,255,255,0.06);
+  margin:6px 4px;
+}
+
+/* user block */
+.new-user{
+  padding:8px 10px 12px;
+}
+.new-user-inner{
+  display:flex;align-items:center;gap:9px;
+  padding:9px 11px;
+  border-radius:10px;
+  background:rgba(0,0,0,0.15);
+  border:1px solid rgba(255,255,255,0.07);
+}
+.new-user-av{
+  width:28px;height:28px;border-radius:50%;
+  background:rgba(255,255,255,0.18);
+  border:1.5px solid rgba(255,255,255,0.2);
+  display:flex;align-items:center;justify-content:center;
+  font-size:10px;font-weight:900;color:white;
+  flex-shrink:0;
+}
+.new-user-info{flex:1;min-width:0;}
+.new-user-name{font-size:12px;font-weight:800;color:white;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.new-user-role{font-size:10px;font-weight:600;color:rgba(255,255,255,0.45);}
+.new-logout{
+  width:26px;height:26px;border-radius:7px;
+  background:rgba(255,255,255,0.07);
+  border:none;display:flex;align-items:center;justify-content:center;
+  cursor:pointer;flex-shrink:0;
+}
+
+/* icons — inline SVG placeholders */
+.ic{display:flex;align-items:center;justify-content:center;width:16px;height:16px;flex-shrink:0;}
+.ic svg{width:15px;height:15px;}
+</style>
+</head>
+<body>
+
+<h1 class="gallery-title">Sidebar Redesign</h1>
+<p class="gallery-sub">Current vs. redesigned — red background, white text, more sleek and professional</p>
+
+<div class="compare-row">
+
+  <!-- ══ CURRENT ══ -->
+  <div class="panel-wrap">
+    <div class="col-label">Current</div>
+    <div class="panel-shell">
+      <div class="cur-sidebar">
+        <div class="cur-logo">
+          <div class="cur-logo-icon">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+          </div>
+          <span class="cur-logo-word">Roost</span>
+        </div>
+        <div class="cur-switcher">
+          <div class="cur-switcher-btn">
+            <div class="cur-switcher-av">TM</div>
+            <span class="cur-switcher-label">The Mackall House</span>
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.5)" stroke-width="2.5" stroke-linecap="round"><path d="M6 9l6 6 6-6"/></svg>
+          </div>
+        </div>
+        <nav class="cur-nav">
+          <div class="cur-nav-item active"><div class="cur-nav-dot" style="background:rgba(255,255,255,0.9);display:flex;align-items:center;justify-content:center;"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></div><span class="cur-nav-label" style="color:white;">Today</span></div>
+          <div class="cur-nav-item"><div class="cur-nav-dot" style="opacity:.5;display:flex;align-items:center;justify-content:center;"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.6)" stroke-width="2" stroke-linecap="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg></div><span class="cur-nav-label">Household</span></div>
+          <div class="cur-nav-item"><div class="cur-nav-dot" style="opacity:.5;display:flex;align-items:center;justify-content:center;"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.6)" stroke-width="2" stroke-linecap="round"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 002 1.61h9.72a2 2 0 002-1.61L23 6H6"/></svg></div><span class="cur-nav-label">Shopping</span></div>
+          <div class="cur-nav-item"><div class="cur-nav-dot" style="opacity:.5;display:flex;align-items:center;justify-content:center;"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.6)" stroke-width="2" stroke-linecap="round"><rect x="1" y="4" width="22" height="16" rx="2"/><path d="M1 10h22"/></svg></div><span class="cur-nav-label">Money</span></div>
+          <div class="cur-nav-item"><div class="cur-nav-dot" style="opacity:.5;display:flex;align-items:center;justify-content:center;"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.6)" stroke-width="2" stroke-linecap="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg></div><span class="cur-nav-label">Meals</span></div>
+          <div class="cur-nav-item"><div class="cur-nav-dot" style="opacity:.5;display:flex;align-items:center;justify-content:center;"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.6)" stroke-width="2" stroke-linecap="round"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg></div><span class="cur-nav-label">Chores</span></div>
+          <div class="cur-nav-item"><div class="cur-nav-dot" style="opacity:.5;display:flex;align-items:center;justify-content:center;"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.6)" stroke-width="2" stroke-linecap="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div><span class="cur-nav-label">Calendar</span></div>
+          <div class="cur-nav-item"><div class="cur-nav-dot" style="opacity:.5;display:flex;align-items:center;justify-content:center;"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.6)" stroke-width="2" stroke-linecap="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg></div><span class="cur-nav-label">Tasks</span></div>
+          <div class="cur-nav-item"><div class="cur-nav-dot" style="opacity:.5;display:flex;align-items:center;justify-content:center;"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.6)" stroke-width="2" stroke-linecap="round"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg></div><span class="cur-nav-label">Reminders</span></div>
+          <div class="cur-nav-item"><div class="cur-nav-dot" style="opacity:.5;display:flex;align-items:center;justify-content:center;"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.6)" stroke-width="2" stroke-linecap="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></div><span class="cur-nav-label">Notes</span></div>
+          <div class="cur-nav-item"><div class="cur-nav-dot" style="opacity:.5;display:flex;align-items:center;justify-content:center;"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.6)" stroke-width="2" stroke-linecap="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></div><span class="cur-nav-label">Stats</span></div>
+          <div class="cur-nav-item"><div class="cur-nav-dot" style="opacity:.5;display:flex;align-items:center;justify-content:center;"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.6)" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg></div><span class="cur-nav-label">Settings</span></div>
+        </nav>
+        <div class="cur-user">
+          <div class="cur-user-row">
+            <div class="cur-user-av">CM</div>
+            <span class="cur-user-name">Chris M.</span>
+            <div class="cur-logout"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.7)" stroke-width="2" stroke-linecap="round"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ REDESIGNED ══ -->
+  <div class="panel-wrap">
+    <div class="col-label">Redesigned</div>
+    <div class="panel-shell">
+      <div class="new-sidebar">
+
+        <!-- Logo -->
+        <div class="new-logo">
+          <div class="new-logo-icon">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+          </div>
+          <span class="new-logo-word">Roost</span>
+        </div>
+
+        <!-- Household switcher -->
+        <div style="padding:0 10px 8px;">
+          <div class="new-switcher">
+            <div class="new-switcher-house">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.8)" stroke-width="2.5" stroke-linecap="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/></svg>
+            </div>
+            <span class="new-switcher-label">The Mackall House</span>
+            <svg class="new-switcher-chev" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round"><path d="M6 9l6 6 6-6"/></svg>
+          </div>
+        </div>
+
+        <!-- Nav -->
+        <nav class="new-nav">
+          <!-- Group: Home -->
+          <div class="new-nav-item active">
+            <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="#C41E1E" stroke-width="2.5" stroke-linecap="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></div>
+            <span class="new-nav-label">Today</span>
+          </div>
+          <div class="new-nav-item">
+            <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.55)" stroke-width="2" stroke-linecap="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg></div>
+            <span class="new-nav-label">Household</span>
+          </div>
+
+          <div class="new-nav-div"></div>
+
+          <!-- Group: Household -->
+          <div class="new-nav-item">
+            <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.55)" stroke-width="2" stroke-linecap="round"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 002 1.61h9.72a2 2 0 002-1.61L23 6H6"/></svg></div>
+            <span class="new-nav-label">Shopping</span>
+          </div>
+          <div class="new-nav-item">
+            <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.55)" stroke-width="2" stroke-linecap="round"><rect x="1" y="4" width="22" height="16" rx="2"/><path d="M1 10h22"/></svg></div>
+            <span class="new-nav-label">Money</span>
+          </div>
+          <div class="new-nav-item">
+            <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.55)" stroke-width="2" stroke-linecap="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg></div>
+            <span class="new-nav-label">Meals</span>
+          </div>
+          <div class="new-nav-item">
+            <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.55)" stroke-width="2" stroke-linecap="round"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg></div>
+            <span class="new-nav-label">Chores</span>
+          </div>
+          <div class="new-nav-item">
+            <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.55)" stroke-width="2" stroke-linecap="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div>
+            <span class="new-nav-label">Calendar</span>
+          </div>
+
+          <div class="new-nav-div"></div>
+
+          <!-- Group: Personal -->
+          <div class="new-nav-item">
+            <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.55)" stroke-width="2" stroke-linecap="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg></div>
+            <span class="new-nav-label">Tasks</span>
+          </div>
+          <div class="new-nav-item">
+            <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.55)" stroke-width="2" stroke-linecap="round"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg></div>
+            <span class="new-nav-label">Reminders</span>
+          </div>
+          <div class="new-nav-item">
+            <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.55)" stroke-width="2" stroke-linecap="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></div>
+            <span class="new-nav-label">Notes</span>
+          </div>
+
+          <div class="new-nav-div"></div>
+
+          <!-- Stats + Settings -->
+          <div class="new-nav-item">
+            <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.55)" stroke-width="2" stroke-linecap="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></div>
+            <span class="new-nav-label">Stats</span>
+          </div>
+          <div class="new-nav-item">
+            <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.55)" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg></div>
+            <span class="new-nav-label">Settings</span>
+          </div>
+        </nav>
+
+        <!-- User -->
+        <div class="new-user">
+          <div class="new-user-inner">
+            <div class="new-user-av">CM</div>
+            <div class="new-user-info">
+              <div class="new-user-name">Chris M.</div>
+              <div class="new-user-role">Household admin</div>
+            </div>
+            <div class="new-logout">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.5)" stroke-width="2" stroke-linecap="round"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ DETAIL CALLOUTS ══ -->
+  <div style="flex:1;padding-top:28px;min-width:280px;">
+    <div style="font-size:11px;font-weight:800;color:#475569;letter-spacing:.1em;text-transform:uppercase;margin-bottom:20px;">What changed</div>
+
+    <div style="display:flex;flex-direction:column;gap:14px;">
+      <div style="background:#1e293b;border:1px solid #334155;border-radius:12px;padding:14px 16px;">
+        <div style="font-size:12px;font-weight:900;color:#f1f5f9;margin-bottom:3px;">Active state</div>
+        <div style="font-size:12px;font-weight:600;color:#64748b;line-height:1.5;">Solid white pill with red icon + text — maximum contrast, reads immediately. Before: translucent white with low contrast against the red.</div>
+      </div>
+      <div style="background:#1e293b;border:1px solid #334155;border-radius:12px;padding:14px 16px;">
+        <div style="font-size:12px;font-weight:900;color:#f1f5f9;margin-bottom:3px;">Nav grouping</div>
+        <div style="font-size:12px;font-weight:600;color:#64748b;line-height:1.5;">Four logical groups — Home · Household · Personal · System — separated by hairline dividers. Prevents the flat 12-item scroll wall.</div>
+      </div>
+      <div style="background:#1e293b;border:1px solid #334155;border-radius:12px;padding:14px 16px;">
+        <div style="font-size:12px;font-weight:900;color:#f1f5f9;margin-bottom:3px;">Household switcher</div>
+        <div style="font-size:12px;font-weight:600;color:#64748b;line-height:1.5;">Inset dark panel (rgba 0,0,0,0.15) with house icon. Looks like a distinct control, not a plain text chip.</div>
+      </div>
+      <div style="background:#1e293b;border:1px solid #334155;border-radius:12px;padding:14px 16px;">
+        <div style="font-size:12px;font-weight:900;color:#f1f5f9;margin-bottom:3px;">User block</div>
+        <div style="font-size:12px;font-weight:600;color:#64748b;line-height:1.5;">Inset dark card with avatar ring + role sub-label. Sign-out gets a tinted icon button. Feels like a footer, not an afterthought.</div>
+      </div>
+      <div style="background:#1e293b;border:1px solid #334155;border-radius:12px;padding:14px 16px;">
+        <div style="font-size:12px;font-weight:900;color:#f1f5f9;margin-bottom:3px;">Red tone</div>
+        <div style="font-size:12px;font-weight:600;color:#64748b;line-height:1.5;">Subtle vertical gradient (#D42020 → #C01A1A) replaces flat #DC2626. Same red family, slightly richer depth.</div>
+      </div>
+      <div style="background:#1e293b;border:1px solid #334155;border-radius:12px;padding:14px 16px;">
+        <div style="font-size:12px;font-weight:900;color:#f1f5f9;margin-bottom:3px;">Width</div>
+        <div style="font-size:12px;font-weight:600;color:#64748b;line-height:1.5;">180px → 200px. Extra 20px makes labels breathe without feeling bloated. Leaves ample main content area on 1280px screens.</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+</body>
+</html>

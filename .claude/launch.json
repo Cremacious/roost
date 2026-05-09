@@ -1,0 +1,17 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "chores-mockup",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["serve", "-p", "52800", "C:/Code/personal/roost/.superpowers/brainstorm/chores-redesign/content"],
+      "port": 52800
+    },
+    {
+      "name": "roost-dev",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev"],
+      "port": 3000
+    }
+  ]
+}

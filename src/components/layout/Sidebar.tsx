@@ -104,26 +104,8 @@ export function Sidebar() {
       }}
     >
       {/* ── Logo ──────────────────────────────────────────────────────────── */}
-      <div style={{ padding: '13px 16px', display: 'flex', alignItems: 'center', gap: 10 }}>
-        <div style={{
-          width: 30,
-          height: 30,
-          borderRadius: 9,
-          background: 'rgba(255,255,255,0.15)',
-          border: '1px solid rgba(255,255,255,0.1)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          flexShrink: 0,
-        }}>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round">
-            <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/>
-            <polyline points="9 22 9 12 15 12 15 22"/>
-          </svg>
-        </div>
-        <span style={{ fontSize: 19, fontWeight: 900, color: '#fff', letterSpacing: '-0.3px' }}>
-          Roost
-        </span>
+      <div style={{ padding: '12px 16px', display: 'flex', alignItems: 'center' }}>
+        <RoostLogo size="sm" wordmark={true} wordmarkColor="#ffffff" />
       </div>
 
       {/* ── Household switcher ─────────────────────────────────────────────── */}

@@ -104,7 +104,7 @@ export function Sidebar() {
       }}
     >
       {/* ── Logo ──────────────────────────────────────────────────────────── */}
-      <div style={{ padding: '20px 16px 14px', display: 'flex', alignItems: 'center', gap: 10 }}>
+      <div style={{ padding: '13px 16px', display: 'flex', alignItems: 'center', gap: 10 }}>
         <div style={{
           width: 30,
           height: 30,

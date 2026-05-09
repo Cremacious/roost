@@ -8,6 +8,7 @@ import { toast } from 'sonner'
 import { startOfWeek, format } from 'date-fns'
 import { Skeleton } from '@/components/ui/skeleton'
 import { groupItemsBySection } from '@/lib/utils/grocerySort'
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog'
 
 const COLOR = '#F59E0B'
 const COLOR_DARK = '#C87D00'
@@ -317,6 +318,7 @@ export default function FoodPage() {
   const [checkedOpen, setCheckedOpen] = useState(false)
   const [sortMode, setSortMode] = useState<'smart' | 'newest'>('newest')
   const [addingList, setAddingList] = useState(false)
+  const [clearConfirmOpen, setClearConfirmOpen] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
   const qtyRef = useRef<HTMLInputElement>(null)
 
@@ -447,6 +449,29 @@ export default function FoodPage() {
     onError: (_err, _id, ctx) => {
       if (ctx?.prev) queryClient.setQueryData(['grocery-items', activeListId], ctx.prev)
       toast.error('Could not delete item', { description: 'Check your connection and try again.' })
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['grocery-items', activeListId] })
+      queryClient.invalidateQueries({ queryKey: ['grocery-lists'] })
+    },
+  })
+
+  // ── Clear cart ────────────────────────────────────────────────────────────
+  const clearMutation = useMutation({
+    mutationFn: async () => {
+      if (!activeListId) throw new Error('No active list')
+      const res = await fetch(`/api/grocery/lists/${activeListId}/clear`, { method: 'POST' })
+      if (!res.ok) throw new Error('Failed to clear cart')
+    },
+    onMutate: async () => {
+      await queryClient.cancelQueries({ queryKey: ['grocery-items', activeListId] })
+      const prev = queryClient.getQueryData<GroceryData>(['grocery-items', activeListId])
+      if (prev) queryClient.setQueryData<GroceryData>(['grocery-items', activeListId], { ...prev, items: prev.items.filter(i => !i.isChecked) })
+      return { prev }
+    },
+    onError: (_err, _vars, ctx) => {
+      if (ctx?.prev) queryClient.setQueryData(['grocery-items', activeListId], ctx.prev)
+      toast.error('Could not clear cart', { description: 'Check your connection and try again.' })
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ['grocery-items', activeListId] })
@@ -586,16 +611,6 @@ export default function FoodPage() {
               <div style={{ fontSize: 20, fontWeight: 900, color: 'var(--roost-text-primary)' }}>Shopping Lists</div>
               <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--roost-text-muted)' }}>{lists.length} {lists.length === 1 ? 'list' : 'lists'} · {totalItems} items total</div>
             </div>
-          </div>
-          <div style={{ display: 'flex', gap: 8 }}>
-            <button
-              type="button"
-              onClick={() => inputRef.current?.focus()}
-              style={{ display: 'flex', alignItems: 'center', gap: 6, height: 34, padding: '0 14px', borderRadius: 9, border: 'none', borderBottom: `3px solid ${COLOR_DARK}`, backgroundColor: COLOR, fontSize: 12, fontWeight: 700, color: 'white', cursor: 'pointer', fontFamily: 'inherit' }}
-            >
-              <Plus size={13} color="white" strokeWidth={2.5} />
-              Add item
-            </button>
           </div>
         </div>
       </div>
@@ -817,15 +832,30 @@ export default function FoodPage() {
           {/* In the cart */}
           {checked.length > 0 && (
             <div>
-              <button
-                type="button"
-                onClick={() => setCheckedOpen(v => !v)}
-                style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', background: 'none', border: 'none', cursor: 'pointer', padding: '10px 0', fontFamily: 'inherit', marginBottom: checkedOpen ? 8 : 0 }}
-              >
-                <span style={{ fontSize: 11, fontWeight: 800, color: COLOR, letterSpacing: '0.08em' }}>IN THE CART ({checked.length})</span>
-                <div style={{ flex: 1, height: 1, backgroundColor: 'var(--roost-border)' }} />
-                {checkedOpen ? <ChevronUp size={14} color={COLOR} /> : <ChevronDown size={14} color={COLOR} />}
-              </button>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 0', marginBottom: checkedOpen ? 8 : 0 }}>
+                <button
+                  type="button"
+                  onClick={() => setCheckedOpen(v => !v)}
+                  style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1, background: 'none', border: 'none', cursor: 'pointer', padding: 0, fontFamily: 'inherit', minWidth: 0 }}
+                >
+                  <span style={{ fontSize: 11, fontWeight: 800, color: COLOR, letterSpacing: '0.08em', whiteSpace: 'nowrap' }}>IN THE CART ({checked.length})</span>
+                  <div style={{ flex: 1, height: 1, backgroundColor: 'var(--roost-border)' }} />
+                </button>
+                <button
+                  type="button"
+                  onClick={e => { e.stopPropagation(); setClearConfirmOpen(true) }}
+                  style={{ fontSize: 12, fontWeight: 700, color: 'var(--roost-text-muted)', background: 'none', border: 'none', cursor: 'pointer', padding: '0 2px', fontFamily: 'inherit', flexShrink: 0 }}
+                >
+                  Clear
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setCheckedOpen(v => !v)}
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center', flexShrink: 0 }}
+                >
+                  {checkedOpen ? <ChevronUp size={14} color={COLOR} /> : <ChevronDown size={14} color={COLOR} />}
+                </button>
+              </div>
               <AnimatePresence>
                 {checkedOpen && (
                   <motion.div
@@ -956,6 +986,26 @@ export default function FoodPage() {
         </div>{/* /desktop sidebar */}
 
       </div>{/* /content layout */}
+
+      <AlertDialog open={clearConfirmOpen} onOpenChange={setClearConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Clear cart?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will remove all {checked.length} checked {checked.length === 1 ? 'item' : 'items'} from your list.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => clearMutation.mutate()}
+              style={{ backgroundColor: COLOR, borderBottom: `3px solid ${COLOR_DARK}`, border: 'none', color: '#fff', fontWeight: 800 }}
+            >
+              Clear
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </motion.div>
   )
 }

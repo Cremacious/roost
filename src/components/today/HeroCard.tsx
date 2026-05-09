@@ -1,9 +1,10 @@
 'use client'
 
-import { motion } from 'framer-motion'
-import { CheckCircle2, AlertCircle, Clock, Bell } from 'lucide-react'
+import Link from 'next/link'
+import { Check } from 'lucide-react'
+import { differenceInCalendarDays } from 'date-fns'
 
-interface ChoreItem { id: string; title: string; nextDueAt: string | null; overdue: boolean }
+interface ChoreItem { id: string; title: string; nextDueAt: string | null; frequency?: string; overdue: boolean }
 interface ReminderItem { id: string; title: string; nextRemindAt: string }
 
 interface HeroCardProps {
@@ -12,67 +13,126 @@ interface HeroCardProps {
   onCompleteChore?: (id: string) => void
 }
 
-const CONFIGS = {
-  overdue_chore: { bg: '#FEF2F2', border: '#FCA5A5', slab: '#EF4444', icon: AlertCircle, iconColor: '#EF4444', label: 'Overdue' },
-  due_chore:     { bg: '#FFF7ED', border: '#FED7AA', slab: '#F97316', icon: Clock,         iconColor: '#F97316', label: 'Due today' },
-  reminder:      { bg: '#ECFEFF', border: '#A5F3FC', slab: '#06B6D4', icon: Bell,          iconColor: '#06B6D4', label: 'Reminder' },
-  all_clear:     { bg: '#F0FDF4', border: '#BBF7D0', slab: '#22C55E', icon: CheckCircle2,  iconColor: '#22C55E', label: '' },
+function formatFreq(f?: string | null): string {
+  if (!f) return ''
+  const map: Record<string, string> = {
+    daily: 'Daily', weekly: 'Weekly', biweekly: 'Bi-weekly',
+    monthly: 'Monthly', yearly: 'Yearly', custom: 'Custom',
+  }
+  return map[f] ?? f
+}
+
+const BG: Record<string, string> = {
+  overdue_chore: '#EF4444',
+  due_chore:     '#F59E0B',
+  reminder:      '#3B82F6',
+  all_clear:     '#22C55E',
 }
 
 export function HeroCard({ type, item, onCompleteChore }: HeroCardProps) {
-  const cfg = CONFIGS[type]
-  const IconComponent = cfg.icon
-  const choreItem = (type === 'overdue_chore' || type === 'due_chore') ? item as ChoreItem | null : null
+  const choreItem  = (type === 'overdue_chore' || type === 'due_chore') ? item as ChoreItem | null : null
   const reminderItem = type === 'reminder' ? item as ReminderItem | null : null
+  const bg = BG[type]
+
+  // Days overdue
+  let daysLate = 0
+  if (choreItem?.nextDueAt && choreItem.overdue) {
+    daysLate = Math.max(1, differenceInCalendarDays(new Date(), new Date(choreItem.nextDueAt)))
+  }
+
+  // Per-state content
+  let eyebrow = ''
+  let title   = ''
+  let meta    = ''
+
+  if (type === 'overdue_chore' && choreItem) {
+    const freq = formatFreq(choreItem.frequency)
+    eyebrow = 'Needs your attention'
+    title   = `${choreItem.title} is ${daysLate} ${daysLate === 1 ? 'day' : 'days'} overdue`
+    meta    = freq ? `${freq} chore · Your turn` : 'Your turn'
+  } else if (type === 'due_chore' && choreItem) {
+    const freq = formatFreq(choreItem.frequency)
+    eyebrow = 'Up next for you'
+    title   = `${choreItem.title} is due today`
+    meta    = freq ? `${freq} chore · Your turn` : 'Your turn'
+  } else if (type === 'reminder' && reminderItem) {
+    eyebrow = 'Reminder'
+    title   = reminderItem.title
+    meta    = 'Set by you · Due today'
+  } else if (type === 'all_clear') {
+    eyebrow = "You're all caught up"
+    title   = 'Nothing on your plate today'
+    meta    = 'All chores done · No reminders'
+  }
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 12 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.18 }}
-      style={{
-        backgroundColor: cfg.bg,
-        border: `1.5px solid ${cfg.border}`,
-        borderBottom: `4px solid ${cfg.slab}`,
-        borderRadius: 16,
-        padding: '14px 16px',
-        display: 'flex',
-        alignItems: 'center',
-        gap: 12,
-      }}
-    >
-      <div style={{ width: 40, height: 40, borderRadius: 10, backgroundColor: `${cfg.slab}20`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-        <IconComponent size={22} color={cfg.iconColor} />
-      </div>
+    <div style={{ background: bg, borderRadius: 18, padding: '20px 18px 18px', position: 'relative', overflow: 'hidden' }}>
+      {/* Decorative blobs */}
+      <div style={{ position: 'absolute', top: -40, right: -40, width: 160, height: 160, borderRadius: '50%', background: 'rgba(255,255,255,0.06)', pointerEvents: 'none' }} />
+      <div style={{ position: 'absolute', bottom: -30, left: -20, width: 100, height: 100, borderRadius: '50%', background: 'rgba(255,255,255,0.04)', pointerEvents: 'none' }} />
 
-      <div style={{ flex: 1, minWidth: 0 }}>
-        {type === 'all_clear' ? (
-          <>
-            <p style={{ fontWeight: 800, fontSize: 15, color: '#111827', margin: 0 }}>You&apos;re on top of things.</p>
-            <p style={{ fontWeight: 700, fontSize: 12, color: '#6B7280', margin: '2px 0 0' }}>Nothing overdue or due today.</p>
-          </>
-        ) : choreItem ? (
-          <>
-            <p style={{ fontWeight: 800, fontSize: 15, color: '#111827', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{choreItem.title}</p>
-            <p style={{ fontWeight: 700, fontSize: 12, color: cfg.iconColor, margin: '2px 0 0' }}>{cfg.label}</p>
-          </>
-        ) : reminderItem ? (
-          <>
-            <p style={{ fontWeight: 800, fontSize: 15, color: '#111827', margin: 0 }}>{reminderItem.title}</p>
-            <p style={{ fontWeight: 700, fontSize: 12, color: cfg.iconColor, margin: '2px 0 0' }}>{cfg.label}</p>
-          </>
-        ) : null}
-      </div>
-
-      {choreItem && onCompleteChore && (
-        <button
-          onClick={() => onCompleteChore(choreItem.id)}
-          style={{ width: 32, height: 32, borderRadius: 8, backgroundColor: cfg.slab, border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}
-          aria-label="Complete chore"
-        >
-          <CheckCircle2 size={16} color="#fff" />
-        </button>
+      {/* All-clear check circle */}
+      {type === 'all_clear' && (
+        <div style={{ width: 52, height: 52, borderRadius: '50%', background: 'rgba(255,255,255,0.2)', border: '2px solid rgba(255,255,255,0.35)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 12, position: 'relative', zIndex: 1 }}>
+          <Check size={26} color="white" strokeWidth={2.5} />
+        </div>
       )}
-    </motion.div>
+
+      {/* Eyebrow */}
+      <p style={{ fontSize: 10, fontWeight: 800, color: 'rgba(255,255,255,0.75)', letterSpacing: '0.1em', textTransform: 'uppercase', margin: '0 0 6px', position: 'relative', zIndex: 1 }}>
+        {eyebrow}
+      </p>
+
+      {/* Title */}
+      <p style={{ fontSize: 20, fontWeight: 900, color: 'white', letterSpacing: '-0.3px', lineHeight: 1.2, margin: '0 0 6px', position: 'relative', zIndex: 1 }}>
+        {title}
+      </p>
+
+      {/* Meta */}
+      <p style={{ fontSize: 12, fontWeight: 600, color: 'rgba(255,255,255,0.75)', margin: '0 0 14px', position: 'relative', zIndex: 1 }}>
+        {meta}
+      </p>
+
+      {/* Action buttons */}
+      <div style={{ display: 'flex', gap: 8, position: 'relative', zIndex: 1 }}>
+        {(type === 'overdue_chore' || type === 'due_chore') && choreItem && onCompleteChore && (
+          <button
+            onClick={() => onCompleteChore(choreItem.id)}
+            style={{
+              display: 'inline-flex', alignItems: 'center', gap: 6,
+              padding: '10px 18px', borderRadius: 11,
+              background: 'white', border: 'none',
+              fontFamily: 'inherit', fontSize: 13, fontWeight: 900,
+              color: type === 'overdue_chore' ? '#B91C1C' : '#92400E',
+              cursor: 'pointer',
+            }}
+          >
+            <Check size={14} strokeWidth={2.5} />
+            Mark complete
+          </button>
+        )}
+
+        {type === 'reminder' && (
+          <>
+            <button style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '10px 18px', borderRadius: 11, background: 'white', border: 'none', fontFamily: 'inherit', fontSize: 13, fontWeight: 900, color: '#1D4ED8', cursor: 'pointer' }}>
+              <Check size={14} strokeWidth={2.5} />
+              Done
+            </button>
+            <button style={{ display: 'inline-flex', alignItems: 'center', padding: '10px 18px', borderRadius: 11, background: 'rgba(255,255,255,0.15)', border: '1.5px solid rgba(255,255,255,0.25)', fontFamily: 'inherit', fontSize: 13, fontWeight: 900, color: 'white', cursor: 'pointer' }}>
+              Snooze
+            </button>
+          </>
+        )}
+
+        {type === 'all_clear' && (
+          <Link
+            href="/household"
+            style={{ display: 'inline-flex', alignItems: 'center', padding: '10px 18px', borderRadius: 11, background: 'rgba(255,255,255,0.15)', border: '1.5px solid rgba(255,255,255,0.25)', fontFamily: 'inherit', fontSize: 13, fontWeight: 900, color: 'white', textDecoration: 'none' }}
+          >
+            View household
+          </Link>
+        )}
+      </div>
+    </div>
   )
 }

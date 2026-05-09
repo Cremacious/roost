@@ -1,0 +1,611 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=1400">
+<title>Roost — Today · Mockup</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@600;700;800;900&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
+body{
+  font-family:'Nunito',system-ui,-apple-system,sans-serif;
+  background:#0f172a;color:#f8fafc;
+  -webkit-font-smoothing:antialiased;
+  padding:48px 40px 80px;min-width:1280px;
+}
+
+/* ── gallery chrome ─────────────────────────────────── */
+.gallery-title{font-size:26px;font-weight:900;color:#f1f5f9;letter-spacing:-0.5px;}
+.gallery-sub{font-size:14px;font-weight:600;color:#64748b;margin-top:4px;}
+.gallery-route{display:inline-flex;align-items:center;gap:8px;background:#1e293b;border:1px solid #334155;border-radius:8px;padding:5px 12px;font-size:12px;font-weight:700;color:#94a3b8;margin-top:10px;font-family:ui-monospace,'JetBrains Mono',monospace;}
+.gallery-route-dot{width:6px;height:6px;border-radius:50%;background:#22c55e;}
+.section-label{font-size:11px;font-weight:800;color:#475569;letter-spacing:.1em;text-transform:uppercase;margin:44px 0 18px;display:flex;align-items:center;gap:14px;}
+.section-label::after{content:'';flex:1;height:1px;background:#1e293b;}
+.frame-tag{font-size:11px;font-weight:800;color:#475569;letter-spacing:.08em;text-transform:uppercase;margin-bottom:12px;}
+.frames-row{display:flex;gap:28px;align-items:flex-start;}
+
+/* ── phone frame ────────────────────────────────────── */
+.phone-shell{flex-shrink:0;width:375px;background:#1c1c1e;border-radius:52px;padding:14px;box-shadow:0 0 0 1px #3a3a3c,0 0 0 2px #1c1c1e,0 50px 100px rgba(0,0,0,.7),inset 0 0 0 1px rgba(255,255,255,.06);}
+.phone-screen{background:#f9fafb;border-radius:40px;height:756px;overflow:hidden;position:relative;}
+.phone-notch{position:absolute;top:14px;left:50%;transform:translateX(-50%);width:120px;height:34px;background:#1c1c1e;border-radius:20px;z-index:100;}
+.phone-content{height:100%;overflow-y:auto;overflow-x:hidden;padding-top:48px;}
+.phone-content::-webkit-scrollbar{display:none;}
+
+/* ── browser frame ──────────────────────────────────── */
+.browser-shell{flex:1;min-width:0;background:#1e293b;border-radius:14px;overflow:hidden;box-shadow:0 0 0 1px #334155,0 50px 100px rgba(0,0,0,.5);}
+.browser-chrome{background:#1e293b;border-bottom:1px solid #334155;padding:11px 14px;display:flex;align-items:center;gap:12px;}
+.traffic-lights{display:flex;gap:7px;flex-shrink:0;}
+.tl{width:12px;height:12px;border-radius:50%;}
+.tl-r{background:#ff5f56;}.tl-y{background:#ffbd2e;}.tl-g{background:#27c93f;}
+.browser-url{flex:1;background:#0f172a;border:1px solid #334155;border-radius:7px;padding:5px 12px;font-size:12px;font-weight:700;color:#64748b;font-family:ui-monospace,'JetBrains Mono',monospace;text-align:center;max-width:380px;margin:0 auto;}
+.browser-content{background:#f9fafb;height:756px;overflow:hidden;display:flex;}
+
+/* ── TOKENS ─────────────────────────────────────────── */
+:root{
+  --green:#22C55E;--green-dark:#15803D;--green-light:#DCFCE7;--green-50:#F0FDF4;
+  --red:#EF4444;--red-dark:#B91C1C;--red-light:#FEE2E2;
+  --amber:#F59E0B;--amber-dark:#92400E;--amber-light:#FEF3C7;
+  --blue:#3B82F6;--blue-dark:#1D4ED8;--blue-light:#DBEAFE;
+  --purple:#A855F7;--purple-light:#F3E8FF;
+  --orange:#F97316;--orange-light:#FFEDD5;
+  --white:#fff;
+  --gray-50:#F9FAFB;--gray-100:#F3F4F6;--gray-200:#E5E7EB;
+  --gray-300:#D1D5DB;--gray-400:#9CA3AF;--gray-500:#6B7280;
+  --gray-600:#4B5563;--gray-700:#374151;--gray-800:#1F2937;--gray-900:#111827;
+  --surface:#fff;--border:#e5e7eb;--border-bottom:#d1d5db;
+}
+
+/* ── mobile app shell ────────────────────────────────── */
+.app-shell{background:var(--gray-50);min-height:100%;}
+
+/* mobile topbar — red with white wordmark */
+.m-topbar{
+  background:#DC2626;
+  padding:10px 16px 10px;
+  display:flex;align-items:center;justify-content:space-between;
+  position:sticky;top:0;z-index:10;
+}
+.m-logo{display:flex;align-items:center;gap:7px;}
+.m-logo-icon{width:26px;height:26px;background:rgba(255,255,255,.18);border-radius:7px;display:flex;align-items:center;justify-content:center;}
+.m-logo-word{font-size:17px;font-weight:900;color:white;letter-spacing:-0.3px;}
+.m-avatar{width:30px;height:30px;border-radius:50%;background:rgba(255,255,255,.18);border:1.5px solid rgba(255,255,255,.3);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:900;color:white;}
+
+/* narrow page content — 680px max, centered */
+.page-content{padding:20px 16px 80px;max-width:680px;margin:0 auto;}
+
+/* date label */
+.date-label{font-size:10px;font-weight:800;color:var(--gray-400);letter-spacing:.12em;text-transform:uppercase;margin-bottom:12px;}
+
+/* ── HERO CARD ────────────────────────────────────────── */
+/* Overdue hero */
+.hero-overdue{
+  background:var(--red);
+  border-radius:18px;
+  padding:20px 18px 18px;
+  margin-bottom:16px;
+  position:relative;overflow:hidden;
+}
+.hero-overdue::before{content:'';position:absolute;top:-40px;right:-40px;width:160px;height:160px;border-radius:50%;background:rgba(255,255,255,.06);}
+.hero-overdue::after{content:'';position:absolute;bottom:-30px;left:-20px;width:100px;height:100px;border-radius:50%;background:rgba(255,255,255,.04);}
+.hero-eyebrow{font-size:10px;font-weight:800;color:rgba(255,255,255,.7);letter-spacing:.1em;text-transform:uppercase;margin-bottom:6px;position:relative;z-index:1;}
+.hero-title{font-size:20px;font-weight:900;color:white;letter-spacing:-0.3px;line-height:1.2;margin-bottom:14px;position:relative;z-index:1;}
+.hero-meta{font-size:12px;font-weight:600;color:rgba(255,255,255,.7);margin-bottom:14px;position:relative;z-index:1;}
+.hero-action-btn{
+  display:inline-flex;align-items:center;gap:6px;
+  padding:10px 18px;border-radius:11px;
+  background:white;border:none;
+  font-family:inherit;font-size:13px;font-weight:900;color:var(--red-dark);
+  cursor:pointer;position:relative;z-index:1;
+}
+.hero-action-btn svg{width:14px;height:14px;}
+.hero-action-btn.ghost{background:rgba(255,255,255,.15);color:white;border:1.5px solid rgba(255,255,255,.25);}
+
+/* Due today hero */
+.hero-amber{
+  background:var(--amber);
+  border-radius:18px;padding:20px 18px 18px;margin-bottom:16px;
+  position:relative;overflow:hidden;
+}
+.hero-amber::before{content:'';position:absolute;top:-40px;right:-40px;width:160px;height:160px;border-radius:50%;background:rgba(255,255,255,.07);}
+
+/* Reminder hero */
+.hero-blue{
+  background:var(--blue);
+  border-radius:18px;padding:20px 18px 18px;margin-bottom:16px;
+  position:relative;overflow:hidden;
+}
+.hero-blue::before{content:'';position:absolute;top:-40px;right:-40px;width:160px;height:160px;border-radius:50%;background:rgba(255,255,255,.07);}
+.hero-action-btn.blue-ghost{background:rgba(255,255,255,.15);color:white;border:1.5px solid rgba(255,255,255,.25);}
+
+/* All clear hero */
+.hero-green{
+  background:var(--green);
+  border-radius:18px;padding:20px 18px 18px;margin-bottom:16px;
+  position:relative;overflow:hidden;
+}
+.hero-green::before{content:'';position:absolute;top:-40px;right:-40px;width:160px;height:160px;border-radius:50%;background:rgba(255,255,255,.07);}
+.hero-action-btn.green-ghost{background:rgba(255,255,255,.15);color:white;border:1.5px solid rgba(255,255,255,.25);}
+.hero-all-clear-icon{width:52px;height:52px;border-radius:50%;background:rgba(255,255,255,.2);border:2px solid rgba(255,255,255,.35);display:flex;align-items:center;justify-content:center;margin-bottom:12px;position:relative;z-index:1;}
+
+/* ── CHORES LIST ──────────────────────────────────────── */
+.slab{background:var(--surface);border:1.5px solid var(--border);border-bottom:4px solid var(--green-dark);border-radius:16px;margin-bottom:14px;overflow:hidden;}
+.slab-red{border-bottom-color:var(--red-dark);}
+.slab-amber{border-bottom-color:var(--amber);}
+.slab-header{display:flex;align-items:center;justify-content:space-between;padding:12px 16px 0;}
+.slab-title{font-size:13px;font-weight:800;color:var(--gray-900);}
+.slab-count{font-size:11px;font-weight:700;color:var(--gray-400);}
+.slab-body{padding:6px 16px 14px;}
+
+.chore-row{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--gray-100);}
+.chore-row:last-child{border-bottom:none;}
+.chore-check{width:22px;height:22px;border-radius:50%;border:2px solid var(--gray-300);display:flex;align-items:center;justify-content:center;flex-shrink:0;cursor:pointer;}
+.chore-check.checked{background:var(--green);border-color:var(--green);}
+.chore-info{flex:1;min-width:0;}
+.chore-name{font-size:13px;font-weight:800;color:var(--gray-900);}
+.chore-name.done{color:var(--gray-400);text-decoration:line-through;}
+.chore-meta{font-size:10px;font-weight:600;color:var(--gray-400);}
+.chore-status{font-size:10px;font-weight:800;padding:2px 7px;border-radius:6px;flex-shrink:0;}
+.chore-status.overdue{background:var(--red-light);color:var(--red-dark);}
+.chore-status.due-today{background:var(--amber-light);color:var(--amber-dark);}
+.complete-btn{padding:5px 11px;border-radius:8px;background:var(--green-light);border:1.5px solid var(--green);border-bottom:2px solid var(--green-dark);font-family:inherit;font-size:10px;font-weight:900;color:var(--green-dark);cursor:pointer;flex-shrink:0;}
+
+/* ── SNAPSHOT STRIP ───────────────────────────────────── */
+.snapshot-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px;}
+.snap-card{background:var(--surface);border:1.5px solid var(--border);border-bottom:3px solid var(--border-bottom);border-radius:14px;padding:14px;cursor:pointer;transition:transform .15s;}
+.snap-card:active{transform:translateY(1px);}
+.snap-card-icon{width:32px;height:32px;border-radius:9px;display:flex;align-items:center;justify-content:center;margin-bottom:8px;}
+.snap-card-label{font-size:10px;font-weight:800;color:var(--gray-400);letter-spacing:.07em;text-transform:uppercase;margin-bottom:3px;}
+.snap-card-value{font-size:16px;font-weight:900;color:var(--gray-900);letter-spacing:-0.3px;line-height:1.2;}
+.snap-card-value.green{color:var(--green-dark);}
+.snap-card-value.red{color:var(--red);}
+.snap-card-value.amber{color:var(--amber-dark);}
+.snap-card-value.muted{color:var(--gray-400);}
+.snap-card-sub{font-size:10px;font-weight:600;color:var(--gray-400);margin-top:2px;}
+
+/* ── DESKTOP SIDEBAR ─────────────────────────────────── */
+.d-sidebar{width:200px;flex-shrink:0;background:#DC2626;height:100%;display:flex;flex-direction:column;}
+.d-sidebar-logo{padding:16px 14px 12px;border-bottom:1px solid rgba(255,255,255,.1);display:flex;align-items:center;gap:8px;}
+.d-logo-icon{width:28px;height:28px;background:rgba(255,255,255,.18);border-radius:8px;display:flex;align-items:center;justify-content:center;}
+.d-logo-word{font-size:17px;font-weight:900;color:white;letter-spacing:-0.3px;}
+.d-hs-switcher{padding:8px 10px;border-bottom:1px solid rgba(255,255,255,.1);}
+.d-hs-chip{display:flex;align-items:center;gap:7px;padding:7px 9px;border-radius:9px;background:rgba(255,255,255,.1);cursor:pointer;}
+.d-hs-icon{width:20px;height:20px;border-radius:5px;background:rgba(255,255,255,.2);display:flex;align-items:center;justify-content:center;}
+.d-hs-name{font-size:11px;font-weight:800;color:white;flex:1;}
+.d-sidebar-nav{flex:1;padding:6px 8px;overflow-y:auto;display:flex;flex-direction:column;gap:1px;}
+.d-sidebar-nav::-webkit-scrollbar{display:none;}
+.d-nav-item{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:9px;font-size:13px;font-weight:700;color:rgba(255,255,255,.6);cursor:pointer;text-decoration:none;}
+.d-nav-item.active{background:rgba(255,255,255,.18);color:white;}
+.d-nav-item:not(.active):hover{background:rgba(255,255,255,.08);}
+.d-nav-item svg{width:15px;height:15px;flex-shrink:0;}
+.d-nav-divider{height:1px;background:rgba(255,255,255,.1);margin:5px 2px;}
+.d-sidebar-footer{padding:10px 8px;border-top:1px solid rgba(255,255,255,.1);}
+.d-user-row{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:9px;background:rgba(255,255,255,.08);}
+.d-user-av{width:26px;height:26px;border-radius:50%;background:rgba(255,255,255,.2);border:1.5px solid rgba(255,255,255,.25);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:900;color:white;flex-shrink:0;}
+.d-user-name{font-size:12px;font-weight:700;color:white;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.d-user-logout{width:22px;height:22px;display:flex;align-items:center;justify-content:center;flex-shrink:0;cursor:pointer;}
+
+/* desktop main */
+.d-main{flex:1;min-width:0;display:flex;flex-direction:column;height:100%;overflow:hidden;background:var(--gray-50);}
+.d-scroll{flex:1;overflow-y:auto;padding:24px 28px 40px;}
+.d-scroll::-webkit-scrollbar{display:none;}
+.d-content{max-width:640px;margin:0 auto;}
+
+/* desktop chore row */
+.d-chore-row{display:flex;align-items:center;gap:9px;padding:8px 0;border-bottom:1px solid var(--gray-100);}
+.d-chore-row:last-child{border-bottom:none;}
+.d-chore-check{width:20px;height:20px;border-radius:50%;border:2px solid var(--gray-300);display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.d-chore-check.checked{background:var(--green);border-color:var(--green);}
+.d-chore-info{flex:1;min-width:0;}
+.d-chore-name{font-size:12px;font-weight:800;color:var(--gray-900);}
+.d-chore-name.done{color:var(--gray-400);text-decoration:line-through;}
+.d-chore-meta{font-size:10px;font-weight:600;color:var(--gray-400);}
+.d-chore-right{display:flex;align-items:center;gap:6px;flex-shrink:0;}
+.d-chore-status{font-size:10px;font-weight:800;padding:2px 7px;border-radius:6px;}
+.d-chore-status.overdue{background:var(--red-light);color:var(--red-dark);}
+.d-chore-status.due-today{background:var(--amber-light);color:var(--amber-dark);}
+.d-complete-btn{padding:4px 10px;border-radius:7px;background:var(--green-light);border:1.5px solid var(--green);border-bottom:2px solid var(--green-dark);font-family:inherit;font-size:10px;font-weight:900;color:var(--green-dark);cursor:pointer;}
+
+/* hero states panels for gallery */
+.hero-panels{display:flex;gap:18px;flex-wrap:wrap;}
+.hero-panel-wrap{flex-shrink:0;width:280px;}
+.hero-panel-label{font-size:11px;font-weight:800;color:#475569;letter-spacing:.08em;text-transform:uppercase;margin-bottom:10px;}
+.hero-panel-card{background:var(--gray-50);border-radius:20px;overflow:hidden;box-shadow:0 20px 40px rgba(0,0,0,.4),0 0 0 1px #334155;padding:18px;}
+</style>
+</head>
+<body>
+
+<!-- ── Gallery header ─────────────────────────────────── -->
+<div style="margin-bottom:36px;">
+  <h1 class="gallery-title">Today</h1>
+  <p class="gallery-sub">Roost · /today · Mobile + Desktop · 680px max-width centered</p>
+  <div class="gallery-route"><div class="gallery-route-dot"></div>GET /api/today — polls every 30s</div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════
+     SECTION: SCREENS
+════════════════════════════════════════════════════════ -->
+<div class="section-label">Screens (hero state: overdue chore)</div>
+<div class="frames-row">
+
+  <!-- ══ PHONE ══ -->
+  <div>
+    <div class="frame-tag">Mobile · iOS</div>
+    <div class="phone-shell">
+      <div class="phone-screen">
+        <div class="phone-notch"></div>
+        <div class="phone-content">
+          <div class="app-shell">
+            <div class="m-topbar">
+              <div class="m-logo">
+                <div class="m-logo-icon">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+                </div>
+                <span class="m-logo-word">Roost</span>
+              </div>
+              <div class="m-avatar">CM</div>
+            </div>
+            <div class="page-content">
+
+              <div class="date-label">Friday, May 9</div>
+
+              <!-- Hero: overdue chore -->
+              <div class="hero-overdue">
+                <div class="hero-eyebrow">Needs your attention</div>
+                <div class="hero-title">Wipe kitchen counters is 2 days overdue</div>
+                <div class="hero-meta">Daily chore · Your turn</div>
+                <button class="hero-action-btn">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M20 6L9 17l-5-5"/></svg>
+                  Mark complete
+                </button>
+              </div>
+
+              <!-- Chores -->
+              <div class="slab slab-red">
+                <div class="slab-header"><span class="slab-title">Your chores</span><span class="slab-count">3 to do</span></div>
+                <div class="slab-body">
+                  <div class="chore-row">
+                    <div class="chore-check"></div>
+                    <div class="chore-info"><div class="chore-name">Wipe kitchen counters</div><div class="chore-meta">Daily · 2 days overdue</div></div>
+                    <div class="chore-status overdue">2 days</div>
+                    <button class="complete-btn">Done</button>
+                  </div>
+                  <div class="chore-row">
+                    <div class="chore-check"></div>
+                    <div class="chore-info"><div class="chore-name">Empty compost</div><div class="chore-meta">Weekly · 1 day overdue</div></div>
+                    <div class="chore-status overdue">1 day</div>
+                    <button class="complete-btn">Done</button>
+                  </div>
+                  <div class="chore-row">
+                    <div class="chore-check"></div>
+                    <div class="chore-info"><div class="chore-name">Laundry (shared)</div><div class="chore-meta">Bi-weekly · due today</div></div>
+                    <div class="chore-status due-today">Today</div>
+                    <button class="complete-btn">Done</button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Snapshot strip -->
+              <div class="date-label" style="margin-bottom:8px;">Quick look</div>
+              <div class="snapshot-grid">
+                <div class="snap-card">
+                  <div class="snap-card-icon" style="background:var(--orange-light);">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--orange)" stroke-width="2.5" stroke-linecap="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+                  </div>
+                  <div class="snap-card-label">Tonight's meal</div>
+                  <div class="snap-card-value" style="font-size:14px;">Chicken stir-fry</div>
+                  <div class="snap-card-sub">Dinner · Alex cooking</div>
+                </div>
+                <div class="snap-card">
+                  <div class="snap-card-icon" style="background:var(--green-light);">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>
+                  </div>
+                  <div class="snap-card-label">Money</div>
+                  <div class="snap-card-value green">+$42.50</div>
+                  <div class="snap-card-sub">Net — owed to you</div>
+                </div>
+                <div class="snap-card">
+                  <div class="snap-card-icon" style="background:var(--blue-light);">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--blue)" stroke-width="2.5" stroke-linecap="round"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 002 1.61h9.72a2 2 0 002-1.61L23 6H6"/></svg>
+                  </div>
+                  <div class="snap-card-label">Grocery list</div>
+                  <div class="snap-card-value" style="font-size:22px;">12</div>
+                  <div class="snap-card-sub">items unchecked</div>
+                </div>
+                <div class="snap-card" style="opacity:.5;">
+                  <div class="snap-card-icon" style="background:var(--gray-100);">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--gray-400)" stroke-width="2.5" stroke-linecap="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                  </div>
+                  <div class="snap-card-label">Next event</div>
+                  <div class="snap-card-value muted">—</div>
+                  <div class="snap-card-sub">Coming soon</div>
+                </div>
+              </div>
+
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ DESKTOP ══ -->
+  <div style="flex:1;min-width:0;">
+    <div class="frame-tag">Desktop · 1280px</div>
+    <div class="browser-shell">
+      <div class="browser-chrome">
+        <div class="traffic-lights"><div class="tl tl-r"></div><div class="tl tl-y"></div><div class="tl tl-g"></div></div>
+        <div class="browser-url">localhost:3000/today</div>
+      </div>
+      <div class="browser-content">
+        <!-- sidebar -->
+        <div class="d-sidebar">
+          <div class="d-sidebar-logo">
+            <div class="d-logo-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></div>
+            <span class="d-logo-word">Roost</span>
+          </div>
+          <div class="d-hs-switcher">
+            <div class="d-hs-chip">
+              <div class="d-hs-icon"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/></svg></div>
+              <span class="d-hs-name">Mackall House</span>
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.5)" stroke-width="2.5" stroke-linecap="round"><path d="M6 9l6 6 6-6"/></svg>
+            </div>
+          </div>
+          <nav class="d-sidebar-nav">
+            <a class="d-nav-item active" href="#">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+              Today
+            </a>
+            <a class="d-nav-item" href="#">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
+              Household
+            </a>
+            <a class="d-nav-item" href="#">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 002 1.61h9.72a2 2 0 002-1.61L23 6H6"/></svg>
+              Shopping
+            </a>
+            <a class="d-nav-item" href="#">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>
+              Money
+            </a>
+            <a class="d-nav-item" href="#">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+              Meals
+            </a>
+            <a class="d-nav-item" href="#">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
+              Chores
+            </a>
+            <a class="d-nav-item" href="#">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+              Calendar
+            </a>
+            <a class="d-nav-item" href="#">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+              Tasks
+            </a>
+            <div class="d-nav-divider"></div>
+            <a class="d-nav-item" href="#">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+              Settings
+            </a>
+          </nav>
+          <div class="d-sidebar-footer">
+            <div class="d-user-row">
+              <div class="d-user-av">CM</div>
+              <span class="d-user-name">Chris M.</span>
+              <div class="d-user-logout">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.6)" stroke-width="2.5" stroke-linecap="round"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- main -->
+        <div class="d-main">
+          <div class="d-scroll">
+            <div class="d-content">
+              <div class="date-label" style="margin-bottom:14px;">Friday, May 9</div>
+
+              <!-- Hero: overdue chore -->
+              <div class="hero-overdue" style="margin-bottom:18px;">
+                <div class="hero-eyebrow">Needs your attention</div>
+                <div class="hero-title">Wipe kitchen counters is 2 days overdue</div>
+                <div class="hero-meta">Daily chore · Your turn</div>
+                <button class="hero-action-btn">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M20 6L9 17l-5-5"/></svg>
+                  Mark complete
+                </button>
+              </div>
+
+              <!-- Chores slab -->
+              <div class="slab slab-red" style="margin-bottom:16px;">
+                <div class="slab-header"><span class="slab-title">Your chores</span><span class="slab-count">3 to do</span></div>
+                <div class="slab-body">
+                  <div class="d-chore-row">
+                    <div class="d-chore-check"></div>
+                    <div class="d-chore-info"><div class="d-chore-name">Wipe kitchen counters</div><div class="d-chore-meta">Daily · was due May 7</div></div>
+                    <div class="d-chore-right"><div class="d-chore-status overdue">2 days late</div><button class="d-complete-btn">Done</button></div>
+                  </div>
+                  <div class="d-chore-row">
+                    <div class="d-chore-check"></div>
+                    <div class="d-chore-info"><div class="d-chore-name">Empty compost</div><div class="d-chore-meta">Weekly · was due May 8</div></div>
+                    <div class="d-chore-right"><div class="d-chore-status overdue">1 day late</div><button class="d-complete-btn">Done</button></div>
+                  </div>
+                  <div class="d-chore-row">
+                    <div class="d-chore-check"></div>
+                    <div class="d-chore-info"><div class="d-chore-name">Laundry (shared)</div><div class="d-chore-meta">Bi-weekly · due today</div></div>
+                    <div class="d-chore-right"><div class="d-chore-status due-today">Due today</div><button class="d-complete-btn">Done</button></div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Snapshot strip -->
+              <div class="date-label" style="margin-bottom:10px;">Quick look</div>
+              <div class="snapshot-grid">
+                <div class="snap-card">
+                  <div class="snap-card-icon" style="background:var(--orange-light);"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--orange)" stroke-width="2.5" stroke-linecap="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg></div>
+                  <div class="snap-card-label">Tonight's meal</div>
+                  <div class="snap-card-value" style="font-size:14px;">Chicken stir-fry</div>
+                  <div class="snap-card-sub">Dinner · Alex cooking</div>
+                </div>
+                <div class="snap-card">
+                  <div class="snap-card-icon" style="background:var(--green-light);"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg></div>
+                  <div class="snap-card-label">Money</div>
+                  <div class="snap-card-value green">+$42.50</div>
+                  <div class="snap-card-sub">Net — owed to you</div>
+                </div>
+                <div class="snap-card">
+                  <div class="snap-card-icon" style="background:var(--blue-light);"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--blue)" stroke-width="2.5" stroke-linecap="round"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 002 1.61h9.72a2 2 0 002-1.61L23 6H6"/></svg></div>
+                  <div class="snap-card-label">Grocery list</div>
+                  <div class="snap-card-value" style="font-size:22px;">12</div>
+                  <div class="snap-card-sub">items unchecked</div>
+                </div>
+                <div class="snap-card" style="opacity:.5;">
+                  <div class="snap-card-icon" style="background:var(--gray-100);"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--gray-400)" stroke-width="2.5" stroke-linecap="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div>
+                  <div class="snap-card-label">Next event</div>
+                  <div class="snap-card-value muted">—</div>
+                  <div class="snap-card-sub">Coming soon</div>
+                </div>
+              </div>
+
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /frames-row -->
+
+
+<!-- ═══════════════════════════════════════════════════════
+     SECTION: HERO STATES
+════════════════════════════════════════════════════════ -->
+<div class="section-label">Hero card · 4 states</div>
+<div class="hero-panels">
+
+  <!-- State 1: overdue chore -->
+  <div class="hero-panel-wrap">
+    <div class="hero-panel-label">1 — Overdue chore</div>
+    <div class="hero-panel-card">
+      <div class="hero-overdue" style="margin-bottom:0;">
+        <div class="hero-eyebrow">Needs your attention</div>
+        <div class="hero-title">Wipe kitchen counters is 2 days overdue</div>
+        <div class="hero-meta">Daily chore · Your turn</div>
+        <button class="hero-action-btn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M20 6L9 17l-5-5"/></svg>
+          Mark complete
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- State 2: due today chore -->
+  <div class="hero-panel-wrap">
+    <div class="hero-panel-label">2 — Due today (chore)</div>
+    <div class="hero-panel-card">
+      <div class="hero-amber" style="margin-bottom:0;">
+        <div class="hero-eyebrow" style="color:rgba(255,255,255,.8);">Up next for you</div>
+        <div class="hero-title">Laundry (shared) is due today</div>
+        <div class="hero-meta" style="color:rgba(255,255,255,.75);">Bi-weekly · Your turn</div>
+        <button class="hero-action-btn" style="color:var(--amber-dark);">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M20 6L9 17l-5-5"/></svg>
+          Mark complete
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- State 3: reminder -->
+  <div class="hero-panel-wrap">
+    <div class="hero-panel-label">3 — Reminder due today</div>
+    <div class="hero-panel-card">
+      <div class="hero-blue" style="margin-bottom:0;">
+        <div class="hero-eyebrow" style="color:rgba(255,255,255,.75);">Reminder</div>
+        <div class="hero-title">Pay electric bill — Duke Energy</div>
+        <div class="hero-meta" style="color:rgba(255,255,255,.7);">Set by you · Due today</div>
+        <div style="display:flex;gap:8px;">
+          <button class="hero-action-btn" style="color:var(--blue-dark);">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M20 6L9 17l-5-5"/></svg>
+            Done
+          </button>
+          <button class="hero-action-btn blue-ghost">Snooze</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- State 4: all clear -->
+  <div class="hero-panel-wrap">
+    <div class="hero-panel-label">4 — All clear</div>
+    <div class="hero-panel-card">
+      <div class="hero-green" style="margin-bottom:0;">
+        <div class="hero-all-clear-icon">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round"><path d="M20 6L9 17l-5-5"/></svg>
+        </div>
+        <div class="hero-eyebrow" style="color:rgba(255,255,255,.75);">You're all caught up</div>
+        <div class="hero-title">Nothing on your plate today</div>
+        <div class="hero-meta" style="color:rgba(255,255,255,.7);">All chores done · No reminders</div>
+        <button class="hero-action-btn green-ghost">View household</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ═══════════════════════════════════════════════════════
+     SECTION: SNAPSHOT VARIATIONS
+════════════════════════════════════════════════════════ -->
+<div class="section-label">Snapshot strip · tile variations</div>
+<div style="display:flex;gap:20px;flex-wrap:wrap;">
+
+  <!-- Money: owing (red) -->
+  <div style="width:200px;">
+    <div class="hero-panel-label">Money · owing</div>
+    <div class="snap-card" style="background:white;border-radius:14px;border:1.5px solid var(--border);border-bottom:3px solid var(--border-bottom);padding:14px;">
+      <div class="snap-card-icon" style="background:var(--red-light);"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--red)" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg></div>
+      <div class="snap-card-label">Money</div>
+      <div class="snap-card-value red">-$45.00</div>
+      <div class="snap-card-sub">You owe Alex</div>
+    </div>
+  </div>
+
+  <!-- Money: all clear -->
+  <div style="width:200px;">
+    <div class="hero-panel-label">Money · settled</div>
+    <div class="snap-card" style="background:white;border-radius:14px;border:1.5px solid var(--border);border-bottom:3px solid var(--border-bottom);padding:14px;">
+      <div class="snap-card-icon" style="background:var(--green-light);"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2.5" stroke-linecap="round"><path d="M20 6L9 17l-5-5"/></svg></div>
+      <div class="snap-card-label">Money</div>
+      <div class="snap-card-value green">All clear</div>
+      <div class="snap-card-sub">No open balances</div>
+    </div>
+  </div>
+
+  <!-- Meal: no plan -->
+  <div style="width:200px;">
+    <div class="hero-panel-label">Meal · nothing planned</div>
+    <div class="snap-card" style="background:white;border-radius:14px;border:1.5px solid var(--border);border-bottom:3px solid var(--border-bottom);padding:14px;">
+      <div class="snap-card-icon" style="background:var(--gray-100);"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--gray-400)" stroke-width="2.5" stroke-linecap="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/></svg></div>
+      <div class="snap-card-label">Tonight's meal</div>
+      <div class="snap-card-value muted">Nothing planned</div>
+      <div class="snap-card-sub">Tap to add</div>
+    </div>
+  </div>
+
+  <!-- Grocery: zero -->
+  <div style="width:200px;">
+    <div class="hero-panel-label">Grocery · empty list</div>
+    <div class="snap-card" style="background:white;border-radius:14px;border:1.5px solid var(--border);border-bottom:3px solid var(--border-bottom);padding:14px;">
+      <div class="snap-card-icon" style="background:var(--green-light);"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2.5" stroke-linecap="round"><path d="M20 6L9 17l-5-5"/></svg></div>
+      <div class="snap-card-label">Grocery list</div>
+      <div class="snap-card-value green" style="font-size:15px;">All bought</div>
+      <div class="snap-card-sub">0 items remaining</div>
+    </div>
+  </div>
+
+</div>
+
+</body>
+</html>

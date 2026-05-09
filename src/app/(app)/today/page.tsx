@@ -10,7 +10,7 @@ import { SnapshotStrip } from '@/components/today/SnapshotStrip'
 import { SkeletonCard, Skeleton } from '@/components/ui/skeleton'
 import WelcomeModal from '@/components/shared/WelcomeModal'
 
-interface ChoreItem { id: string; title: string; nextDueAt: string | null; overdue: boolean }
+interface ChoreItem { id: string; title: string; nextDueAt: string | null; frequency?: string; overdue: boolean }
 interface TodayData {
   hero: { type: 'overdue_chore' | 'due_chore' | 'reminder' | 'all_clear'; item: ChoreItem | null }
   chores: ChoreItem[]
@@ -146,15 +146,24 @@ export default function TodayPage() {
         />
 
         {visibleChores.length > 0 && (
-          <>
-            <p style={{ fontSize: 10, fontWeight: 800, color: '#EF4444', letterSpacing: '0.08em', margin: 0 }}>
-              CHORES &middot; {visibleChores.length} DUE TODAY
-            </p>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+          <div style={{
+            backgroundColor: 'var(--roost-surface)',
+            border: '1.5px solid var(--roost-border)',
+            borderBottom: `4px solid ${visibleChores.some(c => c.overdue) ? '#B91C1C' : '#F59E0B'}`,
+            borderRadius: 16,
+            overflow: 'hidden',
+          }}>
+            {/* Slab header */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px 0' }}>
+              <span style={{ fontSize: 13, fontWeight: 800, color: 'var(--roost-text-primary)' }}>Your chores</span>
+              <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--roost-text-muted)' }}>{visibleChores.length} to do</span>
+            </div>
+            {/* Rows */}
+            <div style={{ padding: '6px 16px 14px' }}>
               {visibleChores.map((chore, i) => (
                 <motion.div
                   key={chore.id}
-                  initial={{ opacity: 0, y: 8 }}
+                  initial={{ opacity: 0, y: 6 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: Math.min(i * 0.04, 0.2), duration: 0.15 }}
                 >
@@ -162,17 +171,20 @@ export default function TodayPage() {
                     id={chore.id}
                     title={chore.title}
                     overdue={chore.overdue}
+                    frequency={chore.frequency}
+                    nextDueAt={chore.nextDueAt}
                     completed={completedIds.has(chore.id)}
+                    isLast={i === visibleChores.length - 1}
                     onComplete={id => completeMutation.mutate(id)}
                   />
                 </motion.div>
               ))}
             </div>
-          </>
+          </div>
         )}
 
         <p style={{ fontSize: 10, fontWeight: 800, color: 'var(--roost-text-muted)', letterSpacing: '0.08em', margin: 0 }}>
-          SNAPSHOT
+          QUICK LOOK
         </p>
         <SnapshotStrip data={data.snapshot} />
       </motion.div>

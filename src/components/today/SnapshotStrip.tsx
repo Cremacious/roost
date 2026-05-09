@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import { UtensilsCrossed, DollarSign, ShoppingCart, Calendar } from 'lucide-react'
 
 interface SnapshotData {
   meal: { name: string } | null
@@ -9,35 +10,127 @@ interface SnapshotData {
   grocery: { count: number }
 }
 
-function Tile({ label, color, href, children }: { label: string; color: string; href: string; children: React.ReactNode }) {
+interface SnapTileProps {
+  href: string
+  iconBg: string
+  icon: React.ReactNode
+  label: string
+  value: React.ReactNode
+  valueStyle?: React.CSSProperties
+  sub: string
+  dimmed?: boolean
+}
+
+function SnapTile({ href, iconBg, icon, label, value, valueStyle, sub, dimmed }: SnapTileProps) {
   return (
     <Link href={href} style={{ textDecoration: 'none' }}>
-      <div style={{ backgroundColor: 'var(--roost-surface)', border: '1.5px solid var(--roost-border)', borderBottom: `3px solid ${color}`, borderRadius: 12, padding: '10px 12px' }}>
-        <p style={{ fontSize: 9, fontWeight: 800, color, letterSpacing: '0.07em', margin: '0 0 4px' }}>{label}</p>
-        {children}
+      <div style={{
+        backgroundColor: 'var(--roost-surface)',
+        border: '1.5px solid var(--roost-border)',
+        borderBottom: '3px solid var(--roost-border-bottom)',
+        borderRadius: 14,
+        padding: 14,
+        cursor: 'pointer',
+        opacity: dimmed ? 0.5 : 1,
+      }}>
+        {/* Icon box */}
+        <div style={{ width: 32, height: 32, borderRadius: 9, background: iconBg, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 8 }}>
+          {icon}
+        </div>
+
+        {/* Label */}
+        <p style={{ fontSize: 10, fontWeight: 800, color: 'var(--roost-text-muted)', letterSpacing: '0.07em', textTransform: 'uppercase', margin: '0 0 3px' }}>
+          {label}
+        </p>
+
+        {/* Value */}
+        <p style={{ fontSize: 16, fontWeight: 900, color: 'var(--roost-text-primary)', letterSpacing: '-0.3px', lineHeight: 1.2, margin: 0, ...valueStyle }}>
+          {value}
+        </p>
+
+        {/* Sub */}
+        <p style={{ fontSize: 10, fontWeight: 600, color: 'var(--roost-text-muted)', margin: '2px 0 0' }}>
+          {sub}
+        </p>
       </div>
     </Link>
   )
 }
 
 export function SnapshotStrip({ data }: { data: SnapshotData }) {
-  const moneyText = data.money.label === 'clear' ? 'All settled' : data.money.label === 'owed' ? `Owed $${data.money.balance.toFixed(2)}` : `You owe $${data.money.balance.toFixed(2)}`
-  const moneyColor = data.money.label === 'owing' ? '#EF4444' : data.money.label === 'owed' ? '#22C55E' : 'var(--roost-text-muted)'
+  // Money tile logic
+  const moneyValue = data.money.label === 'clear'
+    ? 'All clear'
+    : data.money.label === 'owed'
+      ? `+$${data.money.balance.toFixed(2)}`
+      : `-$${data.money.balance.toFixed(2)}`
+  const moneyColor = data.money.label === 'owing' ? '#EF4444' : '#15803D'
+  const moneySub   = data.money.label === 'clear'
+    ? 'No open balances'
+    : data.money.label === 'owed'
+      ? 'Net — owed to you'
+      : 'Net — you owe'
+  const moneyIconBg    = data.money.label === 'owing' ? '#FEE2E2' : '#DCFCE7'
+  const moneyIconColor = data.money.label === 'owing' ? '#EF4444' : '#22C55E'
+
+  // Grocery tile logic
+  const groceryEmpty = data.grocery.count === 0
+  const groceryValue = groceryEmpty ? 'All bought' : `${data.grocery.count}`
+  const grocerySub   = groceryEmpty ? '0 items remaining' : 'items unchecked'
+  const groceryValueStyle: React.CSSProperties = {
+    fontSize: groceryEmpty ? 15 : 22,
+    color: groceryEmpty ? '#15803D' : 'var(--roost-text-primary)',
+  }
 
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-      <Tile label="TONIGHT" color="#F97316" href="/meals">
-        <p style={{ fontWeight: 700, fontSize: 13, color: 'var(--roost-text-primary)', margin: 0 }}>{data.meal?.name ?? 'Nothing planned'}</p>
-      </Tile>
-      <Tile label="MONEY" color="#22C55E" href="/money">
-        <p style={{ fontWeight: 700, fontSize: 13, color: moneyColor, margin: 0 }}>{moneyText}</p>
-      </Tile>
-      <Tile label="NEXT UP" color="#3B82F6" href="/household">
-        <p style={{ fontWeight: 700, fontSize: 13, color: 'var(--roost-text-primary)', margin: 0 }}>{data.event?.title ?? 'Nothing upcoming'}</p>
-      </Tile>
-      <Tile label="GROCERY" color="#F59E0B" href="/grocery">
-        <p style={{ fontWeight: 700, fontSize: 13, color: 'var(--roost-text-primary)', margin: 0 }}>{data.grocery.count > 0 ? `${data.grocery.count} items` : 'List is empty'}</p>
-      </Tile>
+    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+      {/* Meal */}
+      <SnapTile
+        href="/meals"
+        iconBg="#FFEDD5"
+        icon={<UtensilsCrossed size={16} color="#F97316" strokeWidth={2.5} />}
+        label="Tonight's meal"
+        value={data.meal?.name ?? 'Nothing planned'}
+        valueStyle={{
+          fontSize: data.meal ? 14 : 15,
+          color: data.meal ? 'var(--roost-text-primary)' : 'var(--roost-text-muted)',
+        }}
+        sub={data.meal ? 'Dinner' : 'Tap to add'}
+      />
+
+      {/* Money */}
+      <SnapTile
+        href="/money"
+        iconBg={moneyIconBg}
+        icon={<DollarSign size={16} color={moneyIconColor} strokeWidth={2.5} />}
+        label="Money"
+        value={moneyValue}
+        valueStyle={{ color: moneyColor }}
+        sub={moneySub}
+      />
+
+      {/* Grocery */}
+      <SnapTile
+        href="/lists"
+        iconBg="#DBEAFE"
+        icon={<ShoppingCart size={16} color="#3B82F6" strokeWidth={2.5} />}
+        label="Grocery list"
+        value={groceryValue}
+        valueStyle={groceryValueStyle}
+        sub={grocerySub}
+      />
+
+      {/* Event — coming soon */}
+      <SnapTile
+        href="/calendar"
+        iconBg="#F3F4F6"
+        icon={<Calendar size={16} color="#9CA3AF" strokeWidth={2.5} />}
+        label="Next event"
+        value="—"
+        valueStyle={{ color: 'var(--roost-text-muted)' }}
+        sub="Coming soon"
+        dimmed
+      />
     </div>
   )
 }

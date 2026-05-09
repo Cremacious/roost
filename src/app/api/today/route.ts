@@ -56,7 +56,7 @@ export async function GET() {
   ] = await Promise.all([
     // Overdue chores assigned to current user
     db
-      .select({ id: chores.id, title: chores.title, nextDueAt: chores.nextDueAt })
+      .select({ id: chores.id, title: chores.title, nextDueAt: chores.nextDueAt, frequency: chores.frequency })
       .from(chores)
       .where(
         and(
@@ -70,7 +70,7 @@ export async function GET() {
 
     // Due-today chores assigned to current user
     db
-      .select({ id: chores.id, title: chores.title, nextDueAt: chores.nextDueAt })
+      .select({ id: chores.id, title: chores.title, nextDueAt: chores.nextDueAt, frequency: chores.frequency })
       .from(chores)
       .where(
         and(
@@ -182,12 +182,14 @@ export async function GET() {
       id: c.id,
       title: c.title,
       nextDueAt: c.nextDueAt?.toISOString() ?? null,
+      frequency: c.frequency,
       overdue: true,
     })),
     ...dueTodayChores.map(c => ({
       id: c.id,
       title: c.title,
       nextDueAt: c.nextDueAt?.toISOString() ?? null,
+      frequency: c.frequency,
       overdue: false,
     })),
   ]
@@ -200,11 +202,11 @@ export async function GET() {
   if (overdueChores.length > 0) {
     heroType = 'overdue_chore'
     const c = overdueChores[0]
-    heroItem = { id: c.id, title: c.title, nextDueAt: c.nextDueAt?.toISOString() ?? null, overdue: true }
+    heroItem = { id: c.id, title: c.title, nextDueAt: c.nextDueAt?.toISOString() ?? null, frequency: c.frequency, overdue: true }
   } else if (dueTodayChores.length > 0) {
     heroType = 'due_chore'
     const c = dueTodayChores[0]
-    heroItem = { id: c.id, title: c.title, nextDueAt: c.nextDueAt?.toISOString() ?? null, overdue: false }
+    heroItem = { id: c.id, title: c.title, nextDueAt: c.nextDueAt?.toISOString() ?? null, frequency: c.frequency, overdue: false }
   } else if (activeReminder[0]) {
     heroType = 'reminder'
     const r = activeReminder[0]

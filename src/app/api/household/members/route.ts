@@ -34,10 +34,13 @@ export async function GET(_req: NextRequest): Promise<Response> {
 
   const members = await db
     .select({
+      id: householdMembers.id,
       userId: householdMembers.userId,
       role: householdMembers.role,
       joinedAt: householdMembers.createdAt,
+      expiresAt: householdMembers.expiresAt,
       name: users.name,
+      email: users.email,
       avatarColor: users.avatarColor,
     })
     .from(householdMembers)
@@ -58,11 +61,14 @@ export async function GET(_req: NextRequest): Promise<Response> {
     },
     role: membership.role,
     members: members.map((m) => ({
+      id: m.id,
       userId: m.userId,
       name: m.name,
+      email: m.email ?? null,
       avatarColor: m.avatarColor,
       role: m.role,
       joinedAt: m.joinedAt?.toISOString() ?? null,
+      expiresAt: m.expiresAt?.toISOString() ?? null,
     })),
   });
 }

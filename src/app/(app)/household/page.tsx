@@ -1,186 +1,139 @@
 'use client'
 
 import { useState } from 'react'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { motion } from 'framer-motion'
-import { Copy, Check, Users } from 'lucide-react'
-import { Skeleton, SkeletonCard } from '@/components/ui/skeleton'
+import { Check, Copy, Settings2, UserPlus, X } from 'lucide-react'
+import { toast } from 'sonner'
+import { useSession } from '@/lib/auth/client'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
+import MemberSheet, { type SheetMember } from '@/components/settings/MemberSheet'
+import InviteMemberSheet from '@/components/settings/InviteMemberSheet'
+import MemberAvatar from '@/components/shared/MemberAvatar'
+import { PageContainer } from '@/components/layout/PageContainer'
 
-const SECTION_COLOR = '#3B82F6'
-const SECTION_DARK = '#1A5CB5'
+// ─── Design tokens ────────────────────────────────────────────────────────────
 
-interface Member {
-  userId: string
-  name: string
-  avatarColor: string
-  role: 'admin' | 'member' | 'guest' | 'child'
-  joinedAt: string
+const HERO_BG   = '#EF4444'
+const HERO_DARK = '#C93B3B'
+const SLAB_BOTTOM = '#1A5CB5'
+
+const ROLE_STYLE: Record<string, { bg: string; text: string; label: string }> = {
+  admin:  { bg: '#FEE2E2', text: '#B91C1C', label: 'Admin' },
+  member: { bg: '#DBEAFE', text: '#1E40AF', label: 'Member' },
+  guest:  { bg: '#FEF3C7', text: '#92400E', label: 'Guest' },
+  child:  { bg: '#EDE9FE', text: '#6D28D9', label: 'Child' },
 }
+
+// ─── Types ────────────────────────────────────────────────────────────────────
 
 interface HouseholdData {
   household: { id: string; name: string; code: string }
   role: string
-  members: Member[]
+  members: SheetMember[]
 }
 
-const ROLE_LABELS: Record<string, string> = {
-  admin: 'Admin',
-  member: 'Member',
-  guest: 'Guest',
-  child: 'Child',
-}
+// ─── Small sub-components ─────────────────────────────────────────────────────
 
-const ROLE_COLORS: Record<string, { bg: string; text: string }> = {
-  admin:  { bg: '#FEE2E2', text: '#B91C1C' },
-  member: { bg: '#F3F4F6', text: '#374151' },
-  guest:  { bg: '#FEF3C7', text: '#92400E' },
-  child:  { bg: '#DBEAFE', text: '#1E40AF' },
-}
-
-function Avatar({ name, color }: { name: string; color: string }) {
-  const initials = name
-    .split(' ')
-    .map(p => p[0])
-    .filter(Boolean)
-    .join('')
-    .slice(0, 2)
-    .toUpperCase()
-
+function RoleBadge({ role }: { role: string }) {
+  const s = ROLE_STYLE[role] ?? ROLE_STYLE.member
   return (
-    <div
-      style={{
-        width: 40,
-        height: 40,
-        borderRadius: '50%',
-        backgroundColor: color,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        flexShrink: 0,
-      }}
-    >
-      <span style={{ color: '#fff', fontSize: 13, fontWeight: 800 }}>{initials}</span>
-    </div>
+    <span style={{
+      fontSize: 10,
+      fontWeight: 800,
+      padding: '2px 8px',
+      borderRadius: 6,
+      backgroundColor: s.bg,
+      color: s.text,
+      flexShrink: 0,
+      whiteSpace: 'nowrap',
+    }}>
+      {s.label}
+    </span>
   )
 }
 
-function MemberRow({ member, index }: { member: Member; index: number }) {
-  const roleStyle = ROLE_COLORS[member.role] ?? ROLE_COLORS.member
-
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 8 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: Math.min(index * 0.04, 0.2), duration: 0.15 }}
-      style={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: 12,
-        padding: '12px 16px',
-        backgroundColor: 'var(--roost-surface)',
-        border: '1.5px solid var(--roost-border)',
-        borderBottom: '3px solid var(--roost-border-bottom)',
-        borderRadius: 14,
-        minHeight: 64,
-      }}
-    >
-      <Avatar name={member.name} color={member.avatarColor} />
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <p style={{ fontWeight: 800, fontSize: 15, color: 'var(--roost-text-primary)', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-          {member.name}
-        </p>
-      </div>
-      <span
-        style={{
-          fontSize: 11,
-          fontWeight: 800,
-          padding: '3px 8px',
-          borderRadius: 6,
-          backgroundColor: roleStyle.bg,
-          color: roleStyle.text,
-          flexShrink: 0,
-        }}
-      >
-        {ROLE_LABELS[member.role] ?? member.role}
-      </span>
-    </motion.div>
-  )
-}
-
-function InviteCodeCard({ code }: { code: string }) {
-  const [copied, setCopied] = useState(false)
-
-  function handleCopy() {
-    navigator.clipboard.writeText(code)
-    setCopied(true)
-    setTimeout(() => setCopied(false), 2000)
-  }
-
-  return (
-    <div
-      style={{
-        backgroundColor: 'var(--roost-surface)',
-        border: '1.5px solid var(--roost-border)',
-        borderBottom: `4px solid ${SECTION_DARK}`,
-        borderRadius: 16,
-        padding: '14px 16px',
-        display: 'flex',
-        alignItems: 'center',
-        gap: 12,
-      }}
-    >
-      <div style={{ flex: 1 }}>
-        <p style={{ fontSize: 10, fontWeight: 800, color: SECTION_COLOR, letterSpacing: '0.07em', margin: '0 0 4px' }}>
-          INVITE CODE
-        </p>
-        <p style={{ fontFamily: 'monospace', fontWeight: 800, fontSize: 22, color: 'var(--roost-text-primary)', margin: 0, letterSpacing: '0.2em' }}>
-          {code}
-        </p>
-        <p style={{ fontSize: 11, fontWeight: 700, color: 'var(--roost-text-muted)', margin: '4px 0 0' }}>
-          Share this code to invite someone to your household
-        </p>
-      </div>
-      <button
-        onClick={handleCopy}
-        style={{
-          width: 40,
-          height: 40,
-          borderRadius: 10,
-          backgroundColor: copied ? '#22C55E' : SECTION_COLOR,
-          border: 'none',
-          cursor: 'pointer',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          flexShrink: 0,
-          transition: 'background-color 0.15s',
-        }}
-        aria-label="Copy invite code"
-      >
-        {copied ? <Check size={18} color="#fff" /> : <Copy size={18} color="#fff" />}
-      </button>
-    </div>
-  )
-}
+// ─── Main page ────────────────────────────────────────────────────────────────
 
 export default function HouseholdPage() {
-  const { data, isLoading, isError } = useQuery<HouseholdData>({
+  const { data: session } = useSession()
+  const queryClient = useQueryClient()
+  const currentUserId = session?.user?.id ?? ''
+
+  const [inviteOpen, setInviteOpen]     = useState(false)
+  const [removeTarget, setRemoveTarget] = useState<SheetMember | null>(null)
+  const [removing, setRemoving]         = useState(false)
+  const [gearMember, setGearMember]     = useState<SheetMember | null>(null)
+  const [codeCopied, setCodeCopied]     = useState(false)
+
+  const { data, isLoading, isError, refetch } = useQuery<HouseholdData>({
     queryKey: ['household-members'],
     queryFn: async () => {
-      const res = await fetch('/api/household/members')
-      if (!res.ok) throw new Error('Failed to load household')
-      return res.json()
+      const r = await fetch('/api/household/members')
+      if (!r.ok) throw new Error('Failed to load household')
+      return r.json()
     },
+    staleTime: 10_000,
   })
 
+  const isAdmin  = data?.role === 'admin'
+  const members  = data?.members ?? []
+  const household = data?.household
+
+  // Counts for the overview card
+  const counts = members.reduce(
+    (acc, m) => {
+      if (m.role === 'admin')  acc.admins++
+      else if (m.role === 'member') acc.members++
+      else if (m.role === 'child')  acc.children++
+      else if (m.role === 'guest')  acc.guests++
+      return acc
+    },
+    { admins: 0, members: 0, children: 0, guests: 0 }
+  )
+
+  function handleCopyCode() {
+    if (!household?.code) return
+    navigator.clipboard.writeText(household.code)
+    setCodeCopied(true)
+    setTimeout(() => setCodeCopied(false), 2000)
+    toast.success('Code copied')
+  }
+
+  async function handleRemove() {
+    if (!removeTarget) return
+    setRemoving(true)
+    try {
+      const res = await fetch(`/api/household/members/${removeTarget.id}`, { method: 'DELETE' })
+      if (!res.ok) {
+        const d = await res.json().catch(() => ({}))
+        throw new Error(d.error ?? 'Failed to remove member')
+      }
+      toast.success(`${removeTarget.name} removed from household`)
+      queryClient.invalidateQueries({ queryKey: ['household-members'] })
+      setRemoveTarget(null)
+    } catch (err) {
+      toast.error('Could not remove member', { description: (err as Error).message })
+    } finally {
+      setRemoving(false)
+    }
+  }
+
+  // ── Loading state ──────────────────────────────────────────────────────────
   if (isLoading) {
     return (
-      <div style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 12, maxWidth: 680, margin: '0 auto', width: '100%' }}>
-        <Skeleton style={{ height: 28, width: 200 }} />
-        <SkeletonCard />
-        <Skeleton style={{ height: 14, width: 120, marginTop: 8 }} />
-        <SkeletonCard />
-        <SkeletonCard />
+      <div style={{ padding: 16, maxWidth: 860, margin: '0 auto', width: '100%' }}>
+        <div style={{ height: 120, background: 'var(--roost-surface)', border: '1.5px solid var(--roost-border)', borderBottom: `4px solid ${HERO_DARK}`, borderRadius: 16, marginBottom: 14, opacity: 0.5 }} />
+        <div style={{ height: 200, background: 'var(--roost-surface)', border: '1.5px solid var(--roost-border)', borderBottom: `4px solid ${SLAB_BOTTOM}`, borderRadius: 16, opacity: 0.4 }} />
       </div>
     )
   }
@@ -195,47 +148,599 @@ export default function HouseholdPage() {
     )
   }
 
+  // ── Hero card ──────────────────────────────────────────────────────────────
+
+  const HeroCard = (
+    <div style={{
+      background: HERO_BG,
+      border: `1.5px solid ${HERO_DARK}`,
+      borderBottom: `4px solid ${HERO_DARK}`,
+      borderRadius: 16,
+      padding: '18px 16px',
+      marginBottom: 14,
+      position: 'relative',
+      overflow: 'hidden',
+    }}>
+      {/* Decorative circle */}
+      <div style={{
+        position: 'absolute',
+        top: -30,
+        right: -30,
+        width: 120,
+        height: 120,
+        borderRadius: '50%',
+        background: 'rgba(255,255,255,0.08)',
+        pointerEvents: 'none',
+      }} />
+
+      <div style={{ fontSize: 10, fontWeight: 800, color: 'rgba(255,255,255,0.7)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 8, position: 'relative' }}>
+        Your household
+      </div>
+      <div style={{ fontSize: 22, fontWeight: 900, color: '#fff', letterSpacing: '-0.5px', marginBottom: 10, position: 'relative' }}>
+        {household?.name}
+      </div>
+      {/* Code row */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, position: 'relative' }}>
+        <div style={{
+          fontFamily: "ui-monospace,'JetBrains Mono',monospace",
+          fontSize: 20,
+          fontWeight: 900,
+          color: '#fff',
+          letterSpacing: '0.18em',
+          background: 'rgba(255,255,255,0.15)',
+          border: '1.5px solid rgba(255,255,255,0.25)',
+          borderRadius: 10,
+          padding: '8px 14px',
+          flex: 1,
+          textAlign: 'center',
+        }}>
+          {household?.code}
+        </div>
+        <button
+          onClick={handleCopyCode}
+          style={{
+            width: 38,
+            height: 38,
+            borderRadius: 10,
+            background: codeCopied ? 'rgba(255,255,255,0.3)' : 'rgba(255,255,255,0.15)',
+            border: '1.5px solid rgba(255,255,255,0.25)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            cursor: 'pointer',
+            flexShrink: 0,
+            transition: 'background 0.15s',
+          }}
+          aria-label="Copy invite code"
+        >
+          {codeCopied
+            ? <Check size={15} color="white" />
+            : <Copy size={15} color="rgba(255,255,255,0.85)" />}
+        </button>
+      </div>
+      <div style={{ fontSize: 10, fontWeight: 600, color: 'rgba(255,255,255,0.6)', marginTop: 8, position: 'relative' }}>
+        Share this code to invite someone to join
+      </div>
+    </div>
+  )
+
+  // ── Desktop hero (horizontal layout) ──────────────────────────────────────
+
+  const HeroCardDesktop = (
+    <div style={{
+      background: HERO_BG,
+      border: `1.5px solid ${HERO_DARK}`,
+      borderBottom: `4px solid ${HERO_DARK}`,
+      borderRadius: 16,
+      padding: '20px 20px 16px',
+      marginBottom: 16,
+      display: 'flex',
+      alignItems: 'center',
+      gap: 28,
+      position: 'relative',
+      overflow: 'hidden',
+    }}>
+      <div style={{ position: 'absolute', top: -40, right: -40, width: 180, height: 180, borderRadius: '50%', background: 'rgba(255,255,255,0.06)', pointerEvents: 'none' }} />
+
+      {/* Left: name + meta */}
+      <div style={{ flex: 1, position: 'relative', zIndex: 1 }}>
+        <div style={{ fontSize: 10, fontWeight: 800, color: 'rgba(255,255,255,0.6)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 4 }}>
+          Your household
+        </div>
+        <div style={{ fontSize: 22, fontWeight: 900, color: '#fff', letterSpacing: '-0.5px', marginBottom: 2 }}>
+          {household?.name}
+        </div>
+        <div style={{ fontSize: 12, fontWeight: 600, color: 'rgba(255,255,255,0.6)' }}>
+          {members.length} {members.length === 1 ? 'member' : 'members'}
+        </div>
+      </div>
+
+      {/* Right: code */}
+      <div style={{ position: 'relative', zIndex: 1, textAlign: 'right' }}>
+        <div style={{ fontSize: 10, fontWeight: 800, color: 'rgba(255,255,255,0.6)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 6 }}>
+          House code
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <div style={{
+            fontFamily: "ui-monospace,'JetBrains Mono',monospace",
+            fontSize: 24,
+            fontWeight: 900,
+            color: '#fff',
+            letterSpacing: '0.18em',
+            background: 'rgba(255,255,255,0.15)',
+            border: '1.5px solid rgba(255,255,255,0.25)',
+            borderRadius: 10,
+            padding: '9px 16px',
+          }}>
+            {household?.code}
+          </div>
+          <button
+            onClick={handleCopyCode}
+            style={{
+              width: 40,
+              height: 40,
+              borderRadius: 10,
+              background: codeCopied ? 'rgba(255,255,255,0.3)' : 'rgba(255,255,255,0.12)',
+              border: '1.5px solid rgba(255,255,255,0.25)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer',
+              transition: 'background 0.15s',
+            }}
+            aria-label="Copy invite code"
+          >
+            {codeCopied
+              ? <Check size={16} color="white" />
+              : <Copy size={16} color="rgba(255,255,255,0.8)" />}
+          </button>
+        </div>
+        <div style={{ fontSize: 10, fontWeight: 600, color: 'rgba(255,255,255,0.55)', marginTop: 6 }}>
+          Share to let someone join this household
+        </div>
+      </div>
+    </div>
+  )
+
+  // ── Member row ─────────────────────────────────────────────────────────────
+
+  function MemberRow({ member, index }: { member: SheetMember; index: number }) {
+    const isSelf    = member.userId === currentUserId
+    const isAdminRow = member.role === 'admin'
+
+    return (
+      <motion.div
+        initial={{ opacity: 0, y: 6 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: Math.min(index * 0.04, 0.2), duration: 0.15 }}
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 10,
+          padding: '10px 0',
+          borderBottom: '1px solid var(--roost-border)',
+        }}
+      >
+        {/* Avatar */}
+        <div style={{ position: 'relative', flexShrink: 0 }}>
+          <MemberAvatar name={member.name} avatarColor={member.avatarColor} size="md" />
+          {isAdminRow && (
+            <div style={{
+              position: 'absolute',
+              top: -5,
+              right: -3,
+              width: 14,
+              height: 14,
+              background: '#F59E0B',
+              borderRadius: '50%',
+              border: '2px solid var(--roost-surface)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}>
+              <svg viewBox="0 0 24 24" fill="white" stroke="none" width={7} height={7}>
+                <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+              </svg>
+            </div>
+          )}
+        </div>
+
+        {/* Info */}
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+            <span style={{ fontSize: 13, fontWeight: 800, color: 'var(--roost-text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              {member.name}
+            </span>
+            {isSelf && (
+              <span style={{ fontSize: 10, fontWeight: 700, color: '#15803D', background: '#DCFCE7', padding: '1px 5px', borderRadius: 4, flexShrink: 0 }}>
+                You
+              </span>
+            )}
+          </div>
+          <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--roost-text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            {member.email ?? (member.role === 'child' ? 'No account, child profile' : '')}
+          </div>
+        </div>
+
+        {/* Right: badge + actions */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
+          <RoleBadge role={member.role} />
+
+          {/* Gear button (admin only) */}
+          {isAdmin && (
+            <button
+              onClick={() => setGearMember(member)}
+              style={{
+                width: 28,
+                height: 28,
+                borderRadius: 8,
+                border: '1.5px solid var(--roost-border)',
+                borderBottom: '2px solid var(--roost-border-bottom)',
+                background: 'var(--roost-surface)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: 'pointer',
+                flexShrink: 0,
+              }}
+              aria-label={`Edit ${member.name}`}
+            >
+              <Settings2 size={13} color="var(--roost-text-muted)" />
+            </button>
+          )}
+
+          {/* Remove button (admin only, not self, not other admins) */}
+          {isAdmin && !isSelf && !isAdminRow && (
+            <button
+              onClick={() => setRemoveTarget(member)}
+              style={{
+                width: 26,
+                height: 26,
+                borderRadius: 7,
+                border: '1.5px solid #FEE2E2',
+                background: '#FEE2E2',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: 'pointer',
+                flexShrink: 0,
+              }}
+              aria-label={`Remove ${member.name}`}
+            >
+              <X size={11} color="#B91C1C" />
+            </button>
+          )}
+        </div>
+      </motion.div>
+    )
+  }
+
+  // ── Invite row ─────────────────────────────────────────────────────────────
+
+  const InviteRow = (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 0' }}>
+      <div style={{
+        width: 38,
+        height: 38,
+        borderRadius: '50%',
+        border: '2px dashed var(--roost-border)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        flexShrink: 0,
+      }}>
+        <UserPlus size={16} color="var(--roost-text-muted)" />
+      </div>
+      <div style={{ flex: 1 }}>
+        <div style={{ fontSize: 13, fontWeight: 800, color: 'var(--roost-text-muted)' }}>Invite someone</div>
+        <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--roost-border-bottom)' }}>Share code or send a link</div>
+      </div>
+      {isAdmin && (
+        <button
+          onClick={() => setInviteOpen(true)}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 4,
+            padding: '6px 12px',
+            borderRadius: 9,
+            background: '#EF4444',
+            border: '1.5px solid #EF4444',
+            borderBottom: '2px solid #C93B3B',
+            fontFamily: 'inherit',
+            fontSize: 11,
+            fontWeight: 900,
+            color: '#fff',
+            cursor: 'pointer',
+            whiteSpace: 'nowrap',
+          }}
+        >
+          <UserPlus size={11} color="#fff" />
+          Invite member
+        </button>
+      )}
+    </div>
+  )
+
+  // ── Members slab ───────────────────────────────────────────────────────────
+
+  const MembersSlab = (
+    <div style={{
+      background: 'var(--roost-surface)',
+      border: '1.5px solid var(--roost-border)',
+      borderBottom: `4px solid ${SLAB_BOTTOM}`,
+      borderRadius: 16,
+      marginBottom: 14,
+      overflow: 'hidden',
+    }}>
+      {/* Slab header */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px 0' }}>
+        <span style={{ fontSize: 13, fontWeight: 800, color: 'var(--roost-text-primary)' }}>Members</span>
+        <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--roost-text-muted)' }}>{members.length} {members.length === 1 ? 'person' : 'people'}</span>
+      </div>
+
+      {/* Slab body */}
+      <div style={{ padding: '6px 16px 14px' }}>
+        {members.map((m, i) => (
+          <MemberRow key={m.userId} member={m} index={i} />
+        ))}
+        {InviteRow}
+      </div>
+    </div>
+  )
+
+  // ── Desktop right sidebar ──────────────────────────────────────────────────
+
+  const OverviewCard = (
+    <div style={{
+      background: 'var(--roost-surface)',
+      border: '1.5px solid var(--roost-border)',
+      borderBottom: `4px solid ${SLAB_BOTTOM}`,
+      borderRadius: 14,
+      padding: 14,
+      marginBottom: 14,
+    }}>
+      <div style={{ fontSize: 11, fontWeight: 800, color: 'var(--roost-text-muted)', letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 10 }}>
+        Household overview
+      </div>
+      {[
+        { key: 'Total members', val: members.length, green: false },
+        { key: 'Admins',  val: counts.admins,   green: true },
+        { key: 'Members', val: counts.members,  green: false },
+        { key: 'Children', val: counts.children, green: false },
+        ...(counts.guests > 0 ? [{ key: 'Guests', val: counts.guests, green: false }] : []),
+      ].map(row => (
+        <div key={row.key} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+          <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--roost-text-secondary)' }}>{row.key}</span>
+          <span style={{ fontSize: 12, fontWeight: 800, color: row.green ? '#15803D' : 'var(--roost-text-primary)' }}>{row.val}</span>
+        </div>
+      ))}
+    </div>
+  )
+
+  const RolesCard = (
+    <div style={{
+      background: 'var(--roost-surface)',
+      border: '1.5px solid var(--roost-border)',
+      borderBottom: `4px solid ${SLAB_BOTTOM}`,
+      borderRadius: 14,
+      padding: 14,
+    }}>
+      <div style={{ fontSize: 11, fontWeight: 800, color: 'var(--roost-text-muted)', letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 10 }}>
+        Roles explained
+      </div>
+      {[
+        { role: 'admin',  desc: 'Full access: manage members, bills, settings' },
+        { role: 'member', desc: 'Add expenses, complete chores, view data' },
+        { role: 'child',  desc: 'View chores only, no financial access' },
+      ].map(({ role, desc }) => (
+        <div key={role} style={{ marginBottom: 10 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 3 }}>
+            <RoleBadge role={role} />
+          </div>
+          <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--roost-text-muted)' }}>{desc}</div>
+        </div>
+      ))}
+    </div>
+  )
+
+  // ── Page header (mobile inline, desktop header) ────────────────────────────
+
+  const PageHeader = (
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
+      <div>
+        <h1 style={{ fontSize: 22, fontWeight: 900, color: 'var(--roost-text-primary)', margin: 0, letterSpacing: '-0.3px' }}>
+          Household
+        </h1>
+        <p style={{ fontSize: 12, fontWeight: 600, color: 'var(--roost-text-muted)', margin: 0 }}>
+          Members and settings
+        </p>
+      </div>
+      {isAdmin && (
+        <button
+          onClick={() => setInviteOpen(true)}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 5,
+            padding: '7px 13px',
+            borderRadius: 10,
+            background: '#EF4444',
+            border: '1.5px solid #EF4444',
+            borderBottom: '3px solid #C93B3B',
+            fontFamily: 'inherit',
+            fontSize: 12,
+            fontWeight: 800,
+            color: '#fff',
+            cursor: 'pointer',
+          }}
+        >
+          <UserPlus size={13} color="#fff" />
+          Invite member
+        </button>
+      )}
+    </div>
+  )
+
+  // ── Render ─────────────────────────────────────────────────────────────────
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.18 }}
-      style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 12, maxWidth: 680, margin: '0 auto', width: '100%' }}
     >
-      {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10, paddingBottom: 4 }}>
-        <div
-          style={{
-            width: 36,
-            height: 36,
-            borderRadius: 10,
-            backgroundColor: `${SECTION_COLOR}18`,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            flexShrink: 0,
-          }}
-        >
-          <Users size={18} color={SECTION_COLOR} />
+      <PageContainer>
+        {/* Mobile layout */}
+        <div className="md:hidden" style={{ padding: '14px 14px 80px' }}>
+          {PageHeader}
+          {HeroCard}
+          {MembersSlab}
         </div>
-        <h1 style={{ fontWeight: 900, fontSize: 22, color: 'var(--roost-text-primary)', margin: 0, letterSpacing: '-0.3px' }}>
-          {data.household.name}
-        </h1>
-      </div>
 
-      {/* Invite code */}
-      <InviteCodeCard code={data.household.code} />
+        {/* Desktop layout */}
+        <div className="hidden md:block" style={{ padding: '16px 20px 32px' }}>
+          {/* Desktop page header */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+            <div>
+              <h1 style={{ fontSize: 20, fontWeight: 900, color: 'var(--roost-text-primary)', margin: 0, letterSpacing: '-0.3px' }}>
+                Household
+              </h1>
+              <p style={{ fontSize: 12, fontWeight: 600, color: 'var(--roost-text-muted)', margin: '1px 0 0' }}>
+                Members and settings
+              </p>
+            </div>
+            {isAdmin && (
+              <button
+                onClick={() => setInviteOpen(true)}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 5,
+                  padding: '7px 13px',
+                  borderRadius: 10,
+                  background: '#EF4444',
+                  border: '1.5px solid #EF4444',
+                  borderBottom: '3px solid #C93B3B',
+                  fontFamily: 'inherit',
+                  fontSize: 12,
+                  fontWeight: 800,
+                  color: '#fff',
+                  cursor: 'pointer',
+                }}
+              >
+                <UserPlus size={13} color="#fff" />
+                Invite member
+              </button>
+            )}
+          </div>
 
-      {/* Members */}
-      <p style={{ fontSize: 10, fontWeight: 800, color: SECTION_COLOR, letterSpacing: '0.08em', margin: '8px 0 0' }}>
-        MEMBERS &middot; {data.members.length}
-      </p>
+          {/* Desktop hero (horizontal) */}
+          {HeroCardDesktop}
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-        {data.members.map((member, i) => (
-          <MemberRow key={member.userId} member={member} index={i} />
-        ))}
-      </div>
+          {/* Two-column grid */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 240px', gap: 16, alignItems: 'start' }}>
+            {/* Left: members slab */}
+            <div>
+              {MembersSlab}
+            </div>
+
+            {/* Right: overview + roles cards */}
+            <div>
+              {OverviewCard}
+              {RolesCard}
+            </div>
+          </div>
+        </div>
+      </PageContainer>
+
+      {/* ── Invite sheet ──────────────────────────────────────────────────────── */}
+      <InviteMemberSheet
+        open={inviteOpen}
+        onClose={() => setInviteOpen(false)}
+        householdName={household?.name ?? ''}
+        householdCode={household?.code ?? ''}
+      />
+
+      {/* ── Member settings sheet (gear icon) ─────────────────────────────────── */}
+      <MemberSheet
+        member={gearMember}
+        householdId={household?.id ?? ''}
+        onClose={() => setGearMember(null)}
+        onRefetch={() => {
+          queryClient.invalidateQueries({ queryKey: ['household-members'] })
+          refetch()
+        }}
+      />
+
+      {/* ── Remove member AlertDialog ──────────────────────────────────────────── */}
+      <AlertDialog open={!!removeTarget} onOpenChange={(v) => { if (!v) setRemoveTarget(null) }}>
+        <AlertDialogContent style={{
+          background: 'var(--roost-surface)',
+          border: '1.5px solid var(--roost-border)',
+          borderBottom: '4px solid #B91C1C',
+          borderRadius: 16,
+        }}>
+          <AlertDialogHeader>
+            {/* Icon */}
+            <div style={{
+              width: 48,
+              height: 48,
+              borderRadius: 14,
+              background: '#FEE2E2',
+              border: '1.5px solid #EF4444',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              marginBottom: 12,
+            }}>
+              <UserPlus size={22} color="#EF4444" style={{ transform: 'scaleX(-1)' }} />
+            </div>
+            <AlertDialogTitle style={{ color: 'var(--roost-text-primary)', fontWeight: 900 }}>
+              Remove {removeTarget?.name}?
+            </AlertDialogTitle>
+            <AlertDialogDescription style={{ color: 'var(--roost-text-muted)', fontWeight: 600, lineHeight: 1.5 }}>
+              {removeTarget?.name} will lose access to {household?.name}. Their expenses and chore history will remain. They can rejoin with the house code.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter style={{ flexDirection: 'column', gap: 8 }}>
+            <AlertDialogAction
+              onClick={handleRemove}
+              disabled={removing}
+              style={{
+                background: '#EF4444',
+                border: '1.5px solid #EF4444',
+                borderBottom: '3px solid #B91C1C',
+                borderRadius: 11,
+                color: '#fff',
+                fontWeight: 900,
+                fontSize: 13,
+                padding: '11px 16px',
+                cursor: removing ? 'default' : 'pointer',
+                opacity: removing ? 0.7 : 1,
+                width: '100%',
+              }}
+            >
+              {removing ? 'Removing...' : 'Remove from household'}
+            </AlertDialogAction>
+            <AlertDialogCancel
+              style={{
+                background: 'var(--roost-bg)',
+                border: 'none',
+                borderRadius: 11,
+                color: 'var(--roost-text-secondary)',
+                fontWeight: 700,
+                fontSize: 13,
+                padding: '9px 16px',
+                cursor: 'pointer',
+                width: '100%',
+              }}
+            >
+              Keep them
+            </AlertDialogCancel>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </motion.div>
   )
 }

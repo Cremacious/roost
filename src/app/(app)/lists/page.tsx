@@ -466,16 +466,31 @@ export default function FoodPage() {
     onMutate: async () => {
       await queryClient.cancelQueries({ queryKey: ['grocery-items', activeListId] })
       const prev = queryClient.getQueryData<GroceryData>(['grocery-items', activeListId])
-      if (prev) queryClient.setQueryData<GroceryData>(['grocery-items', activeListId], { ...prev, items: prev.items.filter(i => !i.isChecked) })
+      if (prev) {
+        const clearedCount = prev.items.filter(i => i.isChecked).length
+        queryClient.setQueryData<GroceryData>(['grocery-items', activeListId], {
+          ...prev,
+          items: prev.items.filter(i => !i.isChecked),
+        })
+        // Update list item count without triggering a refetch
+        queryClient.setQueryData<{ lists: ListSummary[] }>(['grocery-lists'], old => {
+          if (!old) return old
+          return {
+            lists: old.lists.map(l =>
+              l.id === activeListId ? { ...l, itemCount: Math.max(0, l.itemCount - clearedCount) } : l
+            ),
+          }
+        })
+      }
       return { prev }
+    },
+    onSuccess: () => {
+      setCheckedOpen(false)
     },
     onError: (_err, _vars, ctx) => {
       if (ctx?.prev) queryClient.setQueryData(['grocery-items', activeListId], ctx.prev)
-      toast.error('Could not clear cart', { description: 'Check your connection and try again.' })
-    },
-    onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ['grocery-items', activeListId] })
       queryClient.invalidateQueries({ queryKey: ['grocery-lists'] })
+      toast.error('Could not clear cart', { description: 'Check your connection and try again.' })
     },
   })
 

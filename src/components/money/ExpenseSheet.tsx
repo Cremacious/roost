@@ -415,6 +415,7 @@ export function ExpenseSheet({ open, onClose, members, currentUserId, isPremium,
       toast.success('Expense added')
       qc.invalidateQueries({ queryKey: ['expenses'] })
       qc.invalidateQueries({ queryKey: ['money-dashboard'] })
+      qc.invalidateQueries({ queryKey: ['budgets'] })
       resetForm()
       onClose()
     } finally {

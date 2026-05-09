@@ -7,7 +7,7 @@ import { toast } from 'sonner'
 import {
   Plus, Wallet, Receipt, BarChart3, Target, TrendingUp,
   CheckCircle, Clock, AlertCircle, ChevronRight, Edit2, Trash2, ChevronDown, ChevronUp,
-  LayoutGrid, DollarSign, FileText, Camera, Users,
+  LayoutGrid, DollarSign, FileText, Camera, Users, Lock,
 } from 'lucide-react'
 import { format, parseISO, subDays } from 'date-fns'
 import { AreaChart, Area, XAxis, YAxis, Tooltip, PieChart, Pie, Cell, ResponsiveContainer } from 'recharts'
@@ -23,6 +23,7 @@ import { ContributeSheet } from '@/components/money/ContributeSheet'
 import { BillSheet } from '@/components/money/BillSheet'
 import { BudgetSheet, type EditableBudget } from '@/components/money/BudgetSheet'
 import { useHousehold } from '@/lib/hooks/useHousehold'
+import PremiumGate from '@/components/shared/PremiumGate'
 
 function EmptyState({ color, icon, title, body, buttonLabel, onButtonClick }: {
   color: string; icon: React.ReactNode; title: string; body: string; buttonLabel?: string; onButtonClick?: () => void
@@ -125,6 +126,32 @@ function DashboardTab({ currentUserId, members, isPremium, onOpenExpense, onOpen
   onOpenSettle: (debt: DebtItem) => void
   onTabChange: (tab: Tab) => void
 }) {
+  const queryClient = useQueryClient()
+  const [quickSettleDebt, setQuickSettleDebt] = useState<DebtItem | null>(null)
+  const [quickSettling, setQuickSettling] = useState(false)
+  const [insightsGateOpen, setInsightsGateOpen] = useState(false)
+
+  async function handleQuickSettle() {
+    if (!quickSettleDebt) return
+    setQuickSettling(true)
+    try {
+      const res = await fetch('/api/expenses/settle-all/claim', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ creditorId: quickSettleDebt.to }),
+      })
+      if (!res.ok) throw new Error('Failed')
+      toast.success('Claim sent', { description: `They will confirm when received.` })
+      queryClient.invalidateQueries({ queryKey: ['expenses'] })
+      queryClient.invalidateQueries({ queryKey: ['money-dashboard'] })
+      setQuickSettleDebt(null)
+    } catch {
+      toast.error('Could not send claim', { description: 'Check your connection and try again.' })
+    } finally {
+      setQuickSettling(false)
+    }
+  }
+
   const { data, isLoading } = useQuery({
     queryKey: ['money-dashboard'],
     queryFn: () => fetch('/api/money/dashboard').then(r => r.json()),
@@ -219,15 +246,16 @@ function DashboardTab({ currentUserId, members, isPremium, onOpenExpense, onOpen
               <CheckCircle size={15} color="white" /> Settle up
             </button>
             <button
-              onClick={() => onTabChange('insights')}
+              onClick={() => isPremium ? onTabChange('insights') : setInsightsGateOpen(true)}
               style={{
                 display: 'flex', alignItems: 'center', gap: 8, padding: '9px 16px', borderRadius: 10,
                 background: 'rgba(255,255,255,0.2)', border: '1.5px solid rgba(255,255,255,0.3)',
                 fontFamily: 'inherit', fontSize: 13, fontWeight: 800, color: 'white', cursor: 'pointer', whiteSpace: 'nowrap',
-                opacity: isPremium ? 1 : 0.5,
+                opacity: isPremium ? 1 : 0.65,
               }}
             >
-              <TrendingUp size={15} color="white" /> View insights
+              {isPremium ? <TrendingUp size={15} color="white" /> : <Lock size={15} color="white" />}
+              View insights
             </button>
           </div>
         </div>
@@ -349,36 +377,6 @@ function DashboardTab({ currentUserId, members, isPremium, onOpenExpense, onOpen
 
         {/* ── Sidebar column ── */}
         <div>
-          {/* Quick actions */}
-          <div style={{ background: 'var(--roost-surface)', border: '1.5px solid var(--roost-border)', borderBottom: `4px solid ${COLOR_DARK}`, borderRadius: 16, marginBottom: 16, overflow: 'hidden' }}>
-            <div style={{ padding: '14px 18px 0' }}>
-              <span style={{ fontSize: 14, fontWeight: 800, color: 'var(--roost-text-primary)' }}>Quick actions</span>
-            </div>
-            <div style={{ padding: '14px 18px 16px', display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8 }}>
-              {[
-                { label: 'Add', icon: <Plus size={18} color={COLOR} />, bg: `${COLOR}1A`, onClick: onOpenExpense },
-                { label: 'Scan', icon: <Camera size={18} color="#3B82F6" />, bg: '#3B82F61A', onClick: onOpenExpense },
-                { label: 'Split', icon: <Users size={18} color="#F59E0B" />, bg: '#F59E0B1A', onClick: onOpenExpense },
-                { label: 'Settle', icon: <CheckCircle size={18} color="#A855F7" />, bg: '#A855F71A', onClick: () => firstOweDebt ? onOpenSettle(firstOweDebt) : onTabChange('expenses') },
-              ].map(({ label, icon, bg, onClick }) => (
-                <button
-                  key={label}
-                  onClick={onClick}
-                  style={{
-                    background: 'var(--roost-surface)', border: '1.5px solid var(--roost-border)',
-                    borderBottom: '3px solid var(--roost-border-bottom)', borderRadius: 14,
-                    padding: '16px 8px', textAlign: 'center', cursor: 'pointer', fontFamily: 'inherit',
-                  }}
-                >
-                  <div style={{ width: 40, height: 40, borderRadius: 12, backgroundColor: bg, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 8px' }}>
-                    {icon}
-                  </div>
-                  <div style={{ fontSize: 12, fontWeight: 800, color: 'var(--roost-text-secondary)' }}>{label}</div>
-                </button>
-              ))}
-            </div>
-          </div>
-
           {/* Who owes who */}
           <div style={{ background: 'var(--roost-surface)', border: '1.5px solid var(--roost-border)', borderBottom: '4px solid #B91C1C', borderRadius: 16, marginBottom: 16, overflow: 'hidden' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 18px 0' }}>
@@ -398,7 +396,7 @@ function DashboardTab({ currentUserId, members, isPremium, onOpenExpense, onOpen
                 return (
                   <div
                     key={i}
-                    onClick={() => onOpenSettle(debt)}
+                    onClick={() => iOwe ? setQuickSettleDebt(debt) : onOpenSettle(debt)}
                     style={{
                       background: 'var(--roost-surface)', border: '1.5px solid var(--roost-border)',
                       borderBottom: `4px solid ${iOwe ? '#EF4444' : COLOR}`,
@@ -421,14 +419,14 @@ function DashboardTab({ currentUserId, members, isPremium, onOpenExpense, onOpen
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end' }}>
                       <button
-                        onClick={(e) => { e.stopPropagation(); onOpenSettle(debt) }}
+                        onClick={(e) => { e.stopPropagation(); iOwe ? setQuickSettleDebt(debt) : onOpenSettle(debt) }}
                         style={{
                           padding: '5px 12px', borderRadius: 8, border: '1.5px solid var(--roost-border)',
                           borderBottom: '2px solid var(--roost-border-bottom)', background: 'var(--roost-surface)',
                           fontFamily: 'inherit', fontSize: 11, fontWeight: 800, color: 'var(--roost-text-secondary)', cursor: 'pointer',
                         }}
                       >
-                        {iOwe ? 'Settle' : 'Remind'}
+                        {iOwe ? 'Settle up' : 'Remind'}
                       </button>
                     </div>
                   </div>
@@ -510,11 +508,174 @@ function DashboardTab({ currentUserId, members, isPremium, onOpenExpense, onOpen
           ) : null}
         </div>
       </div>
+
+      {/* Quick settle dialog */}
+      {(() => {
+        const debt = quickSettleDebt
+        if (!debt) return null
+        const creditor = members.find(m => m.id === debt.to)
+        const creditorName = creditor?.name ?? 'them'
+        return (
+          <AlertDialog open={!!quickSettleDebt} onOpenChange={open => { if (!open) setQuickSettleDebt(null) }}>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Settle up with {creditorName}</AlertDialogTitle>
+                <AlertDialogDescription>
+                  You owe <strong style={{ color: '#EF4444' }}>${debt.amount.toFixed(2)}</strong> to {creditorName}. Tap below to send a claim that you have paid. They will confirm when received.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <button
+                  onClick={() => setQuickSettleDebt(null)}
+                  style={{ padding: '9px 18px', borderRadius: 10, border: '1.5px solid var(--roost-border)', borderBottom: '3px solid var(--roost-border-bottom)', background: 'var(--roost-surface)', fontFamily: 'inherit', fontSize: 13, fontWeight: 700, color: 'var(--roost-text-secondary)', cursor: 'pointer' }}
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleQuickSettle}
+                  disabled={quickSettling}
+                  style={{ padding: '9px 18px', borderRadius: 10, border: 'none', borderBottom: `3px solid ${COLOR_DARK}`, backgroundColor: COLOR, fontFamily: 'inherit', fontSize: 13, fontWeight: 800, color: '#fff', cursor: quickSettling ? 'default' : 'pointer', opacity: quickSettling ? 0.7 : 1 }}
+                >
+                  {quickSettling ? 'Sending...' : `I paid ${creditorName}`}
+                </button>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        )
+      })()}
+
+      {insightsGateOpen && (
+        <PremiumGate feature="stats" trigger="sheet" onClose={() => setInsightsGateOpen(false)} />
+      )}
     </div>
   )
 }
 
 // ─── Expenses Tab ─────────────────────────────────────────────────────────────
+
+interface ExpenseGroup {
+  year: number
+  month: number          // 0-indexed (JS Date)
+  label: string          // e.g. "April 2026"
+  expenses: any[]
+  total: number
+}
+
+function groupExpenses(expenseList: any[]): { currentGroup: ExpenseGroup | null; olderGroups: ExpenseGroup[] } {
+  const now = new Date()
+  const currentYear = now.getFullYear()
+  const currentMonth = now.getMonth()
+
+  const map = new Map<string, ExpenseGroup>()
+
+  for (const e of expenseList) {
+    const d = new Date(e.createdAt)
+    const year = d.getFullYear()
+    const month = d.getMonth()
+    const key = `${year}-${month}`
+    if (!map.has(key)) {
+      map.set(key, {
+        year,
+        month,
+        label: format(d, 'MMMM yyyy'),
+        expenses: [],
+        total: 0,
+      })
+    }
+    const group = map.get(key)!
+    group.expenses.push(e)
+    group.total += parseFloat(e.amount) || 0
+  }
+
+  // Sort groups: newest first
+  const sorted = Array.from(map.values()).sort((a, b) => {
+    if (a.year !== b.year) return b.year - a.year
+    return b.month - a.month
+  })
+
+  const currentGroup = sorted.find(g => g.year === currentYear && g.month === currentMonth) ?? null
+  const olderGroups = sorted.filter(g => !(g.year === currentYear && g.month === currentMonth))
+
+  return { currentGroup, olderGroups }
+}
+
+function ExpenseRow({ e, index }: { e: any; index: number }) {
+  return (
+    <motion.div key={e.id} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: Math.min(index * 0.03, 0.15) }}>
+      <SlabCard color="var(--roost-border-bottom)">
+        <div style={{ padding: '12px 14px', display: 'flex', alignItems: 'center', gap: 10 }}>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <p style={{ margin: 0, fontWeight: 700, fontSize: 14, color: 'var(--roost-text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{e.title}</p>
+            <p style={{ margin: '2px 0 0', fontSize: 12, fontWeight: 600, color: 'var(--roost-text-muted)' }}>
+              Paid by {e.paidByName ?? 'Unknown'} &bull; {format(new Date(e.createdAt), 'MMM d')}
+            </p>
+          </div>
+          <span style={{ fontWeight: 800, fontSize: 16, color: 'var(--roost-text-primary)', flexShrink: 0 }}>${parseFloat(e.amount).toFixed(2)}</span>
+        </div>
+      </SlabCard>
+    </motion.div>
+  )
+}
+
+function MonthAccordion({ group, defaultOpen = false }: { group: ExpenseGroup; defaultOpen?: boolean }) {
+  const [open, setOpen] = useState(defaultOpen)
+  return (
+    <div>
+      <button
+        onClick={() => setOpen(v => !v)}
+        style={{
+          width: '100%', display: 'flex', alignItems: 'center', gap: 8,
+          padding: '10px 0', background: 'none', border: 'none', cursor: 'pointer',
+          borderTop: '1px solid var(--roost-border)',
+        }}
+      >
+        <span style={{ flex: 1, textAlign: 'left', fontWeight: 800, fontSize: 13, color: 'var(--roost-text-primary)' }}>
+          {group.label}
+        </span>
+        <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--roost-text-muted)', marginRight: 6 }}>
+          {group.expenses.length} {group.expenses.length === 1 ? 'expense' : 'expenses'} &bull; ${group.total.toFixed(2)}
+        </span>
+        {open ? <ChevronUp size={15} color="var(--roost-text-muted)" /> : <ChevronDown size={15} color="var(--roost-text-muted)" />}
+      </button>
+      {open && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 6, paddingBottom: 8 }}>
+          {group.expenses.map((e, i) => <ExpenseRow key={e.id} e={e} index={i} />)}
+        </div>
+      )}
+    </div>
+  )
+}
+
+function YearAccordion({ year, groups }: { year: number; groups: ExpenseGroup[] }) {
+  const [open, setOpen] = useState(false)
+  const totalExpenses = groups.reduce((sum, g) => sum + g.expenses.length, 0)
+  const totalAmount = groups.reduce((sum, g) => sum + g.total, 0)
+  return (
+    <div>
+      <button
+        onClick={() => setOpen(v => !v)}
+        style={{
+          width: '100%', display: 'flex', alignItems: 'center', gap: 8,
+          padding: '10px 0', background: 'none', border: 'none', cursor: 'pointer',
+          borderTop: '1px solid var(--roost-border)',
+        }}
+      >
+        <span style={{ flex: 1, textAlign: 'left', fontWeight: 800, fontSize: 13, color: 'var(--roost-text-primary)' }}>
+          {year}
+        </span>
+        <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--roost-text-muted)', marginRight: 6 }}>
+          {totalExpenses} {totalExpenses === 1 ? 'expense' : 'expenses'} &bull; ${totalAmount.toFixed(2)}
+        </span>
+        {open ? <ChevronUp size={15} color="var(--roost-text-muted)" /> : <ChevronDown size={15} color="var(--roost-text-muted)" />}
+      </button>
+      {open && (
+        <div style={{ paddingLeft: 12 }}>
+          {groups.map(g => <MonthAccordion key={`${g.year}-${g.month}`} group={g} />)}
+        </div>
+      )}
+    </div>
+  )
+}
 
 function ExpensesTab({ currentUserId, members, isPremium, onOpenExpense, onOpenSettle, onUpgradeRequired }: {
   currentUserId: string
@@ -535,6 +696,23 @@ function ExpensesTab({ currentUserId, members, isPremium, onOpenExpense, onOpenS
   const { debts = [], expenses: expenseList = [], myBalance } = data ?? {}
 
   const myDebts: DebtItem[] = debts.filter((d: DebtItem) => d.from === currentUserId || d.to === currentUserId)
+
+  const { currentGroup, olderGroups } = groupExpenses(expenseList)
+
+  // Split older groups by year
+  const currentYear = new Date().getFullYear()
+  const sameYearOlder = olderGroups.filter(g => g.year === currentYear)
+  const priorYearGroups = olderGroups.filter(g => g.year < currentYear)
+
+  // Group prior year groups by year
+  const byYear = new Map<number, ExpenseGroup[]>()
+  for (const g of priorYearGroups) {
+    if (!byYear.has(g.year)) byYear.set(g.year, [])
+    byYear.get(g.year)!.push(g)
+  }
+  const priorYears = Array.from(byYear.entries()).sort((a, b) => b[0] - a[0])
+
+  const hasAnyExpenses = expenseList.length > 0
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -574,26 +752,37 @@ function ExpensesTab({ currentUserId, members, isPremium, onOpenExpense, onOpenS
         </div>
       )}
 
-      {expenseList.length > 0 ? (
+      {hasAnyExpenses ? (
         <div>
-          <p style={{ fontWeight: 800, fontSize: 14, color: 'var(--roost-text-primary)', marginBottom: 8 }}>All expenses</p>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-            {expenseList.map((e: any, i: number) => (
-              <motion.div key={e.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: Math.min(i * 0.04, 0.2) }}>
-                <SlabCard color="var(--roost-border-bottom)">
-                  <div style={{ padding: '12px 14px', display: 'flex', alignItems: 'center', gap: 10 }}>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <p style={{ margin: 0, fontWeight: 700, fontSize: 14, color: 'var(--roost-text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{e.title}</p>
-                      <p style={{ margin: '2px 0 0', fontSize: 12, fontWeight: 600, color: 'var(--roost-text-muted)' }}>
-                        Paid by {e.paidByName ?? 'Unknown'} &bull; {format(new Date(e.createdAt), 'MMM d')}
-                      </p>
-                    </div>
-                    <span style={{ fontWeight: 800, fontSize: 16, color: 'var(--roost-text-primary)' }}>${parseFloat(e.amount).toFixed(2)}</span>
-                  </div>
-                </SlabCard>
-              </motion.div>
-            ))}
-          </div>
+          {/* Current month — flat list */}
+          {currentGroup && (
+            <div>
+              <p style={{ fontWeight: 800, fontSize: 14, color: 'var(--roost-text-primary)', marginBottom: 8 }}>
+                {currentGroup.label}
+              </p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                {currentGroup.expenses.map((e, i) => <ExpenseRow key={e.id} e={e} index={i} />)}
+              </div>
+            </div>
+          )}
+
+          {/* Older months this year — month accordions */}
+          {sameYearOlder.length > 0 && (
+            <div style={{ marginTop: currentGroup ? 12 : 0 }}>
+              {sameYearOlder.map(g => (
+                <MonthAccordion key={`${g.year}-${g.month}`} group={g} />
+              ))}
+            </div>
+          )}
+
+          {/* Previous years — year accordions with month sub-accordions */}
+          {priorYears.length > 0 && (
+            <div style={{ marginTop: 4 }}>
+              {priorYears.map(([year, groups]) => (
+                <YearAccordion key={year} year={year} groups={groups} />
+              ))}
+            </div>
+          )}
         </div>
       ) : (
         <EmptyState

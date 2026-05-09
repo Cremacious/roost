@@ -982,7 +982,7 @@ export default function FoodPage() {
 
           {/* Frequently bought widget */}
           <div>
-            <p style={{ fontSize: 10, fontWeight: 800, color: 'var(--roost-text-muted)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 12 }}>Frequently bought</p>
+            <p style={{ fontSize: 10, fontWeight: 800, color: 'var(--roost-text-muted)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 12 }}>Common Items</p>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
               {COMMON_ITEMS.map(itemName => (
                 <button

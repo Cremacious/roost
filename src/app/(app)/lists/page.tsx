@@ -35,7 +35,7 @@ const SECTION_DOT_COLORS: Record<string, string> = {
 
 const LIST_COLORS = ['#F59E0B', '#3B82F6', '#EC4899', '#22C55E', '#A855F7', '#F97316', '#06B6D4']
 
-const FREQUENT_ITEMS = ['Almond milk', 'Cheddar cheese', 'Rice', 'Peanut butter', 'Garlic', 'Tortillas', 'Olive oil', 'Eggs']
+const COMMON_ITEMS = ['Milk', 'Eggs', 'Bread', 'Butter', 'Chicken breast', 'Pasta', 'Rice', 'Olive oil', 'Onions', 'Garlic', 'Bananas', 'Cheese']
 
 // ── Interfaces ────────────────────────────────────────────────────────────────
 
@@ -898,9 +898,9 @@ export default function FoodPage() {
 
           {/* Frequently bought — mobile only */}
           <div className="md:hidden">
-            <p style={{ fontSize: 11, fontWeight: 800, color: 'var(--roost-text-muted)', letterSpacing: '0.08em', marginBottom: 8 }}>FREQUENTLY BOUGHT</p>
+            <p style={{ fontSize: 11, fontWeight: 800, color: 'var(--roost-text-muted)', letterSpacing: '0.08em', marginBottom: 8 }}>COMMON ITEMS</p>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-              {FREQUENT_ITEMS.map(itemName => (
+              {COMMON_ITEMS.map(itemName => (
                 <button
                   key={itemName}
                   type="button"
@@ -984,7 +984,7 @@ export default function FoodPage() {
           <div>
             <p style={{ fontSize: 10, fontWeight: 800, color: 'var(--roost-text-muted)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 12 }}>Frequently bought</p>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-              {FREQUENT_ITEMS.map(itemName => (
+              {COMMON_ITEMS.map(itemName => (
                 <button
                   key={itemName}
                   type="button"

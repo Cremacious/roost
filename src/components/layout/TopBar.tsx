@@ -118,7 +118,7 @@ export function TopBar() {
   return (
     <>
     <header
-      className="fixed left-0 right-0 top-0 z-30 flex h-14 items-center justify-between border-b px-4 bg-[#C0160C] md:bg-(--roost-topbar-bg) md:left-[180px]"
+      className="fixed left-0 right-0 top-0 z-30 flex h-14 items-center justify-between border-b px-4 bg-[#C0160C] md:bg-(--roost-topbar-bg) md:left-[200px]"
       style={{ borderBottomColor: 'var(--roost-topbar-border)' }}
     >
       {/* Left: logo + household name on mobile */}

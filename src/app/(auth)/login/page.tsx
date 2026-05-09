@@ -136,6 +136,12 @@ function LoginForm() {
             <Button type="submit" loading={loading} color="#EF4444" darkColor="#C93B3B" size="lg">
               Sign in
             </Button>
+
+            <p style={{ textAlign: 'right', margin: 0 }}>
+              <Link href="/forgot-password" style={{ fontSize: 12, fontWeight: 700, color: '#EF4444', textDecoration: 'none' }}>
+                Forgot password?
+              </Link>
+            </p>
           </form>
 
           <p style={{ marginTop: 20, textAlign: 'center', fontSize: 13, fontWeight: 700, color: '#7A3F3F' }}>

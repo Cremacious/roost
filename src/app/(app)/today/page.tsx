@@ -40,7 +40,7 @@ export default function TodayPage() {
         isChildAccount: json.isChildAccount as boolean,
       }
     },
-    staleTime: Infinity,
+    staleTime: 5 * 60_000,
   })
 
   const showWelcome =

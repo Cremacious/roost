@@ -56,11 +56,19 @@ export const metadata: Metadata = {
       follow: true,
     },
   },
+  appleWebApp: {
+    title: 'Roost',
+    statusBarStyle: 'default',
+    capable: true,
+  },
+  applicationName: 'Roost',
 }
 
 export const viewport: Viewport = {
   maximumScale: 1,
+  themeColor: '#EF4444',
 }
+
 
 export default async function RootLayout({
   children,

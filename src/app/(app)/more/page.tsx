@@ -1,13 +1,25 @@
 'use client'
 
+import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { useQuery } from '@tanstack/react-query'
 import Link from 'next/link'
-import { Settings, LogOut, ChevronRight, User } from 'lucide-react'
+import { Settings, LogOut, ChevronRight } from 'lucide-react'
 import { useSession, signOut } from '@/lib/auth/client'
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogFooter,
+} from '@/components/ui/alert-dialog'
 
 export default function MorePage() {
   const router = useRouter()
   const { data: session } = useSession()
+  const [confirmOpen, setConfirmOpen] = useState(false)
+
   const name = session?.user?.name ?? ''
   const email = session?.user?.email ?? ''
   const initials = name
@@ -17,6 +29,18 @@ export default function MorePage() {
     .join('')
     .slice(0, 2)
     .toUpperCase()
+
+  const { data: profile } = useQuery<{ user?: { avatar_color?: string } }>({
+    queryKey: ['user-profile'],
+    queryFn: async () => {
+      const r = await fetch('/api/user/profile')
+      if (!r.ok) throw new Error('Failed')
+      return r.json()
+    },
+    staleTime: 5 * 60_000,
+  })
+
+  const avatarColor = profile?.user?.avatar_color ?? '#EF4444'
 
   async function handleSignOut() {
     await signOut()
@@ -44,14 +68,14 @@ export default function MorePage() {
             width: 48,
             height: 48,
             borderRadius: '50%',
-            backgroundColor: '#EF4444',
+            backgroundColor: avatarColor,
             flexShrink: 0,
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
           }}
         >
-          <span style={{ color: '#fff', fontSize: 16, fontWeight: 800 }}>{initials || <User size={20} color="#fff" />}</span>
+          <span style={{ color: '#fff', fontSize: 16, fontWeight: 800 }}>{initials || '?'}</span>
         </div>
         <div style={{ flex: 1, minWidth: 0 }}>
           <p style={{ color: 'var(--roost-text-primary)', fontWeight: 800, fontSize: 16, margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
@@ -108,7 +132,7 @@ export default function MorePage() {
 
       {/* Sign out */}
       <button
-        onClick={handleSignOut}
+        onClick={() => setConfirmOpen(true)}
         style={{
           width: '100%',
           display: 'flex',
@@ -141,6 +165,31 @@ export default function MorePage() {
           Sign out
         </span>
       </button>
+
+      <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Sign out?</AlertDialogTitle>
+            <AlertDialogDescription>
+              You will need to sign back in to access your household.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <button
+              onClick={() => setConfirmOpen(false)}
+              style={{ padding: '9px 18px', borderRadius: 10, border: '1.5px solid var(--roost-border)', borderBottom: '3px solid var(--roost-border-bottom)', background: 'var(--roost-surface)', fontFamily: 'inherit', fontSize: 13, fontWeight: 700, color: 'var(--roost-text-secondary)', cursor: 'pointer' }}
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleSignOut}
+              style={{ padding: '9px 18px', borderRadius: 10, border: 'none', borderBottom: '3px solid #C93B3B', backgroundColor: '#EF4444', fontFamily: 'inherit', fontSize: 13, fontWeight: 800, color: '#fff', cursor: 'pointer' }}
+            >
+              Sign out
+            </button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

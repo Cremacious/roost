@@ -7,7 +7,7 @@ import HomepageAnimations from '@/components/home/HomepageAnimations'
 
 export default async function HomePage() {
   const session = await getSession().catch(() => null)
-  if (session) redirect('/dashboard')
+  if (session) redirect('/today')
 
   return (
     <>

@@ -50,7 +50,7 @@ export default function Error({
           Try again
         </button>
         <Link
-          href="/dashboard"
+          href="/today"
           style={{
             padding: '14px 28px',
             borderRadius: 14,

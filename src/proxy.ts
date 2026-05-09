@@ -3,7 +3,7 @@ import type { NextRequest } from 'next/server'
 import { auth } from '@/lib/auth'
 
 // Routes anyone can visit without a session
-const PUBLIC_ROUTES = ['/', '/login', '/signup', '/child-login', '/privacy', '/terms']
+const PUBLIC_ROUTES = ['/', '/login', '/signup', '/child-login', '/privacy', '/terms', '/forgot-password', '/reset-password']
 
 function isPublic(pathname: string) {
   if (PUBLIC_ROUTES.includes(pathname)) return true

@@ -1,76 +1,116 @@
-'use client'
+'use client';
 
-import { useState, useRef, useCallback, useEffect } from 'react'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { motion, AnimatePresence } from 'framer-motion'
-import { ShoppingCart, Plus, Trash2, Check, ChevronDown, ChevronUp, X, UtensilsCrossed, ArrowUpDown } from 'lucide-react'
-import { toast } from 'sonner'
-import { startOfWeek, format } from 'date-fns'
-import { Skeleton } from '@/components/ui/skeleton'
-import { groupItemsBySection } from '@/lib/utils/grocerySort'
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog'
+import { useState, useRef, useCallback, useEffect, useMemo } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { motion, AnimatePresence } from 'framer-motion';
+import {
+  ShoppingCart,
+  Plus,
+  Trash2,
+  Check,
+  ChevronDown,
+  ChevronUp,
+  X,
+  UtensilsCrossed,
+  ArrowUpDown,
+} from 'lucide-react';
+import { toast } from 'sonner';
+import { startOfWeek, format } from 'date-fns';
+import { Skeleton } from '@/components/ui/skeleton';
+import { groupItemsBySection } from '@/lib/utils/grocerySort';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
-const COLOR = '#F59E0B'
-const COLOR_DARK = '#C87D00'
-const COLOR_LIGHT = '#FEF3C7'
+const COLOR = '#F59E0B';
+const COLOR_DARK = '#C87D00';
+const COLOR_LIGHT = '#FEF3C7';
 
 const SECTION_DOT_COLORS: Record<string, string> = {
-  'Produce': '#22C55E',
+  Produce: '#22C55E',
   'Meat & Seafood': '#EF4444',
   'Dairy & Eggs': '#3B82F6',
   'Bakery & Bread': '#F97316',
-  'Frozen': '#06B6D4',
+  Frozen: '#06B6D4',
   'Pantry & Dry Goods': '#F59E0B',
   'Canned & Jarred': '#A855F7',
-  'Snacks': '#EC4899',
-  'Beverages': '#8B5CF6',
-  'Breakfast': '#F59E0B',
+  Snacks: '#EC4899',
+  Beverages: '#8B5CF6',
+  Breakfast: '#F59E0B',
   'Condiments & Sauces': '#84CC16',
   'Cleaning & Household': '#14B8A6',
   'Personal Care': '#F472B6',
   'Baby & Kids': '#FB923C',
-  'Pet': '#78716C',
-  'Other': '#9CA3AF',
-}
+  Pet: '#78716C',
+  Other: '#9CA3AF',
+};
 
-const LIST_COLORS = ['#F59E0B', '#3B82F6', '#EC4899', '#22C55E', '#A855F7', '#F97316', '#06B6D4']
+const LIST_COLORS = [
+  '#F59E0B',
+  '#3B82F6',
+  '#EC4899',
+  '#22C55E',
+  '#A855F7',
+  '#F97316',
+  '#06B6D4',
+];
 
-const COMMON_ITEMS = ['Milk', 'Eggs', 'Bread', 'Butter', 'Chicken breast', 'Pasta', 'Rice', 'Olive oil', 'Onions', 'Garlic', 'Bananas', 'Cheese']
+const COMMON_ITEMS = [
+  'Milk',
+  'Eggs',
+  'Bread',
+  'Butter',
+  'Chicken breast',
+  'Pasta',
+  'Rice',
+  'Olive oil',
+  'Onions',
+  'Garlic',
+  'Bananas',
+  'Cheese',
+];
 
 // ── Interfaces ────────────────────────────────────────────────────────────────
 
 interface GroceryItem {
-  id: string
-  name: string
-  quantity: string | null
-  isChecked: boolean
-  checkedAt: string | null
-  addedBy: string
-  addedByAvatar?: string | null
-  createdAt: string
+  id: string;
+  name: string;
+  quantity: string | null;
+  isChecked: boolean;
+  checkedAt: string | null;
+  addedBy: string;
+  addedByAvatar?: string | null;
+  createdAt: string;
 }
 
 interface ListSummary {
-  id: string
-  name: string
-  isDefault: boolean
-  itemCount: number
+  id: string;
+  name: string;
+  isDefault: boolean;
+  itemCount: number;
 }
 
 interface GroceryData {
-  listId: string
-  listName: string
-  isDefault: boolean
-  items: GroceryItem[]
+  listId: string;
+  listName: string;
+  isDefault: boolean;
+  items: GroceryItem[];
 }
 
 interface PlannerSlot {
-  id: string
-  slotDate: string
-  slotType: string
-  mealId: string
-  mealName: string
-  mealIngredients: string | null
+  id: string;
+  slotDate: string;
+  slotType: string;
+  mealId: string;
+  mealName: string;
+  mealIngredients: string | null;
 }
 
 // ── ItemRow ───────────────────────────────────────────────────────────────────
@@ -82,45 +122,49 @@ function ItemRow({
   onEdit,
   index,
 }: {
-  item: GroceryItem
-  onCheck: (id: string, checked: boolean) => void
-  onDelete: (id: string) => void
-  onEdit: (id: string, name: string, quantity: string) => void
-  index: number
+  item: GroceryItem;
+  onCheck: (id: string, checked: boolean) => void;
+  onDelete: (id: string) => void;
+  onEdit: (id: string, name: string, quantity: string) => void;
+  index: number;
 }) {
-  const [editing, setEditing] = useState(false)
-  const [editName, setEditName] = useState(item.name)
-  const [editQty, setEditQty] = useState(item.quantity ?? '')
-  const nameRef = useRef<HTMLInputElement>(null)
+  const [editing, setEditing] = useState(false);
+  const [editName, setEditName] = useState(item.name);
+  const [editQty, setEditQty] = useState(item.quantity ?? '');
+  const nameRef = useRef<HTMLInputElement>(null);
 
   function openEdit() {
-    setEditName(item.name)
-    setEditQty(item.quantity ?? '')
-    setEditing(true)
-    setTimeout(() => nameRef.current?.focus(), 0)
+    setEditName(item.name);
+    setEditQty(item.quantity ?? '');
+    setEditing(true);
+    setTimeout(() => nameRef.current?.focus(), 0);
   }
 
   function saveEdit() {
-    const name = editName.trim()
-    if (!name) return
-    onEdit(item.id, name, editQty.trim())
-    setEditing(false)
+    const name = editName.trim();
+    if (!name) return;
+    onEdit(item.id, name, editQty.trim());
+    setEditing(false);
   }
 
   function cancelEdit() {
-    setEditing(false)
-    setEditName(item.name)
-    setEditQty(item.quantity ?? '')
+    setEditing(false);
+    setEditName(item.name);
+    setEditQty(item.quantity ?? '');
   }
 
-  const initials = item.addedBy ? item.addedBy.charAt(0).toUpperCase() : '?'
-  const avatarBg = item.addedByAvatar ?? '#9CA3AF'
+  const initials = item.addedBy ? item.addedBy.charAt(0).toUpperCase() : '?';
+  const avatarBg = item.addedByAvatar ?? '#9CA3AF';
 
   return (
     <motion.div
       layout
       initial={{ opacity: 0, y: 6 }}
-      animate={{ opacity: 1, y: 0, transition: { delay: Math.min(index * 0.03, 0.15), duration: 0.14 } }}
+      animate={{
+        opacity: 1,
+        y: 0,
+        transition: { delay: Math.min(index * 0.03, 0.15), duration: 0.14 },
+      }}
       exit={{ opacity: 0, x: -16, transition: { duration: 0.12 } }}
       style={{
         backgroundColor: 'var(--roost-surface)',
@@ -132,36 +176,133 @@ function ItemRow({
       }}
     >
       {editing ? (
-        <div style={{ padding: '10px 12px', display: 'flex', flexDirection: 'column', gap: 8 }}>
+        <div
+          style={{
+            padding: '10px 12px',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 8,
+          }}
+        >
           <input
             ref={nameRef}
             value={editName}
-            onChange={e => setEditName(e.target.value)}
-            onKeyDown={e => { if (e.key === 'Enter') saveEdit(); if (e.key === 'Escape') cancelEdit() }}
+            onChange={(e) => setEditName(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') saveEdit();
+              if (e.key === 'Escape') cancelEdit();
+            }}
             placeholder="Item name"
-            style={{ width: '100%', height: 40, padding: '0 12px', borderRadius: 10, border: `1.5px solid ${COLOR}`, borderBottom: `3px solid ${COLOR_DARK}`, background: 'var(--roost-surface)', outline: 'none', fontSize: 15, fontWeight: 700, color: 'var(--roost-text-primary)', fontFamily: 'inherit', boxSizing: 'border-box' }}
+            style={{
+              width: '100%',
+              height: 40,
+              padding: '0 12px',
+              borderRadius: 10,
+              border: `1.5px solid ${COLOR}`,
+              borderBottom: `3px solid ${COLOR_DARK}`,
+              background: 'var(--roost-surface)',
+              outline: 'none',
+              fontSize: 15,
+              fontWeight: 700,
+              color: 'var(--roost-text-primary)',
+              fontFamily: 'inherit',
+              boxSizing: 'border-box',
+            }}
           />
           <input
             value={editQty}
-            onChange={e => setEditQty(e.target.value)}
-            onKeyDown={e => { if (e.key === 'Enter') saveEdit(); if (e.key === 'Escape') cancelEdit() }}
+            onChange={(e) => setEditQty(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') saveEdit();
+              if (e.key === 'Escape') cancelEdit();
+            }}
             placeholder="Quantity (e.g. 2 lbs, 1 dozen)"
-            style={{ width: '100%', height: 36, padding: '0 12px', borderRadius: 10, border: '1.5px solid var(--roost-border)', borderBottom: '3px solid var(--roost-border-bottom)', background: 'var(--roost-surface)', outline: 'none', fontSize: 13, fontWeight: 600, color: 'var(--roost-text-primary)', fontFamily: 'inherit', boxSizing: 'border-box' }}
+            style={{
+              width: '100%',
+              height: 36,
+              padding: '0 12px',
+              borderRadius: 10,
+              border: '1.5px solid var(--roost-border)',
+              borderBottom: '3px solid var(--roost-border-bottom)',
+              background: 'var(--roost-surface)',
+              outline: 'none',
+              fontSize: 13,
+              fontWeight: 600,
+              color: 'var(--roost-text-primary)',
+              fontFamily: 'inherit',
+              boxSizing: 'border-box',
+            }}
           />
           <div style={{ display: 'flex', gap: 8 }}>
-            <button type="button" onClick={saveEdit} disabled={!editName.trim()} style={{ flex: 1, height: 36, borderRadius: 10, border: 'none', borderBottom: `3px solid ${COLOR_DARK}`, backgroundColor: COLOR, color: '#fff', fontWeight: 800, fontSize: 13, cursor: editName.trim() ? 'pointer' : 'default', opacity: editName.trim() ? 1 : 0.5, fontFamily: 'inherit' }}>Save</button>
-            <button type="button" onClick={cancelEdit} style={{ width: 36, height: 36, borderRadius: 10, border: '1.5px solid var(--roost-border)', borderBottom: '3px solid var(--roost-border-bottom)', background: 'var(--roost-surface)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            <button
+              type="button"
+              onClick={saveEdit}
+              disabled={!editName.trim()}
+              style={{
+                flex: 1,
+                height: 36,
+                borderRadius: 10,
+                border: 'none',
+                borderBottom: `3px solid ${COLOR_DARK}`,
+                backgroundColor: COLOR,
+                color: '#fff',
+                fontWeight: 800,
+                fontSize: 13,
+                cursor: editName.trim() ? 'pointer' : 'default',
+                opacity: editName.trim() ? 1 : 0.5,
+                fontFamily: 'inherit',
+              }}
+            >
+              Save
+            </button>
+            <button
+              type="button"
+              onClick={cancelEdit}
+              style={{
+                width: 36,
+                height: 36,
+                borderRadius: 10,
+                border: '1.5px solid var(--roost-border)',
+                borderBottom: '3px solid var(--roost-border-bottom)',
+                background: 'var(--roost-surface)',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0,
+              }}
+            >
               <X size={15} color="var(--roost-text-muted)" />
             </button>
           </div>
         </div>
       ) : (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '0 12px', minHeight: 60 }}>
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 12,
+            padding: '0 12px',
+            minHeight: 60,
+          }}
+        >
           <button
             type="button"
             aria-label={item.isChecked ? 'Uncheck item' : 'Check item'}
             onClick={() => onCheck(item.id, !item.isChecked)}
-            style={{ width: 26, height: 26, borderRadius: '50%', border: `2px solid ${item.isChecked ? COLOR : COLOR + '55'}`, backgroundColor: item.isChecked ? COLOR : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, cursor: 'pointer', transition: 'all 0.12s' }}
+            style={{
+              width: 26,
+              height: 26,
+              borderRadius: '50%',
+              border: `2px solid ${item.isChecked ? COLOR : COLOR + '55'}`,
+              backgroundColor: item.isChecked ? COLOR : 'transparent',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              flexShrink: 0,
+              cursor: 'pointer',
+              transition: 'all 0.12s',
+            }}
           >
             {item.isChecked && <Check size={12} color="#fff" strokeWidth={3} />}
           </button>
@@ -169,18 +310,60 @@ function ItemRow({
           <button
             type="button"
             onClick={openEdit}
-            style={{ flex: 1, minWidth: 0, background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left', padding: '10px 0' }}
+            style={{
+              flex: 1,
+              minWidth: 0,
+              background: 'none',
+              border: 'none',
+              cursor: 'pointer',
+              textAlign: 'left',
+              padding: '10px 0',
+            }}
           >
-            <p style={{ fontWeight: 800, fontSize: 14, color: item.isChecked ? 'var(--roost-text-muted)' : 'var(--roost-text-primary)', textDecoration: item.isChecked ? 'line-through' : 'none', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            <p
+              style={{
+                fontWeight: 800,
+                fontSize: 14,
+                color: item.isChecked
+                  ? 'var(--roost-text-muted)'
+                  : 'var(--roost-text-primary)',
+                textDecoration: item.isChecked ? 'line-through' : 'none',
+                margin: 0,
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap',
+              }}
+            >
               {item.name}
             </p>
-            <p style={{ fontSize: 12, fontWeight: 600, color: 'var(--roost-text-muted)', margin: 0 }}>
+            <p
+              style={{
+                fontSize: 12,
+                fontWeight: 600,
+                color: 'var(--roost-text-muted)',
+                margin: 0,
+              }}
+            >
               {item.quantity || 'Add quantity'}
             </p>
           </button>
 
           {/* Added-by avatar */}
-          <div style={{ width: 20, height: 20, borderRadius: '50%', backgroundColor: avatarBg, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, fontWeight: 900, color: 'white', flexShrink: 0 }}>
+          <div
+            style={{
+              width: 20,
+              height: 20,
+              borderRadius: '50%',
+              backgroundColor: avatarBg,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: 9,
+              fontWeight: 900,
+              color: 'white',
+              flexShrink: 0,
+            }}
+          >
             {initials}
           </div>
 
@@ -188,392 +371,803 @@ function ItemRow({
             type="button"
             aria-label="Delete item"
             onClick={() => onDelete(item.id)}
-            style={{ width: 36, height: 36, borderRadius: 10, border: 'none', background: 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--roost-text-muted)', flexShrink: 0 }}
+            style={{
+              width: 36,
+              height: 36,
+              borderRadius: 10,
+              border: 'none',
+              background: 'transparent',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: 'var(--roost-text-muted)',
+              flexShrink: 0,
+            }}
           >
             <Trash2 size={16} />
           </button>
         </div>
       )}
     </motion.div>
-  )
+  );
 }
 
 // ── NewListForm ───────────────────────────────────────────────────────────────
 
-function NewListForm({ onSave, onCancel }: { onSave: (name: string) => void; onCancel: () => void }) {
-  const [value, setValue] = useState('')
+function NewListForm({
+  onSave,
+  onCancel,
+}: {
+  onSave: (name: string) => void;
+  onCancel: () => void;
+}) {
+  const [value, setValue] = useState('');
   return (
     <div style={{ display: 'flex', gap: 6 }}>
       <input
         autoFocus
         type="text"
         value={value}
-        onChange={e => setValue(e.target.value)}
-        onKeyDown={e => {
-          if (e.key === 'Enter' && value.trim()) onSave(value.trim())
-          if (e.key === 'Escape') onCancel()
+        onChange={(e) => setValue(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' && value.trim()) onSave(value.trim());
+          if (e.key === 'Escape') onCancel();
         }}
         placeholder="List name"
-        style={{ flex: 1, height: 40, padding: '0 12px', borderRadius: 10, border: `1.5px solid ${COLOR}`, borderBottom: `3px solid ${COLOR_DARK}`, background: 'var(--roost-surface)', outline: 'none', fontSize: 14, fontWeight: 700, color: 'var(--roost-text-primary)', fontFamily: 'inherit' }}
+        style={{
+          flex: 1,
+          height: 40,
+          padding: '0 12px',
+          borderRadius: 10,
+          border: `1.5px solid ${COLOR}`,
+          borderBottom: `3px solid ${COLOR_DARK}`,
+          background: 'var(--roost-surface)',
+          outline: 'none',
+          fontSize: 14,
+          fontWeight: 700,
+          color: 'var(--roost-text-primary)',
+          fontFamily: 'inherit',
+        }}
       />
       <button
         type="button"
         disabled={!value.trim()}
         onClick={() => value.trim() && onSave(value.trim())}
-        style={{ height: 40, padding: '0 14px', borderRadius: 10, border: 'none', borderBottom: `3px solid ${COLOR_DARK}`, backgroundColor: COLOR, color: '#fff', fontWeight: 800, fontSize: 13, cursor: value.trim() ? 'pointer' : 'default', opacity: value.trim() ? 1 : 0.5 }}
+        style={{
+          height: 40,
+          padding: '0 14px',
+          borderRadius: 10,
+          border: 'none',
+          borderBottom: `3px solid ${COLOR_DARK}`,
+          backgroundColor: COLOR,
+          color: '#fff',
+          fontWeight: 800,
+          fontSize: 13,
+          cursor: value.trim() ? 'pointer' : 'default',
+          opacity: value.trim() ? 1 : 0.5,
+        }}
       >
         Add
       </button>
       <button
         type="button"
         onClick={onCancel}
-        style={{ width: 40, height: 40, borderRadius: 10, border: '1.5px solid var(--roost-border)', borderBottom: '3px solid var(--roost-border-bottom)', background: 'var(--roost-surface)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+        style={{
+          width: 40,
+          height: 40,
+          borderRadius: 10,
+          border: '1.5px solid var(--roost-border)',
+          borderBottom: '3px solid var(--roost-border-bottom)',
+          background: 'var(--roost-surface)',
+          cursor: 'pointer',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}
       >
         <X size={16} color="var(--roost-text-muted)" />
       </button>
     </div>
-  )
+  );
 }
 
 // ── ProgressBanner ────────────────────────────────────────────────────────────
 
-function ProgressBanner({ checked, total, listName }: { checked: number; total: number; listName: string }) {
-  const pct = total > 0 ? Math.round((checked / total) * 100) : 0
-  const remaining = total - checked
+function ProgressBanner({
+  checked,
+  total,
+  listName,
+}: {
+  checked: number;
+  total: number;
+  listName: string;
+}) {
+  const pct = total > 0 ? Math.round((checked / total) * 100) : 0;
+  const remaining = total - checked;
   return (
-    <div style={{ background: `linear-gradient(135deg, ${COLOR} 0%, #D97706 100%)`, borderRadius: 14, padding: '18px 20px', position: 'relative', overflow: 'hidden' }}>
+    <div
+      style={{
+        background: `linear-gradient(135deg, ${COLOR} 0%, #D97706 100%)`,
+        borderRadius: 14,
+        padding: '18px 20px',
+        position: 'relative',
+        overflow: 'hidden',
+      }}
+    >
       {/* Blob */}
-      <div style={{ position: 'absolute', top: -40, right: -40, width: 140, height: 140, borderRadius: '50%', background: 'rgba(255,255,255,0.07)', pointerEvents: 'none' }} />
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10, position: 'relative', zIndex: 1 }}>
-        <span style={{ fontSize: 13, fontWeight: 800, color: 'rgba(255,255,255,0.85)' }}>Shopping progress</span>
-        <span style={{ fontSize: 14, fontWeight: 900, color: 'white' }}>{checked} / {total} items</span>
+      <div
+        style={{
+          position: 'absolute',
+          top: -40,
+          right: -40,
+          width: 140,
+          height: 140,
+          borderRadius: '50%',
+          background: 'rgba(255,255,255,0.07)',
+          pointerEvents: 'none',
+        }}
+      />
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          marginBottom: 10,
+          position: 'relative',
+          zIndex: 1,
+        }}
+      >
+        <span
+          style={{
+            fontSize: 13,
+            fontWeight: 800,
+            color: 'rgba(255,255,255,0.85)',
+          }}
+        >
+          Shopping progress
+        </span>
+        <span style={{ fontSize: 14, fontWeight: 900, color: 'white' }}>
+          {checked} / {total} items
+        </span>
       </div>
-      <div style={{ height: 8, background: 'rgba(255,255,255,0.25)', borderRadius: 4, overflow: 'hidden', marginBottom: 12, position: 'relative', zIndex: 1 }}>
-        <div style={{ height: '100%', background: 'white', borderRadius: 4, width: `${pct}%`, transition: 'width 0.3s' }} />
+      <div
+        style={{
+          height: 8,
+          background: 'rgba(255,255,255,0.25)',
+          borderRadius: 4,
+          overflow: 'hidden',
+          marginBottom: 12,
+          position: 'relative',
+          zIndex: 1,
+        }}
+      >
+        <div
+          style={{
+            height: '100%',
+            background: 'white',
+            borderRadius: 4,
+            width: `${pct}%`,
+            transition: 'width 0.3s',
+          }}
+        />
       </div>
-      <div style={{ display: 'flex', gap: 20, position: 'relative', zIndex: 1 }}>
+      <div
+        style={{ display: 'flex', gap: 20, position: 'relative', zIndex: 1 }}
+      >
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'white' }} />
-          <span style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.8)' }}>{remaining} remaining</span>
+          <div
+            style={{
+              width: 6,
+              height: 6,
+              borderRadius: '50%',
+              background: 'white',
+            }}
+          />
+          <span
+            style={{
+              fontSize: 11,
+              fontWeight: 700,
+              color: 'rgba(255,255,255,0.8)',
+            }}
+          >
+            {remaining} remaining
+          </span>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'rgba(255,255,255,0.45)' }} />
-          <span style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.8)' }}>{checked} in cart</span>
+          <div
+            style={{
+              width: 6,
+              height: 6,
+              borderRadius: '50%',
+              background: 'rgba(255,255,255,0.45)',
+            }}
+          />
+          <span
+            style={{
+              fontSize: 11,
+              fontWeight: 700,
+              color: 'rgba(255,255,255,0.8)',
+            }}
+          >
+            {checked} in cart
+          </span>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'rgba(255,255,255,0.25)' }} />
-          <span style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.8)' }}>{pct}% done</span>
+          <div
+            style={{
+              width: 6,
+              height: 6,
+              borderRadius: '50%',
+              background: 'rgba(255,255,255,0.25)',
+            }}
+          />
+          <span
+            style={{
+              fontSize: 11,
+              fontWeight: 700,
+              color: 'rgba(255,255,255,0.8)',
+            }}
+          >
+            {pct}% done
+          </span>
         </div>
       </div>
     </div>
-  )
+  );
 }
 
 // ── MealCard ──────────────────────────────────────────────────────────────────
 
-function MealCard({ meals, onAddAll }: { meals: PlannerSlot[]; onAddAll: () => void }) {
-  const ORANGE = '#F97316'
-  const ORANGE_LIGHT = '#FFEDD5'
+function MealCard({
+  meals,
+  onAddAll,
+}: {
+  meals: PlannerSlot[];
+  onAddAll: () => void;
+}) {
+  const ORANGE = '#F97316';
+  const ORANGE_LIGHT = '#FFEDD5';
   return (
-    <div style={{ backgroundColor: 'var(--roost-surface)', border: '1.5px solid var(--roost-border)', borderBottom: `4px solid ${ORANGE}`, borderRadius: 14, padding: '14px 16px' }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
-        <span style={{ fontSize: 13, fontWeight: 800, color: 'var(--roost-text-primary)', display: 'flex', alignItems: 'center', gap: 6 }}>
+    <div
+      style={{
+        backgroundColor: 'var(--roost-surface)',
+        border: '1.5px solid var(--roost-border)',
+        borderBottom: `4px solid ${ORANGE}`,
+        borderRadius: 14,
+        padding: '14px 16px',
+      }}
+    >
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          marginBottom: 10,
+        }}
+      >
+        <span
+          style={{
+            fontSize: 13,
+            fontWeight: 800,
+            color: 'var(--roost-text-primary)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 6,
+          }}
+        >
           <UtensilsCrossed size={14} color={ORANGE} strokeWidth={2.5} />
           From this week&apos;s meals
-          <span style={{ fontSize: 10, fontWeight: 800, padding: '2px 8px', borderRadius: 6, backgroundColor: ORANGE_LIGHT, color: ORANGE }}>
+          <span
+            style={{
+              fontSize: 10,
+              fontWeight: 800,
+              padding: '2px 8px',
+              borderRadius: 6,
+              backgroundColor: ORANGE_LIGHT,
+              color: ORANGE,
+            }}
+          >
             {meals.length} {meals.length === 1 ? 'recipe' : 'recipes'}
           </span>
         </span>
         <button
           type="button"
           onClick={onAddAll}
-          style={{ fontSize: 12, fontWeight: 700, color: ORANGE, cursor: 'pointer', border: 'none', background: 'none', fontFamily: 'inherit', padding: 0 }}
+          style={{
+            fontSize: 12,
+            fontWeight: 700,
+            color: ORANGE,
+            cursor: 'pointer',
+            border: 'none',
+            background: 'none',
+            fontFamily: 'inherit',
+            padding: 0,
+          }}
         >
           Add all
         </button>
       </div>
-      <div style={{ display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 2 }}>
-        {meals.map(slot => {
-          let count = 0
-          try { count = JSON.parse(slot.mealIngredients ?? '[]').length } catch { count = 0 }
+      <div
+        style={{ display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 2 }}
+      >
+        {meals.map((slot) => {
+          let count = 0;
+          try {
+            count = JSON.parse(slot.mealIngredients ?? '[]').length;
+          } catch {
+            count = 0;
+          }
           return (
-            <div key={slot.mealId} style={{ minWidth: 140, padding: '10px 12px', borderRadius: 10, backgroundColor: ORANGE_LIGHT, flexShrink: 0 }}>
-              <div style={{ fontSize: 12, fontWeight: 800, color: 'var(--roost-text-primary)', marginBottom: 3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{slot.mealName}</div>
-              <div style={{ fontSize: 11, fontWeight: 600, color: ORANGE }}>+{count} items needed</div>
+            <div
+              key={slot.mealId}
+              style={{
+                minWidth: 140,
+                padding: '10px 12px',
+                borderRadius: 10,
+                backgroundColor: ORANGE_LIGHT,
+                flexShrink: 0,
+              }}
+            >
+              <div
+                style={{
+                  fontSize: 12,
+                  fontWeight: 800,
+                  color: 'var(--roost-text-primary)',
+                  marginBottom: 3,
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                {slot.mealName}
+              </div>
+              <div style={{ fontSize: 11, fontWeight: 600, color: ORANGE }}>
+                +{count} items needed
+              </div>
             </div>
-          )
+          );
         })}
       </div>
     </div>
-  )
+  );
 }
 
 // ── Main page ─────────────────────────────────────────────────────────────────
 
 export default function FoodPage() {
-  const queryClient = useQueryClient()
-  const [activeListId, setActiveListId] = useState<string | null>(null)
-  const [input, setInput] = useState('')
-  const [qtyInput, setQtyInput] = useState('')
-  const [checkedOpen, setCheckedOpen] = useState(false)
-  const [sortMode, setSortMode] = useState<'smart' | 'newest'>('newest')
-  const [addingList, setAddingList] = useState(false)
-  const [clearConfirmOpen, setClearConfirmOpen] = useState(false)
-  const inputRef = useRef<HTMLInputElement>(null)
-  const qtyRef = useRef<HTMLInputElement>(null)
+  const queryClient = useQueryClient();
+  const [activeListId, setActiveListId] = useState<string | null>(null);
+  const [input, setInput] = useState('');
+  const [qtyInput, setQtyInput] = useState('');
+  const [checkedOpen, setCheckedOpen] = useState(false);
+  const [sortMode, setSortMode] = useState<'smart' | 'newest'>('newest');
+  const [addingList, setAddingList] = useState(false);
+  const [clearConfirmOpen, setClearConfirmOpen] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const qtyRef = useRef<HTMLInputElement>(null);
 
   // ── Lists query ──────────────────────────────────────────────────────────
-  const { data: listsData, isLoading: listsLoading } = useQuery<{ lists: ListSummary[] }>({
+  const { data: listsData, isLoading: listsLoading } = useQuery<{
+    lists: ListSummary[];
+  }>({
     queryKey: ['grocery-lists'],
     queryFn: async () => {
-      const res = await fetch('/api/grocery/lists')
-      if (!res.ok) throw new Error('Failed to load lists')
-      return res.json()
+      const res = await fetch('/api/grocery/lists');
+      if (!res.ok) throw new Error('Failed to load lists');
+      return res.json();
     },
     staleTime: 15_000,
-  })
+  });
 
-  useEffect(() => {
-    if (!listsData) return
-    if (activeListId && listsData.lists.find(l => l.id === activeListId)) return
-    const def = listsData.lists.find(l => l.isDefault) ?? listsData.lists[0]
-    if (def) setActiveListId(def.id)
-  }, [listsData, activeListId])
+  const resolvedActiveListId = useMemo(() => {
+    if (!listsData) return activeListId;
+    if (activeListId && listsData.lists.find((l) => l.id === activeListId))
+      return activeListId;
+    const def = listsData.lists.find((l) => l.isDefault) ?? listsData.lists[0];
+    return def ? def.id : activeListId;
+  }, [listsData, activeListId]);
 
   // ── Items query ──────────────────────────────────────────────────────────
-  const { data, isLoading: itemsLoading, isError } = useQuery<GroceryData>({
+  const {
+    data,
+    isLoading: itemsLoading,
+    isError,
+  } = useQuery<GroceryData>({
     queryKey: ['grocery-items', activeListId],
     queryFn: async () => {
-      if (!activeListId) throw new Error('No list')
-      const res = await fetch(`/api/grocery/lists/${activeListId}/items`)
-      if (!res.ok) throw new Error('Failed to load items')
-      return res.json()
+      if (!activeListId) throw new Error('No list');
+      const res = await fetch(`/api/grocery/lists/${activeListId}/items`);
+      if (!res.ok) throw new Error('Failed to load items');
+      return res.json();
     },
     enabled: !!activeListId,
     staleTime: 10_000,
     refetchInterval: 30_000,
-  })
+  });
 
   // ── Planner query ────────────────────────────────────────────────────────
-  const weekStart = format(startOfWeek(new Date(), { weekStartsOn: 1 }), 'yyyy-MM-dd')
+  const weekStart = format(
+    startOfWeek(new Date(), { weekStartsOn: 1 }),
+    'yyyy-MM-dd',
+  );
   const { data: plannerData } = useQuery<{ slots: PlannerSlot[] }>({
     queryKey: ['planner', weekStart],
     queryFn: async () => {
-      const res = await fetch(`/api/meals/planner?weekStart=${weekStart}`)
-      if (!res.ok) throw new Error('Failed to load planner')
-      return res.json()
+      const res = await fetch(`/api/meals/planner?weekStart=${weekStart}`);
+      if (!res.ok) throw new Error('Failed to load planner');
+      return res.json();
     },
     staleTime: 60_000,
-  })
+  });
 
   // ── Create list ──────────────────────────────────────────────────────────
   const createListMutation = useMutation({
     mutationFn: async (name: string) => {
-      const res = await fetch('/api/grocery/lists', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name }) })
-      if (!res.ok) throw new Error('Failed to create list')
-      return res.json() as Promise<ListSummary>
+      const res = await fetch('/api/grocery/lists', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name }),
+      });
+      if (!res.ok) throw new Error('Failed to create list');
+      return res.json() as Promise<ListSummary>;
     },
     onSuccess: (newList) => {
-      queryClient.invalidateQueries({ queryKey: ['grocery-lists'] })
-      setActiveListId(newList.id)
-      setAddingList(false)
+      queryClient.invalidateQueries({ queryKey: ['grocery-lists'] });
+      setActiveListId(newList.id);
+      setAddingList(false);
     },
-    onError: () => { toast.error('Could not create list', { description: 'Check your connection and try again.' }) },
-  })
+    onError: () => {
+      toast.error('Could not create list', {
+        description: 'Check your connection and try again.',
+      });
+    },
+  });
 
   // ── Add item ─────────────────────────────────────────────────────────────
   const addMutation = useMutation({
-    mutationFn: async ({ name, quantity }: { name: string; quantity?: string }) => {
-      if (!activeListId) throw new Error('No active list')
-      const res = await fetch(`/api/grocery/lists/${activeListId}/items`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name, quantity: quantity || undefined }) })
-      if (!res.ok) throw new Error('Failed to add item')
-      return res.json() as Promise<GroceryItem>
+    mutationFn: async ({
+      name,
+      quantity,
+    }: {
+      name: string;
+      quantity?: string;
+    }) => {
+      if (!activeListId) throw new Error('No active list');
+      const res = await fetch(`/api/grocery/lists/${activeListId}/items`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, quantity: quantity || undefined }),
+      });
+      if (!res.ok) throw new Error('Failed to add item');
+      return res.json() as Promise<GroceryItem>;
     },
-    onError: () => { toast.error('Could not add item', { description: 'Check your connection and try again.' }) },
+    onError: () => {
+      toast.error('Could not add item', {
+        description: 'Check your connection and try again.',
+      });
+    },
     onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ['grocery-items', activeListId] })
-      queryClient.invalidateQueries({ queryKey: ['grocery-lists'] })
+      queryClient.invalidateQueries({
+        queryKey: ['grocery-items', activeListId],
+      });
+      queryClient.invalidateQueries({ queryKey: ['grocery-lists'] });
     },
-  })
+  });
 
   // ── Edit item ─────────────────────────────────────────────────────────────
   const editMutation = useMutation({
-    mutationFn: async ({ id, name, quantity }: { id: string; name: string; quantity: string }) => {
-      const res = await fetch(`/api/grocery/items/${id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name, quantity: quantity || null }) })
-      if (!res.ok) throw new Error('Failed to update item')
+    mutationFn: async ({
+      id,
+      name,
+      quantity,
+    }: {
+      id: string;
+      name: string;
+      quantity: string;
+    }) => {
+      const res = await fetch(`/api/grocery/items/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, quantity: quantity || null }),
+      });
+      if (!res.ok) throw new Error('Failed to update item');
     },
     onMutate: async ({ id, name, quantity }) => {
-      await queryClient.cancelQueries({ queryKey: ['grocery-items', activeListId] })
-      const prev = queryClient.getQueryData<GroceryData>(['grocery-items', activeListId])
-      if (prev) queryClient.setQueryData<GroceryData>(['grocery-items', activeListId], { ...prev, items: prev.items.map(i => i.id === id ? { ...i, name, quantity: quantity || null } : i) })
-      return { prev }
+      await queryClient.cancelQueries({
+        queryKey: ['grocery-items', activeListId],
+      });
+      const prev = queryClient.getQueryData<GroceryData>([
+        'grocery-items',
+        activeListId,
+      ]);
+      if (prev)
+        queryClient.setQueryData<GroceryData>(['grocery-items', activeListId], {
+          ...prev,
+          items: prev.items.map((i) =>
+            i.id === id ? { ...i, name, quantity: quantity || null } : i,
+          ),
+        });
+      return { prev };
     },
     onError: (_err, _vars, ctx) => {
-      if (ctx?.prev) queryClient.setQueryData(['grocery-items', activeListId], ctx.prev)
-      toast.error('Could not update item', { description: 'Check your connection and try again.' })
+      if (ctx?.prev)
+        queryClient.setQueryData(['grocery-items', activeListId], ctx.prev);
+      toast.error('Could not update item', {
+        description: 'Check your connection and try again.',
+      });
     },
-    onSettled: () => queryClient.invalidateQueries({ queryKey: ['grocery-items', activeListId] }),
-  })
+    onSettled: () =>
+      queryClient.invalidateQueries({
+        queryKey: ['grocery-items', activeListId],
+      }),
+  });
 
   // ── Check / uncheck ──────────────────────────────────────────────────────
   const checkMutation = useMutation({
-    mutationFn: async ({ id, isChecked }: { id: string; isChecked: boolean }) => {
-      const res = await fetch(`/api/grocery/items/${id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ isChecked }) })
-      if (!res.ok) throw new Error('Failed to update')
+    mutationFn: async ({
+      id,
+      isChecked,
+    }: {
+      id: string;
+      isChecked: boolean;
+    }) => {
+      const res = await fetch(`/api/grocery/items/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ isChecked }),
+      });
+      if (!res.ok) throw new Error('Failed to update');
     },
     onMutate: async ({ id, isChecked }) => {
-      await queryClient.cancelQueries({ queryKey: ['grocery-items', activeListId] })
-      const prev = queryClient.getQueryData<GroceryData>(['grocery-items', activeListId])
-      if (prev) queryClient.setQueryData<GroceryData>(['grocery-items', activeListId], { ...prev, items: prev.items.map(i => i.id === id ? { ...i, isChecked, checkedAt: isChecked ? new Date().toISOString() : null } : i) })
-      return { prev }
+      await queryClient.cancelQueries({
+        queryKey: ['grocery-items', activeListId],
+      });
+      const prev = queryClient.getQueryData<GroceryData>([
+        'grocery-items',
+        activeListId,
+      ]);
+      if (prev)
+        queryClient.setQueryData<GroceryData>(['grocery-items', activeListId], {
+          ...prev,
+          items: prev.items.map((i) =>
+            i.id === id
+              ? {
+                  ...i,
+                  isChecked,
+                  checkedAt: isChecked ? new Date().toISOString() : null,
+                }
+              : i,
+          ),
+        });
+      return { prev };
     },
     onError: (_err, _vars, ctx) => {
-      if (ctx?.prev) queryClient.setQueryData(['grocery-items', activeListId], ctx.prev)
-      toast.error('Could not update item', { description: 'Check your connection and try again.' })
+      if (ctx?.prev)
+        queryClient.setQueryData(['grocery-items', activeListId], ctx.prev);
+      toast.error('Could not update item', {
+        description: 'Check your connection and try again.',
+      });
     },
-    onSettled: () => queryClient.invalidateQueries({ queryKey: ['grocery-items', activeListId] }),
-  })
+    onSettled: () =>
+      queryClient.invalidateQueries({
+        queryKey: ['grocery-items', activeListId],
+      }),
+  });
 
   // ── Delete ────────────────────────────────────────────────────────────────
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
-      const res = await fetch(`/api/grocery/items/${id}`, { method: 'DELETE' })
-      if (!res.ok) throw new Error('Failed to delete')
+      const res = await fetch(`/api/grocery/items/${id}`, { method: 'DELETE' });
+      if (!res.ok) throw new Error('Failed to delete');
     },
     onMutate: async (id) => {
-      await queryClient.cancelQueries({ queryKey: ['grocery-items', activeListId] })
-      const prev = queryClient.getQueryData<GroceryData>(['grocery-items', activeListId])
-      if (prev) queryClient.setQueryData<GroceryData>(['grocery-items', activeListId], { ...prev, items: prev.items.filter(i => i.id !== id) })
-      return { prev }
+      await queryClient.cancelQueries({
+        queryKey: ['grocery-items', activeListId],
+      });
+      const prev = queryClient.getQueryData<GroceryData>([
+        'grocery-items',
+        activeListId,
+      ]);
+      if (prev)
+        queryClient.setQueryData<GroceryData>(['grocery-items', activeListId], {
+          ...prev,
+          items: prev.items.filter((i) => i.id !== id),
+        });
+      return { prev };
     },
     onError: (_err, _id, ctx) => {
-      if (ctx?.prev) queryClient.setQueryData(['grocery-items', activeListId], ctx.prev)
-      toast.error('Could not delete item', { description: 'Check your connection and try again.' })
+      if (ctx?.prev)
+        queryClient.setQueryData(['grocery-items', activeListId], ctx.prev);
+      toast.error('Could not delete item', {
+        description: 'Check your connection and try again.',
+      });
     },
     onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ['grocery-items', activeListId] })
-      queryClient.invalidateQueries({ queryKey: ['grocery-lists'] })
+      queryClient.invalidateQueries({
+        queryKey: ['grocery-items', activeListId],
+      });
+      queryClient.invalidateQueries({ queryKey: ['grocery-lists'] });
     },
-  })
+  });
 
   // ── Clear cart ────────────────────────────────────────────────────────────
   const clearMutation = useMutation({
     mutationFn: async () => {
-      if (!activeListId) throw new Error('No active list')
-      const res = await fetch(`/api/grocery/lists/${activeListId}/clear`, { method: 'POST' })
-      if (!res.ok) throw new Error('Failed to clear cart')
+      if (!activeListId) throw new Error('No active list');
+      const res = await fetch(`/api/grocery/lists/${activeListId}/clear`, {
+        method: 'POST',
+      });
+      if (!res.ok) throw new Error('Failed to clear cart');
     },
     onMutate: async () => {
-      await queryClient.cancelQueries({ queryKey: ['grocery-items', activeListId] })
-      const prev = queryClient.getQueryData<GroceryData>(['grocery-items', activeListId])
+      await queryClient.cancelQueries({
+        queryKey: ['grocery-items', activeListId],
+      });
+      const prev = queryClient.getQueryData<GroceryData>([
+        'grocery-items',
+        activeListId,
+      ]);
       if (prev) {
-        const clearedCount = prev.items.filter(i => i.isChecked).length
+        const clearedCount = prev.items.filter((i) => i.isChecked).length;
         queryClient.setQueryData<GroceryData>(['grocery-items', activeListId], {
           ...prev,
-          items: prev.items.filter(i => !i.isChecked),
-        })
+          items: prev.items.filter((i) => !i.isChecked),
+        });
         // Update list item count without triggering a refetch
-        queryClient.setQueryData<{ lists: ListSummary[] }>(['grocery-lists'], old => {
-          if (!old) return old
-          return {
-            lists: old.lists.map(l =>
-              l.id === activeListId ? { ...l, itemCount: Math.max(0, l.itemCount - clearedCount) } : l
-            ),
-          }
-        })
+        queryClient.setQueryData<{ lists: ListSummary[] }>(
+          ['grocery-lists'],
+          (old) => {
+            if (!old) return old;
+            return {
+              lists: old.lists.map((l) =>
+                l.id === activeListId
+                  ? { ...l, itemCount: Math.max(0, l.itemCount - clearedCount) }
+                  : l,
+              ),
+            };
+          },
+        );
       }
-      return { prev }
+      return { prev };
     },
     onSuccess: () => {
-      setCheckedOpen(false)
+      setCheckedOpen(false);
     },
     onError: (_err, _vars, ctx) => {
-      if (ctx?.prev) queryClient.setQueryData(['grocery-items', activeListId], ctx.prev)
-      queryClient.invalidateQueries({ queryKey: ['grocery-lists'] })
-      toast.error('Could not clear cart', { description: 'Check your connection and try again.' })
+      if (ctx?.prev)
+        queryClient.setQueryData(['grocery-items', activeListId], ctx.prev);
+      queryClient.invalidateQueries({ queryKey: ['grocery-lists'] });
+      toast.error('Could not clear cart', {
+        description: 'Check your connection and try again.',
+      });
     },
-  })
+  });
 
   // ── Add all meals ─────────────────────────────────────────────────────────
   const addAllMealsMutation = useMutation({
     mutationFn: async (mealIds: string[]) => {
-      await Promise.all(mealIds.map(id =>
-        fetch(`/api/meals/${id}/add-to-grocery`, { method: 'POST' }).then(r => { if (!r.ok) throw new Error('failed') })
-      ))
+      await Promise.all(
+        mealIds.map((id) =>
+          fetch(`/api/meals/${id}/add-to-grocery`, { method: 'POST' }).then(
+            (r) => {
+              if (!r.ok) throw new Error('failed');
+            },
+          ),
+        ),
+      );
     },
     onSuccess: () => {
-      toast.success('Meal ingredients added to list')
-      queryClient.invalidateQueries({ queryKey: ['grocery-items', activeListId] })
-      queryClient.invalidateQueries({ queryKey: ['grocery-lists'] })
+      toast.success('Meal ingredients added to list');
+      queryClient.invalidateQueries({
+        queryKey: ['grocery-items', activeListId],
+      });
+      queryClient.invalidateQueries({ queryKey: ['grocery-lists'] });
     },
-    onError: () => { toast.error('Could not add meals', { description: 'Check your connection and try again.' }) },
-  })
+    onError: () => {
+      toast.error('Could not add meals', {
+        description: 'Check your connection and try again.',
+      });
+    },
+  });
 
   const handleQuickAdd = useCallback(() => {
-    const name = input.trim()
-    if (!name) return
-    const quantity = qtyInput.trim()
-    setInput('')
-    setQtyInput('')
-    addMutation.mutate({ name, quantity: quantity || undefined })
-    inputRef.current?.focus()
-  }, [input, qtyInput, addMutation])
+    const name = input.trim();
+    if (!name) return;
+    const quantity = qtyInput.trim();
+    setInput('');
+    setQtyInput('');
+    addMutation.mutate({ name, quantity: quantity || undefined });
+    inputRef.current?.focus();
+  }, [input, qtyInput, addMutation]);
 
   // ── Derived ───────────────────────────────────────────────────────────────
-  const unchecked = data?.items.filter(i => !i.isChecked) ?? []
-  const checked = data?.items.filter(i => i.isChecked) ?? []
-  const totalItems = data?.items.length ?? 0
-  const checkedCount = checked.length
-  const sortedGroups = sortMode === 'smart' ? groupItemsBySection(unchecked) : null
-  const displayUnchecked = sortMode === 'newest' ? [...unchecked].reverse() : unchecked
-  const isLoading = listsLoading || (itemsLoading && !!activeListId)
-  const lists = listsData?.lists ?? []
+  const unchecked = data?.items.filter((i) => !i.isChecked) ?? [];
+  const checked = data?.items.filter((i) => i.isChecked) ?? [];
+  const totalItems = data?.items.length ?? 0;
+  const checkedCount = checked.length;
+  const sortedGroups =
+    sortMode === 'smart' ? groupItemsBySection(unchecked) : null;
+  const displayUnchecked =
+    sortMode === 'newest' ? [...unchecked].reverse() : unchecked;
+  const isLoading = listsLoading || (itemsLoading && !!activeListId);
+  const lists = listsData?.lists ?? [];
 
   // Deduplicated meals with ingredients for this week
   const mealsThisWeek = (() => {
-    if (!plannerData?.slots) return []
-    const seen = new Set<string>()
-    return plannerData.slots.filter(slot => {
-      if (seen.has(slot.mealId)) return false
-      seen.add(slot.mealId)
+    if (!plannerData?.slots) return [];
+    const seen = new Set<string>();
+    return plannerData.slots.filter((slot) => {
+      if (seen.has(slot.mealId)) return false;
+      seen.add(slot.mealId);
       try {
-        const ingredients = slot.mealIngredients ? JSON.parse(slot.mealIngredients) : []
-        return Array.isArray(ingredients) && ingredients.length > 0
-      } catch { return false }
-    })
-  })()
+        const ingredients = slot.mealIngredients
+          ? JSON.parse(slot.mealIngredients)
+          : [];
+        return Array.isArray(ingredients) && ingredients.length > 0;
+      } catch {
+        return false;
+      }
+    });
+  })();
 
   // Member activity for "who's added what" sidebar widget
   const memberActivity = (() => {
-    const map = new Map<string, { name: string; avatar: string; count: number }>()
-    for (const item of (data?.items ?? [])) {
-      const name = item.addedBy || 'Unknown'
-      const existing = map.get(name)
-      if (existing) existing.count++
-      else map.set(name, { name, avatar: item.addedByAvatar ?? '#9CA3AF', count: 1 })
+    const map = new Map<
+      string,
+      { name: string; avatar: string; count: number }
+    >();
+    for (const item of data?.items ?? []) {
+      const name = item.addedBy || 'Unknown';
+      const existing = map.get(name);
+      if (existing) existing.count++;
+      else
+        map.set(name, {
+          name,
+          avatar: item.addedByAvatar ?? '#9CA3AF',
+          count: 1,
+        });
     }
-    return Array.from(map.values()).sort((a, b) => b.count - a.count).slice(0, 5)
-  })()
+    return Array.from(map.values())
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 5);
+  })();
 
   // ── Loading state ─────────────────────────────────────────────────────────
   if (isLoading) {
     return (
-      <div style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 10 }}>
+      <div
+        style={{
+          padding: 16,
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 10,
+        }}
+      >
         <div style={{ display: 'flex', gap: 8 }}>
-          {[80, 110, 90].map((w, i) => <Skeleton key={i} style={{ height: 36, width: w, borderRadius: 20, flexShrink: 0 }} />)}
+          {[80, 110, 90].map((w, i) => (
+            <Skeleton
+              key={i}
+              style={{ height: 36, width: w, borderRadius: 20, flexShrink: 0 }}
+            />
+          ))}
         </div>
         <Skeleton style={{ height: 52 }} />
-        {[0, 1, 2, 3].map(i => <Skeleton key={i} style={{ height: 64, borderRadius: 14 }} />)}
+        {[0, 1, 2, 3].map((i) => (
+          <Skeleton key={i} style={{ height: 64, borderRadius: 14 }} />
+        ))}
       </div>
-    )
+    );
   }
 
   if (isError) {
     return (
       <div style={{ padding: 24, textAlign: 'center' }}>
-        <p style={{ color: 'var(--roost-text-muted)', fontWeight: 700 }}>Could not load grocery list. Please refresh.</p>
+        <p style={{ color: 'var(--roost-text-muted)', fontWeight: 700 }}>
+          Could not load grocery list. Please refresh.
+        </p>
       </div>
-    )
+    );
   }
 
   // ── Render ────────────────────────────────────────────────────────────────
@@ -582,34 +1176,108 @@ export default function FoodPage() {
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.18 }}
-      style={{ display: 'flex', flexDirection: 'column', backgroundColor: '#fff' }}
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        backgroundColor: '#fff',
+      }}
     >
       {/* ── Page header ── */}
       <div style={{ backgroundColor: '#fff' }}>
         {/* Mobile header */}
-        <div className="flex md:hidden" style={{ alignItems: 'center', gap: 10, padding: '16px 16px 12px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, flex: 1, minWidth: 0 }}>
-            <div style={{ width: 36, height: 36, borderRadius: 10, backgroundColor: COLOR_LIGHT, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+        <div
+          className="flex md:hidden"
+          style={{ alignItems: 'center', gap: 10, padding: '16px 16px 12px' }}
+        >
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 10,
+              flex: 1,
+              minWidth: 0,
+            }}
+          >
+            <div
+              style={{
+                width: 36,
+                height: 36,
+                borderRadius: 10,
+                backgroundColor: COLOR_LIGHT,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0,
+              }}
+            >
               <ShoppingCart size={18} color={COLOR} />
             </div>
             <div style={{ minWidth: 0 }}>
-              <h1 style={{ fontSize: 20, fontWeight: 900, color: 'var(--roost-text-primary)', margin: 0, lineHeight: 1.1 }}>Shopping Lists</h1>
-              <p style={{ fontSize: 12, fontWeight: 600, color: 'var(--roost-text-muted)', margin: 0 }}>{lists.length} {lists.length === 1 ? 'list' : 'lists'} · {totalItems} items total</p>
+              <h1
+                style={{
+                  fontSize: 20,
+                  fontWeight: 900,
+                  color: 'var(--roost-text-primary)',
+                  margin: 0,
+                  lineHeight: 1.1,
+                }}
+              >
+                Shopping Lists
+              </h1>
+              <p
+                style={{
+                  fontSize: 12,
+                  fontWeight: 600,
+                  color: 'var(--roost-text-muted)',
+                  margin: 0,
+                }}
+              >
+                {lists.length} {lists.length === 1 ? 'list' : 'lists'} ·{' '}
+                {totalItems} items total
+              </p>
             </div>
           </div>
           <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
             <button
               type="button"
-              onClick={() => setSortMode(m => m === 'smart' ? 'newest' : 'smart')}
-              title={sortMode === 'smart' ? 'Switch to newest' : 'Switch to smart sort'}
-              style={{ width: 36, height: 36, borderRadius: 10, border: '1.5px solid var(--roost-border)', borderBottom: '3px solid var(--roost-border-bottom)', backgroundColor: 'var(--roost-surface)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+              onClick={() =>
+                setSortMode((m) => (m === 'smart' ? 'newest' : 'smart'))
+              }
+              title={
+                sortMode === 'smart'
+                  ? 'Switch to newest'
+                  : 'Switch to smart sort'
+              }
+              style={{
+                width: 36,
+                height: 36,
+                borderRadius: 10,
+                border: '1.5px solid var(--roost-border)',
+                borderBottom: '3px solid var(--roost-border-bottom)',
+                backgroundColor: 'var(--roost-surface)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: 'pointer',
+              }}
             >
               <ArrowUpDown size={16} color="var(--roost-text-muted)" />
             </button>
             <button
               type="button"
               onClick={() => inputRef.current?.focus()}
-              style={{ width: 36, height: 36, borderRadius: 10, border: `1.5px solid ${COLOR}`, borderBottom: `3px solid ${COLOR_DARK}`, backgroundColor: COLOR, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+              style={{
+                width: 36,
+                height: 36,
+                borderRadius: 10,
+                border: `1.5px solid ${COLOR}`,
+                borderBottom: `3px solid ${COLOR_DARK}`,
+                backgroundColor: COLOR,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: 'pointer',
+              }}
             >
               <Plus size={16} color="white" />
             </button>
@@ -617,48 +1285,146 @@ export default function FoodPage() {
         </div>
 
         {/* Desktop header */}
-        <div className="hidden md:flex" style={{ alignItems: 'center', justifyContent: 'space-between', padding: '0 28px', height: 60, gap: 16 }}>
+        <div
+          className="hidden md:flex"
+          style={{
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            padding: '0 28px',
+            height: 60,
+            gap: 16,
+          }}
+        >
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <div style={{ width: 38, height: 38, borderRadius: 11, backgroundColor: COLOR_LIGHT, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            <div
+              style={{
+                width: 38,
+                height: 38,
+                borderRadius: 11,
+                backgroundColor: COLOR_LIGHT,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0,
+              }}
+            >
               <ShoppingCart size={18} color={COLOR} />
             </div>
             <div>
-              <div style={{ fontSize: 20, fontWeight: 900, color: 'var(--roost-text-primary)' }}>Shopping Lists</div>
-              <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--roost-text-muted)' }}>{lists.length} {lists.length === 1 ? 'list' : 'lists'} · {totalItems} items total</div>
+              <div
+                style={{
+                  fontSize: 20,
+                  fontWeight: 900,
+                  color: 'var(--roost-text-primary)',
+                }}
+              >
+                Shopping Lists
+              </div>
+              <div
+                style={{
+                  fontSize: 12,
+                  fontWeight: 600,
+                  color: 'var(--roost-text-muted)',
+                }}
+              >
+                {lists.length} {lists.length === 1 ? 'list' : 'lists'} ·{' '}
+                {totalItems} items total
+              </div>
             </div>
           </div>
         </div>
       </div>
 
       {/* ── List tabs bar ── */}
-      <div style={{ backgroundColor: '#fff', padding: '0 16px', display: 'flex', alignItems: 'center', gap: 4, height: 48, overflowX: 'auto', scrollbarWidth: 'none' }}>
-        {lists.map(list => {
-          const isActive = list.id === activeListId
+      <div
+        style={{
+          backgroundColor: '#fff',
+          padding: '0 16px',
+          display: 'flex',
+          alignItems: 'center',
+          gap: 4,
+          height: 48,
+          overflowX: 'auto',
+          scrollbarWidth: 'none',
+        }}
+      >
+        {lists.map((list) => {
+          const isActive = list.id === activeListId;
           return (
             <button
               key={list.id}
               type="button"
               onClick={() => setActiveListId(list.id)}
-              style={{ display: 'flex', alignItems: 'center', gap: 6, height: 36, padding: '0 14px', borderRadius: 8, border: `1.5px solid ${isActive ? COLOR : 'transparent'}`, borderBottom: `3px solid ${isActive ? COLOR_DARK : 'transparent'}`, backgroundColor: isActive ? COLOR_LIGHT : 'transparent', fontSize: 13, fontWeight: 700, color: isActive ? COLOR_DARK : 'var(--roost-text-primary)', cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0, transition: 'all 0.12s', fontFamily: 'inherit' }}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6,
+                height: 36,
+                padding: '0 14px',
+                borderRadius: 8,
+                border: `1.5px solid ${isActive ? COLOR : 'transparent'}`,
+                borderBottom: `3px solid ${isActive ? COLOR_DARK : 'transparent'}`,
+                backgroundColor: isActive ? COLOR_LIGHT : 'transparent',
+                fontSize: 13,
+                fontWeight: 700,
+                color: isActive ? COLOR_DARK : 'var(--roost-text-primary)',
+                cursor: 'pointer',
+                whiteSpace: 'nowrap',
+                flexShrink: 0,
+                transition: 'all 0.12s',
+                fontFamily: 'inherit',
+              }}
             >
               {list.name}
               {list.itemCount > 0 && (
-                <span style={{ fontSize: 10, fontWeight: 800, padding: '1px 7px', borderRadius: 10, backgroundColor: isActive ? COLOR : 'var(--roost-border)', color: isActive ? 'white' : 'var(--roost-text-muted)' }}>
+                <span
+                  style={{
+                    fontSize: 10,
+                    fontWeight: 800,
+                    padding: '1px 7px',
+                    borderRadius: 10,
+                    backgroundColor: isActive ? COLOR : 'var(--roost-border)',
+                    color: isActive ? 'white' : 'var(--roost-text-muted)',
+                  }}
+                >
                   {list.itemCount}
                 </span>
               )}
             </button>
-          )
+          );
         })}
         {/* Separator before new list */}
         {lists.length > 0 && (
-          <div style={{ width: 1, height: 24, backgroundColor: 'var(--roost-border)', marginLeft: 4, flexShrink: 0 }} />
+          <div
+            style={{
+              width: 1,
+              height: 24,
+              backgroundColor: 'var(--roost-border)',
+              marginLeft: 4,
+              flexShrink: 0,
+            }}
+          />
         )}
         {!addingList && (
           <button
             type="button"
             onClick={() => setAddingList(true)}
-            style={{ display: 'flex', alignItems: 'center', gap: 4, height: 32, padding: '0 12px', borderRadius: 8, border: '1.5px dashed var(--roost-border)', backgroundColor: 'transparent', fontSize: 12, fontWeight: 700, color: 'var(--roost-text-muted)', cursor: 'pointer', flexShrink: 0, fontFamily: 'inherit' }}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 4,
+              height: 32,
+              padding: '0 12px',
+              borderRadius: 8,
+              border: '1.5px dashed var(--roost-border)',
+              backgroundColor: 'transparent',
+              fontSize: 12,
+              fontWeight: 700,
+              color: 'var(--roost-text-muted)',
+              cursor: 'pointer',
+              flexShrink: 0,
+              fontFamily: 'inherit',
+            }}
           >
             <Plus size={11} color="var(--roost-text-muted)" />
             New list
@@ -669,33 +1435,55 @@ export default function FoodPage() {
       {/* New list form */}
       {addingList && (
         <div style={{ padding: '8px 16px', backgroundColor: '#fff' }}>
-          <NewListForm onSave={name => createListMutation.mutate(name)} onCancel={() => setAddingList(false)} />
+          <NewListForm
+            onSave={(name) => createListMutation.mutate(name)}
+            onCancel={() => setAddingList(false)}
+          />
         </div>
       )}
 
       {/* ── Content layout (main + sidebar) ── */}
       <div style={{ display: 'flex', flex: 1, alignItems: 'flex-start' }}>
-
         {/* Main column */}
-        <div style={{ flex: 1, minWidth: 0, padding: '16px 16px 100px', display: 'flex', flexDirection: 'column', gap: 14 }}>
-
+        <div
+          style={{
+            flex: 1,
+            minWidth: 0,
+            padding: '16px 16px 100px',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 14,
+          }}
+        >
           {/* Progress banner */}
           {data && totalItems > 0 && (
-            <ProgressBanner checked={checkedCount} total={totalItems} listName={data.listName} />
+            <ProgressBanner
+              checked={checkedCount}
+              total={totalItems}
+              listName={data.listName}
+            />
           )}
 
           {/* Meal card */}
           {mealsThisWeek.length > 0 && (
             <MealCard
               meals={mealsThisWeek}
-              onAddAll={() => addAllMealsMutation.mutate(mealsThisWeek.map(m => m.mealId))}
+              onAddAll={() =>
+                addAllMealsMutation.mutate(mealsThisWeek.map((m) => m.mealId))
+              }
             />
           )}
 
           {/* Quick add — mobile (stacked) */}
           <div
             className="md:hidden"
-            style={{ backgroundColor: 'var(--roost-surface)', border: `1.5px solid ${COLOR}`, borderBottom: `3px solid ${COLOR_DARK}`, borderRadius: 14, overflow: 'hidden' }}
+            style={{
+              backgroundColor: 'var(--roost-surface)',
+              border: `1.5px solid ${COLOR}`,
+              borderBottom: `3px solid ${COLOR_DARK}`,
+              borderRadius: 14,
+              overflow: 'hidden',
+            }}
           >
             <div style={{ display: 'flex', alignItems: 'center' }}>
               <input
@@ -703,30 +1491,89 @@ export default function FoodPage() {
                 data-testid="grocery-quick-add"
                 type="text"
                 value={input}
-                onChange={e => setInput(e.target.value)}
-                onKeyDown={e => { if (e.key === 'Enter') { if (input.trim()) qtyRef.current?.focus() } }}
+                onChange={(e) => setInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    if (input.trim()) qtyRef.current?.focus();
+                  }
+                }}
                 placeholder="Add an item"
-                style={{ flex: 1, height: 48, padding: '0 16px', border: 'none', background: 'transparent', outline: 'none', fontSize: 15, fontWeight: 700, color: 'var(--roost-text-primary)', fontFamily: 'inherit' }}
+                style={{
+                  flex: 1,
+                  height: 48,
+                  padding: '0 16px',
+                  border: 'none',
+                  background: 'transparent',
+                  outline: 'none',
+                  fontSize: 15,
+                  fontWeight: 700,
+                  color: 'var(--roost-text-primary)',
+                  fontFamily: 'inherit',
+                }}
               />
               <button
                 type="button"
                 onClick={handleQuickAdd}
                 disabled={!input.trim()}
-                style={{ width: 48, height: 48, border: 'none', borderLeft: `1px solid ${COLOR}30`, background: input.trim() ? COLOR : 'transparent', cursor: input.trim() ? 'pointer' : 'default', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, transition: 'background 0.12s' }}
+                style={{
+                  width: 48,
+                  height: 48,
+                  border: 'none',
+                  borderLeft: `1px solid ${COLOR}30`,
+                  background: input.trim() ? COLOR : 'transparent',
+                  cursor: input.trim() ? 'pointer' : 'default',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexShrink: 0,
+                  transition: 'background 0.12s',
+                }}
               >
-                <Plus size={20} color={input.trim() ? '#fff' : COLOR + '60'} strokeWidth={2.5} />
+                <Plus
+                  size={20}
+                  color={input.trim() ? '#fff' : COLOR + '60'}
+                  strokeWidth={2.5}
+                />
               </button>
             </div>
-            <div style={{ borderTop: `1px solid ${COLOR}25`, display: 'flex', alignItems: 'center', padding: '0 16px', gap: 8 }}>
-              <span style={{ fontSize: 11, fontWeight: 800, color: COLOR_DARK, whiteSpace: 'nowrap', letterSpacing: '0.05em' }}>QTY</span>
+            <div
+              style={{
+                borderTop: `1px solid ${COLOR}25`,
+                display: 'flex',
+                alignItems: 'center',
+                padding: '0 16px',
+                gap: 8,
+              }}
+            >
+              <span
+                style={{
+                  fontSize: 11,
+                  fontWeight: 800,
+                  color: COLOR_DARK,
+                  whiteSpace: 'nowrap',
+                  letterSpacing: '0.05em',
+                }}
+              >
+                QTY
+              </span>
               <input
                 ref={qtyRef}
                 type="text"
                 value={qtyInput}
-                onChange={e => setQtyInput(e.target.value)}
-                onKeyDown={e => e.key === 'Enter' && handleQuickAdd()}
+                onChange={(e) => setQtyInput(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleQuickAdd()}
                 placeholder="e.g. 2 lbs, 1 dozen (optional)"
-                style={{ flex: 1, height: 36, border: 'none', background: 'transparent', outline: 'none', fontSize: 13, fontWeight: 600, color: 'var(--roost-text-muted)', fontFamily: 'inherit' }}
+                style={{
+                  flex: 1,
+                  height: 36,
+                  border: 'none',
+                  background: 'transparent',
+                  outline: 'none',
+                  fontSize: 13,
+                  fontWeight: 600,
+                  color: 'var(--roost-text-muted)',
+                  fontFamily: 'inherit',
+                }}
               />
             </div>
           </div>
@@ -734,34 +1581,98 @@ export default function FoodPage() {
           {/* Quick add — desktop (inline) */}
           <div
             className="hidden md:block"
-            style={{ backgroundColor: 'var(--roost-surface)', border: `1.5px solid ${COLOR}`, borderBottom: `4px solid ${COLOR_DARK}`, borderRadius: 12, overflow: 'hidden' }}
+            style={{
+              backgroundColor: 'var(--roost-surface)',
+              border: `1.5px solid ${COLOR}`,
+              borderBottom: `4px solid ${COLOR_DARK}`,
+              borderRadius: 12,
+              overflow: 'hidden',
+            }}
           >
             <div style={{ display: 'flex', alignItems: 'center' }}>
               <input
                 type="text"
                 value={input}
-                onChange={e => setInput(e.target.value)}
-                onKeyDown={e => e.key === 'Enter' && handleQuickAdd()}
+                onChange={(e) => setInput(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleQuickAdd()}
                 placeholder="Add an item..."
-                style={{ flex: 1, height: 46, padding: '0 16px', border: 'none', background: 'transparent', outline: 'none', fontSize: 14, fontWeight: 700, color: 'var(--roost-text-primary)', fontFamily: 'inherit' }}
+                style={{
+                  flex: 1,
+                  height: 46,
+                  padding: '0 16px',
+                  border: 'none',
+                  background: 'transparent',
+                  outline: 'none',
+                  fontSize: 14,
+                  fontWeight: 700,
+                  color: 'var(--roost-text-primary)',
+                  fontFamily: 'inherit',
+                }}
               />
-              <div style={{ width: 1, height: 28, backgroundColor: `${COLOR}30`, flexShrink: 0 }} />
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '0 16px', minWidth: 200 }}>
-                <span style={{ fontSize: 10, fontWeight: 800, color: COLOR_DARK, letterSpacing: '0.06em', flexShrink: 0 }}>QTY</span>
+              <div
+                style={{
+                  width: 1,
+                  height: 28,
+                  backgroundColor: `${COLOR}30`,
+                  flexShrink: 0,
+                }}
+              />
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 8,
+                  padding: '0 16px',
+                  minWidth: 200,
+                }}
+              >
+                <span
+                  style={{
+                    fontSize: 10,
+                    fontWeight: 800,
+                    color: COLOR_DARK,
+                    letterSpacing: '0.06em',
+                    flexShrink: 0,
+                  }}
+                >
+                  QTY
+                </span>
                 <input
                   type="text"
                   value={qtyInput}
-                  onChange={e => setQtyInput(e.target.value)}
-                  onKeyDown={e => e.key === 'Enter' && handleQuickAdd()}
+                  onChange={(e) => setQtyInput(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && handleQuickAdd()}
                   placeholder="e.g. 2 cartons (optional)"
-                  style={{ flex: 1, height: 46, border: 'none', background: 'transparent', outline: 'none', fontSize: 13, fontWeight: 600, color: 'var(--roost-text-muted)', fontFamily: 'inherit' }}
+                  style={{
+                    flex: 1,
+                    height: 46,
+                    border: 'none',
+                    background: 'transparent',
+                    outline: 'none',
+                    fontSize: 13,
+                    fontWeight: 600,
+                    color: 'var(--roost-text-muted)',
+                    fontFamily: 'inherit',
+                  }}
                 />
               </div>
               <button
                 type="button"
                 onClick={handleQuickAdd}
                 disabled={!input.trim()}
-                style={{ width: 46, height: 46, border: 'none', borderLeft: `1px solid ${COLOR}30`, background: input.trim() ? COLOR : `${COLOR}40`, cursor: input.trim() ? 'pointer' : 'default', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, transition: 'background 0.12s' }}
+                style={{
+                  width: 46,
+                  height: 46,
+                  border: 'none',
+                  borderLeft: `1px solid ${COLOR}30`,
+                  background: input.trim() ? COLOR : `${COLOR}40`,
+                  cursor: input.trim() ? 'pointer' : 'default',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexShrink: 0,
+                  transition: 'background 0.12s',
+                }}
               >
                 <Plus size={20} color="white" strokeWidth={2.5} />
               </button>
@@ -773,55 +1684,190 @@ export default function FoodPage() {
             <button
               type="button"
               onClick={() => setSortMode('smart')}
-              style={{ display: 'flex', alignItems: 'center', gap: 5, height: 30, padding: '0 12px', borderRadius: 7, border: `1.5px solid ${sortMode === 'smart' ? COLOR : 'var(--roost-border)'}`, borderBottom: `3px solid ${sortMode === 'smart' ? COLOR_DARK : 'var(--roost-border-bottom)'}`, backgroundColor: sortMode === 'smart' ? COLOR_LIGHT : 'var(--roost-surface)', fontSize: 12, fontWeight: 700, color: sortMode === 'smart' ? COLOR_DARK : 'var(--roost-text-muted)', cursor: 'pointer', fontFamily: 'inherit', transition: 'all 0.12s' }}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 5,
+                height: 30,
+                padding: '0 12px',
+                borderRadius: 7,
+                border: `1.5px solid ${sortMode === 'smart' ? COLOR : 'var(--roost-border)'}`,
+                borderBottom: `3px solid ${sortMode === 'smart' ? COLOR_DARK : 'var(--roost-border-bottom)'}`,
+                backgroundColor:
+                  sortMode === 'smart' ? COLOR_LIGHT : 'var(--roost-surface)',
+                fontSize: 12,
+                fontWeight: 700,
+                color:
+                  sortMode === 'smart' ? COLOR_DARK : 'var(--roost-text-muted)',
+                cursor: 'pointer',
+                fontFamily: 'inherit',
+                transition: 'all 0.12s',
+              }}
             >
-              <ArrowUpDown size={11} color={sortMode === 'smart' ? COLOR_DARK : 'var(--roost-text-muted)'} strokeWidth={2.5} />
+              <ArrowUpDown
+                size={11}
+                color={
+                  sortMode === 'smart' ? COLOR_DARK : 'var(--roost-text-muted)'
+                }
+                strokeWidth={2.5}
+              />
               Smart sort
             </button>
             <button
               type="button"
               onClick={() => setSortMode('newest')}
-              style={{ display: 'flex', alignItems: 'center', gap: 5, height: 30, padding: '0 12px', borderRadius: 7, border: `1.5px solid ${sortMode === 'newest' ? COLOR : 'var(--roost-border)'}`, borderBottom: `3px solid ${sortMode === 'newest' ? COLOR_DARK : 'var(--roost-border-bottom)'}`, backgroundColor: sortMode === 'newest' ? COLOR_LIGHT : 'var(--roost-surface)', fontSize: 12, fontWeight: 700, color: sortMode === 'newest' ? COLOR_DARK : 'var(--roost-text-muted)', cursor: 'pointer', fontFamily: 'inherit', transition: 'all 0.12s' }}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 5,
+                height: 30,
+                padding: '0 12px',
+                borderRadius: 7,
+                border: `1.5px solid ${sortMode === 'newest' ? COLOR : 'var(--roost-border)'}`,
+                borderBottom: `3px solid ${sortMode === 'newest' ? COLOR_DARK : 'var(--roost-border-bottom)'}`,
+                backgroundColor:
+                  sortMode === 'newest' ? COLOR_LIGHT : 'var(--roost-surface)',
+                fontSize: 12,
+                fontWeight: 700,
+                color:
+                  sortMode === 'newest'
+                    ? COLOR_DARK
+                    : 'var(--roost-text-muted)',
+                cursor: 'pointer',
+                fontFamily: 'inherit',
+                transition: 'all 0.12s',
+              }}
             >
               Newest
             </button>
-            <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--roost-text-muted)', marginLeft: 'auto' }}>
-              {unchecked.length} item{unchecked.length !== 1 ? 's' : ''} remaining
+            <span
+              style={{
+                fontSize: 11,
+                fontWeight: 700,
+                color: 'var(--roost-text-muted)',
+                marginLeft: 'auto',
+              }}
+            >
+              {unchecked.length} item{unchecked.length !== 1 ? 's' : ''}{' '}
+              remaining
             </span>
           </div>
 
           {/* Empty state */}
           {data && data.items.length === 0 && (
-            <div style={{ padding: '32px 24px', textAlign: 'center', backgroundColor: 'var(--roost-surface)', border: '2px dashed var(--roost-border)', borderBottom: '4px dashed var(--roost-border-bottom)', borderRadius: 16 }}>
-              <div style={{ width: 48, height: 48, borderRadius: 12, backgroundColor: 'var(--roost-surface)', border: '1.5px solid var(--roost-border)', borderBottom: `4px solid ${COLOR}`, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 12px' }}>
+            <div
+              style={{
+                padding: '32px 24px',
+                textAlign: 'center',
+                backgroundColor: 'var(--roost-surface)',
+                border: '2px dashed var(--roost-border)',
+                borderBottom: '4px dashed var(--roost-border-bottom)',
+                borderRadius: 16,
+              }}
+            >
+              <div
+                style={{
+                  width: 48,
+                  height: 48,
+                  borderRadius: 12,
+                  backgroundColor: 'var(--roost-surface)',
+                  border: '1.5px solid var(--roost-border)',
+                  borderBottom: `4px solid ${COLOR}`,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  margin: '0 auto 12px',
+                }}
+              >
                 <ShoppingCart size={22} color={COLOR} />
               </div>
-              <p style={{ fontWeight: 800, fontSize: 16, color: 'var(--roost-text-primary)', margin: '0 0 6px' }}>The fridge is on its own.</p>
-              <p style={{ fontWeight: 600, fontSize: 13, color: 'var(--roost-text-muted)', margin: 0 }}>No items on the list. Add something before someone eats a condiment for dinner.</p>
+              <p
+                style={{
+                  fontWeight: 800,
+                  fontSize: 16,
+                  color: 'var(--roost-text-primary)',
+                  margin: '0 0 6px',
+                }}
+              >
+                The fridge is on its own.
+              </p>
+              <p
+                style={{
+                  fontWeight: 600,
+                  fontSize: 13,
+                  color: 'var(--roost-text-muted)',
+                  margin: 0,
+                }}
+              >
+                No items on the list. Add something before someone eats a
+                condiment for dinner.
+              </p>
             </div>
           )}
 
           {/* Unchecked items */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             {sortedGroups ? (
-              sortedGroups.map(group => (
+              sortedGroups.map((group) => (
                 <div key={group.section}>
                   {/* Section header */}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-                    <div style={{ width: 8, height: 8, borderRadius: '50%', backgroundColor: SECTION_DOT_COLORS[group.section] ?? '#9CA3AF', flexShrink: 0 }} />
-                    <span style={{ fontSize: 10, fontWeight: 800, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--roost-text-muted)' }}>{group.section}</span>
-                    <span style={{ fontSize: 10, fontWeight: 800, color: 'var(--roost-text-muted)', marginLeft: 'auto' }}>{group.items.length} item{group.items.length !== 1 ? 's' : ''}</span>
+                  <div
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 8,
+                      marginBottom: 8,
+                    }}
+                  >
+                    <div
+                      style={{
+                        width: 8,
+                        height: 8,
+                        borderRadius: '50%',
+                        backgroundColor:
+                          SECTION_DOT_COLORS[group.section] ?? '#9CA3AF',
+                        flexShrink: 0,
+                      }}
+                    />
+                    <span
+                      style={{
+                        fontSize: 10,
+                        fontWeight: 800,
+                        letterSpacing: '0.1em',
+                        textTransform: 'uppercase',
+                        color: 'var(--roost-text-muted)',
+                      }}
+                    >
+                      {group.section}
+                    </span>
+                    <span
+                      style={{
+                        fontSize: 10,
+                        fontWeight: 800,
+                        color: 'var(--roost-text-muted)',
+                        marginLeft: 'auto',
+                      }}
+                    >
+                      {group.items.length} item
+                      {group.items.length !== 1 ? 's' : ''}
+                    </span>
                   </div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                  <div
+                    style={{ display: 'flex', flexDirection: 'column', gap: 6 }}
+                  >
                     <AnimatePresence mode="popLayout">
                       {group.items.map((item, i) => (
                         <ItemRow
                           key={item.id}
                           item={item}
                           index={i}
-                          onCheck={(id, val) => checkMutation.mutate({ id, isChecked: val })}
-                          onDelete={id => deleteMutation.mutate(id)}
-                          onEdit={(id, name, qty) => editMutation.mutate({ id, name, quantity: qty })}
+                          onCheck={(id, val) =>
+                            checkMutation.mutate({ id, isChecked: val })
+                          }
+                          onDelete={(id) => deleteMutation.mutate(id)}
+                          onEdit={(id, name, qty) =>
+                            editMutation.mutate({ id, name, quantity: qty })
+                          }
                         />
                       ))}
                     </AnimatePresence>
@@ -835,9 +1881,13 @@ export default function FoodPage() {
                     key={item.id}
                     item={item}
                     index={i}
-                    onCheck={(id, val) => checkMutation.mutate({ id, isChecked: val })}
-                    onDelete={id => deleteMutation.mutate(id)}
-                    onEdit={(id, name, qty) => editMutation.mutate({ id, name, quantity: qty })}
+                    onCheck={(id, val) =>
+                      checkMutation.mutate({ id, isChecked: val })
+                    }
+                    onDelete={(id) => deleteMutation.mutate(id)}
+                    onEdit={(id, name, qty) =>
+                      editMutation.mutate({ id, name, quantity: qty })
+                    }
                   />
                 ))}
               </AnimatePresence>
@@ -847,28 +1897,88 @@ export default function FoodPage() {
           {/* In the cart */}
           {checked.length > 0 && (
             <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 0', marginBottom: checkedOpen ? 8 : 0 }}>
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 8,
+                  padding: '10px 0',
+                  marginBottom: checkedOpen ? 8 : 0,
+                }}
+              >
                 <button
                   type="button"
-                  onClick={() => setCheckedOpen(v => !v)}
-                  style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1, background: 'none', border: 'none', cursor: 'pointer', padding: 0, fontFamily: 'inherit', minWidth: 0 }}
+                  onClick={() => setCheckedOpen((v) => !v)}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 8,
+                    flex: 1,
+                    background: 'none',
+                    border: 'none',
+                    cursor: 'pointer',
+                    padding: 0,
+                    fontFamily: 'inherit',
+                    minWidth: 0,
+                  }}
                 >
-                  <span style={{ fontSize: 11, fontWeight: 800, color: COLOR, letterSpacing: '0.08em', whiteSpace: 'nowrap' }}>IN THE CART ({checked.length})</span>
-                  <div style={{ flex: 1, height: 1, backgroundColor: 'var(--roost-border)' }} />
+                  <span
+                    style={{
+                      fontSize: 11,
+                      fontWeight: 800,
+                      color: COLOR,
+                      letterSpacing: '0.08em',
+                      whiteSpace: 'nowrap',
+                    }}
+                  >
+                    IN THE CART ({checked.length})
+                  </span>
+                  <div
+                    style={{
+                      flex: 1,
+                      height: 1,
+                      backgroundColor: 'var(--roost-border)',
+                    }}
+                  />
                 </button>
                 <button
                   type="button"
-                  onClick={e => { e.stopPropagation(); setClearConfirmOpen(true) }}
-                  style={{ fontSize: 12, fontWeight: 700, color: 'var(--roost-text-muted)', background: 'none', border: 'none', cursor: 'pointer', padding: '0 2px', fontFamily: 'inherit', flexShrink: 0 }}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setClearConfirmOpen(true);
+                  }}
+                  style={{
+                    fontSize: 12,
+                    fontWeight: 700,
+                    color: 'var(--roost-text-muted)',
+                    background: 'none',
+                    border: 'none',
+                    cursor: 'pointer',
+                    padding: '0 2px',
+                    fontFamily: 'inherit',
+                    flexShrink: 0,
+                  }}
                 >
                   Clear
                 </button>
                 <button
                   type="button"
-                  onClick={() => setCheckedOpen(v => !v)}
-                  style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center', flexShrink: 0 }}
+                  onClick={() => setCheckedOpen((v) => !v)}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    cursor: 'pointer',
+                    padding: 0,
+                    display: 'flex',
+                    alignItems: 'center',
+                    flexShrink: 0,
+                  }}
                 >
-                  {checkedOpen ? <ChevronUp size={14} color={COLOR} /> : <ChevronDown size={14} color={COLOR} />}
+                  {checkedOpen ? (
+                    <ChevronUp size={14} color={COLOR} />
+                  ) : (
+                    <ChevronDown size={14} color={COLOR} />
+                  )}
                 </button>
               </div>
               <AnimatePresence>
@@ -878,16 +1988,25 @@ export default function FoodPage() {
                     animate={{ height: 'auto', opacity: 1 }}
                     exit={{ height: 0, opacity: 0 }}
                     transition={{ duration: 0.18 }}
-                    style={{ overflow: 'hidden', display: 'flex', flexDirection: 'column', gap: 6 }}
+                    style={{
+                      overflow: 'hidden',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: 6,
+                    }}
                   >
                     {checked.map((item, i) => (
                       <ItemRow
                         key={item.id}
                         item={item}
                         index={i}
-                        onCheck={(id, val) => checkMutation.mutate({ id, isChecked: val })}
-                        onDelete={id => deleteMutation.mutate(id)}
-                        onEdit={(id, name, qty) => editMutation.mutate({ id, name, quantity: qty })}
+                        onCheck={(id, val) =>
+                          checkMutation.mutate({ id, isChecked: val })
+                        }
+                        onDelete={(id) => deleteMutation.mutate(id)}
+                        onEdit={(id, name, qty) =>
+                          editMutation.mutate({ id, name, quantity: qty })
+                        }
                       />
                     ))}
                   </motion.div>
@@ -898,14 +2017,37 @@ export default function FoodPage() {
 
           {/* Frequently bought — mobile only */}
           <div className="md:hidden">
-            <p style={{ fontSize: 11, fontWeight: 800, color: 'var(--roost-text-muted)', letterSpacing: '0.08em', marginBottom: 8 }}>COMMON ITEMS</p>
+            <p
+              style={{
+                fontSize: 11,
+                fontWeight: 800,
+                color: 'var(--roost-text-muted)',
+                letterSpacing: '0.08em',
+                marginBottom: 8,
+              }}
+            >
+              COMMON ITEMS
+            </p>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-              {COMMON_ITEMS.map(itemName => (
+              {COMMON_ITEMS.map((itemName) => (
                 <button
                   key={itemName}
                   type="button"
                   onClick={() => addMutation.mutate({ name: itemName })}
-                  style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '6px 12px', borderRadius: 20, border: '1.5px solid var(--roost-border)', backgroundColor: 'var(--roost-surface)', fontSize: 12, fontWeight: 700, color: 'var(--roost-text-primary)', cursor: 'pointer', fontFamily: 'inherit' }}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 5,
+                    padding: '6px 12px',
+                    borderRadius: 20,
+                    border: '1.5px solid var(--roost-border)',
+                    backgroundColor: 'var(--roost-surface)',
+                    fontSize: 12,
+                    fontWeight: 700,
+                    color: 'var(--roost-text-primary)',
+                    cursor: 'pointer',
+                    fontFamily: 'inherit',
+                  }}
                 >
                   <Plus size={12} color={COLOR} strokeWidth={2.5} />
                   {itemName}
@@ -913,43 +2055,142 @@ export default function FoodPage() {
               ))}
             </div>
           </div>
-
-        </div>{/* /main column */}
+        </div>
+        {/* /main column */}
 
         {/* ── Desktop right sidebar ── */}
         <div
           className="hidden md:flex"
-          style={{ width: 264, flexShrink: 0, backgroundColor: '#fff', flexDirection: 'column', gap: 20, padding: '20px 18px', position: 'sticky', top: 56, alignSelf: 'flex-start', maxHeight: 'calc(100vh - 56px)', overflowY: 'auto' }}
+          style={{
+            width: 264,
+            flexShrink: 0,
+            backgroundColor: '#fff',
+            flexDirection: 'column',
+            gap: 20,
+            padding: '20px 18px',
+            position: 'sticky',
+            top: 56,
+            alignSelf: 'flex-start',
+            maxHeight: 'calc(100vh - 56px)',
+            overflowY: 'auto',
+          }}
         >
           {/* All lists widget */}
           <div>
-            <p style={{ fontSize: 10, fontWeight: 800, color: 'var(--roost-text-muted)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 12 }}>All lists</p>
-            <div style={{ backgroundColor: 'var(--roost-bg)', border: '1.5px solid var(--roost-border)', borderRadius: 12, padding: '4px 14px' }}>
+            <p
+              style={{
+                fontSize: 10,
+                fontWeight: 800,
+                color: 'var(--roost-text-muted)',
+                letterSpacing: '0.1em',
+                textTransform: 'uppercase',
+                marginBottom: 12,
+              }}
+            >
+              All lists
+            </p>
+            <div
+              style={{
+                backgroundColor: 'var(--roost-bg)',
+                border: '1.5px solid var(--roost-border)',
+                borderRadius: 12,
+                padding: '4px 14px',
+              }}
+            >
               {lists.map((list, idx) => {
-                const isActive = list.id === activeListId
-                const dotColor = LIST_COLORS[idx % LIST_COLORS.length]
-                const activeChecked = isActive ? checkedCount : 0
+                const isActive = list.id === activeListId;
+                const dotColor = LIST_COLORS[idx % LIST_COLORS.length];
+                const activeChecked = isActive ? checkedCount : 0;
                 return (
                   <button
                     key={list.id}
                     type="button"
                     onClick={() => setActiveListId(list.id)}
-                    style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '9px 0', borderBottom: idx < lists.length - 1 ? '1px solid var(--roost-border)' : 'none', width: '100%', background: 'none', border: 'none', borderBottom: idx < lists.length - 1 ? '1px solid var(--roost-border)' : 'none', cursor: 'pointer', fontFamily: 'inherit' }}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      padding: '9px 0',
+                      borderBottom:
+                        idx < lists.length - 1
+                          ? '1px solid var(--roost-border)'
+                          : 'none',
+                      width: '100%',
+                      background: 'none',
+                      border: 'none',
+                      cursor: 'pointer',
+                      fontFamily: 'inherit',
+                    }}
                   >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
-                      <div style={{ width: 7, height: 7, borderRadius: '50%', backgroundColor: dotColor, flexShrink: 0 }} />
-                      <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--roost-text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{list.name}</span>
+                    <div
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 8,
+                        minWidth: 0,
+                      }}
+                    >
+                      <div
+                        style={{
+                          width: 7,
+                          height: 7,
+                          borderRadius: '50%',
+                          backgroundColor: dotColor,
+                          flexShrink: 0,
+                        }}
+                      />
+                      <span
+                        style={{
+                          fontSize: 13,
+                          fontWeight: 700,
+                          color: 'var(--roost-text-primary)',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap',
+                        }}
+                      >
+                        {list.name}
+                      </span>
                     </div>
-                    <span style={{ fontSize: 10, fontWeight: 800, padding: '2px 8px', borderRadius: 5, flexShrink: 0, backgroundColor: isActive ? COLOR_LIGHT : 'var(--roost-border)', color: isActive ? COLOR_DARK : 'var(--roost-text-muted)', marginLeft: 8 }}>
-                      {isActive ? `${activeChecked}/${list.itemCount}` : list.itemCount}
+                    <span
+                      style={{
+                        fontSize: 10,
+                        fontWeight: 800,
+                        padding: '2px 8px',
+                        borderRadius: 5,
+                        flexShrink: 0,
+                        backgroundColor: isActive
+                          ? COLOR_LIGHT
+                          : 'var(--roost-border)',
+                        color: isActive
+                          ? COLOR_DARK
+                          : 'var(--roost-text-muted)',
+                        marginLeft: 8,
+                      }}
+                    >
+                      {isActive
+                        ? `${activeChecked}/${list.itemCount}`
+                        : list.itemCount}
                     </span>
                   </button>
-                )
+                );
               })}
               <button
                 type="button"
                 onClick={() => setAddingList(true)}
-                style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '9px 0', fontSize: 12, fontWeight: 700, color: 'var(--roost-text-muted)', cursor: 'pointer', background: 'none', border: 'none', fontFamily: 'inherit' }}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 6,
+                  padding: '9px 0',
+                  fontSize: 12,
+                  fontWeight: 700,
+                  color: 'var(--roost-text-muted)',
+                  cursor: 'pointer',
+                  background: 'none',
+                  border: 'none',
+                  fontFamily: 'inherit',
+                }}
               >
                 <Plus size={11} color="var(--roost-text-muted)" />
                 New list
@@ -960,18 +2201,92 @@ export default function FoodPage() {
           {/* Who's added what widget */}
           {memberActivity.length > 0 && (
             <div>
-              <p style={{ fontSize: 10, fontWeight: 800, color: 'var(--roost-text-muted)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 12 }}>Who&apos;s added what</p>
-              <div style={{ backgroundColor: 'var(--roost-bg)', border: '1.5px solid var(--roost-border)', borderRadius: 12, padding: '4px 14px' }}>
+              <p
+                style={{
+                  fontSize: 10,
+                  fontWeight: 800,
+                  color: 'var(--roost-text-muted)',
+                  letterSpacing: '0.1em',
+                  textTransform: 'uppercase',
+                  marginBottom: 12,
+                }}
+              >
+                Who&apos;s added what
+              </p>
+              <div
+                style={{
+                  backgroundColor: 'var(--roost-bg)',
+                  border: '1.5px solid var(--roost-border)',
+                  borderRadius: 12,
+                  padding: '4px 14px',
+                }}
+              >
                 {memberActivity.map((member, idx) => (
-                  <div key={member.name} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 0', borderBottom: idx < memberActivity.length - 1 ? '1px solid var(--roost-border)' : 'none' }}>
-                    <div style={{ width: 30, height: 30, borderRadius: '50%', backgroundColor: member.avatar, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 900, color: 'white', flexShrink: 0 }}>
+                  <div
+                    key={member.name}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 10,
+                      padding: '8px 0',
+                      borderBottom:
+                        idx < memberActivity.length - 1
+                          ? '1px solid var(--roost-border)'
+                          : 'none',
+                    }}
+                  >
+                    <div
+                      style={{
+                        width: 30,
+                        height: 30,
+                        borderRadius: '50%',
+                        backgroundColor: member.avatar,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: 11,
+                        fontWeight: 900,
+                        color: 'white',
+                        flexShrink: 0,
+                      }}
+                    >
                       {member.name.charAt(0).toUpperCase()}
                     </div>
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontSize: 12, fontWeight: 800, color: 'var(--roost-text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{member.name}</div>
-                      <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--roost-text-muted)' }}>{member.count} {member.count === 1 ? 'item' : 'items'} added</div>
+                      <div
+                        style={{
+                          fontSize: 12,
+                          fontWeight: 800,
+                          color: 'var(--roost-text-primary)',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap',
+                        }}
+                      >
+                        {member.name}
+                      </div>
+                      <div
+                        style={{
+                          fontSize: 11,
+                          fontWeight: 600,
+                          color: 'var(--roost-text-muted)',
+                        }}
+                      >
+                        {member.count} {member.count === 1 ? 'item' : 'items'}{' '}
+                        added
+                      </div>
                     </div>
-                    <span style={{ fontSize: 10, fontWeight: 800, padding: '2px 8px', borderRadius: 6, backgroundColor: COLOR_LIGHT, color: COLOR_DARK, flexShrink: 0 }}>
+                    <span
+                      style={{
+                        fontSize: 10,
+                        fontWeight: 800,
+                        padding: '2px 8px',
+                        borderRadius: 6,
+                        backgroundColor: COLOR_LIGHT,
+                        color: COLOR_DARK,
+                        flexShrink: 0,
+                      }}
+                    >
                       {member.count}
                     </span>
                   </div>
@@ -982,14 +2297,38 @@ export default function FoodPage() {
 
           {/* Frequently bought widget */}
           <div>
-            <p style={{ fontSize: 10, fontWeight: 800, color: 'var(--roost-text-muted)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 12 }}>Common Items</p>
+            <p
+              style={{
+                fontSize: 10,
+                fontWeight: 800,
+                color: 'var(--roost-text-muted)',
+                letterSpacing: '0.1em',
+                textTransform: 'uppercase',
+                marginBottom: 12,
+              }}
+            >
+              Common Items
+            </p>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-              {COMMON_ITEMS.map(itemName => (
+              {COMMON_ITEMS.map((itemName) => (
                 <button
                   key={itemName}
                   type="button"
                   onClick={() => addMutation.mutate({ name: itemName })}
-                  style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '5px 10px', borderRadius: 16, border: '1.5px solid var(--roost-border)', backgroundColor: 'var(--roost-surface)', fontSize: 11, fontWeight: 700, color: 'var(--roost-text-primary)', cursor: 'pointer', fontFamily: 'inherit' }}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 5,
+                    padding: '5px 10px',
+                    borderRadius: 16,
+                    border: '1.5px solid var(--roost-border)',
+                    backgroundColor: 'var(--roost-surface)',
+                    fontSize: 11,
+                    fontWeight: 700,
+                    color: 'var(--roost-text-primary)',
+                    cursor: 'pointer',
+                    fontFamily: 'inherit',
+                  }}
                 >
                   <Plus size={10} color={COLOR} strokeWidth={2.5} />
                   {itemName}
@@ -997,24 +2336,31 @@ export default function FoodPage() {
               ))}
             </div>
           </div>
-
-        </div>{/* /desktop sidebar */}
-
-      </div>{/* /content layout */}
+        </div>
+        {/* /desktop sidebar */}
+      </div>
+      {/* /content layout */}
 
       <AlertDialog open={clearConfirmOpen} onOpenChange={setClearConfirmOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Clear cart?</AlertDialogTitle>
             <AlertDialogDescription>
-              This will remove all {checked.length} checked {checked.length === 1 ? 'item' : 'items'} from your list.
+              This will remove all {checked.length} checked{' '}
+              {checked.length === 1 ? 'item' : 'items'} from your list.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={() => clearMutation.mutate()}
-              style={{ backgroundColor: COLOR, borderBottom: `3px solid ${COLOR_DARK}`, border: 'none', color: '#fff', fontWeight: 800 }}
+              style={{
+                backgroundColor: COLOR,
+                borderBottom: `3px solid ${COLOR_DARK}`,
+                border: 'none',
+                color: '#fff',
+                fontWeight: 800,
+              }}
             >
               Clear
             </AlertDialogAction>
@@ -1022,5 +2368,5 @@ export default function FoodPage() {
         </AlertDialogContent>
       </AlertDialog>
     </motion.div>
-  )
+  );
 }

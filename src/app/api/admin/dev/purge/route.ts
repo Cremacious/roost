@@ -12,47 +12,26 @@ export async function POST(request: NextRequest): Promise<Response> {
   const unauth = await requireAdminSession(request)
   if (unauth) return unauth
 
-  // TRUNCATE CASCADE handles all FK ordering automatically.
-  // We list every table; Postgres figures out the safe order.
-  await db.execute(sql`
-    TRUNCATE TABLE
-      reminder_receipts,
-      reminders,
-      chore_completions,
-      chore_streaks,
-      chores,
-      chore_categories,
-      grocery_items,
-      grocery_lists,
-      event_attendees,
-      calendar_events,
-      notes,
-      tasks,
-      expense_splits,
-      expense_budgets,
-      expenses,
-      expense_categories,
-      recurring_expense_templates,
-      meal_suggestion_votes,
-      meal_suggestions,
-      meal_plan_slots,
-      meals,
-      reward_payouts,
-      reward_rules,
-      household_activity,
-      household_invites,
-      member_permissions,
-      household_members,
-      households,
-      promo_redemptions,
-      promo_codes,
-      users,
-      verification,
-      account,
-      session,
-      "user"
-    RESTART IDENTITY CASCADE
+  // Discover every table that actually exists in the public schema,
+  // then truncate them all in one shot. This is safe across migrations
+  // and won't fail if a schema-defined table hasn't been pushed yet.
+  const result = await db.execute(sql`
+    SELECT table_name
+    FROM information_schema.tables
+    WHERE table_schema = 'public'
+      AND table_type = 'BASE TABLE'
   `)
 
-  return Response.json({ success: true })
+  const tables = (result.rows as { table_name: string }[]).map(r => r.table_name)
+
+  if (tables.length === 0) {
+    return Response.json({ success: true, message: 'Nothing to purge.' })
+  }
+
+  // Quote each table name to handle reserved words (e.g. "user", "session")
+  const quoted = tables.map(t => `"${t}"`).join(', ')
+
+  await db.execute(sql.raw(`TRUNCATE TABLE ${quoted} RESTART IDENTITY CASCADE`))
+
+  return Response.json({ success: true, tablesCleared: tables.length })
 }

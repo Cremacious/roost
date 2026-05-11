@@ -1,7 +1,7 @@
 'use client'
 
 import { usePathname, useRouter } from 'next/navigation'
-import { BarChart2, Users, Home, Tag, LogOut } from 'lucide-react'
+import { BarChart2, Users, Home, Tag, LogOut, FlaskConical } from 'lucide-react'
 
 const NAV = [
   { href: '/admin', label: 'Overview', icon: BarChart2, exact: true },
@@ -9,6 +9,8 @@ const NAV = [
   { href: '/admin/households', label: 'Households', icon: Home },
   { href: '/admin/promo-codes', label: 'Promo Codes', icon: Tag },
 ]
+
+const isDev = process.env.NODE_ENV === 'development'
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
@@ -72,6 +74,35 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             )
           })}
         </nav>
+
+        {/* Dev link — only in development */}
+        {isDev && (
+          <div style={{ padding: '0 8px 8px' }}>
+            <div style={{ height: 1, backgroundColor: '#1E3A5F', margin: '0 2px 8px' }} />
+            <button
+              onClick={() => router.push('/admin/dev')}
+              style={{
+                width: '100%',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 10,
+                padding: '9px 10px',
+                borderRadius: 8,
+                border: 'none',
+                cursor: 'pointer',
+                backgroundColor: pathname.startsWith('/admin/dev') ? '#7C3AED20' : 'transparent',
+                color: pathname.startsWith('/admin/dev') ? '#A78BFA' : '#6366F180',
+                fontSize: 13,
+                fontWeight: 700,
+                fontFamily: 'inherit',
+                textAlign: 'left',
+              }}
+            >
+              <FlaskConical size={15} />
+              Dev
+            </button>
+          </div>
+        )}
 
         <div style={{ padding: '12px 8px', borderTop: '1px solid #334155' }}>
           <button

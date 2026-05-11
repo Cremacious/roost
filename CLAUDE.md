@@ -1331,7 +1331,12 @@ Update this file after every major decision or completed phase.
 - e2e/.auth/*.json files contain session tokens — always in .gitignore, never commit. e2e/.auth/.gitkeep tracks the empty directory.
 - Empty-state tests (chores/grocery) only reliable on first run against a clean DB. Test data accumulates with shared accounts — this is an accepted tradeoff.
 
-Last updated: 2026-05-11 (UI consistency audit + fixes. Full app-wide design system audit identified 11 issues. Six fixes applied and committed:
+Last updated: 2026-05-17 (UI consistency audit completed. Two remaining typography fixes applied:
+1. Calendar page header: fontSize 22 -> 26, letterSpacing -0.3px added, "X active" subtitle added below title.
+2. Stats page: both header instances (gate state + loaded state) replaced Tailwind text-2xl with explicit fontSize 26, letterSpacing -0.3px.
+All 11 issues from the original audit are now resolved.
+
+Previous: 2026-05-11 (UI consistency audit + fixes. Full app-wide design system audit identified 11 issues. Six fixes applied and committed:
 1. Grocery /lists page header rewritten: removed icon box + split mobile/desktop blocks, replaced with single unified header matching all other pages — h1 "Grocery" 26px/900/letterSpacing -0.3px, subtitle "X items" 13px/600/muted, 40x40 br-12 amber add button.
 2. Calendar agenda event cards: removed borderLeft accent (design rule violation), replaced with borderBottom slab accent using catColor. Both instances in DaySheet mobile list and AgendaList fixed.
 3. Stats /stats page: removed local PageContainer function, now imports shared component from @/components/layout/PageContainer.

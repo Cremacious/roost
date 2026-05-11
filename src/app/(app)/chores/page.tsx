@@ -906,25 +906,12 @@ export default function ChoresPage() {
         }}
       >
         <div style={{ flex: 1 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <h1 style={{ fontSize: 26, fontWeight: 900, color: 'var(--roost-text-primary)', lineHeight: 1 }}>
-              Chores
-            </h1>
-            {totalActive > 0 && (
-              <span
-                style={{
-                  fontSize: 12,
-                  fontWeight: 800,
-                  color: '#fff',
-                  backgroundColor: COLOR,
-                  borderRadius: 20,
-                  padding: '2px 8px',
-                }}
-              >
-                {totalActive}
-              </span>
-            )}
-          </div>
+          <h1 style={{ margin: 0, fontSize: 26, fontWeight: 900, color: 'var(--roost-text-primary)', letterSpacing: '-0.3px', lineHeight: 1 }}>
+            Chores
+          </h1>
+          <p style={{ margin: '2px 0 0', fontSize: 13, fontWeight: 600, color: 'var(--roost-text-muted)' }}>
+            {totalActive} active
+          </p>
         </div>
 
         {/* Action buttons */}

@@ -222,7 +222,7 @@ export default function NotesPage() {
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
           <div>
             <h1 style={{ margin: 0, fontWeight: 900, fontSize: 26, color: 'var(--roost-text-primary)', letterSpacing: '-0.3px' }}>Notes</h1>
-            <p style={{ margin: '2px 0 0', fontSize: 13, fontWeight: 600, color: 'var(--roost-text-muted)' }}>{notes.length} {notes.length === 1 ? 'note' : 'notes'}</p>
+            <p style={{ margin: '2px 0 0', fontSize: 13, fontWeight: 600, color: 'var(--roost-text-muted)' }}>{notes.length} active</p>
           </div>
           <motion.button
             whileTap={{ y: 2 }} type="button"

@@ -1,8 +1,9 @@
 import { NextResponse } from 'next/server'
 import { getSession } from '@/lib/auth/helpers'
 import { db } from '@/lib/db'
-import { users, householdMembers, user as authUser } from '@/db/schema'
+import { users, householdMembers, households, user as authUser } from '@/db/schema'
 import { eq, and, isNull } from 'drizzle-orm'
+import Stripe from 'stripe'
 
 export async function DELETE() {
   const session = await getSession()
@@ -52,6 +53,33 @@ export async function DELETE() {
           },
           { status: 400 }
         )
+      }
+    }
+  }
+
+  // Cancel any active Stripe subscriptions for households this user admins
+  if (process.env.STRIPE_SECRET_KEY) {
+    const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, { apiVersion: '2024-12-18.acacia' })
+
+    for (const m of memberships) {
+      if (m.role !== 'admin') continue
+
+      const [household] = await db
+        .select({
+          stripeSubscriptionId: households.stripe_subscription_id,
+          stripeCustomerId: households.stripe_customer_id,
+        })
+        .from(households)
+        .where(eq(households.id, m.householdId))
+        .limit(1)
+
+      if (household?.stripeSubscriptionId) {
+        try {
+          // Cancel immediately so Stripe doesn't charge after the account is gone
+          await stripe.subscriptions.cancel(household.stripeSubscriptionId)
+        } catch {
+          // Non-fatal: subscription may already be cancelled or the ID stale
+        }
       }
     }
   }

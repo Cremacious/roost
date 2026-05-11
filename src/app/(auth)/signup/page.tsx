@@ -1,13 +1,31 @@
 'use client'
 
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { signUp } from '@/lib/auth/client'
+import { signUp, sendVerificationEmail, signInWithGoogle, signInWithApple } from '@/lib/auth/client'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
-import { CheckSquare, ShoppingCart, DollarSign, CalendarDays, UtensilsCrossed, Bell } from 'lucide-react'
+import { CheckSquare, ShoppingCart, DollarSign, CalendarDays, UtensilsCrossed, Bell, Mail } from 'lucide-react'
 import RoostLogo from '@/components/shared/RoostLogo'
+
+function GoogleIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4" />
+      <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853" />
+      <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05" />
+      <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335" />
+    </svg>
+  )
+}
+
+function AppleIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="white" aria-hidden="true">
+      <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98l-.09.06c-.22.14-2.18 1.37-2.16 3.89.03 3.02 2.65 4.03 2.68 4.04l-.07.19zM13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z" />
+    </svg>
+  )
+}
 
 const FEATURES = [
   { icon: CheckSquare,    title: 'Chores',    desc: 'Track who does what and keep score' },
@@ -49,13 +67,28 @@ function StrengthBar({ password }: { password: string }) {
 }
 
 export default function SignupPage() {
-  const router = useRouter()
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [confirm, setConfirm] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+  const [oauthLoading, setOauthLoading] = useState<'google' | 'apple' | null>(null)
+  // After signup, show "check your email" state instead of redirecting
+  const [pendingEmail, setPendingEmail] = useState<string | null>(null)
+  const [resendLoading, setResendLoading] = useState(false)
+  const [resendSent, setResendSent] = useState(false)
+
+  async function handleGoogle() {
+    setOauthLoading('google')
+    // OAuth users skip email verification — proxy onboarding guard routes new users to /onboarding
+    await signInWithGoogle('/today')
+  }
+
+  async function handleApple() {
+    setOauthLoading('apple')
+    await signInWithApple('/today')
+  }
 
   const confirmMismatch = confirm.length > 0 && confirm !== password
 
@@ -72,17 +105,77 @@ export default function SignupPage() {
     }
     setLoading(true)
     try {
-      const result = await signUp.email({ name, email, password })
+      const result = await signUp.email({ name, email, password, callbackURL: '/onboarding' })
       if (result.error) {
         setError(result.error.message ?? 'Sign up failed')
       } else {
-        router.push('/onboarding')
+        // Email verification required — show pending state
+        setPendingEmail(email)
       }
     } catch {
       setError('Something went wrong. Try again.')
     } finally {
       setLoading(false)
     }
+  }
+
+  async function handleResend() {
+    if (!pendingEmail) return
+    setResendLoading(true)
+    setResendSent(false)
+    try {
+      await sendVerificationEmail(pendingEmail)
+      setResendSent(true)
+    } catch {
+      // silently fail — user can try again
+    } finally {
+      setResendLoading(false)
+    }
+  }
+
+  // "Check your email" screen
+  if (pendingEmail) {
+    return (
+      <div style={{ minHeight: '100dvh', backgroundColor: '#FFF5F5', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
+        <div style={{ width: '100%', maxWidth: 400, textAlign: 'center' }}>
+          <div style={{ width: 64, height: 64, borderRadius: 20, backgroundColor: '#FEE2E2', border: '1.5px solid #FECACA', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px' }}>
+            <Mail size={28} color="#EF4444" />
+          </div>
+          <h1 style={{ color: '#1A0505', fontWeight: 900, fontSize: 26, letterSpacing: '-0.5px', margin: '0 0 8px' }}>
+            Check your email
+          </h1>
+          <p style={{ color: '#7A3F3F', fontWeight: 600, fontSize: 14, lineHeight: 1.6, margin: '0 0 6px' }}>
+            We sent a verification link to
+          </p>
+          <p style={{ color: '#1A0505', fontWeight: 800, fontSize: 15, margin: '0 0 24px' }}>
+            {pendingEmail}
+          </p>
+          <p style={{ color: '#7A3F3F', fontWeight: 600, fontSize: 13, lineHeight: 1.6, margin: '0 0 24px' }}>
+            Click the link in that email to finish creating your account. It expires in 24 hours.
+          </p>
+          {resendSent ? (
+            <p style={{ color: '#22C55E', fontWeight: 700, fontSize: 13 }}>Sent! Check your inbox again.</p>
+          ) : (
+            <button
+              onClick={handleResend}
+              disabled={resendLoading}
+              style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#EF4444', fontWeight: 700, fontSize: 13, fontFamily: 'inherit' }}
+            >
+              {resendLoading ? 'Sending...' : "Didn't get it? Resend email"}
+            </button>
+          )}
+          <p style={{ marginTop: 32, fontSize: 13, fontWeight: 700, color: '#7A3F3F' }}>
+            Wrong address?{' '}
+            <button
+              onClick={() => setPendingEmail(null)}
+              style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#EF4444', fontWeight: 700, fontSize: 13, fontFamily: 'inherit', padding: 0 }}
+            >
+              Go back
+            </button>
+          </p>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -142,9 +235,81 @@ export default function SignupPage() {
           <h1 style={{ color: '#1A0505', fontWeight: 900, fontSize: 28, letterSpacing: '-0.5px', marginBottom: 4 }}>
             Create your account
           </h1>
-          <p style={{ color: '#7A3F3F', fontWeight: 700, fontSize: 14, marginBottom: 28 }}>
+          <p style={{ color: '#7A3F3F', fontWeight: 700, fontSize: 14, marginBottom: 24 }}>
             Set up Roost for your household
           </p>
+
+          {/* OAuth buttons */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 20 }}>
+            <button
+              type="button"
+              onClick={handleGoogle}
+              disabled={!!oauthLoading}
+              style={{
+                width: '100%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 10,
+                padding: '11px 16px',
+                backgroundColor: '#fff',
+                border: '1.5px solid #E5E7EB',
+                borderBottom: '3px solid #D1D5DB',
+                borderRadius: 12,
+                cursor: oauthLoading ? 'not-allowed' : 'pointer',
+                opacity: oauthLoading && oauthLoading !== 'google' ? 0.5 : 1,
+                fontFamily: 'inherit',
+                fontWeight: 700,
+                fontSize: 14,
+                color: '#1A0505',
+              }}
+            >
+              {oauthLoading === 'google' ? (
+                <span style={{ width: 20, height: 20, border: '2px solid #E5E7EB', borderTop: '2px solid #4285F4', borderRadius: '50%', display: 'inline-block', animation: 'spin 0.7s linear infinite' }} />
+              ) : (
+                <GoogleIcon />
+              )}
+              Continue with Google
+            </button>
+
+            <button
+              type="button"
+              onClick={handleApple}
+              disabled={!!oauthLoading}
+              style={{
+                width: '100%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 10,
+                padding: '11px 16px',
+                backgroundColor: '#111827',
+                border: '1.5px solid #111827',
+                borderBottom: '3px solid #000',
+                borderRadius: 12,
+                cursor: oauthLoading ? 'not-allowed' : 'pointer',
+                opacity: oauthLoading && oauthLoading !== 'apple' ? 0.5 : 1,
+                fontFamily: 'inherit',
+                fontWeight: 700,
+                fontSize: 14,
+                color: '#fff',
+              }}
+            >
+              {oauthLoading === 'apple' ? (
+                <span style={{ width: 20, height: 20, border: '2px solid rgba(255,255,255,0.3)', borderTop: '2px solid #fff', borderRadius: '50%', display: 'inline-block', animation: 'spin 0.7s linear infinite' }} />
+              ) : (
+                <AppleIcon />
+              )}
+              Continue with Apple
+            </button>
+          </div>
+
+          {/* Divider */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 }}>
+            <div style={{ flex: 1, height: 1, backgroundColor: '#F5C5C5' }} />
+            <span style={{ color: '#7A3F3F', fontWeight: 700, fontSize: 12 }}>or sign up with email</span>
+            <div style={{ flex: 1, height: 1, backgroundColor: '#F5C5C5' }} />
+          </div>
 
           <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
             <div>

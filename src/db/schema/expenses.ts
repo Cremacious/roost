@@ -1,4 +1,4 @@
-import { pgTable, text, timestamp, boolean, numeric, integer } from 'drizzle-orm/pg-core'
+import { pgTable, text, timestamp, boolean, numeric, integer, index } from 'drizzle-orm/pg-core'
 import { households } from './households'
 import { users } from './users'
 
@@ -36,7 +36,10 @@ export const expenses = pgTable('expenses', {
   createdAt: timestamp('created_at').notNull().defaultNow(),
   updatedAt: timestamp('updated_at').notNull().defaultNow(),
   deletedAt: timestamp('deleted_at'),
-})
+}, (table) => [
+  // Expense list is always filtered by household + soft-delete, sorted by newest
+  index('idx_expenses_household_created').on(table.householdId, table.createdAt, table.deletedAt),
+])
 
 export const expenseSplits = pgTable('expense_splits', {
   id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
@@ -57,7 +60,11 @@ export const expenseSplits = pgTable('expense_splits', {
   settlementLastRemindedAt: timestamp('settlement_last_reminded_at'),
   settledAt: timestamp('settled_at'),
   createdAt: timestamp('created_at').notNull().defaultNow(),
-})
+}, (table) => [
+  // Debt calculation queries join splits by expense_id; settle queries filter by household + user
+  index('idx_splits_expense').on(table.expenseId),
+  index('idx_splits_household_user').on(table.householdId, table.userId),
+])
 
 export const recurringExpenses = pgTable('recurring_expenses', {
   id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),

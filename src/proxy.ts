@@ -5,6 +5,38 @@ import { auth } from '@/lib/auth'
 // Routes anyone can visit without a session
 const PUBLIC_ROUTES = ['/', '/login', '/signup', '/child-login', '/privacy', '/terms', '/forgot-password', '/reset-password']
 
+// ── In-memory rate limiter ────────────────────────────────────────────────────
+// Per-Vercel-instance sliding window. Resets on cold start — acceptable for a
+// small-scale app. Upgrade to Upstash Redis when moving to Railway/persistent.
+const RATE_LIMIT_WINDOW_MS = 60_000 // 1 minute
+const RATE_LIMIT_MAX = 10 // requests per window per IP
+
+// Routes that trigger rate limiting (POST only)
+const RATE_LIMITED_PATHS = [
+  '/api/auth/sign-in/email',
+  '/api/auth/sign-up/email',
+  '/api/auth/forget-password',
+  '/api/auth/child-login',
+]
+
+const rateLimitMap = new Map<string, { count: number; windowStart: number }>()
+
+function checkRateLimit(ip: string, path: string): boolean {
+  const key = `${ip}:${path}`
+  const now = Date.now()
+  const entry = rateLimitMap.get(key)
+
+  if (!entry || now - entry.windowStart > RATE_LIMIT_WINDOW_MS) {
+    rateLimitMap.set(key, { count: 1, windowStart: now })
+    return true // allowed
+  }
+
+  if (entry.count >= RATE_LIMIT_MAX) return false // blocked
+
+  entry.count++
+  return true // allowed
+}
+
 function isPublic(pathname: string) {
   if (PUBLIC_ROUTES.includes(pathname)) return true
   if (pathname.startsWith('/invite/')) return true
@@ -35,13 +67,17 @@ function isPublic(pathname: string) {
 function buildCsp(nonce: string): string {
   return [
     "default-src 'self'",
-    `script-src 'self' 'nonce-${nonce}' 'strict-dynamic'`,
+    // strict-dynamic propagates trust to child scripts; Stripe.js is also whitelisted
+    // explicitly so it can be loaded via a plain <script src="..."> tag.
+    `script-src 'self' 'nonce-${nonce}' 'strict-dynamic' https://js.stripe.com`,
     "style-src 'self' 'unsafe-inline'",
     "font-src 'self'",
-    "connect-src 'self' api.open-meteo.com",
-    "img-src 'self' data: blob:",
-    "frame-src 'none'",
+    // Stripe Checkout + Elements use iframes served from js.stripe.com / hooks.stripe.com
+    "frame-src https://js.stripe.com https://hooks.stripe.com",
     "frame-ancestors 'none'",
+    // Open-Meteo for weather; Stripe for client-side API calls
+    "connect-src 'self' api.open-meteo.com https://api.stripe.com",
+    "img-src 'self' data: blob:",
     "form-action 'self'",
     "object-src 'none'",
     "base-uri 'self'",
@@ -87,6 +123,18 @@ export async function proxy(request: NextRequest) {
   // Generate a fresh cryptographic nonce for every request.
   // btoa(randomUUID()) gives a URL-safe base64 string with ~122 bits of entropy.
   const nonce = btoa(crypto.randomUUID())
+
+  // Rate-limit sensitive auth POST endpoints before any session checks.
+  // Uses the real IP forwarded by Vercel (x-forwarded-for), falls back to 'unknown'.
+  if (request.method === 'POST' && RATE_LIMITED_PATHS.includes(pathname)) {
+    const ip = request.headers.get('x-forwarded-for')?.split(',')[0].trim() ?? 'unknown'
+    if (!checkRateLimit(ip, pathname)) {
+      return new NextResponse(
+        JSON.stringify({ error: 'Too many requests. Please wait a moment and try again.' }),
+        { status: 429, headers: { 'Content-Type': 'application/json', 'Retry-After': '60' } }
+      )
+    }
+  }
 
   // Skip middleware for static files handled by matcher config
   if (isPublic(pathname)) {

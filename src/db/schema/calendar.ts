@@ -1,4 +1,4 @@
-import { pgTable, text, timestamp, boolean, integer } from 'drizzle-orm/pg-core'
+import { pgTable, text, timestamp, boolean, integer, index } from 'drizzle-orm/pg-core'
 import { households } from './households'
 import { users } from './users'
 
@@ -27,7 +27,10 @@ export const calendarEvents = pgTable('calendar_events', {
   createdAt: timestamp('created_at').notNull().defaultNow(),
   updatedAt: timestamp('updated_at').notNull().defaultNow(),
   deletedAt: timestamp('deleted_at'),
-})
+}, (table) => [
+  // Month view fetches events by household + start_time range
+  index('idx_events_household_start').on(table.householdId, table.startTime, table.deletedAt),
+])
 
 export const eventAttendees = pgTable('event_attendees', {
   id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),

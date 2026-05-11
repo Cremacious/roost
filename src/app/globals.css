@@ -3,6 +3,10 @@
 
 @custom-variant dark (&:is(.dark *));
 
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
 :root {
   /* Default (light) theme */
   --roost-bg: #f9fafb;

@@ -1,4 +1,4 @@
-import { pgTable, text, timestamp } from 'drizzle-orm/pg-core'
+import { pgTable, text, timestamp, index } from 'drizzle-orm/pg-core'
 import { households } from './households'
 import { users } from './users'
 
@@ -13,4 +13,7 @@ export const householdActivity = pgTable('household_activity', {
   entityType: text('entity_type'),
   description: text('description').notNull(),
   createdAt: timestamp('created_at').notNull().defaultNow(),
-})
+}, (table) => [
+  // Activity feed queries always filter by household then sort by newest first
+  index('idx_activity_household_created').on(table.householdId, table.createdAt),
+])

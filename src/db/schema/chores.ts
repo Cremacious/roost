@@ -1,4 +1,4 @@
-import { pgTable, text, timestamp, integer } from 'drizzle-orm/pg-core'
+import { pgTable, text, timestamp, integer, index } from 'drizzle-orm/pg-core'
 import { households } from './households'
 import { users } from './users'
 
@@ -40,7 +40,9 @@ export const chores = pgTable('chores', {
   createdAt: timestamp('created_at').notNull().defaultNow(),
   updatedAt: timestamp('updated_at').notNull().defaultNow(),
   deletedAt: timestamp('deleted_at'),
-})
+}, (table) => [
+  index('idx_chores_household').on(table.householdId, table.deletedAt),
+])
 
 export const choreCompletions = pgTable('chore_completions', {
   id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
@@ -56,4 +58,9 @@ export const choreCompletions = pgTable('chore_completions', {
   completedAt: timestamp('completed_at').notNull().defaultNow(),
   points: integer('points').notNull().default(10),
   weekStart: text('week_start').notNull(),
-})
+}, (table) => [
+  // History and leaderboard queries filter by household + date range
+  index('idx_completions_household_completed').on(table.householdId, table.completedAt),
+  // Uncheck operation looks up by chore + user + date
+  index('idx_completions_chore_user').on(table.choreId, table.userId),
+])

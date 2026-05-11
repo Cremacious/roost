@@ -9,7 +9,10 @@ export function QueryProvider({ children }: { children: React.ReactNode }) {
       new QueryClient({
         defaultOptions: {
           queries: {
-            staleTime: 10_000,
+            // 30 s global default — reduces redundant refetches while keeping data
+            // reasonably fresh. Override per-query for real-time needs (e.g. 10 s
+            // for dashboard activity) or stable data (e.g. 5 min for user profile).
+            staleTime: 30_000,
             retry: 2,
           },
         },

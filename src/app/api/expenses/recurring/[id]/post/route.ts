@@ -29,7 +29,13 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   const paidBy: string = body.paidBy || session.user.id
 
   const expenseId = crypto.randomUUID()
-  const splits: Array<{ userId: string; amount: string }> = JSON.parse(template.splits ?? '[]')
+  let splits: Array<{ userId: string; amount: string }> = []
+  try {
+    const parsed = JSON.parse(template.splits ?? '[]')
+    if (Array.isArray(parsed)) splits = parsed
+  } catch {
+    console.error('[recurring/post] Failed to parse splits for template', id)
+  }
 
   await db.insert(expenses).values({
     id: expenseId,

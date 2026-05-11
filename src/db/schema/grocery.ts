@@ -1,4 +1,4 @@
-import { pgTable, text, timestamp, boolean } from 'drizzle-orm/pg-core'
+import { pgTable, text, timestamp, boolean, index } from 'drizzle-orm/pg-core'
 import { households } from './households'
 import { users } from './users'
 
@@ -12,7 +12,9 @@ export const groceryLists = pgTable('grocery_lists', {
   createdBy: text('created_by').references(() => users.id),
   createdAt: timestamp('created_at').notNull().defaultNow(),
   deletedAt: timestamp('deleted_at'),
-})
+}, (table) => [
+  index('idx_grocery_lists_household').on(table.householdId, table.deletedAt),
+])
 
 export const groceryItems = pgTable('grocery_items', {
   id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
@@ -30,4 +32,7 @@ export const groceryItems = pgTable('grocery_items', {
   addedBy: text('added_by').references(() => users.id),
   createdAt: timestamp('created_at').notNull().defaultNow(),
   deletedAt: timestamp('deleted_at'),
-})
+}, (table) => [
+  // Items are almost always queried by list, filtered by soft-delete
+  index('idx_grocery_items_list').on(table.listId, table.deletedAt),
+])

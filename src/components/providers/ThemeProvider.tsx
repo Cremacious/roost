@@ -33,7 +33,7 @@ const THEMES = {
 
 type ThemeKey = keyof typeof THEMES
 
-function applyTheme(key: ThemeKey) {
+export function applyTheme(key: ThemeKey) {
   if (typeof document === 'undefined') return
   const vars = THEMES[key] ?? THEMES.default
   const root = document.documentElement

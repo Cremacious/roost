@@ -19,3 +19,27 @@ export async function requestPasswordReset(email: string) {
 export async function resetPassword(token: string, newPassword: string) {
   return authClient.resetPassword({ token, newPassword })
 }
+
+/** Resend the verification email to the given address. */
+export async function sendVerificationEmail(email: string) {
+  return authClient.sendVerificationEmail({
+    email,
+    callbackURL: '/onboarding',
+  })
+}
+
+/**
+ * Sign in with Google. Redirects to Google OAuth, then to callbackURL.
+ * The middleware onboarding guard will intercept new users and route them to /onboarding.
+ */
+export async function signInWithGoogle(callbackURL = '/today') {
+  return authClient.signIn.social({ provider: 'google', callbackURL })
+}
+
+/**
+ * Sign in with Apple. Requires APPLE_CLIENT_ID, APPLE_TEAM_ID, APPLE_KEY_ID, APPLE_PRIVATE_KEY
+ * in .env.local. The button renders immediately; the flow activates once those vars are set.
+ */
+export async function signInWithApple(callbackURL = '/today') {
+  return authClient.signIn.social({ provider: 'apple', callbackURL })
+}

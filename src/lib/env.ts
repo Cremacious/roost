@@ -73,6 +73,18 @@ const ENV_SPEC: EnvSpec[] = [
     description: 'Shared secret that Vercel cron jobs send in the Authorization header',
   },
 
+  // ── Admin panel ─────────────────────────────────────────────────────────────
+  {
+    name: 'ADMIN_EMAIL',
+    required: false,
+    description: 'Email for the /admin panel login. Missing = admin panel disabled.',
+  },
+  {
+    name: 'ADMIN_PASSWORD',
+    required: false,
+    description: 'Password for the /admin panel login. Missing = admin panel disabled.',
+  },
+
   // ── Optional integrations ────────────────────────────────────────────────────
   {
     name: 'RESEND_API_KEY',

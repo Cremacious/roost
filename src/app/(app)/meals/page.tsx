@@ -1253,7 +1253,7 @@ export default function MealsPage() {
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.18 }}
-        style={{ padding: '20px 16px 100px', maxWidth: 1024, margin: '0 auto' }}
+        style={{ padding: '20px 16px 100px', maxWidth: 900, margin: '0 auto' }}
       >
         {/* Header */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
@@ -1263,22 +1263,6 @@ export default function MealsPage() {
               Plan your week, save favorites, and vote on dinner.
             </p>
           </div>
-          {/* Mobile header action buttons */}
-          {tab === 'bank' && (
-            <motion.button whileTap={{ y: 2 }} type="button"
-              onClick={() => { setEditMeal(null); setMealSheetOpen(true) }}
-              className="sm:hidden"
-              style={{ width: 40, height: 40, borderRadius: 12, backgroundColor: COLOR, border: 'none', borderBottom: `3px solid ${COLOR_DARK}`, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0 }}>
-              <Plus size={20} color="#fff" />
-            </motion.button>
-          )}
-          {tab === 'suggestions' && (
-            <motion.button whileTap={{ y: 2 }} type="button" onClick={() => setSuggestOpen(true)}
-              className="sm:hidden"
-              style={{ width: 40, height: 40, borderRadius: 12, backgroundColor: COLOR, border: 'none', borderBottom: `3px solid ${COLOR_DARK}`, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0 }}>
-              <Plus size={20} color="#fff" />
-            </motion.button>
-          )}
         </div>
 
         {/* Mobile tab pills */}
@@ -1326,14 +1310,14 @@ export default function MealsPage() {
             {/* Week nav */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
               <button type="button" onClick={() => setWeekStart(d => { const n = new Date(d); n.setDate(n.getDate() - 7); return n })}
-                style={{ width: 36, height: 36, borderRadius: 10, border: '1.5px solid var(--roost-border)', borderBottom: '3px solid var(--roost-border-bottom)', backgroundColor: 'var(--roost-surface)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                style={{ width: 36, height: 36, borderRadius: 10, border: '1.5px solid var(--roost-border)', borderBottom: '3px solid var(--roost-border-bottom)', backgroundColor: 'var(--roost-surface)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                 <ChevronLeft size={16} color="var(--roost-text-secondary)" />
               </button>
               <p style={{ margin: 0, fontWeight: 800, fontSize: 14, color: 'var(--roost-text-primary)', flex: 1, textAlign: 'center' }}>
                 {weekStart.toLocaleDateString('en-US', { month: 'long', day: 'numeric' })} {isThisWeek ? '(This week)' : ''}
               </p>
               <button type="button" onClick={() => setWeekStart(d => { const n = new Date(d); n.setDate(n.getDate() + 7); return n })}
-                style={{ width: 36, height: 36, borderRadius: 10, border: '1.5px solid var(--roost-border)', borderBottom: '3px solid var(--roost-border-bottom)', backgroundColor: 'var(--roost-surface)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                style={{ width: 36, height: 36, borderRadius: 10, border: '1.5px solid var(--roost-border)', borderBottom: '3px solid var(--roost-border-bottom)', backgroundColor: 'var(--roost-surface)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                 <ChevronRight size={16} color="var(--roost-text-secondary)" />
               </button>
               {!isThisWeek && (
@@ -1342,6 +1326,21 @@ export default function MealsPage() {
                   This week
                 </button>
               )}
+              <motion.button
+                type="button"
+                whileTap={{ y: 1 }}
+                onClick={() => openSlot(new Date(), 'dinner')}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 6,
+                  padding: '0 14px', height: 36, borderRadius: 10,
+                  backgroundColor: COLOR, border: 'none', borderBottom: `3px solid ${COLOR_DARK}`,
+                  color: '#fff', fontWeight: 800, fontSize: 13,
+                  cursor: 'pointer', flexShrink: 0,
+                }}
+              >
+                <Plus size={15} />
+                <span className="hidden sm:inline">Add Meal To Planner</span>
+              </motion.button>
             </div>
 
             {/* Mobile: today hero card */}
@@ -1498,22 +1497,6 @@ export default function MealsPage() {
                   })}
                 </div>
 
-                {/* Desktop empty state (only when truly no slots planned) */}
-                {slots.length === 0 && (
-                  <div className="hidden sm:flex" style={{
-                    marginTop: 8, backgroundColor: 'var(--roost-surface)', border: '2px dashed var(--roost-border)',
-                    borderBottom: '4px dashed var(--roost-border-bottom)', borderRadius: 16,
-                    flexDirection: 'column', alignItems: 'center', gap: 10, textAlign: 'center', padding: '32px 24px',
-                  }}>
-                    <div style={{ width: 52, height: 52, borderRadius: 14, backgroundColor: 'var(--roost-surface)', border: '1.5px solid var(--roost-border)', borderBottom: `4px solid ${COLOR}`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      <UtensilsCrossed size={24} color={COLOR} />
-                    </div>
-                    <p style={{ margin: 0, fontWeight: 800, fontSize: 16, color: 'var(--roost-text-primary)' }}>Dinner TBD.</p>
-                    <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: 'var(--roost-text-secondary)' }}>
-                      No meals planned. The household is winging it tonight.
-                    </p>
-                  </div>
-                )}
               </>
             )}
           </>
@@ -1880,15 +1863,6 @@ export default function MealsPage() {
         )}
       </motion.div>
 
-      {/* FAB (planner tab, mobile only) */}
-      {tab === 'planner' && (
-        <motion.button whileTap={{ y: 2 }} type="button"
-          onClick={() => setSuggestOpen(true)}
-          className="md:hidden"
-          style={{ position: 'fixed', bottom: 80, right: 20, width: 56, height: 56, borderRadius: 18, backgroundColor: COLOR, border: 'none', borderBottom: `4px solid ${COLOR_DARK}`, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', boxShadow: '0 4px 16px rgba(0,0,0,0.15)', zIndex: 40 }}>
-          <Plus size={24} color="#fff" />
-        </motion.button>
-      )}
 
       <MealSheet open={mealSheetOpen} onClose={() => { setMealSheetOpen(false); setEditMeal(null) }} meal={editMeal}
         onSaved={() => qc.invalidateQueries({ queryKey: ['meals'] })} />

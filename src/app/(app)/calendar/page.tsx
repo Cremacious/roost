@@ -407,8 +407,10 @@ export default function CalendarPage() {
             </div>
           </div>
         ) : (
-          // Agenda view (desktop)
-          <AgendaList groups={agendaGroups} onEditEvent={e => openEventSheet(e)} />
+          // Agenda view (desktop) — constrained to match other pages
+          <div style={{ maxWidth: 768, margin: '0 auto' }}>
+            <AgendaList groups={agendaGroups} onEditEvent={e => openEventSheet(e)} />
+          </div>
         )}
       </div>
 

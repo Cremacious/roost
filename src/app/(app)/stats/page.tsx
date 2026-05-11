@@ -32,7 +32,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 function PageContainer({ children }: { children: React.ReactNode }) {
   return (
-    <div style={{ maxWidth: 896, margin: '0 auto', width: '100%', padding: '0 16px' }}>
+    <div style={{ maxWidth: 768, margin: '0 auto', width: '100%', padding: '0 16px' }}>
       {children}
     </div>
   );

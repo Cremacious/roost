@@ -967,7 +967,7 @@ export default function ChoresPage() {
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.18 }}
-      style={{ maxWidth: 896, margin: '0 auto', padding: '0 0 80px' }}
+      style={{ maxWidth: 768, margin: '0 auto', padding: '0 0 80px' }}
     >
       {/* ── Header ── */}
       <div

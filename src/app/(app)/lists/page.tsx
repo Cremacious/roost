@@ -1139,6 +1139,9 @@ export default function FoodPage() {
       <div
         style={{
           padding: 16,
+          maxWidth: 768,
+          margin: '0 auto',
+          width: '100%',
           display: 'flex',
           flexDirection: 'column',
           gap: 10,
@@ -1179,11 +1182,14 @@ export default function FoodPage() {
       style={{
         display: 'flex',
         flexDirection: 'column',
-        backgroundColor: '#fff',
+        backgroundColor: '#F9FAFB',
+        maxWidth: 768,
+        margin: '0 auto',
+        width: '100%',
       }}
     >
       {/* ── Page header ── */}
-      <div style={{ backgroundColor: '#fff' }}>
+      <div style={{ backgroundColor: '#F9FAFB' }}>
         {/* Mobile header */}
         <div
           className="flex md:hidden"
@@ -1338,7 +1344,7 @@ export default function FoodPage() {
       {/* ── List tabs bar ── */}
       <div
         style={{
-          backgroundColor: '#fff',
+          backgroundColor: '#F9FAFB',
           padding: '0 16px',
           display: 'flex',
           alignItems: 'center',
@@ -1434,7 +1440,7 @@ export default function FoodPage() {
 
       {/* New list form */}
       {addingList && (
-        <div style={{ padding: '8px 16px', backgroundColor: '#fff' }}>
+        <div style={{ padding: '8px 16px', backgroundColor: '#F9FAFB' }}>
           <NewListForm
             onSave={(name) => createListMutation.mutate(name)}
             onCancel={() => setAddingList(false)}
@@ -2064,7 +2070,7 @@ export default function FoodPage() {
           style={{
             width: 264,
             flexShrink: 0,
-            backgroundColor: '#fff',
+            backgroundColor: '#F9FAFB',
             flexDirection: 'column',
             gap: 20,
             padding: '20px 18px',

@@ -1576,7 +1576,7 @@ export default function MoneyPage() {
               onTabChange={setTab}
             />
           ) : (
-            <div style={{ maxWidth: 896, margin: '0 auto' }}>
+            <div style={{ maxWidth: 768, margin: '0 auto' }}>
               {tab === 'expenses' && (
                 <ExpensesTab
                   currentUserId={currentUserId}

@@ -608,7 +608,7 @@ export default function TasksPage() {
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.18 }}
-        style={{ padding: '20px 16px 100px', maxWidth: 640, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 16 }}
+        style={{ padding: '20px 16px 100px', maxWidth: 768, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 16 }}
       >
         {/* Header */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>

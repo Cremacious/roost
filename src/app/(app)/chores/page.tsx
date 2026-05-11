@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo, type ReactNode } from 'react'
+import { useState, useMemo } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Plus, Trophy, Gift, ChevronDown, ChevronUp, Check, Clock, AlertCircle } from 'lucide-react'
@@ -10,6 +10,7 @@ import { useRouter } from 'next/navigation'
 import { SECTION_COLORS } from '@/lib/constants/colors'
 import ChoreSheet, { type ChoreData } from '@/components/chores/ChoreSheet'
 import LeaderboardSheet from '@/components/chores/LeaderboardSheet'
+import { SectionGroup } from '@/components/shared/SectionGroup'
 
 const COLOR = SECTION_COLORS.chores.base
 const COLOR_DARK = SECTION_COLORS.chores.dark
@@ -426,80 +427,6 @@ function SnoozedChoreRow({
 }
 
 // Section slab card wrapping a group of chore rows
-function SectionCard({
-  label,
-  count,
-  headerColor,
-  slabColor,
-  collapsed,
-  onToggle,
-  children,
-}: {
-  label: string
-  count: number
-  headerColor: string
-  slabColor: string
-  collapsed?: boolean
-  onToggle?: () => void
-  children: ReactNode
-}) {
-  return (
-    <div
-      style={{
-        backgroundColor: 'var(--roost-surface)',
-        border: '1.5px solid var(--roost-border)',
-        borderBottom: `4px solid ${slabColor}`,
-        borderRadius: 16,
-        overflow: 'hidden',
-      }}
-    >
-      {/* Section header */}
-      <button
-        type="button"
-        onClick={onToggle}
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: 8,
-          padding: '12px 14px 10px',
-          width: '100%',
-          background: 'none',
-          border: 'none',
-          cursor: onToggle ? 'pointer' : 'default',
-          borderBottom: '1px solid var(--roost-border)',
-        }}
-      >
-        <span style={{ fontSize: 12, fontWeight: 800, color: headerColor, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-          {label}
-        </span>
-        <span
-          style={{
-            fontSize: 11,
-            fontWeight: 800,
-            color: '#fff',
-            backgroundColor: headerColor,
-            borderRadius: 20,
-            padding: '1px 7px',
-            minWidth: 20,
-            textAlign: 'center',
-          }}
-        >
-          {count}
-        </span>
-        {onToggle && (
-          <span style={{ marginLeft: 'auto', color: 'var(--roost-text-muted)' }}>
-            {collapsed ? <ChevronDown size={15} /> : <ChevronUp size={15} />}
-          </span>
-        )}
-      </button>
-
-      {/* Children (chore rows) */}
-      <div style={{ display: 'flex', flexDirection: 'column' }}>
-        {children}
-      </div>
-    </div>
-  )
-}
 
 // Row divider between chores inside a card
 function RowDivider() {
@@ -857,52 +784,52 @@ export default function ChoresPage() {
       {/* Overdue */}
       {groups.overdue.length > 0 && (
         <motion.div key="overdue" layout initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.15 }}>
-          <SectionCard label="Overdue" count={groups.overdue.length} headerColor="#EF4444" slabColor="#C93B3B">
+          <SectionGroup label="Overdue" count={groups.overdue.length} color="#EF4444" slabColor="#C93B3B">
             {groups.overdue.map((chore, i) => (
               <div key={chore.id}>
                 {i > 0 && <RowDivider />}
                 <ChoreRow {...makeChoreRowProps(chore)} />
               </div>
             ))}
-          </SectionCard>
+          </SectionGroup>
         </motion.div>
       )}
 
       {/* Due today */}
       {groups.today.length > 0 && (
         <motion.div key="today" layout initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.15, delay: 0.04 }}>
-          <SectionCard label="Due today" count={groups.today.length} headerColor={COLOR} slabColor={COLOR_DARK}>
+          <SectionGroup label="Due today" count={groups.today.length} color={COLOR} slabColor={COLOR_DARK}>
             {groups.today.map((chore, i) => (
               <div key={chore.id}>
                 {i > 0 && <RowDivider />}
                 <ChoreRow {...makeChoreRowProps(chore)} />
               </div>
             ))}
-          </SectionCard>
+          </SectionGroup>
         </motion.div>
       )}
 
       {/* Upcoming */}
       {groups.upcoming.length > 0 && (
         <motion.div key="upcoming" layout initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.15, delay: 0.08 }}>
-          <SectionCard label="Upcoming" count={groups.upcoming.length} headerColor="var(--roost-text-secondary)" slabColor="var(--roost-border-bottom)">
+          <SectionGroup label="Upcoming" count={groups.upcoming.length} color="var(--roost-text-secondary)" slabColor="var(--roost-border-bottom)">
             {groups.upcoming.map((chore, i) => (
               <div key={chore.id}>
                 {i > 0 && <RowDivider />}
                 <ChoreRow {...makeChoreRowProps(chore)} />
               </div>
             ))}
-          </SectionCard>
+          </SectionGroup>
         </motion.div>
       )}
 
       {/* Snoozed */}
       {groups.snoozed.length > 0 && (
         <motion.div key="snoozed" layout initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.15, delay: 0.12 }}>
-          <SectionCard
+          <SectionGroup
             label="Snoozed"
             count={groups.snoozed.length}
-            headerColor={SNOOZE_COLOR}
+            color={SNOOZE_COLOR}
             slabColor={SNOOZE_DARK}
             collapsed={!snoozedExpanded}
             onToggle={() => setSnoozedExpanded(v => !v)}
@@ -921,17 +848,17 @@ export default function ChoresPage() {
                 </motion.div>
               ))}
             </AnimatePresence>
-          </SectionCard>
+          </SectionGroup>
         </motion.div>
       )}
 
       {/* Done today */}
       {groups.done.length > 0 && (
         <motion.div key="done" layout initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.15, delay: 0.16 }}>
-          <SectionCard
+          <SectionGroup
             label="Done today"
             count={groups.done.length}
-            headerColor="#22C55E"
+            color="#22C55E"
             slabColor="#15803D"
             collapsed={!doneExpanded}
             onToggle={() => setDoneExpanded(v => !v)}
@@ -956,7 +883,7 @@ export default function ChoresPage() {
                 </motion.div>
               ))}
             </AnimatePresence>
-          </SectionCard>
+          </SectionGroup>
         </motion.div>
       )}
     </AnimatePresence>

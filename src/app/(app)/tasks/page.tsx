@@ -4,6 +4,7 @@ import { useState, useMemo } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Settings2, MessageSquare, UserPlus, CheckCircle2, Circle, Pencil, Trash2, ChevronDown, ChevronUp } from 'lucide-react'
+import { SectionGroup } from '@/components/shared/SectionGroup'
 import { toast } from 'sonner'
 import { useSession } from '@/lib/auth/client'
 import { SECTION_COLORS } from '@/lib/constants/colors'
@@ -111,33 +112,6 @@ function Avatar({ name, color, size = 24 }: { name: string; color: string | null
   )
 }
 
-function SectionHeader({
-  label, count, color, collapsed, onToggle,
-}: { label: string; count: number; color: string; collapsed?: boolean; onToggle?: () => void }) {
-  return (
-    <button
-      type="button"
-      onClick={onToggle}
-      style={{
-        display: 'flex', alignItems: 'center', gap: 8,
-        background: 'none', border: 'none', cursor: onToggle ? 'pointer' : 'default',
-        padding: '4px 0', width: '100%',
-      }}
-    >
-      <span style={{ fontSize: 12, fontWeight: 800, color, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-        {label}
-      </span>
-      <span style={{ fontSize: 11, fontWeight: 800, color: '#fff', backgroundColor: color, borderRadius: 20, padding: '1px 7px' }}>
-        {count}
-      </span>
-      {onToggle && (
-        <span style={{ marginLeft: 'auto', color }}>
-          {collapsed ? <ChevronDown size={14} /> : <ChevronUp size={14} />}
-        </span>
-      )}
-    </button>
-  )
-}
 
 function TaskRow({
   task, currentUserId, isAdmin, isChild,
@@ -547,34 +521,29 @@ export default function TasksPage() {
   function renderGroup(tasks: Task[], label: string, color: string, opts?: { collapsed?: boolean; onToggle?: () => void }) {
     if (tasks.length === 0) return null
     return (
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-        <SectionHeader label={label} count={tasks.length} color={color} {...opts} />
-        {!opts?.collapsed && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            {tasks.map((task, i) => (
-              <motion.div
-                key={task.id}
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: Math.min(i * 0.04, 0.2), duration: 0.15 }}
-              >
-                <TaskRow
-                  task={task}
-                  currentUserId={currentUserId}
-                  isAdmin={isAdmin}
-                  isChild={isChild}
-                  onComplete={id => completeMutation.mutate(id)}
-                  onUncheck={id => uncheckMutation.mutate(id)}
-                  onEdit={openEdit}
-                  onDelete={id => deleteMutation.mutate(id)}
-                  onDelegate={t => setDelegateTask(t)}
-                  onComment={t => setCommentTask(t)}
-                />
-              </motion.div>
-            ))}
-          </div>
-        )}
-      </div>
+      <SectionGroup label={label} count={tasks.length} color={color} variant="list" {...opts}>
+        {tasks.map((task, i) => (
+          <motion.div
+            key={task.id}
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: Math.min(i * 0.04, 0.2), duration: 0.15 }}
+          >
+            <TaskRow
+              task={task}
+              currentUserId={currentUserId}
+              isAdmin={isAdmin}
+              isChild={isChild}
+              onComplete={id => completeMutation.mutate(id)}
+              onUncheck={id => uncheckMutation.mutate(id)}
+              onEdit={openEdit}
+              onDelete={id => deleteMutation.mutate(id)}
+              onDelegate={t => setDelegateTask(t)}
+              onComment={t => setCommentTask(t)}
+            />
+          </motion.div>
+        ))}
+      </SectionGroup>
     )
   }
 

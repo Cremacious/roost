@@ -1532,7 +1532,7 @@ export default function MoneyPage() {
         style={{ backgroundColor: '#F9FAFB', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 24px 10px' }}
       >
         <div>
-          <h1 style={{ margin: 0, fontWeight: 900, fontSize: 24, color: 'var(--roost-text-primary)', letterSpacing: '-0.5px', lineHeight: 1 }}>Money</h1>
+          <h1 style={{ margin: 0, fontWeight: 900, fontSize: 26, color: 'var(--roost-text-primary)', letterSpacing: '-0.3px', lineHeight: 1 }}>Money</h1>
           <p style={{ margin: '3px 0 0', fontSize: 13, fontWeight: 600, color: 'var(--roost-text-secondary)' }}>Expenses, bills and goals</p>
         </div>
         <button

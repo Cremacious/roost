@@ -1189,155 +1189,47 @@ export default function FoodPage() {
       }}
     >
       {/* ── Page header ── */}
-      <div style={{ backgroundColor: '#F9FAFB' }}>
-        {/* Mobile header */}
-        <div
-          className="flex md:hidden"
-          style={{ alignItems: 'center', gap: 10, padding: '16px 16px 12px' }}
-        >
-          <div
+      <div style={{ backgroundColor: '#F9FAFB', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 16px 12px' }}>
+        <div>
+          <h1 style={{ margin: 0, fontWeight: 900, fontSize: 26, color: 'var(--roost-text-primary)', letterSpacing: '-0.3px' }}>
+            Grocery
+          </h1>
+          <p style={{ margin: '2px 0 0', fontSize: 13, fontWeight: 600, color: 'var(--roost-text-muted)' }}>
+            {unchecked.length} {unchecked.length === 1 ? 'item' : 'items'}
+          </p>
+        </div>
+        <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
+          <motion.button
+            type="button"
+            whileTap={{ y: 1 }}
+            onClick={() => setSortMode((m) => (m === 'smart' ? 'newest' : 'smart'))}
+            title={sortMode === 'smart' ? 'Switch to newest' : 'Switch to smart sort'}
             style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 10,
-              flex: 1,
-              minWidth: 0,
+              width: 40, height: 40, borderRadius: 12,
+              border: '1.5px solid var(--roost-border)',
+              borderBottom: '3px solid var(--roost-border-bottom)',
+              backgroundColor: 'var(--roost-surface)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              cursor: 'pointer', flexShrink: 0,
             }}
           >
-            <div
-              style={{
-                width: 36,
-                height: 36,
-                borderRadius: 10,
-                backgroundColor: COLOR_LIGHT,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                flexShrink: 0,
-              }}
-            >
-              <ShoppingCart size={18} color={COLOR} />
-            </div>
-            <div style={{ minWidth: 0 }}>
-              <h1
-                style={{
-                  fontSize: 20,
-                  fontWeight: 900,
-                  color: 'var(--roost-text-primary)',
-                  margin: 0,
-                  lineHeight: 1.1,
-                }}
-              >
-                Shopping Lists
-              </h1>
-              <p
-                style={{
-                  fontSize: 12,
-                  fontWeight: 600,
-                  color: 'var(--roost-text-muted)',
-                  margin: 0,
-                }}
-              >
-                {lists.length} {lists.length === 1 ? 'list' : 'lists'} ·{' '}
-                {totalItems} items total
-              </p>
-            </div>
-          </div>
-          <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
-            <button
-              type="button"
-              onClick={() =>
-                setSortMode((m) => (m === 'smart' ? 'newest' : 'smart'))
-              }
-              title={
-                sortMode === 'smart'
-                  ? 'Switch to newest'
-                  : 'Switch to smart sort'
-              }
-              style={{
-                width: 36,
-                height: 36,
-                borderRadius: 10,
-                border: '1.5px solid var(--roost-border)',
-                borderBottom: '3px solid var(--roost-border-bottom)',
-                backgroundColor: 'var(--roost-surface)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                cursor: 'pointer',
-              }}
-            >
-              <ArrowUpDown size={16} color="var(--roost-text-muted)" />
-            </button>
-            <button
-              type="button"
-              onClick={() => inputRef.current?.focus()}
-              style={{
-                width: 36,
-                height: 36,
-                borderRadius: 10,
-                border: `1.5px solid ${COLOR}`,
-                borderBottom: `3px solid ${COLOR_DARK}`,
-                backgroundColor: COLOR,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                cursor: 'pointer',
-              }}
-            >
-              <Plus size={16} color="white" />
-            </button>
-          </div>
-        </div>
-
-        {/* Desktop header */}
-        <div
-          className="hidden md:flex"
-          style={{
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            padding: '0 28px',
-            height: 60,
-            gap: 16,
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <div
-              style={{
-                width: 38,
-                height: 38,
-                borderRadius: 11,
-                backgroundColor: COLOR_LIGHT,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                flexShrink: 0,
-              }}
-            >
-              <ShoppingCart size={18} color={COLOR} />
-            </div>
-            <div>
-              <div
-                style={{
-                  fontSize: 20,
-                  fontWeight: 900,
-                  color: 'var(--roost-text-primary)',
-                }}
-              >
-                Shopping Lists
-              </div>
-              <div
-                style={{
-                  fontSize: 12,
-                  fontWeight: 600,
-                  color: 'var(--roost-text-muted)',
-                }}
-              >
-                {lists.length} {lists.length === 1 ? 'list' : 'lists'} ·{' '}
-                {totalItems} items total
-              </div>
-            </div>
-          </div>
+            <ArrowUpDown size={16} color="var(--roost-text-muted)" />
+          </motion.button>
+          <motion.button
+            type="button"
+            whileTap={{ y: 1 }}
+            onClick={() => inputRef.current?.focus()}
+            style={{
+              width: 40, height: 40, borderRadius: 12,
+              border: `1.5px solid ${COLOR}`,
+              borderBottom: `3px solid ${COLOR_DARK}`,
+              backgroundColor: COLOR,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              cursor: 'pointer', flexShrink: 0,
+            }}
+          >
+            <Plus size={18} color="white" />
+          </motion.button>
         </div>
       </div>
 

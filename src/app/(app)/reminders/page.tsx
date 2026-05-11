@@ -3,7 +3,8 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Plus, Bell, Pencil, Trash2, Check, ChevronDown, ChevronUp, Clock } from 'lucide-react'
+import { Plus, Bell, Pencil, Trash2, Check, Clock } from 'lucide-react'
+import { SectionGroup } from '@/components/shared/SectionGroup'
 import { toast } from 'sonner'
 import { useSession } from '@/lib/auth/client'
 import { SECTION_COLORS } from '@/lib/constants/colors'
@@ -109,15 +110,6 @@ function ReminderRow({ reminder, canModify, onComplete, onUndo, onEdit, onDelete
   )
 }
 
-function SectionHeader({ label, count, color, collapsed, onToggle }: { label: string; count: number; color: string; collapsed?: boolean; onToggle?: () => void }) {
-  return (
-    <button type="button" onClick={onToggle} style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'none', border: 'none', cursor: onToggle ? 'pointer' : 'default', padding: '4px 0', width: '100%' }}>
-      <span style={{ fontSize: 12, fontWeight: 800, color, textTransform: 'uppercase', letterSpacing: '0.06em' }}>{label}</span>
-      <span style={{ fontSize: 11, fontWeight: 800, color: '#fff', backgroundColor: color, borderRadius: 20, padding: '1px 7px' }}>{count}</span>
-      {onToggle && <span style={{ marginLeft: 'auto', color }}>{collapsed ? <ChevronDown size={14} /> : <ChevronUp size={14} />}</span>}
-    </button>
-  )
-}
 
 export default function RemindersPage() {
   const { data: session } = useSession()
@@ -210,9 +202,8 @@ export default function RemindersPage() {
   function renderGroup(items: Reminder[], label: string, color: string, opts?: { collapsed?: boolean; onToggle?: () => void }) {
     if (items.length === 0) return null
     return (
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-        <SectionHeader label={label} count={items.length} color={color} {...opts} />
-        {!opts?.collapsed && items.map((r, i) => (
+      <SectionGroup label={label} count={items.length} color={color} variant="list" {...opts}>
+        {items.map((r, i) => (
           <motion.div key={r.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: Math.min(i * 0.04, 0.2), duration: 0.15 }}>
             <ReminderRow
               reminder={r}
@@ -224,7 +215,7 @@ export default function RemindersPage() {
             />
           </motion.div>
         ))}
-      </div>
+      </SectionGroup>
     )
   }
 

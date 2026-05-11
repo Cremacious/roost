@@ -206,9 +206,14 @@ export default function CalendarPage() {
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <p style={{ color: 'var(--roost-text-primary)', fontWeight: 900, fontSize: 22 }}>
-            Calendar
-          </p>
+          <div>
+            <p style={{ color: 'var(--roost-text-primary)', fontWeight: 900, fontSize: 26, letterSpacing: '-0.3px' }}>
+              Calendar
+            </p>
+            <p style={{ color: 'var(--roost-text-muted)', fontWeight: 600, fontSize: 13, marginTop: 2 }}>
+              {events.length} active
+            </p>
+          </div>
           {/* Month/Agenda toggle (desktop) */}
           <div
             className="hidden md:flex"

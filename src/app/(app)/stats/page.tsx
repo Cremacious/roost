@@ -256,10 +256,10 @@ export default function StatsPage() {
       <PageContainer>
         <div className="py-6">
           <div className="mb-6">
-            <h1 className="text-2xl" style={{ color: "var(--roost-text-primary)", fontWeight: 900 }}>
+            <h1 style={{ color: "var(--roost-text-primary)", fontWeight: 900, fontSize: 26, letterSpacing: '-0.3px', margin: 0 }}>
               Household Stats
             </h1>
-            <p className="mt-1 text-sm" style={{ color: "var(--roost-text-muted)", fontWeight: 600 }}>
+            <p className="mt-1" style={{ color: "var(--roost-text-muted)", fontWeight: 600, fontSize: 13 }}>
               Powered by your household data.
             </p>
           </div>
@@ -315,10 +315,10 @@ export default function StatsPage() {
       >
         {/* Header */}
         <div>
-          <h1 className="text-2xl" style={{ color: "var(--roost-text-primary)", fontWeight: 900 }}>
+          <h1 style={{ color: "var(--roost-text-primary)", fontWeight: 900, fontSize: 26, letterSpacing: '-0.3px', margin: 0 }}>
             Household Stats
           </h1>
-          <p className="mt-1 text-sm" style={{ color: "var(--roost-text-muted)", fontWeight: 600 }}>
+          <p className="mt-1" style={{ color: "var(--roost-text-muted)", fontWeight: 600, fontSize: 13 }}>
             Powered by your household data.
           </p>
         </div>

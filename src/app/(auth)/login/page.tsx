@@ -120,7 +120,7 @@ function LoginForm() {
         {/* Brand block */}
         <div style={{ textAlign: 'center' }}>
           <RoostLogo size="lg" wordmarkColor="#fff" />
-          <p style={{ color: 'rgba(255,255,255,0.75)', fontWeight: 700, fontSize: 'clamp(14px, 1.2vw, 17px)', marginTop: 12, margin: '12px 0 0' }}>Home, sorted.</p>
+          <p style={{ color: 'rgba(255,255,255,0.75)', fontWeight: 700, fontSize: 'clamp(14px, 1.2vw, 17px)', marginTop: 12, margin: '12px 0 0' }}>One App, No Excuses.</p>
         </div>
 
         {/* Feature list */}

@@ -1525,11 +1525,11 @@ export default function MoneyPage() {
   const currentUserId = sessionQuery.data?.id ?? ''
 
   return (
-    <div>
+    <div style={{ maxWidth: 900, margin: '0 auto' }}>
       {/* ── Page title (non-sticky, flows naturally below TopBar) ── */}
       <div
         className="px-6 md:px-7"
-        style={{ backgroundColor: 'var(--roost-surface)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 24px 10px' }}
+        style={{ backgroundColor: '#F9FAFB', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 24px 10px' }}
       >
         <div>
           <h1 style={{ margin: 0, fontWeight: 900, fontSize: 24, color: 'var(--roost-text-primary)', letterSpacing: '-0.5px', lineHeight: 1 }}>Money</h1>
@@ -1553,7 +1553,7 @@ export default function MoneyPage() {
       {/* ── Tab strip (sticky — sticks below TopBar when title scrolls away) ── */}
       <div
         className="sticky top-14 z-10 px-6 md:px-7"
-        style={{ backgroundColor: 'var(--roost-surface)', borderBottom: '1.5px solid var(--roost-border)' }}
+        style={{ backgroundColor: '#F9FAFB', borderBottom: '1.5px solid var(--roost-border)' }}
       >
         <div style={{ display: 'flex', gap: 6, padding: '8px 0 12px', overflowX: 'auto', scrollbarWidth: 'none' as any }}>
           {TABS.map(t => (
@@ -1565,8 +1565,7 @@ export default function MoneyPage() {
       {/* ── Tab content ── */}
       <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.18 }}>
         <div className="px-6 md:px-7" style={{ paddingTop: 24, paddingBottom: 40 }}>
-          {/* Dashboard is full-width, other tabs are max-w constrained */}
-          {tab === 'dashboard' ? (
+          {tab === 'dashboard' && (
             <DashboardTab
               currentUserId={currentUserId}
               members={members}
@@ -1575,31 +1574,28 @@ export default function MoneyPage() {
               onOpenSettle={setSettleDebt}
               onTabChange={setTab}
             />
-          ) : (
-            <div style={{ maxWidth: 768, margin: '0 auto' }}>
-              {tab === 'expenses' && (
-                <ExpensesTab
-                  currentUserId={currentUserId}
-                  members={members}
-                  isPremium={isPremium}
-                  onOpenExpense={() => setExpenseSheetOpen(true)}
-                  onOpenSettle={setSettleDebt}
-                />
-              )}
-              {tab === 'bills' && <BillsTab isPremium={isPremium} isAdmin={isAdmin} currentUserId={currentUserId} onAddBill={() => setBillSheetOpen(true)} />}
-              {tab === 'budget' && <BudgetTab isPremium={isPremium} isAdmin={isAdmin} onAddBudget={() => setBudgetSheetOpen(true)} onEditBudget={(b) => { setEditingBudget(b); setBudgetSheetOpen(true) }} />}
-              {tab === 'goals' && (
-                <GoalsTab
-                  isPremium={isPremium}
-                  isAdmin={isAdmin}
-                  onNewGoal={() => { setEditingGoal(null); setGoalSheetOpen(true) }}
-                  onEditGoal={(g) => { setEditingGoal(g); setGoalSheetOpen(true) }}
-                  onContribute={setContributeGoal}
-                />
-              )}
-              {tab === 'insights' && <InsightsTab isPremium={isPremium} />}
-            </div>
           )}
+          {tab === 'expenses' && (
+            <ExpensesTab
+              currentUserId={currentUserId}
+              members={members}
+              isPremium={isPremium}
+              onOpenExpense={() => setExpenseSheetOpen(true)}
+              onOpenSettle={setSettleDebt}
+            />
+          )}
+          {tab === 'bills' && <BillsTab isPremium={isPremium} isAdmin={isAdmin} currentUserId={currentUserId} onAddBill={() => setBillSheetOpen(true)} />}
+          {tab === 'budget' && <BudgetTab isPremium={isPremium} isAdmin={isAdmin} onAddBudget={() => setBudgetSheetOpen(true)} onEditBudget={(b) => { setEditingBudget(b); setBudgetSheetOpen(true) }} />}
+          {tab === 'goals' && (
+            <GoalsTab
+              isPremium={isPremium}
+              isAdmin={isAdmin}
+              onNewGoal={() => { setEditingGoal(null); setGoalSheetOpen(true) }}
+              onEditGoal={(g) => { setEditingGoal(g); setGoalSheetOpen(true) }}
+              onContribute={setContributeGoal}
+            />
+          )}
+          {tab === 'insights' && <InsightsTab isPremium={isPremium} />}
         </div>
       </motion.div>
 

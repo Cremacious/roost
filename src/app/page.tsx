@@ -110,13 +110,13 @@ export default async function HomePage() {
         /* ── Hero ──────────────────────────────────────────────── */
         .hero {
           background: var(--red);
-          min-height: 100vh;
+          min-height: 82vh;
           display: flex;
           flex-direction: column;
           align-items: center;
           justify-content: center;
           text-align: center;
-          padding: 0 24px 60px;
+          padding: 0 24px 20px;
           position: relative;
           overflow: hidden;
         }
@@ -132,20 +132,29 @@ export default async function HomePage() {
         .hero-logo {
           width: 120px !important;
           height: 120px !important;
-          margin-bottom: 32px;
+          margin-bottom: 20px;
           border-radius: 28px;
           filter: drop-shadow(0 4px 24px rgba(0,0,0,0.15));
           animation: logoFloat 3s ease-in-out infinite;
+        }
+        .hero-brand {
+          font-size: clamp(48px, 8vw, 80px);
+          font-weight: 900;
+          color: var(--white);
+          letter-spacing: -2px;
+          line-height: 1;
+          margin-bottom: 12px;
+          text-shadow: 0 2px 20px rgba(0,0,0,0.1);
         }
         @keyframes logoFloat {
           0%, 100% { transform: translateY(0); }
           50% { transform: translateY(-8px); }
         }
         .hero h1 {
-          font-size: clamp(40px, 7vw, 72px);
-          font-weight: 900;
-          color: var(--white);
-          letter-spacing: -1.5px;
+          font-size: clamp(20px, 3.5vw, 32px);
+          font-weight: 800;
+          color: rgba(255,255,255,0.85);
+          letter-spacing: 0.01em;
           line-height: 1.05;
           margin-bottom: 16px;
           text-shadow: 0 2px 20px rgba(0,0,0,0.1);
@@ -203,21 +212,9 @@ export default async function HomePage() {
           background: rgba(255,255,255,0.1);
           border-color: rgba(255,255,255,0.7);
         }
-        .hero-scroll {
-          position: absolute;
-          bottom: 28px;
-          left: 50%;
-          transform: translateX(-50%);
-          animation: bounce 2s infinite;
-        }
-        @keyframes bounce {
-          0%, 100% { transform: translateX(-50%) translateY(0); }
-          50% { transform: translateX(-50%) translateY(8px); }
-        }
-        .hero-scroll svg { opacity: 0.6; }
 
         /* ── Section utility ───────────────────────────────────── */
-        .section { padding: 100px 24px; }
+        .section { padding: 64px 24px; }
         .section-inner { max-width: 1100px; margin: 0 auto; }
         .section-kicker {
           font-size: 12px;
@@ -243,7 +240,7 @@ export default async function HomePage() {
           color: var(--gray-500);
           text-align: center;
           max-width: 560px;
-          margin: 0 auto 56px;
+          margin: 0 auto 40px;
           line-height: 1.6;
         }
 
@@ -635,9 +632,9 @@ export default async function HomePage() {
         .comp-table td:first-child { text-align: left; }
         .comp-table td.roost-col { background: rgba(239,68,68,0.03); }
         .comp-table tr:last-child td { border-bottom: none; }
-        .check { color: var(--green); font-weight: 800; }
-        .cross { color: var(--red); font-weight: 600; }
-        .partial { color: var(--gray-400); font-weight: 600; }
+        .comp-table .check { color: #22C55E; font-weight: 800; }
+        .comp-table .cross { color: #F87171; font-weight: 600; }
+        .comp-table .partial { color: var(--gray-400); font-weight: 600; }
 
         /* ── FAQ ───────────────────────────────────────────────── */
         .faq-section { background: var(--white); }
@@ -685,7 +682,7 @@ export default async function HomePage() {
         /* ── Bottom CTA ────────────────────────────────────────── */
         .bottom-cta {
           background: var(--red);
-          padding: 100px 24px;
+          padding: 80px 24px;
           text-align: center;
           position: relative;
         }
@@ -730,7 +727,7 @@ export default async function HomePage() {
 
         /* ── Mobile ────────────────────────────────────────────── */
         @media (max-width: 768px) {
-          .section { padding: 72px 20px; }
+          .section { padding: 48px 20px; }
           .feature-row {
             grid-template-columns: 1fr;
             gap: 32px;
@@ -759,168 +756,25 @@ export default async function HomePage() {
           priority
         />
 
+        <p className="hero-brand">Roost</p>
         <h1>One App. No Excuses.</h1>
-        <p className="hero-sub">Chores, groceries, meals, bills, calendar, reminders — your entire household in one place. Finally.</p>
+        <p className="hero-sub">Chores, groceries, meals, bills, calendar, reminders. Your entire household in one place.</p>
 
         <div className="hero-btns">
           <Link href="/signup" className="btn-white">Get started free</Link>
           <Link href="/login" className="btn-outline">Sign in</Link>
         </div>
 
-        <div className="hero-scroll">
-          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round">
-            <path d="M12 5v14M5 12l7 7 7-7"/>
-          </svg>
-        </div>
+
       </section>
 
       {/* 2. FEATURES */}
       <section className="section features">
         <div className="section-inner">
-          <p className="section-kicker reveal">Everything your house needs</p>
-          <h2 className="section-heading reveal stagger-1">One app that actually does it all.</h2>
+          <h2 className="section-heading reveal">One app that actually does it all.</h2>
           <p className="section-desc reveal stagger-2">No half-baked features. No upgrade to unlock basic stuff. Roost handles the real, messy, beautiful chaos of sharing a home.</p>
 
-          {/* ROW 1: Chores */}
-          <div className="feature-row">
-            <div className="feature-text reveal-left">
-              <span className="feature-label" style={{ background: 'var(--red-light)', color: 'var(--red)' }}>Chores + Rewards</span>
-              <h3>Chores that actually get done</h3>
-              <p>Assign tasks, track who is pulling their weight, and let kids earn real rewards. Streaks, leaderboards, and a gentle nudge system that means you are not the one nagging. Again.</p>
-              <div className="feature-bonus" style={{ color: 'var(--red)' }}>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round">
-                  <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
-                </svg>
-                Kids earn points toward rewards you set
-              </div>
-            </div>
-            <div className="feature-mockup reveal-right">
-              <div className="mockup-frame" style={{ borderBottomColor: 'var(--red)' }}>
-                <div className="mockup-bar">
-                  <span className="mockup-bar-title">Today&apos;s Chores</span>
-                  <div className="mockup-bar-pills">
-                    <span className="mockup-bar-pill" style={{ background: 'var(--red-light)', color: 'var(--red)' }}>3 left</span>
-                  </div>
-                </div>
-                <div className="mockup-body">
-                  <div className="chore-row">
-                    <div className="chore-check done">
-                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3.5" strokeLinecap="round"><path d="M5 12l5 5L19 7"/></svg>
-                    </div>
-                    <div className="chore-info">
-                      <div className="chore-name struck">Take out trash</div>
-                      <div className="chore-who">Completed by Jake</div>
-                    </div>
-                    <span className="chore-pts">+10 pts</span>
-                  </div>
-                  <div className="chore-row">
-                    <div className="chore-check done">
-                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3.5" strokeLinecap="round"><path d="M5 12l5 5L19 7"/></svg>
-                    </div>
-                    <div className="chore-info">
-                      <div className="chore-name struck">Load dishwasher</div>
-                      <div className="chore-who">Completed by Emma</div>
-                    </div>
-                    <span className="chore-pts">+15 pts</span>
-                  </div>
-                  <div className="chore-row">
-                    <div className="chore-check"></div>
-                    <div className="chore-info">
-                      <div className="chore-name">Vacuum living room</div>
-                      <div className="chore-who">Assigned to Jake</div>
-                    </div>
-                    <span className="chore-pts">+20 pts</span>
-                  </div>
-                  <div className="chore-row">
-                    <div className="chore-check"></div>
-                    <div className="chore-info">
-                      <div className="chore-name">Wipe down counters</div>
-                      <div className="chore-who">Assigned to Emma</div>
-                    </div>
-                    <span className="chore-pts">+10 pts</span>
-                  </div>
-                  <div className="chore-row">
-                    <div className="chore-check"></div>
-                    <div className="chore-info">
-                      <div className="chore-name">Feed the dog</div>
-                      <div className="chore-who">Assigned to Jake</div>
-                    </div>
-                    <span className="chore-pts">+5 pts</span>
-                  </div>
-                  <div className="chore-streak">
-                    <span className="chore-streak-label">Jake: 5-day streak</span>
-                    <div className="chore-streak-bar"><div className="chore-streak-fill"></div></div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* ROW 2: Groceries + Meals */}
-          <div className="feature-row reverse">
-            <div className="feature-text reveal-right">
-              <span className="feature-label" style={{ background: 'var(--amber-light)', color: 'var(--amber)' }}>Groceries + Meals</span>
-              <h3>Meal plan Monday,<br/>grocery list writes itself</h3>
-              <p>Plan the week together, let everyone vote on meals, and push ingredients straight to a shared grocery list with one tap. Items auto-sort by store section so you are not zigzagging every aisle.</p>
-              <div className="feature-bonus" style={{ color: 'var(--orange)' }}>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round">
-                  <path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/>
-                </svg>
-                Recipes saved, reused, and loved by the household
-              </div>
-            </div>
-            <div className="feature-mockup reveal-left">
-              <div className="mockup-frame" style={{ borderBottomColor: 'var(--amber)' }}>
-                <div className="mockup-bar">
-                  <span className="mockup-bar-title">Grocery List</span>
-                  <div className="mockup-bar-pills">
-                    <span className="mockup-bar-pill" style={{ background: 'var(--amber-light)', color: 'var(--amber)' }}>12 items</span>
-                  </div>
-                </div>
-                <div className="mockup-body">
-                  <div className="grocery-section-label">Produce</div>
-                  <div className="grocery-item">
-                    <div className="grocery-dot" style={{ background: 'var(--green)' }}></div>
-                    <span className="grocery-name">Baby spinach</span>
-                    <span className="grocery-qty">1 bag</span>
-                  </div>
-                  <div className="grocery-item">
-                    <div className="grocery-dot" style={{ background: 'var(--green)' }}></div>
-                    <span className="grocery-name">Avocados</span>
-                    <span className="grocery-qty">3</span>
-                  </div>
-                  <div className="grocery-item">
-                    <div className="grocery-dot" style={{ background: 'var(--orange)' }}></div>
-                    <span className="grocery-name">Sweet potatoes</span>
-                    <span className="grocery-qty">2 lbs</span>
-                  </div>
-                  <div className="grocery-section-label">Dairy</div>
-                  <div className="grocery-item">
-                    <div className="grocery-dot" style={{ background: 'var(--blue)' }}></div>
-                    <span className="grocery-name">Greek yogurt</span>
-                    <span className="grocery-qty">32 oz</span>
-                  </div>
-                  <div className="grocery-item">
-                    <div className="grocery-dot" style={{ background: 'var(--blue)' }}></div>
-                    <span className="grocery-name">Shredded mozzarella</span>
-                    <span className="grocery-qty">1 bag</span>
-                  </div>
-                  <div className="grocery-section-label">Meat</div>
-                  <div className="grocery-item">
-                    <div className="grocery-dot" style={{ background: 'var(--red)' }}></div>
-                    <span className="grocery-name">Chicken thighs</span>
-                    <span className="grocery-qty">2 lbs</span>
-                  </div>
-                  <div className="grocery-added">
-                    <div className="grocery-added-avatar">M</div>
-                    <span className="grocery-added-text">Mom added 3 items from Taco Tuesday recipe</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* ROW 3: Expenses */}
+          {/* ROW 1: Money */}
           <div className="feature-row">
             <div className="feature-text reveal-left">
               <span className="feature-label" style={{ background: 'var(--green-light)', color: 'var(--green)' }}>Money</span>
@@ -1032,6 +886,145 @@ export default async function HomePage() {
             </div>
           </div>
 
+          {/* ROW 2: Groceries + Meals */}
+          <div className="feature-row reverse">
+            <div className="feature-text reveal-right">
+              <span className="feature-label" style={{ background: 'var(--amber-light)', color: 'var(--amber)' }}>Groceries + Meals</span>
+              <h3>Meal plan Monday,<br/>grocery list writes itself</h3>
+              <p>Plan the week together, let everyone vote on meals, and push ingredients straight to a shared grocery list with one tap. Items auto-sort by store section so you are not zigzagging every aisle.</p>
+              <div className="feature-bonus" style={{ color: 'var(--orange)' }}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round">
+                  <path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/>
+                </svg>
+                Recipes saved, reused, and loved by the household
+              </div>
+            </div>
+            <div className="feature-mockup reveal-left">
+              <div className="mockup-frame" style={{ borderBottomColor: 'var(--amber)' }}>
+                <div className="mockup-bar">
+                  <span className="mockup-bar-title">Grocery List</span>
+                  <div className="mockup-bar-pills">
+                    <span className="mockup-bar-pill" style={{ background: 'var(--amber-light)', color: 'var(--amber)' }}>12 items</span>
+                  </div>
+                </div>
+                <div className="mockup-body">
+                  <div className="grocery-section-label">Produce</div>
+                  <div className="grocery-item">
+                    <div className="grocery-dot" style={{ background: 'var(--green)' }}></div>
+                    <span className="grocery-name">Baby spinach</span>
+                    <span className="grocery-qty">1 bag</span>
+                  </div>
+                  <div className="grocery-item">
+                    <div className="grocery-dot" style={{ background: 'var(--green)' }}></div>
+                    <span className="grocery-name">Avocados</span>
+                    <span className="grocery-qty">3</span>
+                  </div>
+                  <div className="grocery-item">
+                    <div className="grocery-dot" style={{ background: 'var(--orange)' }}></div>
+                    <span className="grocery-name">Sweet potatoes</span>
+                    <span className="grocery-qty">2 lbs</span>
+                  </div>
+                  <div className="grocery-section-label">Dairy</div>
+                  <div className="grocery-item">
+                    <div className="grocery-dot" style={{ background: 'var(--blue)' }}></div>
+                    <span className="grocery-name">Greek yogurt</span>
+                    <span className="grocery-qty">32 oz</span>
+                  </div>
+                  <div className="grocery-item">
+                    <div className="grocery-dot" style={{ background: 'var(--blue)' }}></div>
+                    <span className="grocery-name">Shredded mozzarella</span>
+                    <span className="grocery-qty">1 bag</span>
+                  </div>
+                  <div className="grocery-section-label">Meat</div>
+                  <div className="grocery-item">
+                    <div className="grocery-dot" style={{ background: 'var(--red)' }}></div>
+                    <span className="grocery-name">Chicken thighs</span>
+                    <span className="grocery-qty">2 lbs</span>
+                  </div>
+                  <div className="grocery-added">
+                    <div className="grocery-added-avatar">M</div>
+                    <span className="grocery-added-text">Mom added 3 items from Taco Tuesday recipe</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* ROW 3: Chores */}
+          <div className="feature-row">
+            <div className="feature-text reveal-left">
+              <span className="feature-label" style={{ background: 'var(--red-light)', color: 'var(--red)' }}>Chores + Rewards</span>
+              <h3>Chores that actually get done</h3>
+              <p>Assign tasks, track who is pulling their weight, and let kids earn real rewards. Streaks, leaderboards, and a gentle nudge system that means you are not the one nagging. Again.</p>
+              <div className="feature-bonus" style={{ color: 'var(--red)' }}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round">
+                  <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                </svg>
+                Kids earn points toward rewards you set
+              </div>
+            </div>
+            <div className="feature-mockup reveal-right">
+              <div className="mockup-frame" style={{ borderBottomColor: 'var(--red)' }}>
+                <div className="mockup-bar">
+                  <span className="mockup-bar-title">Today&apos;s Chores</span>
+                  <div className="mockup-bar-pills">
+                    <span className="mockup-bar-pill" style={{ background: 'var(--red-light)', color: 'var(--red)' }}>3 left</span>
+                  </div>
+                </div>
+                <div className="mockup-body">
+                  <div className="chore-row">
+                    <div className="chore-check done">
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3.5" strokeLinecap="round"><path d="M5 12l5 5L19 7"/></svg>
+                    </div>
+                    <div className="chore-info">
+                      <div className="chore-name struck">Take out trash</div>
+                      <div className="chore-who">Completed by Jake</div>
+                    </div>
+                    <span className="chore-pts">+10 pts</span>
+                  </div>
+                  <div className="chore-row">
+                    <div className="chore-check done">
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3.5" strokeLinecap="round"><path d="M5 12l5 5L19 7"/></svg>
+                    </div>
+                    <div className="chore-info">
+                      <div className="chore-name struck">Load dishwasher</div>
+                      <div className="chore-who">Completed by Emma</div>
+                    </div>
+                    <span className="chore-pts">+15 pts</span>
+                  </div>
+                  <div className="chore-row">
+                    <div className="chore-check"></div>
+                    <div className="chore-info">
+                      <div className="chore-name">Vacuum living room</div>
+                      <div className="chore-who">Assigned to Jake</div>
+                    </div>
+                    <span className="chore-pts">+20 pts</span>
+                  </div>
+                  <div className="chore-row">
+                    <div className="chore-check"></div>
+                    <div className="chore-info">
+                      <div className="chore-name">Wipe down counters</div>
+                      <div className="chore-who">Assigned to Emma</div>
+                    </div>
+                    <span className="chore-pts">+10 pts</span>
+                  </div>
+                  <div className="chore-row">
+                    <div className="chore-check"></div>
+                    <div className="chore-info">
+                      <div className="chore-name">Feed the dog</div>
+                      <div className="chore-who">Assigned to Jake</div>
+                    </div>
+                    <span className="chore-pts">+5 pts</span>
+                  </div>
+                  <div className="chore-streak">
+                    <span className="chore-streak-label">Jake: 5-day streak</span>
+                    <div className="chore-streak-bar"><div className="chore-streak-fill"></div></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
           {/* ROW 4: Calendar */}
           <div className="feature-row reverse">
             <div className="feature-text reveal-right">
@@ -1127,7 +1120,7 @@ export default async function HomePage() {
         <div className="section-inner">
           <p className="section-kicker reveal">Why Roost?</p>
           <h2 className="section-heading reveal stagger-1">Everything they don&apos;t have.<br/>Nothing you don&apos;t need.</h2>
-          <p className="section-desc reveal stagger-2">Other apps do one thing. Roost does them all — and they actually talk to each other.</p>
+          <p className="section-desc reveal stagger-2">Other apps do one thing. Roost does them all, and they actually talk to each other.</p>
           <div className="comp-table-wrap reveal stagger-3" style={{ overflowX: 'auto' }}>
             <table className="comp-table">
               <thead>
@@ -1167,9 +1160,9 @@ export default async function HomePage() {
 
       {/* 5. BOTTOM CTA */}
       <section className="bottom-cta">
-        <h2 className="reveal">Your house runs better.<br/>Starting today.</h2>
-        <p className="sub reveal stagger-1">Free to start. No credit card. Takes 30 seconds.</p>
-        <Link href="/signup" className="btn-white reveal stagger-2">Get started free</Link>
+        <h2 className="reveal">Households run better with Roost.</h2>
+   
+        <Link href="/signup" className="btn-white reveal stagger-2">Create your account</Link>
       </section>
 
       {/* 6. FOOTER */}

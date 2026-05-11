@@ -188,26 +188,34 @@ export default function SignupPage() {
           backgroundColor: '#EF4444',
           flexDirection: 'column',
           justifyContent: 'center',
-          alignItems: 'flex-start',
-          padding: '40px 36px',
+          alignItems: 'center',
+          padding: '40px clamp(24px, 4vw, 52px)',
+          gap: 'clamp(24px, 3vw, 40px)',
         }}
       >
-        {/* Brand */}
-        <div style={{ marginBottom: 36 }}>
-          <RoostLogo size="md" wordmarkColor="#fff" />
-          <p style={{ color: 'rgba(255,255,255,0.7)', fontWeight: 700, fontSize: 13, marginTop: 10 }}>Home, sorted.</p>
+        {/* Brand block */}
+        <div style={{ textAlign: 'center' }}>
+          <RoostLogo size="lg" wordmarkColor="#fff" />
+          <p style={{ color: 'rgba(255,255,255,0.75)', fontWeight: 700, fontSize: 'clamp(14px, 1.2vw, 17px)', margin: '12px 0 0' }}>Home, sorted.</p>
         </div>
 
         {/* Feature list */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 'clamp(14px, 1.6vw, 22px)', width: '100%', maxWidth: 320 }}>
           {FEATURES.map(({ icon: Icon, title, desc }) => (
-            <div key={title} style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
-              <div style={{ width: 28, height: 28, borderRadius: '50%', backgroundColor: 'rgba(255,255,255,0.18)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 1 }}>
-                <Icon size={13} color="#fff" />
+            <div key={title} style={{ display: 'flex', alignItems: 'flex-start', gap: 'clamp(10px, 1vw, 14px)' }}>
+              <div style={{
+                width: 'clamp(30px, 2.6vw, 38px)',
+                height: 'clamp(30px, 2.6vw, 38px)',
+                borderRadius: '50%',
+                backgroundColor: 'rgba(255,255,255,0.18)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                flexShrink: 0, marginTop: 1,
+              }}>
+                <Icon size={15} color="#fff" />
               </div>
               <div>
-                <p style={{ fontSize: 12, fontWeight: 800, color: '#fff', margin: 0 }}>{title}</p>
-                <p style={{ fontSize: 11, fontWeight: 600, color: 'rgba(255,255,255,0.62)', margin: '2px 0 0', lineHeight: 1.35 }}>{desc}</p>
+                <p style={{ fontSize: 'clamp(13px, 1.2vw, 16px)', fontWeight: 800, color: '#fff', margin: 0 }}>{title}</p>
+                <p style={{ fontSize: 'clamp(12px, 1.05vw, 14px)', fontWeight: 600, color: 'rgba(255,255,255,0.68)', margin: '3px 0 0', lineHeight: 1.4 }}>{desc}</p>
               </div>
             </div>
           ))}

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { motion } from 'framer-motion'
 import { Trash2 } from 'lucide-react'
@@ -10,7 +10,6 @@ import { SECTION_COLORS } from '@/lib/constants/colors'
 import type { Project } from './TaskTabRow'
 
 const COLOR = SECTION_COLORS.tasks.base
-const COLOR_DARK = SECTION_COLORS.tasks.dark
 
 const SWATCHES = [
   '#EC4899', '#EF4444', '#F97316', '#F59E0B',
@@ -46,13 +45,18 @@ export default function ProjectSettingsSheet({
   const [color, setColor] = useState<string>(COLOR)
   const [confirmDelete, setConfirmDelete] = useState(false)
 
-  useEffect(() => {
+  // Re-seed form state when the sheet opens or the project being edited changes.
+  const [prevOpen, setPrevOpen] = useState(false)
+  const [prevProject, setPrevProject] = useState<Project | null>(null)
+  if (open !== prevOpen || project !== prevProject) {
+    setPrevOpen(open)
+    setPrevProject(project)
     if (open && project) {
       setName(project.name)
       setColor(project.color)
       setConfirmDelete(false)
     }
-  }, [open, project])
+  }
 
   const saveMutation = useMutation({
     mutationFn: async () => {

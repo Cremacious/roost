@@ -116,6 +116,59 @@ interface RecentExpense {
   createdAt: string
 }
 
+interface CategoryBreakdown {
+  categoryName?: string | null
+  total: string | number
+  percent?: number | null
+}
+
+interface MemberBreakdown {
+  userId: string
+  userName: string
+  total: number
+  percent?: number | null
+}
+
+interface BudgetRow {
+  id: string
+  categoryId: string | null
+  categoryName?: string | null
+  amount: string | number
+  warningThreshold: number
+  spent: number
+  status: 'over' | 'warning' | 'ok' | string
+}
+
+interface ContributionMember {
+  userId: string
+  userName: string
+  total: number
+}
+
+interface ContributionRow {
+  id: string
+  userName?: string | null
+  note?: string | null
+  amount: number
+  createdAt: string
+}
+
+interface MoneyGoal {
+  id: string
+  name: string
+  targetAmount: string | number
+  savedAmount: number
+  progressPercent: number
+  targetDate?: string | null
+  completedAt?: string | null
+}
+
+interface MembersApiMember {
+  userId: string
+  name: string
+  avatarColor?: string
+}
+
 // ─── Dashboard Tab ────────────────────────────────────────────────────────────
 
 function DashboardTab({ currentUserId, members, isPremium, onOpenExpense, onOpenSettle, onTabChange }: {
@@ -214,7 +267,7 @@ function DashboardTab({ currentUserId, members, isPremium, onOpenExpense, onOpen
           {/* Stat chips */}
           <div className="grid grid-cols-2 gap-3 md:flex md:flex-wrap md:gap-3">
             <div style={{ background: 'rgba(255,255,255,0.15)', backdropFilter: 'blur(8px)', borderRadius: 14, padding: '14px 18px' }}>
-              <div style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.7)', marginBottom: 4 }}>You're owed</div>
+              <div style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.7)', marginBottom: 4 }}>You&apos;re owed</div>
               <div style={{ fontSize: 20, fontWeight: 900, color: '#BBF7D0' }}>${(balances?.totalOwed ?? 0).toFixed(2)}</div>
             </div>
             <div style={{ background: 'rgba(255,255,255,0.15)', backdropFilter: 'blur(8px)', borderRadius: 14, padding: '14px 18px' }}>
@@ -295,7 +348,7 @@ function DashboardTab({ currentUserId, members, isPremium, onOpenExpense, onOpen
                           outerRadius={54} innerRadius={34}
                           strokeWidth={0}
                         >
-                          {byCategory.slice(0, 5).map((_: any, i: number) => (
+                          {byCategory.slice(0, 5).map((_: unknown, i: number) => (
                             <Cell key={i} fill={SPEND_COLORS[i % SPEND_COLORS.length]} />
                           ))}
                         </Pie>
@@ -307,7 +360,7 @@ function DashboardTab({ currentUserId, members, isPremium, onOpenExpense, onOpen
                     </div>
                     {/* Breakdown */}
                     <div style={{ flex: 1 }}>
-                      {byCategory.slice(0, 5).map((cat: any, i: number) => (
+                      {byCategory.slice(0, 5).map((cat: CategoryBreakdown, i: number) => (
                         <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: i < 4 ? 9 : 0 }}>
                           <div style={{ width: 8, height: 8, borderRadius: '50%', backgroundColor: SPEND_COLORS[i % SPEND_COLORS.length], flexShrink: 0 }} />
                           <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--roost-text-secondary)', flex: 1 }}>{cat.categoryName ?? 'Other'}</span>
@@ -557,11 +610,11 @@ interface ExpenseGroup {
   year: number
   month: number          // 0-indexed (JS Date)
   label: string          // e.g. "April 2026"
-  expenses: any[]
+  expenses: RecentExpense[]
   total: number
 }
 
-function groupExpenses(expenseList: any[]): { currentGroup: ExpenseGroup | null; olderGroups: ExpenseGroup[] } {
+function groupExpenses(expenseList: RecentExpense[]): { currentGroup: ExpenseGroup | null; olderGroups: ExpenseGroup[] } {
   const now = new Date()
   const currentYear = now.getFullYear()
   const currentMonth = now.getMonth()
@@ -584,7 +637,7 @@ function groupExpenses(expenseList: any[]): { currentGroup: ExpenseGroup | null;
     }
     const group = map.get(key)!
     group.expenses.push(e)
-    group.total += parseFloat(e.amount) || 0
+    group.total += parseFloat(String(e.amount)) || 0
   }
 
   // Sort groups: newest first
@@ -599,7 +652,7 @@ function groupExpenses(expenseList: any[]): { currentGroup: ExpenseGroup | null;
   return { currentGroup, olderGroups }
 }
 
-function ExpenseRow({ e, index }: { e: any; index: number }) {
+function ExpenseRow({ e, index }: { e: RecentExpense; index: number }) {
   return (
     <motion.div key={e.id} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: Math.min(index * 0.03, 0.15) }}>
       <SlabCard color="var(--roost-border-bottom)">
@@ -610,7 +663,7 @@ function ExpenseRow({ e, index }: { e: any; index: number }) {
               Paid by {e.paidByName ?? 'Unknown'} &bull; {format(new Date(e.createdAt), 'MMM d')}
             </p>
           </div>
-          <span style={{ fontWeight: 800, fontSize: 16, color: 'var(--roost-text-primary)', flexShrink: 0 }}>${parseFloat(e.amount).toFixed(2)}</span>
+          <span style={{ fontWeight: 800, fontSize: 16, color: 'var(--roost-text-primary)', flexShrink: 0 }}>${parseFloat(String(e.amount)).toFixed(2)}</span>
         </div>
       </SlabCard>
     </motion.div>
@@ -1065,8 +1118,8 @@ function BudgetTab({ isPremium, isAdmin, onAddBudget, onEditBudget }: {
             </div>
           </SlabCard>
 
-          {budgets.map((b: any) => {
-            const pct = Math.min(100, (b.spent / parseFloat(b.amount)) * 100)
+          {budgets.map((b: BudgetRow) => {
+            const pct = Math.min(100, (b.spent / parseFloat(String(b.amount))) * 100)
             const isOver = b.status === 'over'
             const isWarn = b.status === 'warning'
             const barColor = isOver ? '#EF4444' : isWarn ? '#F59E0B' : COLOR
@@ -1077,10 +1130,10 @@ function BudgetTab({ isPremium, isAdmin, onAddBudget, onEditBudget }: {
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
                     <span style={{ fontWeight: 700, fontSize: 14, color: 'var(--roost-text-primary)' }}>{b.categoryName ?? 'Uncategorized'}</span>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                      <span style={{ fontWeight: 800, fontSize: 13, color: 'var(--roost-text-muted)' }}>${b.spent.toFixed(2)} / ${parseFloat(b.amount).toFixed(2)}</span>
+                      <span style={{ fontWeight: 800, fontSize: 13, color: 'var(--roost-text-muted)' }}>${b.spent.toFixed(2)} / ${parseFloat(String(b.amount)).toFixed(2)}</span>
                       {isAdmin && (
                         <div style={{ display: 'flex', gap: 2 }}>
-                          <button onClick={() => onEditBudget({ id: b.id, categoryId: b.categoryId, categoryName: b.categoryName ?? 'Budget', amount: b.amount, warningThreshold: b.warningThreshold })} style={{ padding: 5, borderRadius: 7, border: 'none', backgroundColor: 'transparent', cursor: 'pointer', opacity: 0.6, display: 'flex', alignItems: 'center' }}>
+                          <button onClick={() => onEditBudget({ id: b.id, categoryId: b.categoryId ?? '', categoryName: b.categoryName ?? 'Budget', amount: String(b.amount), warningThreshold: b.warningThreshold })} style={{ padding: 5, borderRadius: 7, border: 'none', backgroundColor: 'transparent', cursor: 'pointer', opacity: 0.6, display: 'flex', alignItems: 'center' }}>
                             <Edit2 size={14} color="var(--roost-text-primary)" />
                           </button>
                           <button onClick={() => setPendingDelete({ id: b.id, name: b.categoryName ?? 'Budget' })} disabled={deletingId === b.id} style={{ padding: 5, borderRadius: 7, border: 'none', backgroundColor: 'transparent', cursor: 'pointer', opacity: deletingId === b.id ? 0.3 : 0.6, display: 'flex', alignItems: 'center' }}>
@@ -1147,7 +1200,7 @@ function GoalHistory({ goalId }: { goalId: string }) {
     <div style={{ marginTop: 12 }}>
       {perMember.length > 1 && (
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 10 }}>
-          {perMember.map((m: any) => (
+          {perMember.map((m: ContributionMember) => (
             <div key={m.userId} style={{ padding: '4px 10px', borderRadius: 8, backgroundColor: COLOR + '18', border: `1px solid ${COLOR}40`, display: 'flex', gap: 6, alignItems: 'center' }}>
               <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--roost-text-primary)' }}>{m.userName}</span>
               <span style={{ fontSize: 12, fontWeight: 800, color: COLOR }}>${m.total.toFixed(2)}</span>
@@ -1156,7 +1209,7 @@ function GoalHistory({ goalId }: { goalId: string }) {
         </div>
       )}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-        {contributions.map((c: any) => (
+        {contributions.map((c: ContributionRow) => (
           <div key={c.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 10, backgroundColor: 'var(--roost-bg)', border: '1.5px solid var(--roost-border)' }}>
             <div style={{ flex: 1, minWidth: 0 }}>
               <p style={{ margin: 0, fontWeight: 700, fontSize: 13, color: 'var(--roost-text-primary)' }}>{c.userName ?? 'Unknown'}</p>
@@ -1179,8 +1232,8 @@ function GoalsTab({ isPremium, isAdmin, onNewGoal, onEditGoal, onContribute }: {
   isPremium: boolean
   isAdmin: boolean
   onNewGoal: () => void
-  onEditGoal: (goal: any) => void
-  onContribute: (goal: any) => void
+  onEditGoal: (goal: MoneyGoal) => void
+  onContribute: (goal: MoneyGoal) => void
 }) {
   const qc = useQueryClient()
   const [expandedGoalId, setExpandedGoalId] = useState<string | null>(null)
@@ -1224,8 +1277,8 @@ function GoalsTab({ isPremium, isAdmin, onNewGoal, onEditGoal, onContribute }: {
   if (isLoading) return <LoadingRows />
 
   const { goals = [] } = data ?? {}
-  const active = goals.filter((g: any) => !g.completedAt)
-  const completed = goals.filter((g: any) => g.completedAt)
+  const active = (goals as MoneyGoal[]).filter((g: MoneyGoal) => !g.completedAt)
+  const completed = (goals as MoneyGoal[]).filter((g: MoneyGoal) => g.completedAt)
 
   async function markComplete(id: string) {
     const res = await fetch(`/api/money/goals/${id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ completed: true }) })
@@ -1247,7 +1300,7 @@ function GoalsTab({ isPremium, isAdmin, onNewGoal, onEditGoal, onContribute }: {
         <EmptyState color={COLOR} icon={<Target size={28} />} title="No goals yet." body="Create a savings goal to track the household's progress together." />
       )}
 
-      {active.map((goal: any) => {
+      {active.map((goal: MoneyGoal) => {
         const isExpanded = expandedGoalId === goal.id
         return (
           <SlabCard key={goal.id} color={COLOR}>
@@ -1266,7 +1319,7 @@ function GoalsTab({ isPremium, isAdmin, onNewGoal, onEditGoal, onContribute }: {
               </div>
               <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginBottom: 8 }}>
                 <span style={{ fontWeight: 900, fontSize: 22, color: 'var(--roost-text-primary)' }}>${goal.savedAmount.toFixed(2)}</span>
-                <span style={{ fontWeight: 600, fontSize: 13, color: 'var(--roost-text-muted)' }}>of ${parseFloat(goal.targetAmount).toFixed(2)}</span>
+                <span style={{ fontWeight: 600, fontSize: 13, color: 'var(--roost-text-muted)' }}>of ${parseFloat(String(goal.targetAmount)).toFixed(2)}</span>
                 <span style={{ fontWeight: 700, fontSize: 13, color: COLOR }}>{goal.progressPercent}%</span>
               </div>
               <div style={{ height: 8, borderRadius: 99, backgroundColor: 'var(--roost-border)', overflow: 'hidden', marginBottom: 12 }}>
@@ -1290,7 +1343,7 @@ function GoalsTab({ isPremium, isAdmin, onNewGoal, onEditGoal, onContribute }: {
       {completed.length > 0 && (
         <div>
           <p style={{ fontWeight: 800, fontSize: 13, color: 'var(--roost-text-muted)', marginBottom: 8 }}>Completed</p>
-          {completed.map((goal: any) => {
+          {completed.map((goal: MoneyGoal) => {
             const isExpanded = expandedGoalId === goal.id
             return (
               <SlabCard key={goal.id} color="var(--roost-border-bottom)">
@@ -1299,7 +1352,7 @@ function GoalsTab({ isPremium, isAdmin, onNewGoal, onEditGoal, onContribute }: {
                     <CheckCircle size={18} color={COLOR} />
                     <div style={{ flex: 1 }}>
                       <p style={{ margin: 0, fontWeight: 700, fontSize: 14, color: 'var(--roost-text-secondary)' }}>{goal.name}</p>
-                      <p style={{ margin: '2px 0 0', fontSize: 12, color: 'var(--roost-text-muted)' }}>${parseFloat(goal.targetAmount).toFixed(2)} saved</p>
+                      <p style={{ margin: '2px 0 0', fontSize: 12, color: 'var(--roost-text-muted)' }}>${parseFloat(String(goal.targetAmount)).toFixed(2)} saved</p>
                     </div>
                     <button onClick={() => setExpandedGoalId(isExpanded ? null : goal.id)} style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '6px 10px', borderRadius: 8, fontWeight: 700, fontSize: 12, backgroundColor: 'var(--roost-surface)', color: 'var(--roost-text-muted)', border: '1.5px solid var(--roost-border)', borderBottom: '3px solid var(--roost-border-bottom)', cursor: 'pointer' }}>
                       {isExpanded ? <ChevronUp size={12} /> : <ChevronDown size={12} />} History
@@ -1322,7 +1375,7 @@ function GoalsTab({ isPremium, isAdmin, onNewGoal, onEditGoal, onContribute }: {
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Delete goal?</AlertDialogTitle>
-            <AlertDialogDescription>"{pendingDelete?.name}" and all its contribution history will be permanently deleted.</AlertDialogDescription>
+            <AlertDialogDescription>&ldquo;{pendingDelete?.name}&rdquo; and all its contribution history will be permanently deleted.</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <button onClick={() => setPendingDelete(null)} style={{ padding: '10px 18px', borderRadius: 10, fontWeight: 700, fontSize: 14, backgroundColor: 'var(--roost-surface)', color: 'var(--roost-text-primary)', border: '1.5px solid var(--roost-border)', borderBottom: '3px solid var(--roost-border-bottom)', cursor: 'pointer' }}>Cancel</button>
@@ -1341,12 +1394,13 @@ const CHART_COLORS = ['#22C55E', '#3B82F6', '#F59E0B', '#EF4444', '#A855F7', '#F
 function InsightsTab({ isPremium }: { isPremium: boolean }) {
   const [range, setRange] = useState<'7' | '30' | '90'>('30')
 
-  const from = new Date(Date.now() - parseInt(range) * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
-  const to = new Date().toISOString().split('T')[0]
-
   const { data, isLoading } = useQuery({
     queryKey: ['insights', range],
-    queryFn: () => fetch(`/api/money/insights?from=${from}&to=${to}`).then(r => r.json()),
+    queryFn: () => {
+      const to = new Date().toISOString().split('T')[0]
+      const from = new Date(Date.now() - parseInt(range) * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+      return fetch(`/api/money/insights?from=${from}&to=${to}`).then(r => r.json())
+    },
     staleTime: 60_000,
     enabled: isPremium,
   })
@@ -1415,12 +1469,12 @@ function InsightsTab({ isPremium }: { isPremium: boolean }) {
               <ResponsiveContainer width={100} height={100}>
                 <PieChart>
                   <Pie data={byCategory} dataKey="total" cx="50%" cy="50%" outerRadius={45} innerRadius={28} strokeWidth={0}>
-                    {byCategory.map((_: any, i: number) => <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />)}
+                    {byCategory.map((_: unknown, i: number) => <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />)}
                   </Pie>
                 </PieChart>
               </ResponsiveContainer>
               <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 4 }}>
-                {byCategory.slice(0, 5).map((c: any, i: number) => (
+                {byCategory.slice(0, 5).map((c: CategoryBreakdown, i: number) => (
                   <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                     <div style={{ width: 8, height: 8, borderRadius: 99, backgroundColor: CHART_COLORS[i % CHART_COLORS.length], flexShrink: 0 }} />
                     <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--roost-text-primary)', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.categoryName}</span>
@@ -1438,7 +1492,7 @@ function InsightsTab({ isPremium }: { isPremium: boolean }) {
           <div style={{ padding: '14px 16px' }}>
             <p style={{ margin: '0 0 12px', fontWeight: 800, fontSize: 13, color: 'var(--roost-text-secondary)' }}>By member</p>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              {byMember.map((m: any) => (
+              {byMember.map((m: MemberBreakdown) => (
                 <div key={m.userId}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
                     <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--roost-text-primary)' }}>{m.userName}</span>
@@ -1495,8 +1549,8 @@ export default function MoneyPage() {
   const [expenseSheetOpen, setExpenseSheetOpen] = useState(false)
   const [settleDebt, setSettleDebt] = useState<DebtItem | null>(null)
   const [goalSheetOpen, setGoalSheetOpen] = useState(false)
-  const [editingGoal, setEditingGoal] = useState<any | null>(null)
-  const [contributeGoal, setContributeGoal] = useState<any | null>(null)
+  const [editingGoal, setEditingGoal] = useState<MoneyGoal | null>(null)
+  const [contributeGoal, setContributeGoal] = useState<MoneyGoal | null>(null)
   const [billSheetOpen, setBillSheetOpen] = useState(false)
   const [budgetSheetOpen, setBudgetSheetOpen] = useState(false)
   const [editingBudget, setEditingBudget] = useState<EditableBudget | null>(null)
@@ -1516,7 +1570,7 @@ export default function MoneyPage() {
     staleTime: 60_000,
   })
 
-  const members: Member[] = (membersQuery.data?.members ?? []).map((m: any) => ({
+  const members: Member[] = ((membersQuery.data?.members ?? []) as MembersApiMember[]).map((m) => ({
     id: m.userId,
     name: m.name,
     avatarColor: m.avatarColor,
@@ -1555,7 +1609,7 @@ export default function MoneyPage() {
         className="sticky top-14 z-10 px-6 md:px-7"
         style={{ backgroundColor: '#F9FAFB', borderBottom: '1.5px solid var(--roost-border)' }}
       >
-        <div style={{ display: 'flex', gap: 6, padding: '8px 0 12px', overflowX: 'auto', scrollbarWidth: 'none' as any }}>
+        <div style={{ display: 'flex', gap: 6, padding: '8px 0 12px', overflowX: 'auto', scrollbarWidth: 'none' }}>
           {TABS.map(t => (
             <TabPill key={t.id} {...t} active={tab === t.id} onClick={() => setTab(t.id)} />
           ))}
@@ -1627,7 +1681,12 @@ export default function MoneyPage() {
       <ContributeSheet
         open={!!contributeGoal}
         onClose={() => setContributeGoal(null)}
-        goal={contributeGoal}
+        goal={contributeGoal ? {
+          id: contributeGoal.id,
+          name: contributeGoal.name,
+          targetAmount: typeof contributeGoal.targetAmount === 'string' ? parseFloat(contributeGoal.targetAmount) : contributeGoal.targetAmount,
+          savedAmount: contributeGoal.savedAmount,
+        } : null}
       />
 
       <BillSheet

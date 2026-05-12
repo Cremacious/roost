@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { motion } from 'framer-motion'
 import { Trash2 } from 'lucide-react'
@@ -86,7 +86,12 @@ export default function RewardRuleSheet({ open, onClose, rule, members }: Reward
   const [rewardType, setRewardType] = useState<'money' | 'gift' | 'activity' | 'other'>('money')
   const [rewardDetail, setRewardDetail] = useState('')
 
-  useEffect(() => {
+  // Re-seed form state when the sheet opens or the rule being edited changes.
+  const [prevOpen, setPrevOpen] = useState(false)
+  const [prevRule, setPrevRule] = useState<RewardRule | null | undefined>(null)
+  if (open !== prevOpen || rule !== prevRule) {
+    setPrevOpen(open)
+    setPrevRule(rule)
     if (open) {
       setMemberId(rule?.userId ?? members[0]?.userId ?? '')
       setTitle(rule?.title ?? '')
@@ -96,7 +101,7 @@ export default function RewardRuleSheet({ open, onClose, rule, members }: Reward
       setRewardType(rule?.rewardType ?? 'money')
       setRewardDetail(rule?.rewardDetail ?? '')
     }
-  }, [open, rule, members])
+  }
 
   const saveMutation = useMutation({
     mutationFn: async () => {

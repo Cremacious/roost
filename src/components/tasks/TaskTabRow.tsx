@@ -64,11 +64,15 @@ export default function TaskTabRow({ activeTab, onTabChange, projects, todayCoun
   const scrollRef = useRef<HTMLDivElement>(null)
   const [overflows, setOverflows] = useState(false)
   const [scrollRatio, setScrollRatio] = useState(0)
+  const [thumbWidthPct, setThumbWidthPct] = useState(1)
 
   useEffect(() => {
     const el = scrollRef.current
     if (!el) return
-    const check = () => setOverflows(el.scrollWidth > el.clientWidth)
+    const check = () => {
+      setOverflows(el.scrollWidth > el.clientWidth)
+      setThumbWidthPct(el.scrollWidth > 0 ? el.clientWidth / el.scrollWidth : 1)
+    }
     check()
     const ro = new ResizeObserver(check)
     ro.observe(el)
@@ -81,10 +85,6 @@ export default function TaskTabRow({ activeTab, onTabChange, projects, todayCoun
     const max = el.scrollWidth - el.clientWidth
     setScrollRatio(max > 0 ? el.scrollLeft / max : 0)
   }
-
-  const thumbWidthPct = scrollRef.current
-    ? scrollRef.current.clientWidth / scrollRef.current.scrollWidth
-    : 1
 
   return (
     <div style={{ position: 'relative' }}>

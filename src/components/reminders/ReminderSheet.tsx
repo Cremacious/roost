@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { useSession } from '@/lib/auth/client'
@@ -83,7 +83,12 @@ export function ReminderSheet({ open, onClose, reminder, members }: ReminderShee
   const [notifyType, setNotifyType] = useState('self')
   const [notifyUserIds, setNotifyUserIds] = useState<string[]>([])
 
-  useEffect(() => {
+  // Re-seed form state when the sheet opens or the reminder being edited changes.
+  const [prevOpen, setPrevOpen] = useState(false)
+  const [prevReminder, setPrevReminder] = useState<ReminderData | null | undefined>(null)
+  if (open !== prevOpen || reminder !== prevReminder) {
+    setPrevOpen(open)
+    setPrevReminder(reminder)
     if (open) {
       setTitle(reminder?.title ?? '')
       setNote(reminder?.note ?? '')
@@ -92,7 +97,7 @@ export function ReminderSheet({ open, onClose, reminder, members }: ReminderShee
       setNotifyType(reminder?.notifyType ?? 'self')
       setNotifyUserIds(JSON.parse(reminder?.notifyUserIds ?? '[]') as string[])
     }
-  }, [open, reminder])
+  }
 
   const saveMutation = useMutation({
     mutationFn: async () => {

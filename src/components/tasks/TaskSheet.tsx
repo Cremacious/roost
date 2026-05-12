@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { Lock, RefreshCw } from 'lucide-react'
@@ -101,7 +101,12 @@ export default function TaskSheet({
   const [repeatUntil, setRepeatUntil] = useState('')
   const [repeatOccurrences, setRepeatOccurrences] = useState('5')
 
-  useEffect(() => {
+  // Re-seed form state when the sheet opens or the task being edited changes.
+  const [prevOpen, setPrevOpen] = useState(false)
+  const [prevTask, setPrevTask] = useState<TaskData | null | undefined>(null)
+  if (open !== prevOpen || task !== prevTask) {
+    setPrevOpen(open)
+    setPrevTask(task)
     if (open) {
       setTitle(task?.title ?? '')
       setDescription(task?.description ?? '')
@@ -112,11 +117,11 @@ export default function TaskSheet({
       setProjectId(task?.projectId ?? '')
       setRecurring(task?.recurring ?? false)
       setFrequency(task?.frequency ?? 'weekly')
-      setRepeatEndType((task?.repeatEndType as typeof repeatEndType) ?? 'forever')
+      setRepeatEndType((task?.repeatEndType as 'forever' | 'until_date' | 'after_occurrences') ?? 'forever')
       setRepeatUntil(task?.repeatUntil ? task.repeatUntil.slice(0, 10) : '')
       setRepeatOccurrences(task?.repeatOccurrences?.toString() ?? '5')
     }
-  }, [open, task])
+  }
 
   function handleRepeatToggle() {
     if (!recurring && !isPremium) {

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useRef, useCallback } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { Lock } from 'lucide-react'
@@ -67,13 +67,18 @@ export default function NoteSheet({
   // Debounce timer for rich-text auto-save in view mode
   const autoSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  useEffect(() => {
+  // Re-seed form state when the sheet opens or the note being edited changes.
+  const [prevOpen, setPrevOpen] = useState(false)
+  const [prevNote, setPrevNote] = useState<NoteData | null | undefined>(null)
+  if (open !== prevOpen || note !== prevNote) {
+    setPrevOpen(open)
+    setPrevNote(note)
     if (open) {
       setTitle(note?.title ?? '')
       setContent(note?.content ?? '')
       setIsRichText(note?.isRichText ?? false)
     }
-  }, [open, note])
+  }
 
   const saveMutation = useMutation({
     mutationFn: async (body: { title: string | null; content: string; isRichText: boolean }) => {

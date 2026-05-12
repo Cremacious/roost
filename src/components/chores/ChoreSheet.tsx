@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { motion } from 'framer-motion'
 import { Trash2 } from 'lucide-react'
@@ -51,14 +51,19 @@ export default function ChoreSheet({ open, onClose, chore, members, isAdmin }: C
   const [frequency, setFrequency] = useState('weekly')
   const [assignedTo, setAssignedTo] = useState('')
 
-  useEffect(() => {
+  // Re-seed form state when the sheet opens or the chore being edited changes.
+  const [prevOpen, setPrevOpen] = useState(false)
+  const [prevChore, setPrevChore] = useState<ChoreData | null | undefined>(null)
+  if (open !== prevOpen || chore !== prevChore) {
+    setPrevOpen(open)
+    setPrevChore(chore)
     if (open) {
       setTitle(chore?.title ?? '')
       setDescription(chore?.description ?? '')
       setFrequency(chore?.frequency ?? 'weekly')
       setAssignedTo(chore?.assignedTo ?? '')
     }
-  }, [open, chore])
+  }
 
   const saveMutation = useMutation({
     mutationFn: async () => {

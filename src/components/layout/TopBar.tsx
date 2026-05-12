@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, useSyncExternalStore } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import {
   Cloud,
@@ -34,8 +34,14 @@ function formatTime(date: Date): string {
   return date.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })
 }
 
+// Hydration-safe "is mounted" flag without a setState-in-effect cascade.
+// Returns false during SSR and the first client render, true afterwards.
+const noopSubscribe = () => () => {}
+const getMountedClient = () => true
+const getMountedServer = () => false
+
 export function TopBar() {
-  const [mounted, setMounted] = useState(false)
+  const mounted = useSyncExternalStore(noopSubscribe, getMountedClient, getMountedServer)
   const [time, setTime] = useState('')
   const [switcherOpen, setSwitcherOpen] = useState(false)
   const locationRequested = useRef(false)
@@ -43,10 +49,6 @@ export function TopBar() {
 
   const { temperatureUnit, latitude, longitude, isLoading: prefsLoading } = useUserPreferences()
   const { household } = useHousehold()
-
-  useEffect(() => {
-    setMounted(true)
-  }, [])
 
   // Clock — aligned to the minute boundary
   useEffect(() => {

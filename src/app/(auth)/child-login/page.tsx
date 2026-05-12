@@ -176,12 +176,12 @@ function Step1({
 
 function Step2({
   code,
-  children,
+  childAccounts,
   onSelect,
   onBack,
 }: {
   code: string
-  children: ChildAccount[]
+  childAccounts: ChildAccount[]
   onSelect: (child: ChildAccount) => void
   onBack: () => void
 }) {
@@ -223,7 +223,7 @@ function Step2({
           gap: 12,
         }}
       >
-        {children.map((child, i) => (
+        {childAccounts.map((child, i) => (
           <motion.button
             key={child.id}
             onClick={() => onSelect(child)}
@@ -538,7 +538,7 @@ export default function ChildLoginPage() {
             <Step2
               key="step2"
               code={householdCode}
-              children={children}
+              childAccounts={children}
               onSelect={handleSelectChild}
               onBack={handleBackToStep1}
             />

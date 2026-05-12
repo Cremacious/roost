@@ -280,7 +280,7 @@ export default function AdminUsersPage() {
                 borderRadius: 10, padding: '12px 14px', marginBottom: 16,
               }}>
                 <p style={{ fontSize: 13, fontWeight: 700, color: '#FCD34D', margin: '0 0 4px' }}>
-                  This user is an admin of "{deleteInfo.householdName}"
+                  This user is an admin of &ldquo;{deleteInfo.householdName}&rdquo;
                 </p>
                 <p style={{ fontSize: 12, fontWeight: 600, color: '#D97706', margin: 0 }}>
                   Deleting the user without the household will leave it without an admin. Choose below:

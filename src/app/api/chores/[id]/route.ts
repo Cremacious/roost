@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { getSession, getUserHousehold } from '@/lib/auth/helpers'
+import { getSession, getUserHousehold, checkMemberPermission } from '@/lib/auth/helpers'
 import { db } from '@/lib/db'
 import { chores } from '@/db/schema'
 import { eq, and, isNull } from 'drizzle-orm'
@@ -30,6 +30,9 @@ export async function PATCH(
   if (role !== 'admin' && chore.createdBy !== session.user.id) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
+
+  const canEdit = await checkMemberPermission(session.user.id, householdId, role, 'choresEdit')
+  if (!canEdit) return NextResponse.json({ error: 'You do not have permission to edit chores', code: 'PERMISSION_DENIED' }, { status: 403 })
 
   const body = await request.json().catch(() => ({}))
 

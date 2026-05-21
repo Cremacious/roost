@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { getSession, getUserHousehold } from '@/lib/auth/helpers'
+import { getSession, getUserHousehold, checkMemberPermission } from '@/lib/auth/helpers'
 import { db } from '@/lib/db'
 import { groceryLists, groceryItems } from '@/db/schema'
 import { eq, and, isNull, asc } from 'drizzle-orm'
@@ -88,6 +88,9 @@ export async function POST(
     )
 
   if (!list) return NextResponse.json({ error: 'List not found' }, { status: 404 })
+
+  const canAdd = await checkMemberPermission(session.user.id, membership.householdId, membership.role, 'groceryAdd')
+  if (!canAdd) return NextResponse.json({ error: 'You do not have permission to add grocery items', code: 'PERMISSION_DENIED' }, { status: 403 })
 
   const body = await request.json()
   const name = (body.name ?? '').trim()

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getSession, getUserHousehold } from '@/lib/auth/helpers'
+import { getSession, getUserHousehold, checkMemberPermission } from '@/lib/auth/helpers'
 import { db } from '@/lib/db'
 import { mealSuggestions, mealSuggestionVotes, users, households } from '@/db/schema'
 import { eq, and, inArray, sql } from 'drizzle-orm'
@@ -71,7 +71,11 @@ export async function POST(req: NextRequest) {
   const membership = await getUserHousehold(session.user.id)
   if (!membership) return NextResponse.json({ error: 'No household' }, { status: 403 })
 
-  const { householdId } = membership
+  const { householdId, role } = membership
+
+  const canSuggest = await checkMemberPermission(session.user.id, householdId, role, 'mealsSuggest')
+  if (!canSuggest) return NextResponse.json({ error: 'You do not have permission to suggest meals', code: 'PERMISSION_DENIED' }, { status: 403 })
+
   const body = await req.json()
   const { name, ingredients, note, prepTime, targetSlotDate, targetSlotType, approvalMode } = body
 

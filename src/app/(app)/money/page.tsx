@@ -23,6 +23,7 @@ import { ContributeSheet } from '@/components/money/ContributeSheet'
 import { BillSheet } from '@/components/money/BillSheet'
 import { BudgetSheet, type EditableBudget } from '@/components/money/BudgetSheet'
 import { useHousehold } from '@/lib/hooks/useHousehold'
+import { useSession } from '@/lib/auth/client'
 import PremiumGate from '@/components/shared/PremiumGate'
 
 function EmptyState({ color, icon, title, body, buttonLabel, onButtonClick }: {
@@ -88,6 +89,7 @@ interface DebtItem {
   to: string
   amount: number
   splitIds: string[]
+  iOwe?: boolean
   pendingClaim?: { settledByPayer: boolean; settledByPayee: boolean } | null
   toVenmoHandle?: string | null
   toCashappHandle?: string | null
@@ -211,12 +213,6 @@ function DashboardTab({ currentUserId, members, isPremium, onOpenExpense, onOpen
     staleTime: 10_000,
   })
 
-  const { data: expData } = useQuery({
-    queryKey: ['expenses'],
-    queryFn: () => fetch('/api/expenses').then(r => r.json()),
-    staleTime: 10_000,
-  })
-
   const from30d = subDays(new Date(), 30).toISOString().split('T')[0]
   const to = new Date().toISOString().split('T')[0]
   const { data: insightsData, isLoading: insightsLoading } = useQuery({
@@ -228,17 +224,14 @@ function DashboardTab({ currentUserId, members, isPremium, onOpenExpense, onOpen
 
   if (isLoading) return <LoadingRows />
 
-  const { balances, bills, budgetSummary, activeGoal, recentExpenses } = data ?? {}
-  const { debts = [] } = expData ?? {}
+  const { balances, bills, budgetSummary, activeGoal, recentExpenses, myDebts: myDebtsRaw = [] } = data ?? {}
   const { byCategory = [], spendingOverTime = [] } = insightsData ?? {}
 
   const netBalance = balances?.netBalance ?? 0
   const netPositive = netBalance >= 0
 
-  const myDebts: DebtItem[] = debts.filter(
-    (d: DebtItem) => d.from === currentUserId || d.to === currentUserId
-  )
-  const firstOweDebt = myDebts.find((d: DebtItem) => d.from === currentUserId) ?? null
+  const myDebts: DebtItem[] = myDebtsRaw
+  const firstOweDebt = myDebts.find((d: DebtItem) => d.iOwe) ?? null
 
   return (
     <div>
@@ -440,7 +433,7 @@ function DashboardTab({ currentUserId, members, isPremium, onOpenExpense, onOpen
               {myDebts.length === 0 ? (
                 <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: 'var(--roost-text-muted)', textAlign: 'center', padding: '8px 0' }}>All settled up.</p>
               ) : myDebts.slice(0, 3).map((debt: DebtItem, i: number) => {
-                const iOwe = debt.from === currentUserId
+                const iOwe = debt.iOwe ?? debt.from === currentUserId
                 const other = members.find(m => m.id === (iOwe ? debt.to : debt.from))
                 const otherName = other?.name ?? 'Unknown'
                 const initial = otherName.charAt(0).toUpperCase()
@@ -740,15 +733,15 @@ function ExpensesTab({ currentUserId, members, isPremium, onOpenExpense, onOpenS
 }) {
   const { data, isLoading } = useQuery({
     queryKey: ['expenses'],
-    queryFn: () => fetch('/api/expenses').then(r => r.json()),
+    queryFn: () => fetch('/api/expenses').then(r => { if (!r.ok) throw new Error(`${r.status}`); return r.json() }),
     staleTime: 10_000,
   })
 
   if (isLoading) return <LoadingRows />
 
-  const { debts = [], expenses: expenseList = [], myBalance } = data ?? {}
+  const { myDebts: myDebtsRaw = [], expenses: expenseList = [], myBalance } = data ?? {}
 
-  const myDebts: DebtItem[] = debts.filter((d: DebtItem) => d.from === currentUserId || d.to === currentUserId)
+  const myDebts: DebtItem[] = myDebtsRaw
 
   const { currentGroup, olderGroups } = groupExpenses(expenseList)
 
@@ -773,8 +766,8 @@ function ExpensesTab({ currentUserId, members, isPremium, onOpenExpense, onOpenS
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           <p style={{ fontWeight: 800, fontSize: 14, color: 'var(--roost-text-primary)', marginBottom: 0 }}>Who owes who</p>
           {myDebts.map((debt: DebtItem, i: number) => {
-            const otherName = members.find(m => m.id === (debt.from === currentUserId ? debt.to : debt.from))?.name ?? 'Unknown'
-            const iOwe = debt.from === currentUserId
+            const iOwe = debt.iOwe ?? debt.from === currentUserId
+            const otherName = members.find(m => m.id === (iOwe ? debt.to : debt.from))?.name ?? 'Unknown'
             const pendingClaim = debt.pendingClaim
             const iClaimed = iOwe && pendingClaim?.settledByPayer
             const theyClaimed = !iOwe && pendingClaim?.settledByPayer
@@ -1558,17 +1551,27 @@ export default function MoneyPage() {
   const { isPremium, role } = useHousehold()
   const isAdmin = role === 'admin'
 
+  if (role === 'child') {
+    return (
+      <div style={{ maxWidth: 900, margin: '0 auto', padding: '48px 24px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '60vh', textAlign: 'center' }}>
+        <div style={{ width: 64, height: 64, borderRadius: 18, backgroundColor: '#DCFCE7', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 20, border: '1.5px solid #BBF7D0', borderBottom: '4px solid #15803D' }}>
+          <Wallet size={28} color="#15803D" strokeWidth={2} />
+        </div>
+        <p style={{ margin: 0, fontSize: 20, fontWeight: 900, color: 'var(--roost-text-primary)', letterSpacing: '-0.3px' }}>Money stuff is for grown-ups</p>
+        <p style={{ margin: '10px 0 0', fontSize: 14, fontWeight: 600, color: 'var(--roost-text-secondary)', lineHeight: 1.5, maxWidth: 300 }}>
+          Expenses and bill splitting are managed by the adults in your household.
+        </p>
+      </div>
+    )
+  }
+
   const membersQuery = useQuery({
     queryKey: ['household-members'],
     queryFn: () => fetch('/api/household/members').then(r => r.json()),
     staleTime: 60_000,
   })
 
-  const sessionQuery = useQuery({
-    queryKey: ['user-profile'],
-    queryFn: () => fetch('/api/user/profile').then(r => r.json()),
-    staleTime: 60_000,
-  })
+  const { data: sessionData } = useSession()
 
   const members: Member[] = ((membersQuery.data?.members ?? []) as MembersApiMember[]).map((m) => ({
     id: m.userId,
@@ -1576,7 +1579,7 @@ export default function MoneyPage() {
     avatarColor: m.avatarColor,
   }))
 
-  const currentUserId = sessionQuery.data?.id ?? ''
+  const currentUserId = sessionData?.user?.id ?? ''
 
   return (
     <div style={{ maxWidth: 900, margin: '0 auto' }}>

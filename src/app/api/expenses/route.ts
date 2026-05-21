@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getSession, getUserHousehold } from '@/lib/auth/helpers'
+import { getSession, getUserHousehold, checkMemberPermission } from '@/lib/auth/helpers'
 import { db } from '@/lib/db'
 import {
   expenses,
@@ -20,6 +20,9 @@ export async function GET(req: NextRequest) {
 
   const { householdId, role } = membership
   if (role === 'child') return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+
+  const canView = await checkMemberPermission(session.user.id, householdId, role, 'expensesView')
+  if (!canView) return NextResponse.json({ error: 'You do not have permission to view expenses', code: 'PERMISSION_DENIED' }, { status: 403 })
 
   const isPremium = membership.household.subscriptionStatus === 'premium'
 
@@ -155,10 +158,15 @@ export async function GET(req: NextRequest) {
     toCashappHandle: memberMap.get(d.to)?.cashappHandle ?? null,
   }))
 
+  const myDebts = enrichedDebts
+    .filter(d => d.from === myUserId || d.to === myUserId)
+    .map(d => ({ ...d, iOwe: d.from === myUserId }))
+
   return NextResponse.json({
     expenses: expensesWithSplits,
     recurringDrafts,
     debts: enrichedDebts,
+    myDebts,
     members: memberRows,
     myBalance: { owedToMe: Math.round(owedToMe * 100) / 100, iOwe: Math.round(iOwe * 100) / 100 },
     totalSpentThisMonth: Math.round(totalSpentThisMonth * 100) / 100,
@@ -175,6 +183,9 @@ export async function POST(req: NextRequest) {
 
   const { householdId, role } = membership
   if (role === 'child') return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+
+  const canAdd = await checkMemberPermission(session.user.id, householdId, role, 'expensesAdd')
+  if (!canAdd) return NextResponse.json({ error: 'You do not have permission to add expenses', code: 'PERMISSION_DENIED' }, { status: 403 })
 
   const body = await req.json()
   const { title, amount, categoryId, paidBy, notes, receiptData, splits } = body

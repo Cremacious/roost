@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { getSession, getUserHousehold } from '@/lib/auth/helpers'
 import { db } from '@/lib/db'
-import { chores, choreCompletions, users } from '@/db/schema'
+import { chores, choreCompletions, users, memberPermissions } from '@/db/schema'
 import { eq, and, isNull, gte, lt } from 'drizzle-orm'
 
 function startOfToday() {
@@ -117,7 +117,22 @@ export async function POST(request: Request) {
   const membership = await getUserHousehold(session.user.id)
   if (!membership) return NextResponse.json({ error: 'No household' }, { status: 403 })
 
-  const { householdId } = membership
+  const { householdId, role } = membership
+
+  if (role !== 'admin') {
+    const [perms] = await db
+      .select({ choresAdd: memberPermissions.choresAdd })
+      .from(memberPermissions)
+      .where(and(
+        eq(memberPermissions.userId, session.user.id),
+        eq(memberPermissions.householdId, householdId),
+      ))
+      .limit(1)
+
+    if (!perms?.choresAdd) {
+      return NextResponse.json({ error: 'You do not have permission to add chores', code: 'PERMISSION_DENIED' }, { status: 403 })
+    }
+  }
 
   const body = await request.json().catch(() => null)
   if (!body?.title?.trim()) {

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getSession, getUserHousehold } from '@/lib/auth/helpers'
+import { getSession, getUserHousehold, checkMemberPermission } from '@/lib/auth/helpers'
 import { db } from '@/lib/db'
 import { calendarEvents, eventAttendees } from '@/db/schema'
 import { eq, and } from 'drizzle-orm'
@@ -29,6 +29,9 @@ export async function PATCH(
   if (existing.createdBy !== session.user.id && role !== 'admin') {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
+
+  const canEdit = await checkMemberPermission(session.user.id, householdId, role, 'calendarEdit')
+  if (!canEdit) return NextResponse.json({ error: 'You do not have permission to edit calendar events', code: 'PERMISSION_DENIED' }, { status: 403 })
 
   let body: {
     title?: string

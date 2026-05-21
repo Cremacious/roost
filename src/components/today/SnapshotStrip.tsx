@@ -89,7 +89,7 @@ export function SnapshotStrip({ data }: { data: SnapshotData }) {
         href="/meals"
         iconBg="#FFEDD5"
         icon={<UtensilsCrossed size={16} color="#F97316" strokeWidth={2.5} />}
-        label="Tonight's meal"
+        label="Tonight's dinner"
         value={data.meal?.name ?? 'Nothing planned'}
         valueStyle={{
           fontSize: data.meal ? 14 : 15,

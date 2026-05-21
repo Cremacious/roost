@@ -1,8 +1,98 @@
 import { type NextRequest } from 'next/server'
 import { requireSession, getUserHousehold } from '@/lib/auth/helpers'
 import { db } from '@/lib/db'
-import { householdMembers } from '@/db/schema'
+import { householdMembers, memberPermissions } from '@/db/schema'
 import { eq, and, isNull } from 'drizzle-orm'
+
+const PERMISSION_KEYS = [
+  'expensesView',
+  'expensesAdd',
+  'choresAdd',
+  'choresEdit',
+  'groceryAdd',
+  'groceryCreateList',
+  'calendarAdd',
+  'calendarEdit',
+  'tasksAdd',
+  'notesAdd',
+  'mealsPlan',
+  'mealsSuggest',
+] as const
+
+export async function PATCH(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+): Promise<Response> {
+  const { id } = await params
+  const session = await requireSession()
+  const householdData = await getUserHousehold(session.user.id)
+
+  if (!householdData) {
+    return Response.json({ error: 'No household' }, { status: 403 })
+  }
+  if (householdData.role !== 'admin') {
+    return Response.json({ error: 'Admin only' }, { status: 403 })
+  }
+
+  const { householdId } = householdData
+
+  const [target] = await db
+    .select({ userId: householdMembers.userId, role: householdMembers.role })
+    .from(householdMembers)
+    .where(
+      and(
+        eq(householdMembers.id, id),
+        eq(householdMembers.householdId, householdId),
+        isNull(householdMembers.deletedAt),
+      )
+    )
+    .limit(1)
+
+  if (!target) {
+    return Response.json({ error: 'Member not found' }, { status: 404 })
+  }
+
+  if (target.role === 'admin') {
+    return Response.json({ error: 'Admin permissions cannot be overridden here' }, { status: 400 })
+  }
+
+  const body = await request.json().catch(() => null)
+  const permissions = body?.permissions
+
+  if (!permissions || typeof permissions !== 'object') {
+    return Response.json({ error: 'Invalid permissions payload' }, { status: 400 })
+  }
+
+  const normalized = Object.fromEntries(
+    PERMISSION_KEYS.map((key) => [key, Boolean(permissions[key])])
+  )
+
+  const [existing] = await db
+    .select({ id: memberPermissions.id })
+    .from(memberPermissions)
+    .where(
+      and(
+        eq(memberPermissions.householdId, householdId),
+        eq(memberPermissions.userId, target.userId)
+      )
+    )
+    .limit(1)
+
+  if (existing) {
+    await db
+      .update(memberPermissions)
+      .set({ ...normalized, updatedAt: new Date() })
+      .where(eq(memberPermissions.id, existing.id))
+  } else {
+    await db.insert(memberPermissions).values({
+      householdId,
+      userId: target.userId,
+      ...normalized,
+    })
+  }
+
+  return Response.json({ ok: true })
+}
 
 export async function DELETE(
   _request: NextRequest,

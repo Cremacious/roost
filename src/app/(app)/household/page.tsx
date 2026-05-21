@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { motion } from 'framer-motion'
-import { Check, Copy, Settings2, UserPlus, X } from 'lucide-react'
+import { Baby, Check, Copy, Settings2, UserPlus, X } from 'lucide-react'
 import { toast } from 'sonner'
 import { useSession } from '@/lib/auth/client'
 import {
@@ -18,6 +18,7 @@ import {
 } from '@/components/ui/alert-dialog'
 import MemberSheet, { type SheetMember } from '@/components/settings/MemberSheet'
 import InviteMemberSheet from '@/components/settings/InviteMemberSheet'
+import AddChildSheet from '@/components/settings/AddChildSheet'
 import MemberAvatar from '@/components/shared/MemberAvatar'
 import { PageContainer } from '@/components/layout/PageContainer'
 
@@ -69,8 +70,9 @@ export default function HouseholdPage() {
   const queryClient = useQueryClient()
   const currentUserId = session?.user?.id ?? ''
 
-  const [inviteOpen, setInviteOpen]     = useState(false)
-  const [removeTarget, setRemoveTarget] = useState<SheetMember | null>(null)
+  const [inviteOpen, setInviteOpen]         = useState(false)
+  const [addChildOpen, setAddChildOpen]     = useState(false)
+  const [removeTarget, setRemoveTarget]     = useState<SheetMember | null>(null)
   const [removing, setRemoving]         = useState(false)
   const [gearMember, setGearMember]     = useState<SheetMember | null>(null)
   const [codeCopied, setCodeCopied]     = useState(false)
@@ -418,48 +420,93 @@ export default function HouseholdPage() {
   // ── Invite row ─────────────────────────────────────────────────────────────
 
   const InviteRow = (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 0' }}>
-      <div style={{
-        width: 38,
-        height: 38,
-        borderRadius: '50%',
-        border: '2px dashed var(--roost-border)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        flexShrink: 0,
-      }}>
-        <UserPlus size={16} color="var(--roost-text-muted)" />
+    <>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 0', borderBottom: '1px solid var(--roost-border)' }}>
+        <div style={{
+          width: 38,
+          height: 38,
+          borderRadius: '50%',
+          border: '2px dashed var(--roost-border)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          flexShrink: 0,
+        }}>
+          <UserPlus size={16} color="var(--roost-text-muted)" />
+        </div>
+        <div style={{ flex: 1 }}>
+          <div style={{ fontSize: 13, fontWeight: 800, color: 'var(--roost-text-muted)' }}>Invite someone</div>
+          <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--roost-border-bottom)' }}>Share code or send a link</div>
+        </div>
+        {isAdmin && (
+          <button
+            onClick={() => setInviteOpen(true)}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 4,
+              padding: '6px 12px',
+              borderRadius: 9,
+              background: '#EF4444',
+              border: '1.5px solid #EF4444',
+              borderBottom: '2px solid #C93B3B',
+              fontFamily: 'inherit',
+              fontSize: 11,
+              fontWeight: 900,
+              color: '#fff',
+              cursor: 'pointer',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            <UserPlus size={11} color="#fff" />
+            Invite member
+          </button>
+        )}
       </div>
-      <div style={{ flex: 1 }}>
-        <div style={{ fontSize: 13, fontWeight: 800, color: 'var(--roost-text-muted)' }}>Invite someone</div>
-        <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--roost-border-bottom)' }}>Share code or send a link</div>
-      </div>
+
       {isAdmin && (
-        <button
-          onClick={() => setInviteOpen(true)}
-          style={{
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 0' }}>
+          <div style={{
+            width: 38,
+            height: 38,
+            borderRadius: '50%',
+            border: '2px dashed #DDD6FE',
             display: 'flex',
             alignItems: 'center',
-            gap: 4,
-            padding: '6px 12px',
-            borderRadius: 9,
-            background: '#EF4444',
-            border: '1.5px solid #EF4444',
-            borderBottom: '2px solid #C93B3B',
-            fontFamily: 'inherit',
-            fontSize: 11,
-            fontWeight: 900,
-            color: '#fff',
-            cursor: 'pointer',
-            whiteSpace: 'nowrap',
-          }}
-        >
-          <UserPlus size={11} color="#fff" />
-          Invite member
-        </button>
+            justifyContent: 'center',
+            flexShrink: 0,
+          }}>
+            <Baby size={16} color="#A78BFA" />
+          </div>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontSize: 13, fontWeight: 800, color: '#6D28D9' }}>Add a child account</div>
+            <div style={{ fontSize: 10, fontWeight: 600, color: '#A78BFA' }}>PIN-based, no email needed</div>
+          </div>
+          <button
+            onClick={() => setAddChildOpen(true)}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 4,
+              padding: '6px 12px',
+              borderRadius: 9,
+              background: '#EDE9FE',
+              border: '1.5px solid #DDD6FE',
+              borderBottom: '2px solid #A78BFA',
+              fontFamily: 'inherit',
+              fontSize: 11,
+              fontWeight: 900,
+              color: '#6D28D9',
+              cursor: 'pointer',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            <Baby size={11} color="#6D28D9" />
+            Add child
+          </button>
+        </div>
       )}
-    </div>
+    </>
   )
 
   // ── Members slab ───────────────────────────────────────────────────────────
@@ -531,8 +578,8 @@ export default function HouseholdPage() {
       </div>
       {[
         { role: 'admin',  desc: 'Full access: manage members, bills, settings' },
-        { role: 'member', desc: 'Add expenses, complete chores, view data' },
-        { role: 'child',  desc: 'View chores only, no financial access' },
+        { role: 'member', desc: 'Shared household access with per-person overrides available' },
+        { role: 'child',  desc: 'Restricted access by default, with per-person overrides available' },
       ].map(({ role, desc }) => (
         <div key={role} style={{ marginBottom: 10 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 3 }}>
@@ -541,6 +588,9 @@ export default function HouseholdPage() {
           <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--roost-text-muted)' }}>{desc}</div>
         </div>
       ))}
+      <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--roost-text-muted)', lineHeight: 1.5, marginTop: 4 }}>
+        Admins always keep full access. Member and child permissions can be overridden per person from member settings.
+      </div>
     </div>
   )
 
@@ -660,6 +710,12 @@ export default function HouseholdPage() {
         onClose={() => setInviteOpen(false)}
         householdName={household?.name ?? ''}
         householdCode={household?.code ?? ''}
+      />
+
+      {/* ── Add child sheet ───────────────────────────────────────────────────── */}
+      <AddChildSheet
+        open={addChildOpen}
+        onClose={() => setAddChildOpen(false)}
       />
 
       {/* ── Member settings sheet (gear icon) ─────────────────────────────────── */}

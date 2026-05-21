@@ -42,35 +42,6 @@ export const auth = betterAuth({
       verification: schema.verification,
     },
   }),
-  emailVerification: {
-    sendVerificationEmail: async ({ user, url }) => {
-      if (!process.env.RESEND_API_KEY) {
-        console.warn('[auth] RESEND_API_KEY not set — verification email skipped')
-        return
-      }
-      await resend.emails.send({
-        from: 'Roost <noreply@roost.app>',
-        to: user.email,
-        subject: 'Verify your Roost email',
-        html: `
-          <div style="font-family: Nunito, sans-serif; max-width: 480px; margin: 0 auto; padding: 32px 24px;">
-            <h1 style="color: #1A0505; font-size: 24px; font-weight: 900; margin: 0 0 8px;">Confirm your email</h1>
-            <p style="color: #7A3F3F; font-size: 15px; font-weight: 600; margin: 0 0 28px; line-height: 1.5;">
-              Thanks for signing up for Roost. Click the button below to verify your email address and get started.
-            </p>
-            <a href="${url}" style="display: inline-block; padding: 14px 28px; background: #EF4444; border-radius: 14px; color: #fff; font-weight: 800; font-size: 15px; text-decoration: none;">
-              Verify email
-            </a>
-            <p style="color: #9B9590; font-size: 13px; font-weight: 600; margin: 24px 0 0; line-height: 1.5;">
-              This link expires in 24 hours. If you did not sign up for Roost, you can safely ignore this email.
-            </p>
-          </div>
-        `,
-      })
-    },
-    sendOnSignUp: true,
-    requireEmailVerification: true,
-  },
   emailAndPassword: {
     enabled: true,
     sendResetPassword: async ({ user, url }) => {
@@ -79,7 +50,7 @@ export const auth = betterAuth({
         return
       }
       await resend.emails.send({
-        from: 'Roost <noreply@roost.app>',
+        from: 'Roost <noreply@code-mack.dev>',
         to: user.email,
         subject: 'Reset your Roost password',
         html: `

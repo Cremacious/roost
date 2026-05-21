@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getSession, getUserHousehold } from '@/lib/auth/helpers'
+import { getSession, getUserHousehold, checkMemberPermission } from '@/lib/auth/helpers'
 import { db } from '@/lib/db'
 import { calendarEvents, eventAttendees, householdMembers, users } from '@/db/schema'
 import { eq, and, isNull, gte, lt } from 'drizzle-orm'
@@ -259,8 +259,11 @@ export async function POST(req: NextRequest) {
   const membership = await getUserHousehold(session.user.id)
   if (!membership) return NextResponse.json({ error: 'No household' }, { status: 403 })
 
-  const { householdId } = membership
+  const { householdId, role } = membership
   const userId = session.user.id
+
+  const canAdd = await checkMemberPermission(userId, householdId, role, 'calendarAdd')
+  if (!canAdd) return NextResponse.json({ error: 'You do not have permission to add calendar events', code: 'PERMISSION_DENIED' }, { status: 403 })
 
   let body: {
     title: string

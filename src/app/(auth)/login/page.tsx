@@ -3,7 +3,7 @@
 import { useState, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
-import { signIn, sendVerificationEmail, signInWithGoogle, signInWithApple } from '@/lib/auth/client'
+import { signIn, signInWithGoogle, signInWithApple } from '@/lib/auth/client'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { CheckSquare, ShoppingCart, DollarSign, CalendarDays, UtensilsCrossed, Bell } from 'lucide-react'
@@ -47,9 +47,6 @@ function LoginForm() {
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const [oauthLoading, setOauthLoading] = useState<'google' | 'apple' | null>(null)
-  const [unverifiedEmail, setUnverifiedEmail] = useState<string | null>(null)
-  const [resendLoading, setResendLoading] = useState(false)
-  const [resendSent, setResendSent] = useState(false)
 
   async function handleGoogle() {
     setOauthLoading('google')
@@ -64,20 +61,11 @@ function LoginForm() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setError('')
-    setUnverifiedEmail(null)
     setLoading(true)
     try {
       const result = await signIn.email({ email, password })
       if (result.error) {
-        // better-auth returns this code when requireEmailVerification is on
-        if (
-          result.error.code === 'EMAIL_NOT_VERIFIED' ||
-          result.error.message?.toLowerCase().includes('verify')
-        ) {
-          setUnverifiedEmail(email)
-        } else {
-          setError(result.error.message ?? 'Invalid email or password')
-        }
+        setError(result.error.message ?? 'Invalid email or password')
       } else {
         router.push(callbackUrl)
       }
@@ -85,20 +73,6 @@ function LoginForm() {
       setError('Something went wrong. Try again.')
     } finally {
       setLoading(false)
-    }
-  }
-
-  async function handleResend() {
-    if (!unverifiedEmail) return
-    setResendLoading(true)
-    setResendSent(false)
-    try {
-      await sendVerificationEmail(unverifiedEmail)
-      setResendSent(true)
-    } catch {
-      // silently fail
-    } finally {
-      setResendLoading(false)
     }
   }
 
@@ -271,29 +245,6 @@ function LoginForm() {
               <p style={{ color: '#EF4444', fontSize: 13, fontWeight: 700 }}>{error}</p>
             )}
 
-            {unverifiedEmail && (
-              <div style={{ backgroundColor: '#FEF3C7', border: '1.5px solid #FCD34D', borderRadius: 12, padding: '12px 14px' }}>
-                <p style={{ color: '#92400E', fontWeight: 700, fontSize: 13, margin: '0 0 6px' }}>
-                  Email not verified
-                </p>
-                <p style={{ color: '#92400E', fontWeight: 600, fontSize: 12, margin: '0 0 8px', lineHeight: 1.5 }}>
-                  Check your inbox for a verification link, or resend it below.
-                </p>
-                {resendSent ? (
-                  <p style={{ color: '#15803D', fontWeight: 700, fontSize: 12 }}>Sent! Check your inbox.</p>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={handleResend}
-                    disabled={resendLoading}
-                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#EF4444', fontWeight: 700, fontSize: 12, fontFamily: 'inherit', padding: 0 }}
-                  >
-                    {resendLoading ? 'Sending...' : 'Resend verification email'}
-                  </button>
-                )}
-              </div>
-            )}
-
             <Button type="submit" loading={loading} color="#EF4444" darkColor="#C93B3B" size="lg">
               Sign in
             </Button>
@@ -311,6 +262,31 @@ function LoginForm() {
               Create an account
             </Link>
           </p>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, margin: '16px 0' }}>
+            <div style={{ flex: 1, height: 1, backgroundColor: '#F5C5C5' }} />
+            <span style={{ color: '#DBADB0', fontWeight: 700, fontSize: 11 }}>or</span>
+            <div style={{ flex: 1, height: 1, backgroundColor: '#F5C5C5' }} />
+          </div>
+
+          <Link
+            href="/child-login"
+            style={{
+              display: 'block',
+              textAlign: 'center',
+              padding: '11px 16px',
+              backgroundColor: '#fff',
+              border: '1.5px solid #F5C5C5',
+              borderBottom: '3px solid #DBADB0',
+              borderRadius: 12,
+              fontSize: 14,
+              fontWeight: 700,
+              color: '#7A3F3F',
+              textDecoration: 'none',
+            }}
+          >
+            Sign in as a child
+          </Link>
         </div>
       </div>
     </div>

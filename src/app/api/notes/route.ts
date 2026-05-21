@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getSession, getUserHousehold } from '@/lib/auth/helpers'
+import { getSession, getUserHousehold, checkMemberPermission } from '@/lib/auth/helpers'
 import { db } from '@/lib/db'
 import { notes, users } from '@/db/schema'
 import { eq, and, isNull, desc, count } from 'drizzle-orm'
@@ -43,8 +43,11 @@ export async function POST(req: NextRequest) {
   const membership = await getUserHousehold(session.user.id)
   if (!membership) return NextResponse.json({ error: 'No household' }, { status: 403 })
 
-  const { householdId } = membership
+  const { householdId, role } = membership
   const isPremium = membership.household.subscriptionStatus === 'premium'
+
+  const canAdd = await checkMemberPermission(session.user.id, householdId, role, 'notesAdd')
+  if (!canAdd) return NextResponse.json({ error: 'You do not have permission to add notes', code: 'PERMISSION_DENIED' }, { status: 403 })
 
   const body = await req.json()
   const { title, content, isRichText = false } = body

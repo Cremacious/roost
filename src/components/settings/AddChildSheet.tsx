@@ -210,13 +210,12 @@ export default function AddChildSheet({ open, onClose }: AddChildSheetProps) {
               </label>
               <div style={{ position: 'relative' }}>
                 <input
-                  type={showPin ? 'text' : 'text'}
+                  type={showPin ? 'text' : 'password'}
                   inputMode="numeric"
                   maxLength={4}
                   placeholder="1234"
-                  value={showPin ? pin : pin.replace(/./g, '•')}
+                  value={pin}
                   onChange={(e) => {
-                    // Allow only digit characters
                     const raw = e.target.value.replace(/[^\d]/g, '').slice(0, 4)
                     setPin(raw)
                     if (pinError) setPinError('')

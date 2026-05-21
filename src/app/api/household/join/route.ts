@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { requireSession } from '@/lib/auth/helpers'
 import { db } from '@/lib/db'
-import { households, householdMembers, user } from '@/db/schema'
+import { households, householdMembers, memberPermissions, user } from '@/db/schema'
 import { eq, and, isNull } from 'drizzle-orm'
 
 async function checkMultiHouseholdLimit(userId: string): Promise<Response | null> {
@@ -84,6 +84,11 @@ export async function POST(request: Request) {
     householdId: household.id,
     userId: session.user.id,
     role: 'member',
+  })
+
+  await db.insert(memberPermissions).values({
+    householdId: household.id,
+    userId: session.user.id,
   })
 
   // Mark onboarding complete in better-auth user table

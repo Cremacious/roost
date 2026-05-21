@@ -1,8 +1,67 @@
 import { NextRequest } from "next/server";
 import { getSession } from "@/lib/auth/helpers";
 import { db } from "@/lib/db";
-import { householdMembers, households, users } from "@/db/schema";
+import { householdMembers, households, memberPermissions, users } from "@/db/schema";
 import { and, eq, isNull, desc } from "drizzle-orm";
+
+const DEFAULT_PERMISSIONS = {
+  admin: {
+    expensesView: true,
+    expensesAdd: true,
+    choresAdd: true,
+    choresEdit: true,
+    groceryAdd: true,
+    groceryCreateList: true,
+    calendarAdd: true,
+    calendarEdit: true,
+    tasksAdd: true,
+    notesAdd: true,
+    mealsPlan: true,
+    mealsSuggest: true,
+  },
+  member: {
+    expensesView: true,
+    expensesAdd: true,
+    choresAdd: false,
+    choresEdit: false,
+    groceryAdd: true,
+    groceryCreateList: false,
+    calendarAdd: true,
+    calendarEdit: false,
+    tasksAdd: true,
+    notesAdd: true,
+    mealsPlan: true,
+    mealsSuggest: true,
+  },
+  guest: {
+    expensesView: true,
+    expensesAdd: true,
+    choresAdd: false,
+    choresEdit: false,
+    groceryAdd: true,
+    groceryCreateList: false,
+    calendarAdd: true,
+    calendarEdit: false,
+    tasksAdd: true,
+    notesAdd: true,
+    mealsPlan: true,
+    mealsSuggest: true,
+  },
+  child: {
+    expensesView: false,
+    expensesAdd: false,
+    choresAdd: false,
+    choresEdit: false,
+    groceryAdd: true,
+    groceryCreateList: false,
+    calendarAdd: false,
+    calendarEdit: false,
+    tasksAdd: false,
+    notesAdd: false,
+    mealsPlan: false,
+    mealsSuggest: true,
+  },
+} as const;
 
 export async function GET(_req: NextRequest): Promise<Response> {
   const session = await getSession();
@@ -42,9 +101,30 @@ export async function GET(_req: NextRequest): Promise<Response> {
       name: users.name,
       email: users.email,
       avatarColor: users.avatarColor,
+      permissions: {
+        expensesView: memberPermissions.expensesView,
+        expensesAdd: memberPermissions.expensesAdd,
+        choresAdd: memberPermissions.choresAdd,
+        choresEdit: memberPermissions.choresEdit,
+        groceryAdd: memberPermissions.groceryAdd,
+        groceryCreateList: memberPermissions.groceryCreateList,
+        calendarAdd: memberPermissions.calendarAdd,
+        calendarEdit: memberPermissions.calendarEdit,
+        tasksAdd: memberPermissions.tasksAdd,
+        notesAdd: memberPermissions.notesAdd,
+        mealsPlan: memberPermissions.mealsPlan,
+        mealsSuggest: memberPermissions.mealsSuggest,
+      },
     })
     .from(householdMembers)
     .innerJoin(users, eq(householdMembers.userId, users.id))
+    .leftJoin(
+      memberPermissions,
+      and(
+        eq(memberPermissions.householdId, householdMembers.householdId),
+        eq(memberPermissions.userId, householdMembers.userId),
+      )
+    )
     .where(
       and(
         eq(householdMembers.householdId, membership.householdId),
@@ -69,6 +149,10 @@ export async function GET(_req: NextRequest): Promise<Response> {
       role: m.role,
       joinedAt: m.joinedAt?.toISOString() ?? null,
       expiresAt: m.expiresAt?.toISOString() ?? null,
+      permissions: {
+        ...(DEFAULT_PERMISSIONS[m.role] ?? DEFAULT_PERMISSIONS.member),
+        ...(m.permissions ?? {}),
+      },
     })),
   });
 }

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getSession, getUserHousehold } from '@/lib/auth/helpers'
+import { getSession, getUserHousehold, checkMemberPermission } from '@/lib/auth/helpers'
 import { db } from '@/lib/db'
 import { tasks, projects, taskComments, taskDelegations, users } from '@/db/schema'
 import { eq, and, isNull, asc, desc, count, sql } from 'drizzle-orm'
@@ -145,6 +145,9 @@ export async function POST(req: NextRequest) {
   if (membership.role === 'child') {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
+
+  const canAdd = await checkMemberPermission(session.user.id, membership.householdId, membership.role, 'tasksAdd')
+  if (!canAdd) return NextResponse.json({ error: 'You do not have permission to add tasks', code: 'PERMISSION_DENIED' }, { status: 403 })
 
   const { householdId } = membership
   const body = await req.json()

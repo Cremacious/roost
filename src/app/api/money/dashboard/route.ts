@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { getSession, getUserHousehold } from '@/lib/auth/helpers'
 import { db } from '@/lib/db'
-import { expenses, expenseSplits, recurringExpenses, savingsGoals, goalContributions, users, expenseBudgets, expenseCategories } from '@/db/schema'
+import { expenses, expenseSplits, recurringExpenses, savingsGoals, goalContributions, users, expenseBudgets, expenseCategories, householdMembers } from '@/db/schema'
 import { eq, and, isNull, sum, desc, lte, gte, inArray } from 'drizzle-orm'
 import { simplifyDebts } from '@/lib/utils/debtSimplification'
 
@@ -38,6 +38,7 @@ export async function GET() {
     activeGoals,
     recentExpenses,
     budgets,
+    memberRows,
   ] = await Promise.all([
     db
       .select()
@@ -104,6 +105,12 @@ export async function GET() {
           .from(expenseBudgets)
           .where(eq(expenseBudgets.householdId, householdId))
       : Promise.resolve([]),
+
+    db
+      .select({ userId: householdMembers.userId, name: users.name, avatarColor: users.avatarColor, venmoHandle: users.venmoHandle, cashappHandle: users.cashappHandle })
+      .from(householdMembers)
+      .leftJoin(users, eq(householdMembers.userId, users.id))
+      .where(and(eq(householdMembers.householdId, householdId), isNull(householdMembers.deletedAt))),
   ])
 
   // Balances
@@ -123,9 +130,21 @@ export async function GET() {
   })).filter(s => s.creditorId && s.creditorId !== s.debtorId)
 
   const debts = simplifyDebts(rawSplits)
-  const myDebts = debts.filter(d => d.from === session.user.id || d.to === session.user.id)
-  const totalOwed = myDebts.filter(d => d.to === session.user.id).reduce((s, d) => s + d.amount, 0)
-  const totalOwe = myDebts.filter(d => d.from === session.user.id).reduce((s, d) => s + d.amount, 0)
+  const myDebtItems = debts.filter(d => d.from === session.user.id || d.to === session.user.id)
+  const totalOwed = myDebtItems.filter(d => d.to === session.user.id).reduce((s, d) => s + d.amount, 0)
+  const totalOwe = myDebtItems.filter(d => d.from === session.user.id).reduce((s, d) => s + d.amount, 0)
+
+  const memberMap = new Map(memberRows.map(m => [m.userId, m]))
+  const myDebts = myDebtItems.map(d => ({
+    ...d,
+    iOwe: d.from === session.user.id,
+    fromName: memberMap.get(d.from)?.name ?? 'Unknown',
+    toName: memberMap.get(d.to)?.name ?? 'Unknown',
+    fromColor: memberMap.get(d.from)?.avatarColor ?? null,
+    toColor: memberMap.get(d.to)?.avatarColor ?? null,
+    toVenmoHandle: memberMap.get(d.to)?.venmoHandle ?? null,
+    toCashappHandle: memberMap.get(d.to)?.cashappHandle ?? null,
+  }))
 
   const thisMonthExpenses = allExpenses.filter(e => new Date(e.createdAt) >= monthStart)
   const totalSpentThisMonth = thisMonthExpenses.reduce((s, e) => s + parseFloat(e.amount), 0)
@@ -200,6 +219,7 @@ export async function GET() {
       netBalance: Math.round((totalOwed - totalOwe) * 100) / 100,
       totalSpentThisMonth: Math.round(totalSpentThisMonth * 100) / 100,
     },
+    myDebts,
     bills,
     budgetSummary,
     activeGoal: activeGoal

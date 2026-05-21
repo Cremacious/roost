@@ -2,7 +2,7 @@ import { headers } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { auth } from './index'
 import { db } from '@/lib/db'
-import { householdMembers, households, users } from '@/db/schema'
+import { householdMembers, households, users, memberPermissions } from '@/db/schema'
 import { eq, and, isNull, desc } from 'drizzle-orm'
 import type { NextRequest } from 'next/server'
 
@@ -20,6 +20,50 @@ import type { NextRequest } from 'next/server'
  * - subscription_status = 'premium' AND premium_expires_at <= now()  → expired, lazy-revert to free
  * - subscription_status = 'free'                                      → not premium
  */
+export type PermissionField =
+  | 'expensesView' | 'expensesAdd'
+  | 'choresAdd' | 'choresEdit'
+  | 'groceryAdd' | 'groceryCreateList'
+  | 'calendarAdd' | 'calendarEdit'
+  | 'tasksAdd' | 'notesAdd'
+  | 'mealsPlan' | 'mealsSuggest'
+
+// Mirrors the DB column defaults in src/db/schema/members.ts
+const PERMISSION_DEFAULTS: Record<PermissionField, boolean> = {
+  expensesView:      true,
+  expensesAdd:       true,
+  choresAdd:         false,
+  choresEdit:        false,
+  groceryAdd:        true,
+  groceryCreateList: false,
+  calendarAdd:       true,
+  calendarEdit:      false,
+  tasksAdd:          true,
+  notesAdd:          true,
+  mealsPlan:         true,
+  mealsSuggest:      true,
+}
+
+export async function checkMemberPermission(
+  userId: string,
+  householdId: string,
+  role: string,
+  field: PermissionField,
+): Promise<boolean> {
+  if (role === 'admin') return true
+  const col = memberPermissions[field]
+  const [perms] = await db
+    .select({ value: col })
+    .from(memberPermissions)
+    .where(and(
+      eq(memberPermissions.userId, userId),
+      eq(memberPermissions.householdId, householdId),
+    ))
+    .limit(1)
+  // No row means no explicit overrides have been set — fall back to the schema default
+  return perms?.value ?? PERMISSION_DEFAULTS[field]
+}
+
 export async function requirePremium(householdId: string): Promise<void> {
   const [row] = await db
     .select({

@@ -2,9 +2,9 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import {
   signUp,
-  sendVerificationEmail,
   signInWithGoogle,
   signInWithApple,
 } from '@/lib/auth/client';
@@ -17,7 +17,6 @@ import {
   CalendarDays,
   UtensilsCrossed,
   Bell,
-  Mail,
 } from 'lucide-react';
 import RoostLogo from '@/components/shared/RoostLogo';
 
@@ -140,6 +139,7 @@ function StrengthBar({ password }: { password: string }) {
 }
 
 export default function SignupPage() {
+  const router = useRouter();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -149,14 +149,10 @@ export default function SignupPage() {
   const [oauthLoading, setOauthLoading] = useState<'google' | 'apple' | null>(
     null,
   );
-  // After signup, show "check your email" state instead of redirecting
-  const [pendingEmail, setPendingEmail] = useState<string | null>(null);
-  const [resendLoading, setResendLoading] = useState(false);
-  const [resendSent, setResendSent] = useState(false);
 
   async function handleGoogle() {
     setOauthLoading('google');
-    // OAuth users skip email verification — proxy onboarding guard routes new users to /onboarding
+    // Proxy onboarding guard routes new users to /onboarding; existing users land on /today.
     await signInWithGoogle('/today');
   }
 
@@ -190,153 +186,16 @@ export default function SignupPage() {
       });
       if (result.error) {
         setError(result.error.message ?? 'Sign up failed');
-      } else {
-        // Email verification required — show pending state
-        setPendingEmail(email);
+        setLoading(false);
+        return;
       }
+      // Email verification is off — better-auth creates a session on signup.
+      // Send the new user straight into onboarding.
+      router.push('/onboarding');
     } catch {
       setError('Something went wrong. Try again.');
-    } finally {
       setLoading(false);
     }
-  }
-
-  async function handleResend() {
-    if (!pendingEmail) return;
-    setResendLoading(true);
-    setResendSent(false);
-    try {
-      await sendVerificationEmail(pendingEmail);
-      setResendSent(true);
-    } catch {
-      // silently fail — user can try again
-    } finally {
-      setResendLoading(false);
-    }
-  }
-
-  // "Check your email" screen
-  if (pendingEmail) {
-    return (
-      <div
-        style={{
-          minHeight: '100dvh',
-          backgroundColor: '#FFF5F5',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          padding: 24,
-        }}
-      >
-        <div style={{ width: '100%', maxWidth: 400, textAlign: 'center' }}>
-          <div
-            style={{
-              width: 64,
-              height: 64,
-              borderRadius: 20,
-              backgroundColor: '#FEE2E2',
-              border: '1.5px solid #FECACA',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              margin: '0 auto 20px',
-            }}
-          >
-            <Mail size={28} color="#EF4444" />
-          </div>
-          <h1
-            style={{
-              color: '#1A0505',
-              fontWeight: 900,
-              fontSize: 26,
-              letterSpacing: '-0.5px',
-              margin: '0 0 8px',
-            }}
-          >
-            Check your email
-          </h1>
-          <p
-            style={{
-              color: '#7A3F3F',
-              fontWeight: 600,
-              fontSize: 14,
-              lineHeight: 1.6,
-              margin: '0 0 6px',
-            }}
-          >
-            We sent a verification link to
-          </p>
-          <p
-            style={{
-              color: '#1A0505',
-              fontWeight: 800,
-              fontSize: 15,
-              margin: '0 0 24px',
-            }}
-          >
-            {pendingEmail}
-          </p>
-          <p
-            style={{
-              color: '#7A3F3F',
-              fontWeight: 600,
-              fontSize: 13,
-              lineHeight: 1.6,
-              margin: '0 0 24px',
-            }}
-          >
-            Click the link in that email to finish creating your account. It
-            expires in 24 hours.
-          </p>
-          {resendSent ? (
-            <p style={{ color: '#22C55E', fontWeight: 700, fontSize: 13 }}>
-              Sent! Check your inbox again.
-            </p>
-          ) : (
-            <button
-              onClick={handleResend}
-              disabled={resendLoading}
-              style={{
-                background: 'none',
-                border: 'none',
-                cursor: 'pointer',
-                color: '#EF4444',
-                fontWeight: 700,
-                fontSize: 13,
-                fontFamily: 'inherit',
-              }}
-            >
-              {resendLoading ? 'Sending...' : "Didn't get it? Resend email"}
-            </button>
-          )}
-          <p
-            style={{
-              marginTop: 32,
-              fontSize: 13,
-              fontWeight: 700,
-              color: '#7A3F3F',
-            }}
-          >
-            Wrong address?{' '}
-            <button
-              onClick={() => setPendingEmail(null)}
-              style={{
-                background: 'none',
-                border: 'none',
-                cursor: 'pointer',
-                color: '#EF4444',
-                fontWeight: 700,
-                fontSize: 13,
-                fontFamily: 'inherit',
-                padding: 0,
-              }}
-            >
-              Go back
-            </button>
-          </p>
-        </div>
-      </div>
-    );
   }
 
   return (

@@ -5,9 +5,8 @@ import { user as authUser, account, users, households, householdMembers, memberP
 import { and, eq, isNull, ne } from 'drizzle-orm'
 import { hashPassword } from 'better-auth/crypto'
 
-// Free households allow at most this many non-child members (mirrors
-// packages/constants/src/limits.ts FREE_TIER_LIMITS.members). The app does not
-// import that workspace package today, so the value is duplicated here.
+// Free households allow at most this many non-child members. Kept in sync with
+// the member limit enforced across the membership routes.
 const FREE_MEMBER_LIMIT = 5
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
@@ -48,17 +47,10 @@ export async function POST(request: Request) {
     )
   }
 
-  // Caller must be a child account.
-  const [appUser] = await db
-    .select({ isChildAccount: users.isChildAccount })
-    .from(users)
-    .where(eq(users.id, userId))
-    .limit(1)
-  if (!appUser?.isChildAccount) {
-    return NextResponse.json({ error: 'This account cannot be upgraded' }, { status: 400 })
-  }
-
-  // Membership must exist and have upgrade enabled by an admin.
+  // Membership must exist and have upgrade enabled by an admin. `upgradeAllowed`
+  // is the single source of truth and is retry-safe: the allow-upgrade endpoint
+  // only ever sets it on child members, so it both guarantees child-only access
+  // and lets a partially-completed conversion be retried (it is cleared last).
   const [membership] = await db
     .select({
       id: householdMembers.id,
@@ -107,15 +99,18 @@ export async function POST(request: Request) {
     )
   }
 
-  // --- Conversion (validated above; sequential writes, Neon HTTP has no interactive tx) ---
+  // --- Conversion (no interactive tx on Neon HTTP). Every write below is
+  // idempotent and safe to re-run; `upgradeAllowed` is cleared LAST as the single
+  // commit point, so any partial failure can be retried (the guard above still
+  // passes until that final write lands). ---
   const now = new Date()
   const hashed = await hashPassword(password)
 
-  // 1. Real email + verified, on both auth user and app users.
+  // 1. Real email + verified on the better-auth user, and convert the app user.
   await db.update(authUser).set({ email, emailVerified: true, updatedAt: now }).where(eq(authUser.id, userId))
   await db.update(users).set({ email, isChildAccount: false, childOfHouseholdId: null, updatedAt: now }).where(eq(users.id, userId))
 
-  // 2. Credential account (only if one does not already exist).
+  // 2. Credential account (insert if missing, else update the password).
   const [existingCred] = await db
     .select({ id: account.id })
     .from(account)
@@ -135,10 +130,11 @@ export async function POST(request: Request) {
     await db.update(account).set({ password: hashed, updatedAt: now }).where(eq(account.id, existingCred.id))
   }
 
-  // 3. Membership: become a member, drop PIN, clear the flag.
+  // 3. Membership becomes a standard member and drops the PIN. upgradeAllowed is
+  //    intentionally left set here; it is cleared last (step 5) as the commit point.
   await db
     .update(householdMembers)
-    .set({ role: 'member', pin: null, upgradeAllowed: false })
+    .set({ role: 'member', pin: null })
     .where(eq(householdMembers.id, membership.id))
 
   // 4. Reset permissions to member defaults.
@@ -152,6 +148,10 @@ export async function POST(request: Request) {
   } else {
     await db.insert(memberPermissions).values({ householdId: membership.householdId, userId, ...MEMBER_PERMS })
   }
+
+  // 5. Commit point: clear the upgrade flag last. Until this lands the whole
+  //    operation is retryable.
+  await db.update(householdMembers).set({ upgradeAllowed: false }).where(eq(householdMembers.id, membership.id))
 
   return NextResponse.json({ ok: true, email })
 }

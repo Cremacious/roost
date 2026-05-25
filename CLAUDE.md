@@ -280,6 +280,38 @@ Tasks: one-off to-dos
 - Joiner setup: display name, timezone
 - Child accounts: PIN set by parent, no email needed
 
+## Features: Child Account Upgrade
+- Turns a PIN-only child account into a standard email/password member, in place
+  (same user id), so all history (chores, points, streaks) is preserved.
+- Two-party flow: admin enables it from the child's MemberSheet ("Allow [name] to
+  upgrade to a full account"), then the child completes it from their own session.
+- Schema: household_members.upgrade_allowed (boolean, default false). Admin toggles
+  it; cleared after a successful conversion.
+- Admin enable endpoint: PATCH /api/household/members/[id]/allow-upgrade (admin only,
+  target must be role 'child'); body { allowed: boolean }.
+- upgrade_allowed is surfaced to clients via the members GET list and /api/household/me,
+  and exposed by useHousehold() as `upgradeAllowed`.
+- Child conversion endpoint: POST /api/user/upgrade-account (called by the child in
+  their own session); body { email, password }. Guard is membership.upgrade_allowed
+  === true (the single source of truth: allow-upgrade only sets it on children, so it
+  guarantees child-only access). Validates email format + uniqueness (409) and password
+  (8+ chars, an uppercase letter, a number). Enforces the free 5-member limit (the
+  upgraded child counts toward it; 403 MEMBERS_LIMIT when full and free).
+- Conversion (no interactive tx on Neon HTTP, so idempotent sequential writes with
+  upgrade_allowed cleared LAST as the single commit point, making partial failures
+  retryable): set real email + emailVerified on the better-auth user; set email,
+  isChildAccount=false, childOfHouseholdId=null on the app users row; insert/refresh the
+  credential account row (providerId 'credential', hashed password); set the membership
+  role='member' and pin=null; reset member_permissions to standard member defaults
+  (finance unlocked); then clear upgrade_allowed.
+- Child UI: UpgradeAccountBanner (src/components/account/) shows on /today only when
+  role==='child' && upgradeAllowed; opens UpgradeAccountSheet (email + password + confirm).
+- Admin UI: "Upgrade to a full account" section in MemberSheet (child members only).
+- Free feature, not premium-gated. Out of scope: leaving the household as an independent
+  account, bulk upgrades, reverting a member back to a child.
+- Spec: docs/superpowers/specs/2026-05-20-child-account-upgrade-design.md. Plan:
+  docs/superpowers/plans/2026-05-20-child-account-upgrade.md.
+
 ## Features: Internationalization
 - English + Spanish at launch
 - Build with i18n from day one (next-intl recommended)

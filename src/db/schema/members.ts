@@ -12,6 +12,7 @@ export const householdMembers = pgTable('household_members', {
     .references(() => users.id, { onDelete: 'cascade' }),
   role: text('role').notNull().default('member').$type<'admin' | 'member' | 'guest' | 'child'>(),
   pin: text('pin'),
+  upgradeAllowed: boolean('upgrade_allowed').notNull().default(false),
   expiresAt: timestamp('expires_at'),
   createdAt: timestamp('created_at').notNull().defaultNow(),
   deletedAt: timestamp('deleted_at'),

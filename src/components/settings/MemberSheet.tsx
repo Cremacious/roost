@@ -41,6 +41,7 @@ export interface SheetMember {
   avatarColor: string | null
   joinedAt: string | null
   expiresAt?: string | null
+  upgradeAllowed?: boolean
   permissions: MemberPermissions
 }
 
@@ -163,11 +164,14 @@ export default function MemberSheet({
   const [removeLoading, setRemoveLoading] = useState(false)
   const [permissions, setPermissions] = useState<MemberPermissions | null>(null)
   const [permissionsLoading, setPermissionsLoading] = useState(false)
+  const [upgradeAllowed, setUpgradeAllowed] = useState(false)
+  const [upgradeSaving, setUpgradeSaving] = useState(false)
 
   useEffect(() => {
     setPin('')
     setShowPin(false)
     setPermissions(member?.permissions ?? null)
+    setUpgradeAllowed(member?.upgradeAllowed ?? false)
   }, [member])
 
   if (!member || !permissions) return null
@@ -201,6 +205,31 @@ export default function MemberSheet({
       })
     } finally {
       setPinLoading(false)
+    }
+  }
+
+  async function handleToggleUpgrade(next: boolean) {
+    setUpgradeSaving(true)
+    setUpgradeAllowed(next) // optimistic
+    try {
+      const res = await fetch(`/api/household/members/${member!.id}/allow-upgrade`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ allowed: next }),
+      })
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}))
+        throw new Error(data.error ?? 'Failed to update')
+      }
+      toast.success(next ? 'Upgrade enabled' : 'Upgrade turned off')
+      onRefetch()
+    } catch (err) {
+      setUpgradeAllowed(!next) // revert
+      toast.error('Could not update upgrade setting', {
+        description: err instanceof Error ? err.message : 'Please try again.',
+      })
+    } finally {
+      setUpgradeSaving(false)
     }
   }
 
@@ -344,6 +373,26 @@ export default function MemberSheet({
               >
                 {permissionsLoading ? 'Saving permissions...' : 'Save permission overrides'}
               </motion.button>
+            </div>
+          )}
+
+          {isChild && (
+            <div style={DIVIDER_STYLE}>
+              <span style={SECTION_LABEL_STYLE}>Upgrade to a full account</span>
+              <p style={{ margin: '0 0 12px', fontSize: 12, fontWeight: 600, color: 'var(--roost-text-muted)', lineHeight: 1.5 }}>
+                This lets {member.name} set their own email and password and become a full member. They keep all their
+                chores, points, and history. As a member they will also be able to see household expenses.
+              </p>
+              <ToggleRow
+                checked={upgradeAllowed}
+                label={`Allow ${member.name} to upgrade`}
+                description={
+                  upgradeAllowed
+                    ? `Upgrade enabled. Waiting for ${member.name} to finish from their own login.`
+                    : 'Turn this on so they can set up their own account.'
+                }
+                onChange={(v) => { if (!upgradeSaving) handleToggleUpgrade(v) }}
+              />
             </div>
           )}
 

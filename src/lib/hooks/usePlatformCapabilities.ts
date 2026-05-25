@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useSyncExternalStore } from 'react'
 
 /**
  * Platform capability flags for conditional UI.
@@ -13,7 +13,9 @@ import { useEffect, useState } from 'react'
  * In the Expo app this hook is replaced with a native implementation that
  * reports real device capabilities. `canPush` is a build constant here so it is
  * safe to read during the first render with no hydration mismatch. The
- * navigator-derived flags resolve after mount.
+ * navigator-derived flags use useSyncExternalStore so the server snapshot is
+ * false and the client snapshot resolves after hydration, with no hydration
+ * mismatch and without calling setState inside an effect.
  */
 
 // Web build can never deliver push. Flip this in the Expo build.
@@ -28,15 +30,22 @@ export interface PlatformCapabilities {
   isMobileWeb: boolean
 }
 
-export function usePlatformCapabilities(): PlatformCapabilities {
-  const [hasNativeShare, setHasNativeShare] = useState(false)
-  const [isMobileWeb, setIsMobileWeb] = useState(false)
+// These flags never change during a session, so the subscribe is a no-op.
+const noopSubscribe = () => () => {}
 
-  useEffect(() => {
-    if (typeof navigator === 'undefined') return
-    setHasNativeShare(typeof navigator.share === 'function')
-    setIsMobileWeb(/Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent))
-  }, [])
+function getHasNativeShare(): boolean {
+  return typeof navigator !== 'undefined' && typeof navigator.share === 'function'
+}
+
+function getIsMobileWeb(): boolean {
+  return typeof navigator !== 'undefined' && /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent)
+}
+
+const serverFalse = () => false
+
+export function usePlatformCapabilities(): PlatformCapabilities {
+  const hasNativeShare = useSyncExternalStore(noopSubscribe, getHasNativeShare, serverFalse)
+  const isMobileWeb = useSyncExternalStore(noopSubscribe, getIsMobileWeb, serverFalse)
 
   return { canPush: WEB_CAN_PUSH, hasNativeShare, isMobileWeb }
 }

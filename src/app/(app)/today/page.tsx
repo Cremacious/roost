@@ -9,6 +9,7 @@ import { ChoreRow } from '@/components/today/ChoreRow'
 import { SnapshotStrip } from '@/components/today/SnapshotStrip'
 import { SkeletonCard, Skeleton } from '@/components/ui/skeleton'
 import WelcomeModal from '@/components/shared/WelcomeModal'
+import { UpgradeAccountBanner } from '@/components/account/UpgradeAccountBanner'
 
 interface ChoreItem { id: string; title: string; nextDueAt: string | null; frequency?: string; overdue: boolean }
 interface TodayData {
@@ -138,6 +139,8 @@ export default function TodayPage() {
         <p style={{ fontSize: 11, fontWeight: 800, color: '#9B9590', letterSpacing: '0.08em', margin: 0 }}>
           {dateLabel}
         </p>
+
+        <UpgradeAccountBanner />
 
         <HeroCard
           type={data.hero.type}

@@ -15,6 +15,7 @@ export async function GET(request: NextRequest): Promise<Response> {
     .select({
       householdId: householdMembers.householdId,
       role: householdMembers.role,
+      upgradeAllowed: householdMembers.upgradeAllowed,
     })
     .from(householdMembers)
     .where(and(eq(householdMembers.userId, userId), isNull(householdMembers.deletedAt)))
@@ -73,5 +74,5 @@ export async function GET(request: NextRequest): Promise<Response> {
     if (perms.mealsSuggest) permissions.push("meals.suggest");
   }
 
-  return Response.json({ household, role: membership.role, permissions });
+  return Response.json({ household, role: membership.role, permissions, upgradeAllowed: membership.upgradeAllowed });
 }

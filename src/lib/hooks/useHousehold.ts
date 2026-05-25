@@ -33,6 +33,7 @@ interface HouseholdData {
   };
   role: string;
   permissions: string[];
+  upgradeAllowed?: boolean;
 }
 
 export function useHousehold() {
@@ -77,6 +78,7 @@ export function useHousehold() {
     household: data?.household,
     role: data?.role,
     permissions: data?.permissions ?? [],
+    upgradeAllowed: data?.upgradeAllowed ?? false,
     isPremium,
     isCancelled,
     stripeCustomerId: data?.household?.stripe_customer_id ?? null,

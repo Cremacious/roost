@@ -5,6 +5,7 @@ import { useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { CheckCircle, Clock, XCircle } from 'lucide-react'
 import { DraggableSheet } from '@/components/shared/DraggableSheet'
+import { usePlatformCapabilities } from '@/lib/hooks/usePlatformCapabilities'
 
 const COLOR = '#22C55E'
 const COLOR_DARK = '#15803D'
@@ -36,6 +37,7 @@ interface Props {
 
 export function SettleSheet({ open, onClose, debt, currentUserId, members, payeeVenmoHandle, payeeCashappHandle }: Props) {
   const qc = useQueryClient()
+  const { canPush } = usePlatformCapabilities()
   const [loading, setLoading] = useState(false)
 
   if (!debt) return null
@@ -201,7 +203,7 @@ export function SettleSheet({ open, onClose, debt, currentUserId, members, payee
                 })()}
 
                 <p style={{ fontSize: 12, fontWeight: 600, color: 'var(--roost-text-muted)', margin: 0 }}>
-                  After paying, tap the button below to notify {creditorName}.
+                  After paying, tap the button below. {creditorName} can then confirm they received it.
                 </p>
               </div>
             )}
@@ -227,9 +229,13 @@ export function SettleSheet({ open, onClose, debt, currentUserId, members, payee
               </p>
             </div>
             <div style={{ display: 'flex', gap: 8 }}>
-              <button onClick={handleRemind} disabled={loading} style={{ ...btnBase, flex: 1, backgroundColor: 'var(--roost-surface)', color: 'var(--roost-text-secondary)', border: '1.5px solid var(--roost-border)', borderBottom: '3px solid var(--roost-border-bottom)' }}>
-                Remind
-              </button>
+              {/* "Remind" sends a push, which is not delivered on web. Hidden until the
+                  mobile app ships. The creditor still sees this claim in-app to confirm. */}
+              {canPush && (
+                <button onClick={handleRemind} disabled={loading} style={{ ...btnBase, flex: 1, backgroundColor: 'var(--roost-surface)', color: 'var(--roost-text-secondary)', border: '1.5px solid var(--roost-border)', borderBottom: '3px solid var(--roost-border-bottom)' }}>
+                  Remind
+                </button>
+              )}
               <button onClick={handleCancel} disabled={loading} style={{ ...btnBase, flex: 1, backgroundColor: 'var(--roost-surface)', color: '#EF4444', border: '1.5px solid #FECACA', borderBottom: '3px solid #FCA5A5' }}>
                 Cancel
               </button>

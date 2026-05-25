@@ -1,9 +1,11 @@
 'use client'
 
 import { useState } from 'react'
-import { Check, Copy } from 'lucide-react'
+import { Check, Copy, Share2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { DraggableSheet } from '@/components/shared/DraggableSheet'
+import { usePlatformCapabilities } from '@/lib/hooks/usePlatformCapabilities'
+import { shareOrCopy } from '@/lib/utils/share'
 
 interface InviteMemberSheetProps {
   open: boolean
@@ -18,14 +20,25 @@ export default function InviteMemberSheet({
   householdName = '',
   householdCode = '',
 }: InviteMemberSheetProps) {
+  const { hasNativeShare } = usePlatformCapabilities()
   const [codeCopied, setCodeCopied] = useState(false)
 
-  function handleCopyCode() {
+  async function handleShareCode() {
     if (!householdCode) return
-    navigator.clipboard.writeText(householdCode)
-    setCodeCopied(true)
-    setTimeout(() => setCodeCopied(false), 2000)
-    toast.success('Code copied')
+    const shareText = householdName
+      ? `Join ${householdName} on Roost. Use household code ${householdCode} when you sign up.`
+      : `Join my household on Roost. Use household code ${householdCode} when you sign up.`
+    const result = await shareOrCopy(
+      { title: 'Join my household on Roost', text: shareText },
+      householdCode,
+    )
+    if (result === 'copied') {
+      setCodeCopied(true)
+      setTimeout(() => setCodeCopied(false), 2000)
+      toast.success('Code copied')
+    } else if (result === 'failed') {
+      toast.error('Could not share code', { description: 'Try copying it manually.' })
+    }
   }
 
   return (
@@ -66,7 +79,7 @@ export default function InviteMemberSheet({
             {householdCode}
           </div>
           <button
-            onClick={handleCopyCode}
+            onClick={handleShareCode}
             style={{
               display: 'inline-flex',
               alignItems: 'center',
@@ -84,8 +97,8 @@ export default function InviteMemberSheet({
               transition: 'background 0.15s',
             }}
           >
-            {codeCopied ? <Check size={13} /> : <Copy size={13} />}
-            {codeCopied ? 'Copied!' : 'Copy code'}
+            {codeCopied ? <Check size={13} /> : hasNativeShare ? <Share2 size={13} /> : <Copy size={13} />}
+            {codeCopied ? 'Copied!' : hasNativeShare ? 'Share code' : 'Copy code'}
           </button>
         </div>
 

@@ -10,6 +10,7 @@ import { format, parseISO } from 'date-fns'
 import { DraggableSheet } from '@/components/shared/DraggableSheet'
 import { SECTION_COLORS } from '@/lib/constants/colors'
 import { CALENDAR_CATEGORIES } from '@/lib/constants/calendarCategories'
+import { usePlatformCapabilities } from '@/lib/hooks/usePlatformCapabilities'
 
 const COLOR = SECTION_COLORS.calendar.base   // #3B82F6
 const COLOR_DARK = SECTION_COLORS.calendar.dark // #1A5CB5
@@ -460,6 +461,7 @@ function LeftColumn({
   notifyAll, handleNotifyAllToggle, notifySpecificIds, toggleNotifyMember,
   members, canDelete, saveMutation, handleSave, setShowDeleteDialog,
 }: LeftColProps) {
+  const { canPush } = usePlatformCapabilities()
   return (
     <>
       <p style={{ fontSize: 18, fontWeight: 800, color: '#0F172A' }}>
@@ -614,7 +616,9 @@ function LeftColumn({
           style={{ ...inputStyle, resize: 'vertical', lineHeight: 1.5 }} />
       </div>
 
-      {/* Notify section — card */}
+      {/* Notify section — push-only, not delivered on web. Hidden until the mobile
+          app ships. Attendees still see the event in their calendar on web. */}
+      {canPush && (
       <div style={{
         backgroundColor: '#F8FAFC', border: '1.5px solid #E2E8F0',
         borderBottom: '3px solid #94A3B8', borderRadius: 12, padding: '12px 14px',
@@ -663,6 +667,7 @@ function LeftColumn({
           Selected members get a push notification when this event is saved
         </p>
       </div>
+      )}
 
       {/* Save */}
       <motion.button type="button" whileTap={{ y: 1 }} disabled={saveMutation.isPending}

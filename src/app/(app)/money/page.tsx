@@ -23,6 +23,7 @@ import { ContributeSheet } from '@/components/money/ContributeSheet'
 import { BillSheet } from '@/components/money/BillSheet'
 import { BudgetSheet, type EditableBudget } from '@/components/money/BudgetSheet'
 import { useHousehold } from '@/lib/hooks/useHousehold'
+import { usePlatformCapabilities } from '@/lib/hooks/usePlatformCapabilities'
 import { useSession } from '@/lib/auth/client'
 import PremiumGate from '@/components/shared/PremiumGate'
 
@@ -182,6 +183,7 @@ function DashboardTab({ currentUserId, members, isPremium, onOpenExpense, onOpen
   onTabChange: (tab: Tab) => void
 }) {
   const queryClient = useQueryClient()
+  const { canPush } = usePlatformCapabilities()
   const [quickSettleDebt, setQuickSettleDebt] = useState<DebtItem | null>(null)
   const [quickSettling, setQuickSettling] = useState(false)
   const [insightsGateOpen, setInsightsGateOpen] = useState(false)
@@ -463,18 +465,22 @@ function DashboardTab({ currentUserId, members, isPremium, onOpenExpense, onOpen
                         ${debt.amount.toFixed(2)}
                       </div>
                     </div>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end' }}>
-                      <button
-                        onClick={(e) => { e.stopPropagation(); iOwe ? setQuickSettleDebt(debt) : onOpenSettle(debt) }}
-                        style={{
-                          padding: '5px 12px', borderRadius: 8, border: '1.5px solid var(--roost-border)',
-                          borderBottom: '2px solid var(--roost-border-bottom)', background: 'var(--roost-surface)',
-                          fontFamily: 'inherit', fontSize: 11, fontWeight: 800, color: 'var(--roost-text-secondary)', cursor: 'pointer',
-                        }}
-                      >
-                        {iOwe ? 'Settle up' : 'Remind'}
-                      </button>
-                    </div>
+                    {/* "Remind" (creditor view) is push-only and not delivered on web, so it
+                        is hidden until the mobile app ships. "Settle up" stays for the debtor. */}
+                    {(iOwe || canPush) && (
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end' }}>
+                        <button
+                          onClick={(e) => { e.stopPropagation(); iOwe ? setQuickSettleDebt(debt) : onOpenSettle(debt) }}
+                          style={{
+                            padding: '5px 12px', borderRadius: 8, border: '1.5px solid var(--roost-border)',
+                            borderBottom: '2px solid var(--roost-border-bottom)', background: 'var(--roost-surface)',
+                            fontFamily: 'inherit', fontSize: 11, fontWeight: 800, color: 'var(--roost-text-secondary)', cursor: 'pointer',
+                          }}
+                        >
+                          {iOwe ? 'Settle up' : 'Remind'}
+                        </button>
+                      </div>
+                    )}
                   </div>
                 )
               })}

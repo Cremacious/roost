@@ -203,6 +203,27 @@ so Expo can reuse it. UI stays in Next.js. Expo calls same API routes.
 - No email notifications (nobody reads them)
 - Email used only for: invite links, account verification
 
+## Platform Behavior (web vs mobile app)
+- Push notifications are NOT delivered on web. users.push_token exists for the
+  future Expo app but the web app never registers one, so any push-only control
+  is a silent no-op on web. Gate every push-only control behind canPush.
+- Source of truth: usePlatformCapabilities() in src/lib/hooks/usePlatformCapabilities.ts
+  returns { canPush (false on web), hasNativeShare, isMobileWeb }. canPush is a
+  build constant so it is safe in first render with no hydration mismatch.
+- Decision: push-only controls are HIDDEN on web (not shown-disabled). Already
+  applied to: settlement "Remind" (money DashboardTab + SettleSheet) and calendar
+  event "Notify" (EventSheet LeftColumn).
+- Reminders are the exception: the reminders cron writes reminder_receipts and
+  ReminderBanner polls /api/reminders/due, so reminder notify types work in-app on
+  web. Do not gate reminder notify behind canPush.
+- Sharing: use shareOrCopy() in src/lib/utils/share.ts (native Web Share API when
+  available, clipboard fallback). Used for household-code sharing in
+  InviteMemberSheet, household/page.tsx, and settings Household section. Secret
+  credentials (child PIN in AddChildSheet) stay copy-only on purpose.
+- Full audit and follow-up checklist: docs/platform-capability-audit.md.
+- Receipt camera (input capture) and weather geolocation work on web and will need
+  native Expo modules in the mobile build; web paths stay as-is.
+
 ## Features: Chores vs Tasks
 Chores: recurring household duties (vacuum weekly, dishes daily)
   - Assigned to member, has frequency, resets on schedule

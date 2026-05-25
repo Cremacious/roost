@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { motion } from 'framer-motion'
-import { Baby, Check, Copy, Settings2, UserPlus, X } from 'lucide-react'
+import { Baby, Check, Copy, Settings2, Share2, UserPlus, X } from 'lucide-react'
 import { toast } from 'sonner'
 import { useSession } from '@/lib/auth/client'
 import {
@@ -21,6 +21,8 @@ import InviteMemberSheet from '@/components/settings/InviteMemberSheet'
 import AddChildSheet from '@/components/settings/AddChildSheet'
 import MemberAvatar from '@/components/shared/MemberAvatar'
 import { PageContainer } from '@/components/layout/PageContainer'
+import { usePlatformCapabilities } from '@/lib/hooks/usePlatformCapabilities'
+import { shareOrCopy } from '@/lib/utils/share'
 
 // ─── Design tokens ────────────────────────────────────────────────────────────
 
@@ -76,6 +78,7 @@ export default function HouseholdPage() {
   const [removing, setRemoving]         = useState(false)
   const [gearMember, setGearMember]     = useState<SheetMember | null>(null)
   const [codeCopied, setCodeCopied]     = useState(false)
+  const { hasNativeShare } = usePlatformCapabilities()
 
   const { data, isLoading, isError, refetch } = useQuery<HouseholdData>({
     queryKey: ['household-members'],
@@ -103,12 +106,22 @@ export default function HouseholdPage() {
     { admins: 0, members: 0, children: 0, guests: 0 }
   )
 
-  function handleCopyCode() {
+  async function handleShareCode() {
     if (!household?.code) return
-    navigator.clipboard.writeText(household.code)
-    setCodeCopied(true)
-    setTimeout(() => setCodeCopied(false), 2000)
-    toast.success('Code copied')
+    const shareText = household.name
+      ? `Join ${household.name} on Roost. Use household code ${household.code} when you sign up.`
+      : `Join my household on Roost. Use household code ${household.code} when you sign up.`
+    const result = await shareOrCopy(
+      { title: 'Join my household on Roost', text: shareText },
+      household.code,
+    )
+    if (result === 'copied') {
+      setCodeCopied(true)
+      setTimeout(() => setCodeCopied(false), 2000)
+      toast.success('Code copied')
+    } else if (result === 'failed') {
+      toast.error('Could not share code', { description: 'Try copying it manually.' })
+    }
   }
 
   async function handleRemove() {
@@ -199,7 +212,7 @@ export default function HouseholdPage() {
           {household?.code}
         </div>
         <button
-          onClick={handleCopyCode}
+          onClick={handleShareCode}
           style={{
             width: 38,
             height: 38,
@@ -213,11 +226,13 @@ export default function HouseholdPage() {
             flexShrink: 0,
             transition: 'background 0.15s',
           }}
-          aria-label="Copy invite code"
+          aria-label={hasNativeShare ? 'Share invite code' : 'Copy invite code'}
         >
           {codeCopied
             ? <Check size={15} color="white" />
-            : <Copy size={15} color="rgba(255,255,255,0.85)" />}
+            : hasNativeShare
+              ? <Share2 size={15} color="rgba(255,255,255,0.85)" />
+              : <Copy size={15} color="rgba(255,255,255,0.85)" />}
         </button>
       </div>
       <div style={{ fontSize: 10, fontWeight: 600, color: 'rgba(255,255,255,0.6)', marginTop: 8, position: 'relative' }}>
@@ -277,7 +292,7 @@ export default function HouseholdPage() {
             {household?.code}
           </div>
           <button
-            onClick={handleCopyCode}
+            onClick={handleShareCode}
             style={{
               width: 40,
               height: 40,
@@ -290,11 +305,13 @@ export default function HouseholdPage() {
               cursor: 'pointer',
               transition: 'background 0.15s',
             }}
-            aria-label="Copy invite code"
+            aria-label={hasNativeShare ? 'Share invite code' : 'Copy invite code'}
           >
             {codeCopied
               ? <Check size={16} color="white" />
-              : <Copy size={16} color="rgba(255,255,255,0.8)" />}
+              : hasNativeShare
+                ? <Share2 size={16} color="rgba(255,255,255,0.8)" />
+                : <Copy size={16} color="rgba(255,255,255,0.8)" />}
           </button>
         </div>
         <div style={{ fontSize: 10, fontWeight: 600, color: 'rgba(255,255,255,0.55)', marginTop: 6 }}>

@@ -15,6 +15,7 @@ import {
   MapPin,
   Pencil,
   RefreshCw,
+  Share2,
   Thermometer,
   Tag,
   Trash2,
@@ -36,6 +37,8 @@ import { CHORE_ICON_OPTIONS } from '@/components/chores/choreIconMap';
 import { useSession } from '@/lib/auth/client';
 import { useHousehold, StatsVisibility } from '@/lib/hooks/useHousehold';
 import { useUserPreferences } from '@/lib/hooks/useUserPreferences';
+import { usePlatformCapabilities } from '@/lib/hooks/usePlatformCapabilities';
+import { shareOrCopy } from '@/lib/utils/share';
 import {
   AlertDialog,
   AlertDialogContent,
@@ -1159,6 +1162,7 @@ export default function SettingsPage() {
   const [pwSaving, setPwSaving] = useState(false);
 
   // ---- Household state ------------------------------------------------------
+  const { hasNativeShare } = usePlatformCapabilities();
   const [householdName, setHouseholdName] = useState('');
   const [inviteCode, setInviteCode] = useState('');
   const [codeRegenerating, setCodeRegenerating] = useState(false);
@@ -2293,9 +2297,19 @@ export default function SettingsPage() {
                   <motion.button
                     type="button"
                     whileTap={{ y: 1 }}
-                    onClick={() => {
-                      navigator.clipboard.writeText(inviteCode);
-                      toast.success('Code copied to clipboard');
+                    onClick={async () => {
+                      const shareText = householdName
+                        ? `Join ${householdName} on Roost. Use household code ${inviteCode} when you sign up.`
+                        : `Join my household on Roost. Use household code ${inviteCode} when you sign up.`;
+                      const result = await shareOrCopy(
+                        { title: 'Join my household on Roost', text: shareText },
+                        inviteCode,
+                      );
+                      if (result === 'copied') {
+                        toast.success('Code copied to clipboard');
+                      } else if (result === 'failed') {
+                        toast.error('Could not share code', { description: 'Try copying it manually.' });
+                      }
                     }}
                     className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl"
                     style={{
@@ -2303,11 +2317,19 @@ export default function SettingsPage() {
                       border: '1.5px solid var(--roost-border)',
                       borderBottom: '3px solid var(--roost-border-bottom)',
                     }}
+                    aria-label={hasNativeShare ? 'Share invite code' : 'Copy invite code'}
                   >
-                    <Copy
-                      className="size-4"
-                      style={{ color: 'var(--roost-text-muted)' }}
-                    />
+                    {hasNativeShare ? (
+                      <Share2
+                        className="size-4"
+                        style={{ color: 'var(--roost-text-muted)' }}
+                      />
+                    ) : (
+                      <Copy
+                        className="size-4"
+                        style={{ color: 'var(--roost-text-muted)' }}
+                      />
+                    )}
                   </motion.button>
                 </div>
                 {isAdmin && (

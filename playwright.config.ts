@@ -30,6 +30,7 @@ export default defineConfig({
         "**/chores.spec.ts",
         "**/grocery.spec.ts",
         "**/child-upgrade.spec.ts",
+        "**/common-items.spec.ts",
       ],
       timeout: 60000,
     },

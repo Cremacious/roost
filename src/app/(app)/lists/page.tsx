@@ -62,20 +62,6 @@ const LIST_COLORS = [
   '#06B6D4',
 ];
 
-const COMMON_ITEMS = [
-  'Milk',
-  'Eggs',
-  'Bread',
-  'Butter',
-  'Chicken breast',
-  'Pasta',
-  'Rice',
-  'Olive oil',
-  'Onions',
-  'Garlic',
-  'Bananas',
-  'Cheese',
-];
 
 // ── Interfaces ────────────────────────────────────────────────────────────────
 
@@ -800,6 +786,17 @@ export default function FoodPage() {
     },
     staleTime: 60_000,
   });
+
+  const { data: commonItemsData } = useQuery<{ items: { id: string; name: string }[] }>({
+    queryKey: ['common-items'],
+    queryFn: async () => {
+      const res = await fetch('/api/grocery/common-items')
+      if (!res.ok) throw new Error('Failed to load common items')
+      return res.json()
+    },
+    staleTime: 30_000,
+  })
+  const commonItems = commonItemsData?.items ?? []
 
   // ── Create list ──────────────────────────────────────────────────────────
   const createListMutation = useMutation({
@@ -1927,11 +1924,11 @@ export default function FoodPage() {
               COMMON ITEMS
             </p>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-              {COMMON_ITEMS.map((itemName) => (
+              {commonItems.map((item) => (
                 <button
-                  key={itemName}
+                  key={item.id}
                   type="button"
-                  onClick={() => addMutation.mutate({ name: itemName })}
+                  onClick={() => addMutation.mutate({ name: item.name })}
                   style={{
                     display: 'flex',
                     alignItems: 'center',
@@ -1948,7 +1945,7 @@ export default function FoodPage() {
                   }}
                 >
                   <Plus size={12} color={COLOR} strokeWidth={2.5} />
-                  {itemName}
+                  {item.name}
                 </button>
               ))}
             </div>
@@ -2208,28 +2205,28 @@ export default function FoodPage() {
               Common Items
             </p>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-              {COMMON_ITEMS.map((itemName) => (
+              {commonItems.map((item) => (
                 <button
-                  key={itemName}
+                  key={item.id}
                   type="button"
-                  onClick={() => addMutation.mutate({ name: itemName })}
+                  onClick={() => addMutation.mutate({ name: item.name })}
                   style={{
                     display: 'flex',
                     alignItems: 'center',
                     gap: 5,
-                    padding: '5px 10px',
-                    borderRadius: 16,
+                    padding: '6px 12px',
+                    borderRadius: 20,
                     border: '1.5px solid var(--roost-border)',
                     backgroundColor: 'var(--roost-surface)',
-                    fontSize: 11,
+                    fontSize: 12,
                     fontWeight: 700,
                     color: 'var(--roost-text-primary)',
                     cursor: 'pointer',
                     fontFamily: 'inherit',
                   }}
                 >
-                  <Plus size={10} color={COLOR} strokeWidth={2.5} />
-                  {itemName}
+                  <Plus size={12} color={COLOR} strokeWidth={2.5} />
+                  {item.name}
                 </button>
               ))}
             </div>

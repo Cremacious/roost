@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Check } from 'lucide-react'
+import { Check, ChevronLeft } from 'lucide-react'
 
 type Step = 1 | '2a' | '2b' | 3
 
@@ -77,6 +77,36 @@ function DotProgress({ step }: { step: Step }) {
         )
       })}
     </div>
+  )
+}
+
+function BackButton({ onClick }: { onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      style={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: 6,
+        height: 40,
+        padding: '0 14px',
+        background: 'rgba(255,255,255,0.12)',
+        border: '1.5px solid rgba(255,255,255,0.22)',
+        borderBottom: '2px solid rgba(0,0,0,0.18)',
+        borderRadius: 999,
+        color: '#ffffff',
+        fontFamily: 'var(--font-nunito)',
+        fontWeight: 800,
+        fontSize: 12,
+        letterSpacing: '0.04em',
+        cursor: 'pointer',
+        marginBottom: 14,
+      }}
+    >
+      <ChevronLeft size={14} strokeWidth={2.5} />
+      Back
+    </button>
   )
 }
 
@@ -273,24 +303,7 @@ export default function OnboardingPage() {
           {/* Step 2a: Create */}
           {step === '2a' && (
             <>
-              <button
-                type="button"
-                onClick={() => { setError(''); setStep(1) }}
-                style={{
-                  background: 'none',
-                  border: 'none',
-                  padding: 0,
-                  marginBottom: 10,
-                  color: 'rgba(255,255,255,0.6)',
-                  fontFamily: 'var(--font-nunito)',
-                  fontWeight: 700,
-                  fontSize: 11,
-                  cursor: 'pointer',
-                  display: 'block',
-                }}
-              >
-                ← Back
-              </button>
+              <BackButton onClick={() => { setError(''); setStep(1) }} />
               <h1
                 style={{
                   fontWeight: 900,
@@ -336,24 +349,7 @@ export default function OnboardingPage() {
           {/* Step 2b: Join */}
           {step === '2b' && (
             <>
-              <button
-                type="button"
-                onClick={() => { setError(''); setStep(1) }}
-                style={{
-                  background: 'none',
-                  border: 'none',
-                  padding: 0,
-                  marginBottom: 10,
-                  color: 'rgba(255,255,255,0.6)',
-                  fontFamily: 'var(--font-nunito)',
-                  fontWeight: 700,
-                  fontSize: 11,
-                  cursor: 'pointer',
-                  display: 'block',
-                }}
-              >
-                ← Back
-              </button>
+              <BackButton onClick={() => { setError(''); setStep(1) }} />
               <h1
                 style={{
                   fontWeight: 900,
@@ -378,7 +374,7 @@ export default function OnboardingPage() {
               </p>
               <form onSubmit={handleJoin}>
                 <input
-                  placeholder="6-letter code from your housemate"
+                  placeholder="Household code"
                   value={inviteCode}
                   onChange={e => setInviteCode(e.target.value.toUpperCase())}
                   maxLength={6}

@@ -36,3 +36,15 @@ export const groceryItems = pgTable('grocery_items', {
   // Items are almost always queried by list, filtered by soft-delete
   index('idx_grocery_items_list').on(table.listId, table.deletedAt),
 ])
+
+export const commonItems = pgTable('common_items', {
+  id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+  householdId: text('household_id')
+    .notNull()
+    .references(() => households.id, { onDelete: 'cascade' }),
+  name: text('name').notNull(),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+  deletedAt: timestamp('deleted_at'),
+}, (table) => [
+  index('idx_common_items_household_deleted').on(table.householdId, table.deletedAt),
+])

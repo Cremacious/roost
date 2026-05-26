@@ -239,6 +239,27 @@ Tasks: one-off to-dos
 - Optimistic UI for check/uncheck
 - Soft delete with auto-purge after 30 days
 
+## Features: Common Items
+- Each household has its own editable list of quick-add "Common items" chips
+  shown above the active grocery list on /lists.
+- Schema: common_items (id, household_id, name, created_at, deleted_at). Indexed
+  on (household_id, deleted_at).
+- API:
+  - GET /api/grocery/common-items lists non-deleted items for the caller's
+    household and lazy-seeds the twelve defaults if the household has zero
+    total rows (including soft-deleted), so deletions stick.
+  - POST adds an item (case-insensitive uniqueness within the household,
+    max 60 chars, 409 DUPLICATE on collision).
+  - PATCH /api/grocery/common-items/[id] renames; DELETE soft-deletes.
+- Permission: anyone with grocery.add (non-child member). Children are blocked.
+- Seeding: on household create, the twelve defaults are inserted via
+  seedCommonItems(householdId). The same helper is the lazy-seed in GET.
+- UI: src/components/grocery/CommonItemsSheet.tsx is a DraggableSheet with an
+  add row at top and a list of rename/delete rows. The pencil-icon button next
+  to each COMMON ITEMS header on /lists opens it.
+- Defaults: Milk, Eggs, Bread, Butter, Chicken breast, Pasta, Rice, Olive oil,
+  Onions, Garlic, Bananas, Cheese, defined in src/lib/constants/commonItems.ts.
+
 ## Features: Bill Splitting
 - Track who owes what, no in-app payments
 - Users settle in cash/Venmo themselves

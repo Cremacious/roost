@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { requireSession } from '@/lib/auth/helpers'
 import { db } from '@/lib/db'
 import { households, householdMembers, user } from '@/db/schema'
+import { seedCommonItems } from '@/lib/utils/seedCommonItems'
 import { eq, and, isNull } from 'drizzle-orm'
 
 async function checkMultiHouseholdLimit(userId: string): Promise<Response | null> {
@@ -86,6 +87,9 @@ export async function POST(request: Request) {
     userId: session.user.id,
     role: 'admin',
   })
+
+  // Seed the default twelve common items so the Lists page chip grid is populated.
+  await seedCommonItems(householdId)
 
   // Mark onboarding complete in better-auth user table
   await db.update(user)

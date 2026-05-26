@@ -13,11 +13,13 @@ import {
   X,
   UtensilsCrossed,
   ArrowUpDown,
+  Pencil,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { startOfWeek, format } from 'date-fns';
 import { Skeleton } from '@/components/ui/skeleton';
 import { groupItemsBySection } from '@/lib/utils/grocerySort';
+import { CommonItemsSheet } from '@/components/grocery/CommonItemsSheet';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -730,6 +732,7 @@ export default function FoodPage() {
   const [sortMode, setSortMode] = useState<'smart' | 'newest'>('newest');
   const [addingList, setAddingList] = useState(false);
   const [clearConfirmOpen, setClearConfirmOpen] = useState(false);
+  const [commonItemsSheetOpen, setCommonItemsSheetOpen] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const qtyRef = useRef<HTMLInputElement>(null);
 
@@ -1912,17 +1915,34 @@ export default function FoodPage() {
 
           {/* Frequently bought — mobile only */}
           <div className="md:hidden">
-            <p
-              style={{
-                fontSize: 11,
-                fontWeight: 800,
-                color: 'var(--roost-text-muted)',
-                letterSpacing: '0.08em',
-                marginBottom: 8,
-              }}
-            >
-              COMMON ITEMS
-            </p>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+              <p
+                style={{
+                  fontSize: 11,
+                  fontWeight: 800,
+                  color: 'var(--roost-text-muted)',
+                  letterSpacing: '0.08em',
+                  margin: 0,
+                }}
+              >
+                COMMON ITEMS
+              </p>
+              <button
+                type="button"
+                aria-label="Edit common items"
+                onClick={() => setCommonItemsSheetOpen(true)}
+                style={{
+                  width: 32, height: 32, borderRadius: 8,
+                  border: '1.5px solid var(--roost-border)',
+                  borderBottom: '2px solid var(--roost-border-bottom)',
+                  background: 'var(--roost-surface)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  cursor: 'pointer',
+                }}
+              >
+                <Pencil size={14} color="var(--roost-text-muted)" />
+              </button>
+            </div>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
               {commonItems.map((item) => (
                 <button
@@ -2192,18 +2212,34 @@ export default function FoodPage() {
 
           {/* Frequently bought widget */}
           <div>
-            <p
-              style={{
-                fontSize: 10,
-                fontWeight: 800,
-                color: 'var(--roost-text-muted)',
-                letterSpacing: '0.1em',
-                textTransform: 'uppercase',
-                marginBottom: 12,
-              }}
-            >
-              Common Items
-            </p>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+              <p
+                style={{
+                  fontSize: 11,
+                  fontWeight: 800,
+                  color: 'var(--roost-text-muted)',
+                  letterSpacing: '0.08em',
+                  margin: 0,
+                }}
+              >
+                COMMON ITEMS
+              </p>
+              <button
+                type="button"
+                aria-label="Edit common items"
+                onClick={() => setCommonItemsSheetOpen(true)}
+                style={{
+                  width: 32, height: 32, borderRadius: 8,
+                  border: '1.5px solid var(--roost-border)',
+                  borderBottom: '2px solid var(--roost-border-bottom)',
+                  background: 'var(--roost-surface)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  cursor: 'pointer',
+                }}
+              >
+                <Pencil size={14} color="var(--roost-text-muted)" />
+              </button>
+            </div>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
               {commonItems.map((item) => (
                 <button
@@ -2235,6 +2271,8 @@ export default function FoodPage() {
         {/* /desktop sidebar */}
       </div>
       {/* /content layout */}
+
+      <CommonItemsSheet open={commonItemsSheetOpen} onClose={() => setCommonItemsSheetOpen(false)} />
 
       <AlertDialog open={clearConfirmOpen} onOpenChange={setClearConfirmOpen}>
         <AlertDialogContent>

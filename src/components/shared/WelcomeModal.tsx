@@ -12,6 +12,14 @@ import {
   Home,
 } from 'lucide-react'
 import * as DialogPrimitive from '@radix-ui/react-dialog'
+import { useQueryClient } from '@tanstack/react-query'
+
+// Shape of the cached profile entry in TanStack Query. Kept in sync with the
+// shape produced by the page's `['user-profile']` queryFn.
+interface CachedProfile {
+  hasSeenWelcome: boolean
+  isChildAccount: boolean
+}
 
 const FEATURES = [
   {
@@ -52,14 +60,38 @@ interface WelcomeModalProps {
 }
 
 export default function WelcomeModal({ open, onDismiss }: WelcomeModalProps) {
+  const qc = useQueryClient()
   const [dismissing, setDismissing] = useState(false)
 
   async function handleDismiss() {
     if (dismissing) return
     setDismissing(true)
-    // Fire and forget — close immediately, persist in background
-    fetch('/api/user/dismiss-welcome', { method: 'POST' }).catch(() => {})
+
+    // Optimistically mark the cached profile as `hasSeenWelcome: true` so a
+    // remount of /today (e.g., clicking the Today nav link again) reads the
+    // updated value from cache instead of the pre-dismiss snapshot. Without
+    // this, the page's `['user-profile']` query has staleTime 5m and returns
+    // the stale `hasSeenWelcome: false` for up to 5 minutes after dismissal,
+    // re-showing the modal on every Today visit during that window.
+    qc.setQueryData<CachedProfile | undefined>(['user-profile'], (old) =>
+      old ? { ...old, hasSeenWelcome: true } : old,
+    )
     onDismiss()
+
+    // Persist to the database in the background. On failure, log so it shows
+    // up in client monitoring; do NOT revert the cache because the user has
+    // visually dismissed the modal. If the DB write actually fails, the modal
+    // will reappear on the next session, which is acceptable for this one-off
+    // onboarding flag.
+    fetch('/api/user/dismiss-welcome', { method: 'POST' })
+      .then((res) => {
+        if (!res.ok) {
+          console.warn('[WelcomeModal] dismiss-welcome returned', res.status)
+        }
+      })
+      .catch((err) => {
+        console.warn('[WelcomeModal] dismiss-welcome failed', err)
+      })
   }
 
   return (

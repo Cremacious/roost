@@ -317,16 +317,22 @@ export function ExpenseSheet({ open, onClose, members, currentUserId, isPremium,
     let splits: CustomSplit[] = []
 
     if (splitMethod === 'equal') {
-      const equalMembers = equalSelectedIds.size > 0
-        ? [...equalSelectedIds].map(id => members.find(m => m.id === id)).filter(Boolean) as Member[]
-        : members.filter(m => m.id !== effectivePaidBy)
-      // Include payer's share in the per-person calculation
-      const totalIncluding = equalMembers.some(m => m.id === effectivePaidBy)
-        ? equalMembers.length
-        : equalMembers.length + 1
-      splits = equalMembers.filter(m => m.id !== effectivePaidBy).map(m => ({
-        userId: m.id,
-        amount: (totalAmount / totalIncluding).toFixed(2),
+      // Selected non-payer members from the picker; the payer is always
+      // implicitly a participant (their share is recorded on their own row).
+      const selectedNonPayerIds = [...equalSelectedIds]
+        .filter(id => id !== effectivePaidBy && members.some(m => m.id === id))
+      const participantIds = [effectivePaidBy, ...selectedNonPayerIds]
+      const n = participantIds.length
+      // Even per-person amount; the last row absorbs the rounding residual so
+      // the splits sum exactly equals the expense total. Without this, three
+      // participants at $80 would each be $26.67 and the splits would sum to
+      // $80.01, which is fine here, but for some totals the rounding drift
+      // would exceed the server's 0.02 tolerance and the save would fail.
+      const per = Math.round((totalAmount / n) * 100) / 100
+      const lastRowAmount = Math.round((totalAmount - per * (n - 1)) * 100) / 100
+      splits = participantIds.map((id, i) => ({
+        userId: id,
+        amount: (i === n - 1 ? lastRowAmount : per).toFixed(2),
       }))
     } else if (splitMethod === 'custom') {
       splits = customSplits.filter(s => s.amount && parseFloat(s.amount) > 0)

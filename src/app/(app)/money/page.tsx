@@ -170,6 +170,7 @@ interface MembersApiMember {
   userId: string
   name: string
   avatarColor?: string
+  role: string
 }
 
 // ─── Dashboard Tab ────────────────────────────────────────────────────────────
@@ -1579,11 +1580,17 @@ export default function MoneyPage() {
 
   const { data: sessionData } = useSession()
 
-  const members: Member[] = ((membersQuery.data?.members ?? []) as MembersApiMember[]).map((m) => ({
-    id: m.userId,
-    name: m.name,
-    avatarColor: m.avatarColor,
-  }))
+  // Children are blocked from every finance endpoint by design, so they should
+  // never appear in expense pickers, split selectors, or "Who owes who" cards.
+  // Filtering them out at the source keeps the expense flow's defaults sensible
+  // (no preselected children) and removes the "ghost" rows from every consumer.
+  const members: Member[] = ((membersQuery.data?.members ?? []) as MembersApiMember[])
+    .filter((m) => m.role !== 'child')
+    .map((m) => ({
+      id: m.userId,
+      name: m.name,
+      avatarColor: m.avatarColor,
+    }))
 
   const currentUserId = sessionData?.user?.id ?? ''
 

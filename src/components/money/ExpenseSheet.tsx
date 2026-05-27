@@ -89,6 +89,12 @@ export function ExpenseSheet({ open, onClose, members, currentUserId, isPremium,
   const [percentSplits, setPercentSplits] = useState<PercentSplit[]>([])
   const [shareSplits, setShareSplits] = useState<ShareSplit[]>([])
   const [equalSelectedIds, setEqualSelectedIds] = useState<Set<string>>(new Set())
+  // Selection state for the Custom / Percent / Shares pickers. Each tracks
+  // which non-payer members are "in" the split. The payer is always implicitly
+  // a participant; their share is computed from the remainder.
+  const [customSelectedIds, setCustomSelectedIds] = useState<Set<string>>(new Set())
+  const [percentSelectedIds, setPercentSelectedIds] = useState<Set<string>>(new Set())
+  const [shareSelectedIds, setShareSelectedIds] = useState<Set<string>>(new Set())
   const [saving, setSaving] = useState(false)
 
   // Receipt scan flow
@@ -141,28 +147,32 @@ export function ExpenseSheet({ open, onClose, members, currentUserId, isPremium,
     }
   }, [currentUserId])
 
-  const nonPayerMembers = members.filter(m => m.id !== paidBy)
-
   // ── Init helpers ───────────────────────────────────────────────────────
 
+  // All four splits use the same mental model: the payer is always implicitly a
+  // participant, the picker chooses additional non-payer participants, and the
+  // default values distribute evenly across (payer + selected non-payers).
+
   function initCustomSplits(payerId: string) {
-    const others = members.filter(m => m.id !== payerId)
-    const each = others.length > 0 && amount ? (parseFloat(amount) / others.length).toFixed(2) : ''
-    setCustomSplits(others.map(m => ({ userId: m.id, amount: each })))
+    const nonPayer = members.filter(m => m.id !== payerId)
+    setCustomSelectedIds(new Set(nonPayer.map(m => m.id)))
+    const n = nonPayer.length + 1 // include payer
+    const each = n > 0 && amount ? (parseFloat(amount) / n).toFixed(2) : ''
+    setCustomSplits(nonPayer.map(m => ({ userId: m.id, amount: each })))
   }
 
-  function initPercentSplits() {
-    const count = members.length
-    const base = count > 0 ? Math.floor(100 / count) : 0
-    const rem = count > 0 ? 100 - base * count : 0
-    setPercentSplits(members.map((m, i) => ({
-      userId: m.id,
-      percent: i === 0 ? String(base + rem) : String(base),
-    })))
+  function initPercentSplits(payerId: string) {
+    const nonPayer = members.filter(m => m.id !== payerId)
+    setPercentSelectedIds(new Set(nonPayer.map(m => m.id)))
+    const n = nonPayer.length + 1 // include payer
+    const each = n > 0 ? Math.round((100 / n) * 10) / 10 : 0
+    setPercentSplits(nonPayer.map(m => ({ userId: m.id, percent: String(each) })))
   }
 
-  function initShareSplits() {
-    setShareSplits(members.map(m => ({ userId: m.id, shares: 1 })))
+  function initShareSplits(payerId: string) {
+    const nonPayer = members.filter(m => m.id !== payerId)
+    setShareSelectedIds(new Set(nonPayer.map(m => m.id)))
+    setShareSplits(nonPayer.map(m => ({ userId: m.id, shares: 1 })))
   }
 
   function initEqualSplits(payerId: string) {
@@ -174,21 +184,16 @@ export function ExpenseSheet({ open, onClose, members, currentUserId, isPremium,
     setSplitMethod(method)
     if (method === 'equal') initEqualSplits(paidBy)
     if (method === 'custom') initCustomSplits(paidBy)
-    if (method === 'percent') initPercentSplits()
-    if (method === 'shares') initShareSplits()
+    if (method === 'percent') initPercentSplits(paidBy)
+    if (method === 'shares') initShareSplits(paidBy)
   }
 
   function handlePaidByChange(userId: string) {
     setPaidBy(userId)
-    if (splitMethod === 'equal') {
-      const others = members.filter(m => m.id !== userId)
-      setEqualSelectedIds(new Set(others.map(m => m.id)))
-    }
-    if (splitMethod === 'custom') {
-      const others = members.filter(m => m.id !== userId)
-      const each = others.length > 0 && amount ? (parseFloat(amount) / others.length).toFixed(2) : ''
-      setCustomSplits(others.map(m => ({ userId: m.id, amount: each })))
-    }
+    if (splitMethod === 'equal') initEqualSplits(userId)
+    if (splitMethod === 'custom') initCustomSplits(userId)
+    if (splitMethod === 'percent') initPercentSplits(userId)
+    if (splitMethod === 'shares') initShareSplits(userId)
   }
 
   function resetForm() {
@@ -201,6 +206,9 @@ export function ExpenseSheet({ open, onClose, members, currentUserId, isPremium,
     setPercentSplits([])
     setShareSplits([])
     setEqualSelectedIds(new Set())
+    setCustomSelectedIds(new Set())
+    setPercentSelectedIds(new Set())
+    setShareSelectedIds(new Set())
     setScanStep('idle')
     setScannedReceipt(null)
     setReviewedItems([])
@@ -214,12 +222,6 @@ export function ExpenseSheet({ open, onClose, members, currentUserId, isPremium,
   // ── Computed values ────────────────────────────────────────────────────
 
   const totalAmount = parseFloat(amount) || 0
-
-  const percentTotal = percentSplits.reduce((s, p) => s + (parseFloat(p.percent) || 0), 0)
-  const percentBalanced = Math.abs(percentTotal - 100) < 0.01
-
-  const totalShares = shareSplits.reduce((s, sh) => s + sh.shares, 0)
-  const perShare = totalShares > 0 && totalAmount > 0 ? totalAmount / totalShares : 0
 
   // ── Scan flow handlers ─────────────────────────────────────────────────
 
@@ -335,30 +337,60 @@ export function ExpenseSheet({ open, onClose, members, currentUserId, isPremium,
         amount: (i === n - 1 ? lastRowAmount : per).toFixed(2),
       }))
     } else if (splitMethod === 'custom') {
-      splits = customSplits.filter(s => s.amount && parseFloat(s.amount) > 0)
-      const splitTotal = splits.reduce((s, sp) => s + parseFloat(sp.amount), 0)
-      if (Math.abs(splitTotal - totalAmount) > 0.02) {
-        toast.error('Splits do not add up', {
-          description: `Total splits: $${splitTotal.toFixed(2)}, expense: $${totalAmount.toFixed(2)}`,
+      // Selected non-payer entries with a non-empty value. Payer is implicit;
+      // their amount = totalAmount - sum(others). If the user has overshot the
+      // total, surface a clear error rather than letting the server reject.
+      const selected = customSplits.filter(
+        s => customSelectedIds.has(s.userId) && s.userId !== effectivePaidBy && s.amount,
+      )
+      const nonPayerSum = selected.reduce((s, sp) => s + (parseFloat(sp.amount) || 0), 0)
+      if (nonPayerSum > totalAmount + 0.02) {
+        toast.error('Splits exceed the total', {
+          description: `Selected splits add up to $${nonPayerSum.toFixed(2)}, expense: $${totalAmount.toFixed(2)}.`,
         })
         return
       }
+      const payerAmount = Math.max(0, Math.round((totalAmount - nonPayerSum) * 100) / 100)
+      splits = [
+        { userId: effectivePaidBy, amount: payerAmount.toFixed(2) },
+        ...selected.map(s => ({ userId: s.userId, amount: (parseFloat(s.amount) || 0).toFixed(2) })),
+      ]
     } else if (splitMethod === 'percent') {
-      if (!percentBalanced) {
-        toast.error('Percentages must total 100%', {
-          description: `Currently at ${percentTotal.toFixed(1)}%.`,
+      const selected = percentSplits.filter(
+        p => percentSelectedIds.has(p.userId) && p.userId !== effectivePaidBy,
+      )
+      const nonPayerPct = selected.reduce((s, p) => s + (parseFloat(p.percent) || 0), 0)
+      if (nonPayerPct > 100 + 0.01) {
+        toast.error('Percentages exceed 100%', {
+          description: `Selected percents add up to ${nonPayerPct.toFixed(1)}%.`,
         })
         return
       }
-      splits = percentSplits.map(p => ({
-        userId: p.userId,
-        amount: ((parseFloat(p.percent) / 100) * totalAmount).toFixed(2),
-      }))
+      const payerPct = Math.max(0, 100 - nonPayerPct)
+      splits = [
+        { userId: effectivePaidBy, amount: ((payerPct / 100) * totalAmount).toFixed(2) },
+        ...selected.map(p => ({ userId: p.userId, amount: ((parseFloat(p.percent) / 100) * totalAmount).toFixed(2) })),
+      ]
     } else if (splitMethod === 'shares') {
-      splits = shareSplits.map(sh => ({
-        userId: sh.userId,
-        amount: (sh.shares * perShare).toFixed(2),
-      }))
+      const selected = shareSplits.filter(
+        sh => shareSelectedIds.has(sh.userId) && sh.userId !== effectivePaidBy,
+      )
+      const nonPayerShares = selected.reduce((s, sh) => s + sh.shares, 0)
+      const payerShares = 1 // payer always counts as 1 share
+      const totalSharesIncPayer = payerShares + nonPayerShares
+      const perShareAmt = totalAmount / totalSharesIncPayer
+      // Build provisional rows then push any rounding residual into the last
+      // row so the splits sum exactly equals totalAmount.
+      const provisional = [
+        { userId: effectivePaidBy, amount: Math.round(payerShares * perShareAmt * 100) / 100 },
+        ...selected.map(sh => ({ userId: sh.userId, amount: Math.round(sh.shares * perShareAmt * 100) / 100 })),
+      ]
+      const sumProv = provisional.reduce((s, r) => s + r.amount, 0)
+      const residual = Math.round((totalAmount - sumProv) * 100) / 100
+      if (provisional.length > 0) {
+        provisional[provisional.length - 1].amount = Math.round((provisional[provisional.length - 1].amount + residual) * 100) / 100
+      }
+      splits = provisional.map(p => ({ userId: p.userId, amount: p.amount.toFixed(2) }))
     }
     // payer only: one split for the payer themselves covering the full amount
     if (splitMethod === 'payer') {
@@ -784,181 +816,313 @@ export function ExpenseSheet({ open, onClose, members, currentUserId, isPremium,
           })()}
 
           {/* Custom $ splits */}
-          {splitMethod === 'custom' && (
-            <div style={{ marginBottom: 16, display: 'flex', flexDirection: 'column', gap: 8 }}>
-              {members.filter(m => m.id !== paidBy).map(m => {
-                const split = customSplits.find(s => s.userId === m.id)
-                return (
-                  <div key={m.id} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <MiniAvatar member={m} />
-                    <span style={{ flex: 1, fontWeight: 700, fontSize: 14, color: 'var(--roost-text-primary)' }}>
-                      {m.name}
-                    </span>
-                    <div style={{ position: 'relative', width: 100 }}>
-                      <span style={{
-                        position: 'absolute', left: 8, top: '50%', transform: 'translateY(-50%)',
-                        color: 'var(--roost-text-muted)', fontWeight: 700, fontSize: 13,
-                      }}>$</span>
-                      <input
-                        type="number"
-                        step="0.01"
-                        placeholder="0.00"
-                        value={split?.amount ?? ''}
-                        onChange={e => setCustomSplits(prev =>
-                          prev.some(s => s.userId === m.id)
-                            ? prev.map(s => s.userId === m.id ? { ...s, amount: e.target.value } : s)
-                            : [...prev, { userId: m.id, amount: e.target.value }]
+          {splitMethod === 'custom' && (() => {
+            const selectedSum = customSplits
+              .filter(s => customSelectedIds.has(s.userId))
+              .reduce((s, sp) => s + (parseFloat(sp.amount) || 0), 0)
+            const payerAmount = Math.max(0, totalAmount - selectedSum)
+            const over = selectedSum > totalAmount + 0.02
+            return (
+              <div style={{ marginBottom: 16, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                <p style={{ color: 'var(--roost-text-muted)', fontWeight: 600, fontSize: 12, marginBottom: 2 }}>
+                  Split with (payer covers the remainder)
+                </p>
+                {members.filter(m => m.id !== paidBy).map(m => {
+                  const split = customSplits.find(s => s.userId === m.id)
+                  const checked = customSelectedIds.has(m.id)
+                  return (
+                    <div key={m.id} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <button
+                        type="button"
+                        aria-label={`${checked ? 'Remove' : 'Add'} ${m.name}`}
+                        onClick={() => setCustomSelectedIds(prev => {
+                          const next = new Set(prev)
+                          if (next.has(m.id)) next.delete(m.id)
+                          else next.add(m.id)
+                          return next
+                        })}
+                        style={{
+                          width: 20, height: 20, borderRadius: 5, flexShrink: 0,
+                          backgroundColor: checked ? COLOR : 'var(--roost-surface)',
+                          border: `2px solid ${checked ? COLOR : 'var(--roost-border)'}`,
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          cursor: 'pointer',
+                        }}
+                      >
+                        {checked && (
+                          <svg width="11" height="9" viewBox="0 0 11 9" fill="none">
+                            <path d="M1 4L4 7L10 1" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                          </svg>
                         )}
-                        style={{ ...inputStyle, paddingLeft: 20, width: '100%' }}
-                      />
+                      </button>
+                      <MiniAvatar member={m} />
+                      <span style={{ flex: 1, fontWeight: 700, fontSize: 14, color: checked ? 'var(--roost-text-primary)' : 'var(--roost-text-muted)' }}>
+                        {m.name}
+                      </span>
+                      {checked ? (
+                        <div style={{ position: 'relative', width: 100 }}>
+                          <span style={{
+                            position: 'absolute', left: 8, top: '50%', transform: 'translateY(-50%)',
+                            color: 'var(--roost-text-muted)', fontWeight: 700, fontSize: 13,
+                          }}>$</span>
+                          <input
+                            type="number"
+                            step="0.01"
+                            placeholder="0.00"
+                            value={split?.amount ?? ''}
+                            onChange={e => setCustomSplits(prev =>
+                              prev.some(s => s.userId === m.id)
+                                ? prev.map(s => s.userId === m.id ? { ...s, amount: e.target.value } : s)
+                                : [...prev, { userId: m.id, amount: e.target.value }]
+                            )}
+                            style={{ ...inputStyle, paddingLeft: 20, width: '100%' }}
+                          />
+                        </div>
+                      ) : (
+                        <span style={{ width: 100, textAlign: 'right', color: 'var(--roost-text-muted)', fontWeight: 700, fontSize: 13 }}>—</span>
+                      )}
                     </div>
-                  </div>
-                )
-              })}
-            </div>
-          )}
+                  )
+                })}
+                {totalAmount > 0 && (
+                  <p style={{ color: over ? '#EF4444' : 'var(--roost-text-muted)', fontWeight: 700, fontSize: 12, marginTop: 2 }}>
+                    {over
+                      ? `Selected total $${selectedSum.toFixed(2)} — $${(selectedSum - totalAmount).toFixed(2)} over the expense.`
+                      : `Payer's share: $${payerAmount.toFixed(2)}`}
+                  </p>
+                )}
+              </div>
+            )
+          })()}
 
           {/* Percent splits */}
-          {splitMethod === 'percent' && (
-            <div style={{ marginBottom: 16, display: 'flex', flexDirection: 'column', gap: 8 }}>
-              {members.map(m => {
-                const entry = percentSplits.find(p => p.userId === m.id)
-                const pct = parseFloat(entry?.percent ?? '0') || 0
-                const dollars = (pct / 100) * totalAmount
-                return (
-                  <div key={m.id} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <MiniAvatar member={m} />
-                    <span style={{ flex: 1, fontWeight: 700, fontSize: 14, color: 'var(--roost-text-primary)' }}>
-                      {m.name}
-                    </span>
-                    <div style={{ position: 'relative', width: 80 }}>
-                      <input
-                        type="number"
-                        step="1"
-                        min="0"
-                        max="100"
-                        placeholder="0"
-                        value={entry?.percent ?? ''}
-                        onChange={e => setPercentSplits(prev =>
-                          prev.some(p => p.userId === m.id)
-                            ? prev.map(p => p.userId === m.id ? { ...p, percent: e.target.value } : p)
-                            : [...prev, { userId: m.id, percent: e.target.value }]
-                        )}
-                        style={{ ...inputStyle, width: '100%', paddingRight: 20, textAlign: 'right' }}
-                      />
-                      <span style={{
-                        position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)',
-                        color: 'var(--roost-text-muted)', fontWeight: 700, fontSize: 13, pointerEvents: 'none',
-                      }}>%</span>
-                    </div>
-                    <span style={{
-                      width: 70, textAlign: 'right', fontWeight: 700, fontSize: 13,
-                      color: 'var(--roost-text-muted)',
-                    }}>
-                      {totalAmount > 0 ? `$${dollars.toFixed(2)}` : '--'}
-                    </span>
-                  </div>
-                )
-              })}
-
-              {/* Progress bar */}
-              <div style={{ marginTop: 4 }}>
-                <div style={{
-                  height: 6, borderRadius: 3,
-                  backgroundColor: 'var(--roost-border)',
-                  overflow: 'hidden',
-                }}>
-                  <div style={{
-                    height: '100%',
-                    width: `${Math.min(percentTotal, 100)}%`,
-                    borderRadius: 3,
-                    backgroundColor: percentBalanced ? COLOR : (percentTotal > 100 ? '#EF4444' : '#F59E0B'),
-                    transition: 'width 0.2s, background-color 0.2s',
-                  }} />
-                </div>
-                <p style={{
-                  color: percentBalanced ? COLOR_DARK : 'var(--roost-text-muted)',
-                  fontWeight: 700, fontSize: 12, marginTop: 4,
-                }}>
-                  {percentBalanced
-                    ? `${percentTotal.toFixed(0)}% — balanced`
-                    : percentTotal > 100
-                      ? `${percentTotal.toFixed(0)}% — ${(percentTotal - 100).toFixed(0)}% over`
-                      : `${percentTotal.toFixed(0)}% — needs ${(100 - percentTotal).toFixed(0)}% more`
-                  }
+          {splitMethod === 'percent' && (() => {
+            const selectedPct = percentSplits
+              .filter(p => percentSelectedIds.has(p.userId))
+              .reduce((s, p) => s + (parseFloat(p.percent) || 0), 0)
+            const payerPct = Math.max(0, 100 - selectedPct)
+            const over = selectedPct > 100
+            return (
+              <div style={{ marginBottom: 16, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                <p style={{ color: 'var(--roost-text-muted)', fontWeight: 600, fontSize: 12, marginBottom: 2 }}>
+                  Split with (payer covers the remaining %)
                 </p>
+                {members.filter(m => m.id !== paidBy).map(m => {
+                  const entry = percentSplits.find(p => p.userId === m.id)
+                  const pct = parseFloat(entry?.percent ?? '0') || 0
+                  const dollars = (pct / 100) * totalAmount
+                  const checked = percentSelectedIds.has(m.id)
+                  return (
+                    <div key={m.id} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <button
+                        type="button"
+                        aria-label={`${checked ? 'Remove' : 'Add'} ${m.name}`}
+                        onClick={() => setPercentSelectedIds(prev => {
+                          const next = new Set(prev)
+                          if (next.has(m.id)) next.delete(m.id)
+                          else next.add(m.id)
+                          return next
+                        })}
+                        style={{
+                          width: 20, height: 20, borderRadius: 5, flexShrink: 0,
+                          backgroundColor: checked ? COLOR : 'var(--roost-surface)',
+                          border: `2px solid ${checked ? COLOR : 'var(--roost-border)'}`,
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          cursor: 'pointer',
+                        }}
+                      >
+                        {checked && (
+                          <svg width="11" height="9" viewBox="0 0 11 9" fill="none">
+                            <path d="M1 4L4 7L10 1" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                          </svg>
+                        )}
+                      </button>
+                      <MiniAvatar member={m} />
+                      <span style={{ flex: 1, fontWeight: 700, fontSize: 14, color: checked ? 'var(--roost-text-primary)' : 'var(--roost-text-muted)' }}>
+                        {m.name}
+                      </span>
+                      {checked ? (
+                        <>
+                          <div style={{ position: 'relative', width: 80 }}>
+                            <input
+                              type="number"
+                              step="1"
+                              min="0"
+                              max="100"
+                              placeholder="0"
+                              value={entry?.percent ?? ''}
+                              onChange={e => setPercentSplits(prev =>
+                                prev.some(p => p.userId === m.id)
+                                  ? prev.map(p => p.userId === m.id ? { ...p, percent: e.target.value } : p)
+                                  : [...prev, { userId: m.id, percent: e.target.value }]
+                              )}
+                              style={{ ...inputStyle, width: '100%', paddingRight: 20, textAlign: 'right' }}
+                            />
+                            <span style={{
+                              position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)',
+                              color: 'var(--roost-text-muted)', fontWeight: 700, fontSize: 13, pointerEvents: 'none',
+                            }}>%</span>
+                          </div>
+                          <span style={{
+                            width: 70, textAlign: 'right', fontWeight: 700, fontSize: 13,
+                            color: 'var(--roost-text-muted)',
+                          }}>
+                            {totalAmount > 0 ? `$${dollars.toFixed(2)}` : '--'}
+                          </span>
+                        </>
+                      ) : (
+                        <>
+                          <span style={{ width: 80, textAlign: 'right', color: 'var(--roost-text-muted)', fontWeight: 700, fontSize: 13 }}>—</span>
+                          <span style={{ width: 70 }} />
+                        </>
+                      )}
+                    </div>
+                  )
+                })}
+
+                {/* Progress bar — fills with selected non-payer percents; payer
+                    covers whatever is left. */}
+                <div style={{ marginTop: 4 }}>
+                  <div style={{
+                    height: 6, borderRadius: 3,
+                    backgroundColor: 'var(--roost-border)',
+                    overflow: 'hidden',
+                  }}>
+                    <div style={{
+                      height: '100%',
+                      width: `${Math.min(selectedPct, 100)}%`,
+                      borderRadius: 3,
+                      backgroundColor: over ? '#EF4444' : COLOR,
+                      transition: 'width 0.2s, background-color 0.2s',
+                    }} />
+                  </div>
+                  <p style={{
+                    color: over ? '#EF4444' : 'var(--roost-text-muted)',
+                    fontWeight: 700, fontSize: 12, marginTop: 4,
+                  }}>
+                    {over
+                      ? `Selected ${selectedPct.toFixed(0)}% — ${(selectedPct - 100).toFixed(0)}% over`
+                      : `Payer's share: ${payerPct.toFixed(0)}%`}
+                  </p>
+                </div>
               </div>
-            </div>
-          )}
+            )
+          })()}
 
           {/* Shares splits */}
-          {splitMethod === 'shares' && (
-            <div style={{ marginBottom: 16, display: 'flex', flexDirection: 'column', gap: 8 }}>
-              {members.map(m => {
-                const entry = shareSplits.find(s => s.userId === m.id)
-                const shares = entry?.shares ?? 1
-                const dollars = totalShares > 0 ? (shares / totalShares) * totalAmount : 0
-                return (
-                  <div key={m.id} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <MiniAvatar member={m} />
-                    <span style={{ flex: 1, fontWeight: 700, fontSize: 14, color: 'var(--roost-text-primary)' }}>
-                      {m.name}
-                    </span>
-                    {/* Stepper */}
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                      <button
-                        onClick={() => setShareSplits(prev => prev.map(s =>
-                          s.userId === m.id ? { ...s, shares: Math.max(1, s.shares - 1) } : s
-                        ))}
-                        style={{
-                          width: 32, height: 32, borderRadius: 8, fontWeight: 800, fontSize: 18,
-                          backgroundColor: 'var(--roost-surface)',
-                          border: '1.5px solid var(--roost-border)',
-                          borderBottom: '2px solid var(--roost-border-bottom)',
-                          cursor: 'pointer', color: 'var(--roost-text-primary)',
-                          display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        }}
-                      >
-                        −
-                      </button>
-                      <span style={{
-                        width: 36, textAlign: 'center', fontWeight: 800, fontSize: 15,
-                        color: 'var(--roost-text-primary)',
-                      }}>
-                        {shares}x
-                      </span>
-                      <button
-                        onClick={() => setShareSplits(prev => prev.map(s =>
-                          s.userId === m.id ? { ...s, shares: s.shares + 1 } : s
-                        ))}
-                        style={{
-                          width: 32, height: 32, borderRadius: 8, fontWeight: 800, fontSize: 18,
-                          backgroundColor: 'var(--roost-surface)',
-                          border: '1.5px solid var(--roost-border)',
-                          borderBottom: '2px solid var(--roost-border-bottom)',
-                          cursor: 'pointer', color: 'var(--roost-text-primary)',
-                          display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        }}
-                      >
-                        +
-                      </button>
-                    </div>
-                    <span style={{
-                      width: 70, textAlign: 'right', fontWeight: 700, fontSize: 13,
-                      color: 'var(--roost-text-muted)',
-                    }}>
-                      {totalAmount > 0 && totalShares > 0 ? `$${dollars.toFixed(2)}` : '--'}
-                    </span>
-                  </div>
-                )
-              })}
-              {totalShares > 0 && totalAmount > 0 && (
-                <p style={{ color: 'var(--roost-text-muted)', fontWeight: 600, fontSize: 12, marginTop: 2 }}>
-                  {totalShares} total shares · ${perShare.toFixed(2)} per share
+          {splitMethod === 'shares' && (() => {
+            const selectedNonPayerShares = shareSplits
+              .filter(sh => shareSelectedIds.has(sh.userId))
+              .reduce((s, sh) => s + sh.shares, 0)
+            const payerShares = 1
+            const totalSharesIncPayer = payerShares + selectedNonPayerShares
+            const perShareAmt = totalSharesIncPayer > 0 && totalAmount > 0
+              ? totalAmount / totalSharesIncPayer : 0
+            return (
+              <div style={{ marginBottom: 16, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                <p style={{ color: 'var(--roost-text-muted)', fontWeight: 600, fontSize: 12, marginBottom: 2 }}>
+                  Split with (payer counts as 1 share)
                 </p>
-              )}
-            </div>
-          )}
+                {members.filter(m => m.id !== paidBy).map(m => {
+                  const entry = shareSplits.find(s => s.userId === m.id)
+                  const shares = entry?.shares ?? 1
+                  const dollars = perShareAmt * shares
+                  const checked = shareSelectedIds.has(m.id)
+                  return (
+                    <div key={m.id} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <button
+                        type="button"
+                        aria-label={`${checked ? 'Remove' : 'Add'} ${m.name}`}
+                        onClick={() => setShareSelectedIds(prev => {
+                          const next = new Set(prev)
+                          if (next.has(m.id)) next.delete(m.id)
+                          else next.add(m.id)
+                          return next
+                        })}
+                        style={{
+                          width: 20, height: 20, borderRadius: 5, flexShrink: 0,
+                          backgroundColor: checked ? COLOR : 'var(--roost-surface)',
+                          border: `2px solid ${checked ? COLOR : 'var(--roost-border)'}`,
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          cursor: 'pointer',
+                        }}
+                      >
+                        {checked && (
+                          <svg width="11" height="9" viewBox="0 0 11 9" fill="none">
+                            <path d="M1 4L4 7L10 1" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                          </svg>
+                        )}
+                      </button>
+                      <MiniAvatar member={m} />
+                      <span style={{ flex: 1, fontWeight: 700, fontSize: 14, color: checked ? 'var(--roost-text-primary)' : 'var(--roost-text-muted)' }}>
+                        {m.name}
+                      </span>
+                      {checked ? (
+                        <>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                            <button
+                              type="button"
+                              onClick={() => setShareSplits(prev => prev.map(s =>
+                                s.userId === m.id ? { ...s, shares: Math.max(1, s.shares - 1) } : s
+                              ))}
+                              style={{
+                                width: 32, height: 32, borderRadius: 8, fontWeight: 800, fontSize: 18,
+                                backgroundColor: 'var(--roost-surface)',
+                                border: '1.5px solid var(--roost-border)',
+                                borderBottom: '2px solid var(--roost-border-bottom)',
+                                cursor: 'pointer', color: 'var(--roost-text-primary)',
+                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                              }}
+                            >
+                              −
+                            </button>
+                            <span style={{
+                              width: 36, textAlign: 'center', fontWeight: 800, fontSize: 15,
+                              color: 'var(--roost-text-primary)',
+                            }}>
+                              {shares}x
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => setShareSplits(prev => prev.map(s =>
+                                s.userId === m.id ? { ...s, shares: s.shares + 1 } : s
+                              ))}
+                              style={{
+                                width: 32, height: 32, borderRadius: 8, fontWeight: 800, fontSize: 18,
+                                backgroundColor: 'var(--roost-surface)',
+                                border: '1.5px solid var(--roost-border)',
+                                borderBottom: '2px solid var(--roost-border-bottom)',
+                                cursor: 'pointer', color: 'var(--roost-text-primary)',
+                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                              }}
+                            >
+                              +
+                            </button>
+                          </div>
+                          <span style={{
+                            width: 70, textAlign: 'right', fontWeight: 700, fontSize: 13,
+                            color: 'var(--roost-text-muted)',
+                          }}>
+                            {totalAmount > 0 ? `$${dollars.toFixed(2)}` : '--'}
+                          </span>
+                        </>
+                      ) : (
+                        <>
+                          <span style={{ width: 110, textAlign: 'right', color: 'var(--roost-text-muted)', fontWeight: 700, fontSize: 13 }}>—</span>
+                          <span style={{ width: 70 }} />
+                        </>
+                      )}
+                    </div>
+                  )
+                })}
+                {totalSharesIncPayer > 0 && totalAmount > 0 && (
+                  <p style={{ color: 'var(--roost-text-muted)', fontWeight: 600, fontSize: 12, marginTop: 2 }}>
+                    {totalSharesIncPayer} total shares · ${perShareAmt.toFixed(2)} per share
+                  </p>
+                )}
+              </div>
+            )
+          })()}
 
           {/* Save as template (for non-equal, non-payer methods) */}
           {(splitMethod === 'custom' || splitMethod === 'percent' || splitMethod === 'shares') && (
@@ -989,13 +1153,13 @@ export function ExpenseSheet({ open, onClose, members, currentUserId, isPremium,
 
           <button
             onClick={handleSave}
-            disabled={saving || (splitMethod === 'percent' && !percentBalanced)}
+            disabled={saving}
             style={{
               width: '100%', padding: '14px 0', borderRadius: 14, fontWeight: 800, fontSize: 16,
               backgroundColor: COLOR, color: '#fff', border: 'none',
               borderBottom: `3px solid ${COLOR_DARK}`,
               cursor: saving ? 'not-allowed' : 'pointer',
-              opacity: saving || (splitMethod === 'percent' && !percentBalanced) ? 0.7 : 1,
+              opacity: saving ? 0.7 : 1,
             }}
           >
             {saving ? 'Saving...' : 'Add expense'}

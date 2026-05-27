@@ -11,7 +11,7 @@ import {
   meals,
   reminders,
 } from '@/db/schema'
-import { eq, and, isNull, lt, gte, lte, not } from 'drizzle-orm'
+import { eq, and, isNull, lt, gte, lte } from 'drizzle-orm'
 
 function todayStart() {
   const d = new Date()
@@ -33,6 +33,26 @@ function todayDateStr() {
   return `${y}-${m}-${day}`
 }
 
+// `YYYY-MM-DD` string for today + N days, used for bounding the upcoming-meal
+// lookup window.
+function dateStrPlusDays(days: number) {
+  const d = new Date()
+  d.setDate(d.getDate() + days)
+  const y = d.getFullYear()
+  const m = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${y}-${m}-${day}`
+}
+
+// Slots have no time-of-day, only a discrete type. Order them as a household
+// would eat through the day so "next upcoming" within a date is sensible.
+const SLOT_ORDER: Record<string, number> = {
+  breakfast: 1,
+  lunch: 2,
+  dinner: 3,
+  snack: 4,
+}
+
 export async function GET() {
   const session = await getSession()
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -45,11 +65,15 @@ export async function GET() {
   const start = todayStart()
   const end = todayEnd()
   const todayStr = todayDateStr()
+  // Lookup window for the next upcoming meal. 7 days is generous enough that
+  // any reasonably planned week is covered; if nothing falls in this window we
+  // treat it as truly empty.
+  const upcomingMealEnd = dateStrPlusDays(7)
 
   const [
     overdueChores,
     dueTodayChores,
-    tonightSlot,
+    upcomingMealSlots,
     myUnsettledSplits,
     defaultList,
     activeReminder,
@@ -83,19 +107,24 @@ export async function GET() {
       )
       .limit(10),
 
-    // Tonight's dinner slot
+    // Next upcoming meal: any planned slot from today through the next 7 days.
+    // Sorted in JS afterwards because slot_type is an enum-style string with no
+    // natural lexical order matching the meal-of-day progression we want.
     db
-      .select({ mealName: meals.name })
+      .select({
+        mealName: meals.name,
+        slotDate: mealPlanSlots.slotDate,
+        slotType: mealPlanSlots.slotType,
+      })
       .from(mealPlanSlots)
       .innerJoin(meals, eq(mealPlanSlots.mealId, meals.id))
       .where(
         and(
           eq(mealPlanSlots.householdId, householdId),
-          eq(mealPlanSlots.slotDate, todayStr),
-          eq(mealPlanSlots.slotType, 'dinner'),
+          gte(mealPlanSlots.slotDate, todayStr),
+          lte(mealPlanSlots.slotDate, upcomingMealEnd),
         )
-      )
-      .limit(1),
+      ),
 
     // My unsettled expense splits (to compute balance)
     db
@@ -213,11 +242,24 @@ export async function GET() {
     heroItem = { id: r.id, title: r.title, nextRemindAt: r.nextRemindAt.toISOString() }
   }
 
+  // Pick the next upcoming meal by sorting on (slotDate, slotType ordinal). The
+  // earliest planned slot wins, regardless of type — so if there's no dinner
+  // today but lunch IS planned today, lunch surfaces; if today is empty but
+  // tomorrow has a meal, that surfaces; the card only goes empty when nothing
+  // is planned in the 7-day window.
+  const sortedUpcoming = [...upcomingMealSlots].sort((a, b) => {
+    if (a.slotDate !== b.slotDate) return a.slotDate < b.slotDate ? -1 : 1
+    return (SLOT_ORDER[a.slotType] ?? 99) - (SLOT_ORDER[b.slotType] ?? 99)
+  })
+  const nextMeal = sortedUpcoming[0] ?? null
+
   return NextResponse.json({
     hero: { type: heroType, item: heroItem },
     chores: allChores,
     snapshot: {
-      meal: tonightSlot[0] ? { name: tonightSlot[0].mealName } : null,
+      meal: nextMeal
+        ? { name: nextMeal.mealName, slotDate: nextMeal.slotDate, slotType: nextMeal.slotType }
+        : null,
       money: { balance: Math.abs(balance), label: moneyLabel },
       event: null,
       grocery: { count: groceryCount },

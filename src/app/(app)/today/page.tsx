@@ -16,7 +16,7 @@ interface TodayData {
   hero: { type: 'overdue_chore' | 'due_chore' | 'reminder' | 'all_clear'; item: ChoreItem | null }
   chores: ChoreItem[]
   snapshot: {
-    meal: { name: string } | null
+    meal: { name: string; slotDate: string; slotType: 'breakfast' | 'lunch' | 'dinner' | 'snack' } | null
     money: { balance: number; label: 'owed' | 'owing' | 'clear' }
     event: { title: string; startsAt: string } | null
     grocery: { count: number }

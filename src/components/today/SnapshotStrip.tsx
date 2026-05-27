@@ -3,11 +3,53 @@
 import Link from 'next/link'
 import { UtensilsCrossed, DollarSign, ShoppingCart, Calendar } from 'lucide-react'
 
+type SlotType = 'breakfast' | 'lunch' | 'dinner' | 'snack'
+
 interface SnapshotData {
-  meal: { name: string } | null
+  meal: { name: string; slotDate: string; slotType: SlotType } | null
   money: { balance: number; label: 'owed' | 'owing' | 'clear' }
   event: { title: string; startsAt: string } | null
   grocery: { count: number }
+}
+
+// Local "YYYY-MM-DD" for today / today+1 so we can compare to slotDate strings
+// without timezone-shifting through Date.
+function todayLocalDateStr(): string {
+  const d = new Date()
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+function dateStrPlusDays(days: number): string {
+  const d = new Date()
+  d.setDate(d.getDate() + days)
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+
+const SLOT_LABEL: Record<SlotType, string> = {
+  breakfast: 'Breakfast',
+  lunch: 'Lunch',
+  dinner: 'Dinner',
+  snack: 'Snack',
+}
+
+function mealHeaderLabel(meal: SnapshotData['meal']): string {
+  if (meal && meal.slotDate === todayLocalDateStr() && meal.slotType === 'dinner') {
+    return "Tonight's dinner"
+  }
+  return 'Next meal'
+}
+
+function mealSubLabel(meal: SnapshotData['meal']): string {
+  if (!meal) return 'Tap to add'
+  const slot = SLOT_LABEL[meal.slotType] ?? 'Meal'
+  const today = todayLocalDateStr()
+  const tomorrow = dateStrPlusDays(1)
+  if (meal.slotDate === today) return slot
+  if (meal.slotDate === tomorrow) return `Tomorrow's ${slot.toLowerCase()}`
+  // Future days within the lookup window: show weekday name.
+  // Parse as local midnight to avoid UTC drift.
+  const d = new Date(`${meal.slotDate}T00:00:00`)
+  const weekday = d.toLocaleDateString('en-US', { weekday: 'long' })
+  return `${weekday} ${slot.toLowerCase()}`
 }
 
 interface SnapTileProps {
@@ -89,13 +131,13 @@ export function SnapshotStrip({ data }: { data: SnapshotData }) {
         href="/meals"
         iconBg="#FFEDD5"
         icon={<UtensilsCrossed size={16} color="#F97316" strokeWidth={2.5} />}
-        label="Tonight's dinner"
+        label={mealHeaderLabel(data.meal)}
         value={data.meal?.name ?? 'Nothing planned'}
         valueStyle={{
           fontSize: data.meal ? 14 : 15,
           color: data.meal ? 'var(--roost-text-primary)' : 'var(--roost-text-muted)',
         }}
-        sub={data.meal ? 'Dinner' : 'Tap to add'}
+        sub={mealSubLabel(data.meal)}
       />
 
       {/* Money */}

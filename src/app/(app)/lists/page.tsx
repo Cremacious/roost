@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   ShoppingCart,
   Plus,
+  Lock,
   Trash2,
   Check,
   ChevronDown,
@@ -20,6 +21,7 @@ import { startOfWeek, format } from 'date-fns';
 import { Skeleton } from '@/components/ui/skeleton';
 import { groupItemsBySection } from '@/lib/utils/grocerySort';
 import { CommonItemsSheet } from '@/components/grocery/CommonItemsSheet';
+import { usePermissionGate } from '@/lib/hooks/usePermissionGate';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -725,6 +727,8 @@ function MealCard({
 
 export default function FoodPage() {
   const queryClient = useQueryClient();
+  const { allowed: canAddItem, onBlocked: onBlockedAddItem } = usePermissionGate('grocery.add')
+  const { allowed: canCreateList, onBlocked: onBlockedCreateList } = usePermissionGate('grocery.create_list')
   const [activeListId, setActiveListId] = useState<string | null>(null);
   const [input, setInput] = useState('');
   const [qtyInput, setQtyInput] = useState('');
@@ -1306,7 +1310,8 @@ export default function FoodPage() {
         {!addingList && (
           <button
             type="button"
-            onClick={() => setAddingList(true)}
+            onClick={canCreateList ? () => setAddingList(true) : onBlockedCreateList}
+            aria-disabled={!canCreateList}
             style={{
               display: 'flex',
               alignItems: 'center',
@@ -1319,12 +1324,17 @@ export default function FoodPage() {
               fontSize: 12,
               fontWeight: 700,
               color: 'var(--roost-text-muted)',
-              cursor: 'pointer',
+              cursor: canCreateList ? 'pointer' : 'not-allowed',
               flexShrink: 0,
               fontFamily: 'inherit',
+              opacity: canCreateList ? 1 : 0.55,
             }}
           >
-            <Plus size={11} color="var(--roost-text-muted)" />
+            {canCreateList ? (
+              <Plus size={11} color="var(--roost-text-muted)" />
+            ) : (
+              <Lock size={11} color="var(--roost-text-muted)" />
+            )}
             New list
           </button>
         )}
@@ -1411,27 +1421,32 @@ export default function FoodPage() {
               />
               <button
                 type="button"
-                onClick={handleQuickAdd}
-                disabled={!input.trim()}
+                onClick={canAddItem ? handleQuickAdd : onBlockedAddItem}
+                aria-disabled={!canAddItem}
                 style={{
                   width: 48,
                   height: 48,
                   border: 'none',
                   borderLeft: `1px solid ${COLOR}30`,
                   background: input.trim() ? COLOR : 'transparent',
-                  cursor: input.trim() ? 'pointer' : 'default',
+                  cursor: canAddItem ? (input.trim() ? 'pointer' : 'default') : 'not-allowed',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
                   flexShrink: 0,
                   transition: 'background 0.12s',
+                  opacity: canAddItem ? 1 : 0.55,
                 }}
               >
-                <Plus
-                  size={20}
-                  color={input.trim() ? '#fff' : COLOR + '60'}
-                  strokeWidth={2.5}
-                />
+                {canAddItem ? (
+                  <Plus
+                    size={20}
+                    color={input.trim() ? '#fff' : COLOR + '60'}
+                    strokeWidth={2.5}
+                  />
+                ) : (
+                  <Lock size={20} color={input.trim() ? '#fff' : COLOR + '60'} strokeWidth={2.5} />
+                )}
               </button>
             </div>
             <div
@@ -1459,7 +1474,7 @@ export default function FoodPage() {
                 type="text"
                 value={qtyInput}
                 onChange={(e) => setQtyInput(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && handleQuickAdd()}
+                onKeyDown={(e) => { if (e.key === 'Enter') { if (canAddItem) { handleQuickAdd() } else { onBlockedAddItem() } } }}
                 placeholder="e.g. 2 lbs, 1 dozen (optional)"
                 style={{
                   flex: 1,
@@ -1492,7 +1507,7 @@ export default function FoodPage() {
                 type="text"
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && handleQuickAdd()}
+                onKeyDown={(e) => { if (e.key === 'Enter') { if (canAddItem) { handleQuickAdd() } else { onBlockedAddItem() } } }}
                 placeholder="Add an item..."
                 style={{
                   flex: 1,
@@ -1539,7 +1554,7 @@ export default function FoodPage() {
                   type="text"
                   value={qtyInput}
                   onChange={(e) => setQtyInput(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && handleQuickAdd()}
+                  onKeyDown={(e) => { if (e.key === 'Enter') { if (canAddItem) { handleQuickAdd() } else { onBlockedAddItem() } } }}
                   placeholder="e.g. 2 cartons (optional)"
                   style={{
                     flex: 1,
@@ -1556,23 +1571,28 @@ export default function FoodPage() {
               </div>
               <button
                 type="button"
-                onClick={handleQuickAdd}
-                disabled={!input.trim()}
+                onClick={canAddItem ? handleQuickAdd : onBlockedAddItem}
+                aria-disabled={!canAddItem}
                 style={{
                   width: 46,
                   height: 46,
                   border: 'none',
                   borderLeft: `1px solid ${COLOR}30`,
                   background: input.trim() ? COLOR : `${COLOR}40`,
-                  cursor: input.trim() ? 'pointer' : 'default',
+                  cursor: canAddItem ? (input.trim() ? 'pointer' : 'default') : 'not-allowed',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
                   flexShrink: 0,
                   transition: 'background 0.12s',
+                  opacity: canAddItem ? 1 : 0.55,
                 }}
               >
-                <Plus size={20} color="white" strokeWidth={2.5} />
+                {canAddItem ? (
+                  <Plus size={20} color="white" strokeWidth={2.5} />
+                ) : (
+                  <Lock size={20} color="white" strokeWidth={2.5} />
+                )}
               </button>
             </div>
           </div>
@@ -2092,7 +2112,8 @@ export default function FoodPage() {
               })}
               <button
                 type="button"
-                onClick={() => setAddingList(true)}
+                onClick={canCreateList ? () => setAddingList(true) : onBlockedCreateList}
+                aria-disabled={!canCreateList}
                 style={{
                   display: 'flex',
                   alignItems: 'center',
@@ -2101,13 +2122,18 @@ export default function FoodPage() {
                   fontSize: 12,
                   fontWeight: 700,
                   color: 'var(--roost-text-muted)',
-                  cursor: 'pointer',
+                  cursor: canCreateList ? 'pointer' : 'not-allowed',
                   background: 'none',
                   border: 'none',
                   fontFamily: 'inherit',
+                  opacity: canCreateList ? 1 : 0.55,
                 }}
               >
-                <Plus size={11} color="var(--roost-text-muted)" />
+                {canCreateList ? (
+                  <Plus size={11} color="var(--roost-text-muted)" />
+                ) : (
+                  <Lock size={11} color="var(--roost-text-muted)" />
+                )}
                 New list
               </button>
             </div>

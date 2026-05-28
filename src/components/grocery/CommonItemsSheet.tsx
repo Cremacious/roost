@@ -2,10 +2,11 @@
 
 import { useState } from 'react'
 import { motion } from 'framer-motion'
-import { Check, Pencil, Plus, Trash2, X } from 'lucide-react'
+import { Check, Lock, Pencil, Plus, Trash2, X } from 'lucide-react'
 import { toast } from 'sonner'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { DraggableSheet } from '@/components/shared/DraggableSheet'
+import { usePermissionGate } from '@/lib/hooks/usePermissionGate'
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
@@ -34,6 +35,7 @@ const ADD_BTN_STYLE: React.CSSProperties = {
 
 export function CommonItemsSheet({ open, onClose }: { open: boolean; onClose: () => void }) {
   const qc = useQueryClient()
+  const { allowed: canAddItem, onBlocked: onBlockedAddItem } = usePermissionGate('grocery.add')
   const { data } = useQuery<CommonItemsResponse>({
     queryKey: ['common-items'],
     queryFn: async () => {
@@ -136,11 +138,19 @@ export function CommonItemsSheet({ open, onClose }: { open: boolean; onClose: ()
               <motion.button
                 type="button"
                 whileTap={{ y: 1 }}
-                onClick={submitAdd}
-                disabled={addMut.isPending || !newName.trim()}
-                style={{ ...ADD_BTN_STYLE, opacity: addMut.isPending || !newName.trim() ? 0.5 : 1 }}
+                onClick={canAddItem ? submitAdd : onBlockedAddItem}
+                aria-disabled={!canAddItem}
+                style={{
+                  ...ADD_BTN_STYLE,
+                  opacity: !canAddItem ? 0.55 : (addMut.isPending || !newName.trim() ? 0.5 : 1),
+                  cursor: canAddItem ? 'pointer' : 'not-allowed',
+                }}
               >
-                <Plus size={16} style={{ verticalAlign: 'middle', marginRight: 4 }} />
+                {canAddItem ? (
+                  <Plus size={16} style={{ verticalAlign: 'middle', marginRight: 4 }} />
+                ) : (
+                  <Lock size={16} style={{ verticalAlign: 'middle', marginRight: 4 }} />
+                )}
                 Add
               </motion.button>
             </div>

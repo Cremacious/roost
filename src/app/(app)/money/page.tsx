@@ -23,6 +23,7 @@ import { ContributeSheet } from '@/components/money/ContributeSheet'
 import { BillSheet } from '@/components/money/BillSheet'
 import { BudgetSheet, type EditableBudget } from '@/components/money/BudgetSheet'
 import { useHousehold } from '@/lib/hooks/useHousehold'
+import { usePermissionGate } from '@/lib/hooks/usePermissionGate'
 import { usePlatformCapabilities } from '@/lib/hooks/usePlatformCapabilities'
 import { useSession } from '@/lib/auth/client'
 import PremiumGate from '@/components/shared/PremiumGate'
@@ -1557,6 +1558,8 @@ export default function MoneyPage() {
 
   const { isPremium, role } = useHousehold()
   const isAdmin = role === 'admin'
+  const { allowed: canViewExpenses } = usePermissionGate('expenses.view')
+  const { allowed: canAddExpense, onBlocked: onBlockedAddExpense } = usePermissionGate('expenses.add')
 
   if (role === 'child') {
     return (
@@ -1567,6 +1570,20 @@ export default function MoneyPage() {
         <p style={{ margin: 0, fontSize: 20, fontWeight: 900, color: 'var(--roost-text-primary)', letterSpacing: '-0.3px' }}>Money stuff is for grown-ups</p>
         <p style={{ margin: '10px 0 0', fontSize: 14, fontWeight: 600, color: 'var(--roost-text-secondary)', lineHeight: 1.5, maxWidth: 300 }}>
           Expenses and bill splitting are managed by the adults in your household.
+        </p>
+      </div>
+    )
+  }
+
+  if (!canViewExpenses) {
+    return (
+      <div style={{ maxWidth: 900, margin: '0 auto', padding: '48px 24px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '60vh', textAlign: 'center' }}>
+        <div style={{ width: 64, height: 64, borderRadius: 18, backgroundColor: '#F3F4F6', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 20, border: '1.5px solid var(--roost-border)', borderBottom: '4px solid var(--roost-border-bottom)' }}>
+          <Lock size={28} color="var(--roost-text-muted)" strokeWidth={2} />
+        </div>
+        <p style={{ margin: 0, fontSize: 20, fontWeight: 900, color: 'var(--roost-text-primary)', letterSpacing: '-0.3px' }}>You do not have permission to view expenses.</p>
+        <p style={{ margin: '10px 0 0', fontSize: 14, fontWeight: 600, color: 'var(--roost-text-secondary)', lineHeight: 1.5, maxWidth: 320 }}>
+          Ask an admin to enable it in member settings.
         </p>
       </div>
     )
@@ -1606,17 +1623,19 @@ export default function MoneyPage() {
           <p style={{ margin: '3px 0 0', fontSize: 13, fontWeight: 600, color: 'var(--roost-text-secondary)' }}>Expenses, bills and goals</p>
         </div>
         <button
-          onClick={() => setExpenseSheetOpen(true)}
+          onClick={canAddExpense ? () => setExpenseSheetOpen(true) : onBlockedAddExpense}
+          aria-disabled={!canAddExpense}
           style={{
             display: 'flex', alignItems: 'center', gap: 6,
             padding: '9px 16px', borderRadius: 10,
             backgroundColor: COLOR, color: '#fff',
             border: `1.5px solid ${COLOR}`,
             borderBottom: `3px solid ${COLOR_DARK}`,
-            fontFamily: 'inherit', fontSize: 13, fontWeight: 800, cursor: 'pointer',
+            fontFamily: 'inherit', fontSize: 13, fontWeight: 800, cursor: canAddExpense ? 'pointer' : 'not-allowed',
+            opacity: canAddExpense ? 1 : 0.55,
           }}
         >
-          <Plus size={15} /> Add expense
+          {canAddExpense ? <Plus size={15} /> : <Lock size={15} />} Add expense
         </button>
       </div>
 

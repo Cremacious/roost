@@ -3,9 +3,10 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { motion } from 'framer-motion'
-import { Plus, Pencil, Trash2, FileText } from 'lucide-react'
+import { Plus, Pencil, Trash2, FileText, Lock } from 'lucide-react'
 import { toast } from 'sonner'
 import { useSession } from '@/lib/auth/client'
+import { usePermissionGate } from '@/lib/hooks/usePermissionGate'
 import { SECTION_COLORS } from '@/lib/constants/colors'
 import { SlabCard } from '@/components/ui/SlabCard'
 import NoteSheet, { type NoteData } from '@/components/notes/NoteSheet'
@@ -112,6 +113,8 @@ export default function NotesPage() {
   const { data: session } = useSession()
   const currentUserId = session?.user?.id ?? ''
   const qc = useQueryClient()
+
+  const { allowed: canAddNote, onBlocked: onBlockedAddNote } = usePermissionGate('notes.add')
 
   const [sheetOpen, setSheetOpen] = useState(false)
   const [editNote, setEditNote] = useState<Note | null>(null)
@@ -226,10 +229,11 @@ export default function NotesPage() {
           </div>
           <motion.button
             whileTap={{ y: 2 }} type="button"
-            onClick={() => { setEditNote(null); setSheetOpen(true) }}
-            style={{ width: 40, height: 40, borderRadius: 12, backgroundColor: COLOR, border: 'none', borderBottom: `3px solid ${COLOR_DARK}`, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0 }}
+            aria-disabled={!canAddNote}
+            onClick={canAddNote ? () => { setEditNote(null); setSheetOpen(true) } : onBlockedAddNote}
+            style={{ width: 40, height: 40, borderRadius: 12, backgroundColor: COLOR, border: 'none', borderBottom: `3px solid ${COLOR_DARK}`, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: canAddNote ? 'pointer' : 'not-allowed', flexShrink: 0, opacity: canAddNote ? 1 : 0.55 }}
           >
-            <Plus size={20} color="#fff" />
+            {canAddNote ? <Plus size={20} color="#fff" /> : <Lock size={20} color="#fff" />}
           </motion.button>
         </div>
 
@@ -240,12 +244,15 @@ export default function NotesPage() {
             placeholder="Quick note..."
             value={quickTitle}
             onChange={e => setQuickTitle(e.target.value)}
-            onKeyDown={e => e.key === 'Enter' && handleQuickAdd()}
+            onKeyDown={e => { if (e.key === 'Enter') { if (canAddNote) { handleQuickAdd() } else { onBlockedAddNote() } } }}
           />
           <motion.button
-            whileTap={{ y: 1 }} type="button" onClick={handleQuickAdd}
-            style={{ padding: '0 18px', borderRadius: 12, backgroundColor: COLOR, border: 'none', borderBottom: `3px solid ${COLOR_DARK}`, color: '#fff', fontWeight: 800, fontSize: 14, cursor: 'pointer', flexShrink: 0 }}
+            whileTap={{ y: 1 }} type="button"
+            aria-disabled={!canAddNote}
+            onClick={canAddNote ? handleQuickAdd : onBlockedAddNote}
+            style={{ padding: '0 18px', borderRadius: 12, backgroundColor: COLOR, border: 'none', borderBottom: `3px solid ${COLOR_DARK}`, color: '#fff', fontWeight: 800, fontSize: 14, cursor: canAddNote ? 'pointer' : 'not-allowed', flexShrink: 0, opacity: canAddNote ? 1 : 0.55, display: 'flex', alignItems: 'center', gap: 6 }}
           >
+            {canAddNote ? null : <Lock size={14} color="#fff" />}
             Add
           </motion.button>
         </div>
@@ -265,9 +272,12 @@ export default function NotesPage() {
               No notes yet. Write something down before you forget it.
             </p>
             <motion.button
-              whileTap={{ y: 2 }} type="button" onClick={() => { setEditNote(null); setSheetOpen(true) }}
-              style={{ marginTop: 8, padding: '11px 20px', borderRadius: 12, border: 'none', borderBottom: `3px solid ${COLOR_DARK}`, backgroundColor: COLOR, color: '#fff', fontWeight: 800, fontSize: 14, cursor: 'pointer' }}
+              whileTap={{ y: 2 }} type="button"
+              aria-disabled={!canAddNote}
+              onClick={canAddNote ? () => { setEditNote(null); setSheetOpen(true) } : onBlockedAddNote}
+              style={{ marginTop: 8, padding: '11px 20px', borderRadius: 12, border: 'none', borderBottom: `3px solid ${COLOR_DARK}`, backgroundColor: COLOR, color: '#fff', fontWeight: 800, fontSize: 14, cursor: canAddNote ? 'pointer' : 'not-allowed', opacity: canAddNote ? 1 : 0.55, display: 'flex', alignItems: 'center', gap: 6 }}
             >
+              {canAddNote ? null : <Lock size={14} color="#fff" />}
               New note
             </motion.button>
           </div>

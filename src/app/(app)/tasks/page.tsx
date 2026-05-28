@@ -3,7 +3,7 @@
 import { useState, useMemo } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Settings2, MessageSquare, UserPlus, CheckCircle2, Circle, Pencil, Trash2, ChevronDown, ChevronUp } from 'lucide-react'
+import { Settings2, MessageSquare, UserPlus, CheckCircle2, Circle, Pencil, Trash2, ChevronDown, ChevronUp, Plus, Lock } from 'lucide-react'
 import { SectionGroup } from '@/components/shared/SectionGroup'
 import { toast } from 'sonner'
 import { useSession } from '@/lib/auth/client'
@@ -19,6 +19,7 @@ import DelegationSheet from '@/components/tasks/DelegationSheet'
 import TaskCommentSheet from '@/components/tasks/TaskCommentSheet'
 import ProjectSettingsSheet from '@/components/tasks/ProjectSettingsSheet'
 import { type ParsedTask } from '@/lib/utils/parseTaskInput'
+import { usePermissionGate } from '@/lib/hooks/usePermissionGate'
 
 const COLOR = SECTION_COLORS.tasks.base
 const COLOR_DARK = SECTION_COLORS.tasks.dark
@@ -369,6 +370,8 @@ export default function TasksPage() {
   const isChild = myRole === 'child'
   const isPremium: boolean = householdData?.household?.subscriptionStatus === 'premium'
 
+  const { allowed: canAddTask, onBlocked: onBlockedAddTask } = usePermissionGate('tasks.add')
+
   const allTasks = (tasksData?.tasks ?? []).filter(t => !t.parentTaskId)
   const pendingDelegations: PendingDelegation[] = tasksData?.pendingDelegations ?? []
   const projects: Project[] = projectsData?.projects ?? []
@@ -592,22 +595,55 @@ export default function TasksPage() {
             </div>
           </div>
 
-          {/* Project settings button */}
-          {activeProject && isAdmin && (
-            <motion.button
-              whileTap={{ y: 1 }}
-              type="button"
-              onClick={() => setProjectSettingsTarget(activeProject)}
-              style={{
-                width: 36, height: 36, borderRadius: 10, border: '1.5px solid var(--roost-border)',
-                backgroundColor: 'var(--roost-surface)', cursor: 'pointer',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-              }}
-              aria-label="Project settings"
-            >
-              <Settings2 size={16} color={activeProject.color} />
-            </motion.button>
-          )}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            {/* Project settings button */}
+            {activeProject && isAdmin && (
+              <motion.button
+                whileTap={{ y: 1 }}
+                type="button"
+                onClick={() => setProjectSettingsTarget(activeProject)}
+                style={{
+                  width: 36, height: 36, borderRadius: 10, border: '1.5px solid var(--roost-border)',
+                  backgroundColor: 'var(--roost-surface)', cursor: 'pointer',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                }}
+                aria-label="Project settings"
+              >
+                <Settings2 size={16} color={activeProject.color} />
+              </motion.button>
+            )}
+
+            {/* Add task button */}
+            {!isChild && (
+              <motion.button
+                type="button"
+                whileTap={{ y: 2 }}
+                onClick={canAddTask ? openNew : onBlockedAddTask}
+                aria-label="Add task"
+                aria-disabled={!canAddTask}
+                style={{
+                  height: 40,
+                  paddingInline: 14,
+                  borderRadius: 12,
+                  border: `1.5px solid ${COLOR}`,
+                  borderBottom: `3px solid ${COLOR_DARK}`,
+                  backgroundColor: COLOR,
+                  color: '#fff',
+                  cursor: canAddTask ? 'pointer' : 'not-allowed',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 6,
+                  fontFamily: 'inherit',
+                  fontWeight: 700,
+                  fontSize: 13,
+                  opacity: canAddTask ? 1 : 0.55,
+                }}
+              >
+                {canAddTask ? <Plus size={16} /> : <Lock size={16} />}
+                <span className="hidden md:inline">Add task</span>
+              </motion.button>
+            )}
+          </div>
         </div>
 
         {/* Tab row */}

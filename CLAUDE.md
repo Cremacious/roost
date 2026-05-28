@@ -181,6 +181,30 @@ Admin (premium):
 - Admin can override individual permissions per user via checklist
 - A user can belong to multiple households on premium only
 
+## Permission Lock UI
+- Any client-side trigger gated by a household permission MUST use
+  `usePermissionGate(permission)` from `src/lib/hooks/usePermissionGate.ts`.
+- The convention for a locked button:
+  - Replace the leading icon with Lucide `Lock` at the same size.
+  - Append `opacity: 0.55` and `cursor: 'not-allowed'` to the button style.
+  - Set `aria-disabled="true"`. Never use the HTML `disabled` attribute,
+    that would suppress the click and the toast would not fire.
+  - Route the click to `onBlocked` (which fires the shared lock toast)
+    when `!allowed`.
+- The shared toast is `"You don't have permission to do that."` with
+  description `"Ask an admin to enable it in member settings."`. Do not
+  invent per-permission strings.
+- Admins always pass (`role === 'admin'`).
+- This is distinct from the premium gate (`PremiumGate` component, opens an
+  upgrade sheet). If a button is somehow gated by both, the permission gate
+  runs first because no amount of upgrading grants a permission the admin
+  has disabled.
+- Applied surfaces and their permission keys: expenses.view / expenses.add
+  (money page), chores.add / chores.edit (chores page), grocery.add /
+  grocery.create_list (lists page + CommonItemsSheet), calendar.add (page +
+  DaySheet) / calendar.edit (EventSheet save-in-edit-mode), tasks.add,
+  notes.add, meals.plan / meals.suggest.
+
 ## Competitors
 - Splitwise: bill splitting only, no household mgmt
 - Cozi: calendar/grocery, no bill splitting, dated UI

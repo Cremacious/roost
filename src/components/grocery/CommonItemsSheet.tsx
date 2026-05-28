@@ -99,6 +99,7 @@ export function CommonItemsSheet({ open, onClose }: { open: boolean; onClose: ()
   }
 
   function submitAdd() {
+    if (addMut.isPending) return
     const trimmed = newName.trim()
     if (!trimmed) return
     addMut.mutate(trimmed)

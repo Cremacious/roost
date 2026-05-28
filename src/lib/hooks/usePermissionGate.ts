@@ -54,7 +54,14 @@ export function usePermissionGate(permission: PermissionKey): PermissionGate {
     return { allowed: true, onBlocked: noop }
   }
 
-  const allowed = !isLoading && permissions.includes(permission)
+  // While the household query is loading, treat as locked AND suppress the
+  // toast so a fast double-click during load doesn't surface a spurious
+  // "no permission" message to an admin whose role hasn't resolved yet.
+  if (isLoading) {
+    return { allowed: false, onBlocked: noop }
+  }
+
+  const allowed = permissions.includes(permission)
 
   return {
     allowed,

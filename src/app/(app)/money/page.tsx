@@ -1561,6 +1561,15 @@ export default function MoneyPage() {
   const { allowed: canViewExpenses } = usePermissionGate('expenses.view')
   const { allowed: canAddExpense, onBlocked: onBlockedAddExpense } = usePermissionGate('expenses.add')
 
+  // All hooks must run before any conditional early returns (Rules of Hooks).
+  const membersQuery = useQuery({
+    queryKey: ['household-members'],
+    queryFn: () => fetch('/api/household/members').then(r => r.json()),
+    staleTime: 60_000,
+  })
+
+  const { data: sessionData } = useSession()
+
   if (role === 'child') {
     return (
       <div style={{ maxWidth: 900, margin: '0 auto', padding: '48px 24px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '60vh', textAlign: 'center' }}>
@@ -1588,14 +1597,6 @@ export default function MoneyPage() {
       </div>
     )
   }
-
-  const membersQuery = useQuery({
-    queryKey: ['household-members'],
-    queryFn: () => fetch('/api/household/members').then(r => r.json()),
-    staleTime: 60_000,
-  })
-
-  const { data: sessionData } = useSession()
 
   // Children are blocked from every finance endpoint by design, so they should
   // never appear in expense pickers, split selectors, or "Who owes who" cards.

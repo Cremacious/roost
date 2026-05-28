@@ -3,9 +3,10 @@
 import { useState, useMemo } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Plus, Trophy, Gift, ChevronDown, ChevronUp, Check, Clock, AlertCircle } from 'lucide-react'
+import { Plus, Trophy, Gift, ChevronDown, ChevronUp, Check, Clock, AlertCircle, Lock } from 'lucide-react'
 import { toast } from 'sonner'
 import { useSession } from '@/lib/auth/client'
+import { usePermissionGate } from '@/lib/hooks/usePermissionGate'
 import { useRouter } from 'next/navigation'
 import { SECTION_COLORS } from '@/lib/constants/colors'
 import ChoreSheet, { type ChoreData } from '@/components/chores/ChoreSheet'
@@ -152,6 +153,7 @@ function ChoreRow({
   onEdit,
   completing,
   unchecking,
+  canEditChore,
   onSnooze,
   isSnoozingThis,
   onSnoozeSelect,
@@ -163,6 +165,7 @@ function ChoreRow({
   onEdit: (chore: ChoreItem) => void
   completing: boolean
   unchecking: boolean
+  canEditChore: boolean
   onSnooze: (id: string) => void
   isSnoozingThis: boolean
   onSnoozeSelect: (days: number) => void
@@ -208,7 +211,8 @@ function ChoreRow({
 
         {/* Content */}
         <div
-          style={{ flex: 1, minWidth: 0, cursor: 'pointer' }}
+          aria-disabled={!canEditChore}
+          style={{ flex: 1, minWidth: 0, cursor: canEditChore ? 'pointer' : 'not-allowed' }}
           onClick={() => onEdit(chore)}
         >
           <span
@@ -594,6 +598,9 @@ export default function ChoresPage() {
   const members = householdData?.members ?? []
   const currentUserId = session?.user?.id ?? ''
 
+  const { allowed: canAddChore, onBlocked: onBlockedAddChore } = usePermissionGate('chores.add')
+  const { allowed: canEditChore, onBlocked: onBlockedEditChore } = usePermissionGate('chores.edit')
+
   // ── Filter + group ───────────────────────────────────────────────────────
 
   const filtered = useMemo(() => {
@@ -767,9 +774,10 @@ export default function ChoresPage() {
       chore,
       onComplete: (id: string) => completeMutation.mutate(id),
       onUncheck: (id: string) => uncheckMutation.mutate(id),
-      onEdit: openEdit,
+      onEdit: canEditChore ? openEdit : () => onBlockedEditChore(),
       completing: completing.has(chore.id),
       unchecking: unchecking.has(chore.id),
+      canEditChore,
       onSnooze: (id: string) => setSnoozingId(id === snoozingId ? null : id),
       isSnoozingThis: snoozingId === chore.id,
       onSnoozeSelect: (days: number) => snoozeMutation.mutate({ choreId: chore.id, days }),
@@ -971,8 +979,9 @@ export default function ChoresPage() {
           <motion.button
             type="button"
             whileTap={{ y: 2 }}
-            onClick={openAdd}
+            onClick={canAddChore ? openAdd : onBlockedAddChore}
             aria-label="Add chore"
+            aria-disabled={!canAddChore}
             style={{
               height: 40,
               paddingInline: 14,
@@ -981,16 +990,17 @@ export default function ChoresPage() {
               borderBottom: `3px solid ${COLOR_DARK}`,
               backgroundColor: COLOR,
               color: '#fff',
-              cursor: 'pointer',
+              cursor: canAddChore ? 'pointer' : 'not-allowed',
               display: 'flex',
               alignItems: 'center',
               gap: 6,
               fontFamily: 'inherit',
               fontWeight: 700,
               fontSize: 13,
+              opacity: canAddChore ? 1 : 0.55,
             }}
           >
-            <Plus size={16} />
+            {canAddChore ? <Plus size={16} /> : <Lock size={16} />}
             <span className="hidden md:inline">Add chore</span>
           </motion.button>
         </div>

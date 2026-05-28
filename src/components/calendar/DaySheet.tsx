@@ -2,12 +2,13 @@
 
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { motion } from 'framer-motion'
-import { Plus } from 'lucide-react'
+import { Lock, Plus } from 'lucide-react'
 import { toast } from 'sonner'
 import { format } from 'date-fns'
 import { DraggableSheet } from '@/components/shared/DraggableSheet'
 import { SECTION_COLORS } from '@/lib/constants/colors'
 import { getCategoryColor } from '@/lib/constants/calendarCategories'
+import { usePermissionGate } from '@/lib/hooks/usePermissionGate'
 import type { CalendarEventFull, Member } from './EventSheet'
 
 const COLOR = SECTION_COLORS.calendar.base
@@ -41,6 +42,7 @@ export default function DaySheet({
   onEditEvent,
 }: DaySheetProps) {
   const qc = useQueryClient()
+  const { allowed: canAddEvent, onBlocked: onBlockedAddEvent } = usePermissionGate('calendar.add')
 
   const rsvpMutation = useMutation({
     mutationFn: async ({ eventId, status }: { eventId: string; status: string }) => {
@@ -85,7 +87,8 @@ export default function DaySheet({
           <motion.button
             type="button"
             whileTap={{ y: 1 }}
-            onClick={() => { onClose(); onAddEvent(date) }}
+            onClick={canAddEvent ? () => { onClose(); onAddEvent(date) } : onBlockedAddEvent}
+            aria-disabled={!canAddEvent}
             style={{
               height: 36,
               paddingLeft: 14,
@@ -97,13 +100,14 @@ export default function DaySheet({
               color: '#fff',
               fontSize: 13,
               fontWeight: 800,
-              cursor: 'pointer',
+              cursor: canAddEvent ? 'pointer' : 'not-allowed',
               display: 'flex',
               alignItems: 'center',
               gap: 4,
+              opacity: canAddEvent ? 1 : 0.55,
             }}
           >
-            <Plus size={14} />
+            {canAddEvent ? <Plus size={14} /> : <Lock size={14} />}
             Add event
           </motion.button>
         </div>

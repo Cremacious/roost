@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { motion } from 'framer-motion'
-import { Bell, CheckSquare, Clock, MapPin, Trash2, Users } from 'lucide-react'
+import { Bell, CheckSquare, Clock, Lock, MapPin, Trash2, Users } from 'lucide-react'
 import { toast } from 'sonner'
 import { DayPicker } from 'react-day-picker'
 import { format, parseISO } from 'date-fns'
@@ -11,6 +11,7 @@ import { DraggableSheet } from '@/components/shared/DraggableSheet'
 import { SECTION_COLORS } from '@/lib/constants/colors'
 import { CALENDAR_CATEGORIES } from '@/lib/constants/calendarCategories'
 import { usePlatformCapabilities } from '@/lib/hooks/usePlatformCapabilities'
+import { usePermissionGate } from '@/lib/hooks/usePermissionGate'
 
 const COLOR = SECTION_COLORS.calendar.base   // #3B82F6
 const COLOR_DARK = SECTION_COLORS.calendar.dark // #1A5CB5
@@ -462,6 +463,8 @@ function LeftColumn({
   members, canDelete, saveMutation, handleSave, setShowDeleteDialog,
 }: LeftColProps) {
   const { canPush } = usePlatformCapabilities()
+  const { allowed: canEditEvent, onBlocked: onBlockedEditEvent } = usePermissionGate('calendar.edit')
+  const editLocked = isEdit && !canEditEvent
   return (
     <>
       <p style={{ fontSize: 18, fontWeight: 800, color: '#0F172A' }}>
@@ -671,13 +674,17 @@ function LeftColumn({
 
       {/* Save */}
       <motion.button type="button" whileTap={{ y: 1 }} disabled={saveMutation.isPending}
-        onClick={handleSave}
+        onClick={editLocked ? onBlockedEditEvent : handleSave}
+        aria-disabled={editLocked}
         style={{
           width: '100%', height: 50, borderRadius: 14, border: 'none',
           borderBottom: `4px solid ${COLOR_DARK}`, backgroundColor: COLOR,
-          color: '#fff', fontSize: 14, fontWeight: 800, cursor: 'pointer',
-          opacity: saveMutation.isPending ? 0.7 : 1,
+          color: '#fff', fontSize: 14, fontWeight: 800,
+          cursor: editLocked ? 'not-allowed' : (saveMutation.isPending ? 'not-allowed' : 'pointer'),
+          opacity: editLocked ? 0.55 : (saveMutation.isPending ? 0.7 : 1),
+          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
         }}>
+        {editLocked && <Lock size={15} style={{ marginRight: 2 }} />}
         {saveMutation.isPending ? 'Saving...' : isEdit ? 'Save changes' : 'Save event'}
       </motion.button>
 

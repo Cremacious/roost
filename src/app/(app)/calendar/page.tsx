@@ -6,6 +6,7 @@ import { motion } from 'framer-motion'
 import {
   ChevronLeft,
   ChevronRight,
+  Lock,
   Plus,
   List,
   Grid3x3,
@@ -29,6 +30,7 @@ import {
   subWeeks,
 } from 'date-fns'
 import { useSession } from '@/lib/auth/client'
+import { usePermissionGate } from '@/lib/hooks/usePermissionGate'
 import { SECTION_COLORS } from '@/lib/constants/colors'
 import { getCategoryColor } from '@/lib/constants/calendarCategories'
 import EventSheet, { type CalendarEventFull, type Member } from '@/components/calendar/EventSheet'
@@ -58,6 +60,8 @@ function groupEventsByDate(events: CalendarEventFull[]): Map<string, CalendarEve
 export default function CalendarPage() {
   const { data: sessionData } = useSession()
   const currentUserId = sessionData?.user?.id ?? ''
+
+  const { allowed: canAddEvent, onBlocked: onBlockedAddEvent } = usePermissionGate('calendar.add')
 
   const [currentMonth, setCurrentMonth] = useState(() => startOfMonth(new Date()))
   const [view, setView] = useState<'month' | 'agenda'>('month')
@@ -251,7 +255,8 @@ export default function CalendarPage() {
         <motion.button
           type="button"
           whileTap={{ y: 1 }}
-          onClick={() => openEventSheet(null, undefined)}
+          onClick={canAddEvent ? () => openEventSheet(null, undefined) : onBlockedAddEvent}
+          aria-disabled={!canAddEvent}
           style={{
             width: 40,
             height: 40,
@@ -260,13 +265,14 @@ export default function CalendarPage() {
             borderBottom: `3px solid ${COLOR_DARK}`,
             backgroundColor: COLOR,
             color: '#fff',
-            cursor: 'pointer',
+            cursor: canAddEvent ? 'pointer' : 'not-allowed',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
+            opacity: canAddEvent ? 1 : 0.55,
           }}
         >
-          <Plus size={20} />
+          {canAddEvent ? <Plus size={20} /> : <Lock size={20} />}
         </motion.button>
       </div>
 
@@ -522,7 +528,8 @@ export default function CalendarPage() {
         <motion.button
           type="button"
           whileTap={{ y: 2 }}
-          onClick={() => openEventSheet(null, mobileSelectedDay)}
+          onClick={canAddEvent ? () => openEventSheet(null, mobileSelectedDay) : onBlockedAddEvent}
+          aria-disabled={!canAddEvent}
           style={{
             position: 'fixed',
             bottom: 80,
@@ -534,15 +541,16 @@ export default function CalendarPage() {
             borderBottom: `4px solid ${COLOR_DARK}`,
             backgroundColor: COLOR,
             color: '#fff',
-            cursor: 'pointer',
+            cursor: canAddEvent ? 'pointer' : 'not-allowed',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             boxShadow: '0 4px 16px rgba(59,130,246,0.3)',
             zIndex: 40,
+            opacity: canAddEvent ? 1 : 0.55,
           }}
         >
-          <Plus size={24} />
+          {canAddEvent ? <Plus size={24} /> : <Lock size={24} />}
         </motion.button>
       </div>
 

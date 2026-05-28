@@ -6,11 +6,12 @@ import { motion } from 'framer-motion'
 import {
   Plus, ChevronLeft, ChevronRight, UtensilsCrossed, Search,
   ThumbsUp, ThumbsDown, Trophy, ShoppingCart, Pencil, Trash2,
-  Clock, BookmarkCheck, X, Eye, CalendarCheck, ShieldCheck, Users, CheckCircle, Send,
+  Clock, BookmarkCheck, X, Eye, CalendarCheck, ShieldCheck, Users, CheckCircle, Send, Lock,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { useSession } from '@/lib/auth/client'
 import { SECTION_COLORS } from '@/lib/constants/colors'
+import { usePermissionGate } from '@/lib/hooks/usePermissionGate'
 import { SlabCard } from '@/components/ui/SlabCard'
 import { DraggableSheet } from '@/components/shared/DraggableSheet'
 
@@ -369,13 +370,15 @@ function MealSheet({
 // ── MealPreviewSheet ──────────────────────────────────────────────────────────
 
 function MealPreviewSheet({
-  open, onClose, meal, onAddToPlanner, onAddToGrocery,
+  open, onClose, meal, onAddToPlanner, onAddToGrocery, canPlanMeal, onBlockedPlanMeal,
 }: {
   open: boolean
   onClose: () => void
   meal: Meal | null
   onAddToPlanner: () => void
   onAddToGrocery: () => void
+  canPlanMeal: boolean
+  onBlockedPlanMeal: () => void
 }) {
   if (!meal) return null
   const ingredients = parseIngredients(meal.ingredients)
@@ -446,10 +449,17 @@ function MealPreviewSheet({
 
         {/* Actions */}
         <div style={{ display: 'flex', gap: 8 }}>
-          <button type="button" onClick={() => { onClose(); onAddToPlanner() }} style={{
-            flex: 1, padding: '12px 0', borderRadius: 12, border: 'none', borderBottom: `3px solid ${COLOR_DARK}`,
-            backgroundColor: COLOR, color: '#fff', fontWeight: 800, fontSize: 14, cursor: 'pointer',
-          }}>
+          <button type="button"
+            aria-disabled={!canPlanMeal}
+            onClick={canPlanMeal ? () => { onClose(); onAddToPlanner() } : onBlockedPlanMeal}
+            style={{
+              flex: 1, padding: '12px 0', borderRadius: 12, border: 'none', borderBottom: `3px solid ${COLOR_DARK}`,
+              backgroundColor: COLOR, color: '#fff', fontWeight: 800, fontSize: 14,
+              cursor: canPlanMeal ? 'pointer' : 'not-allowed',
+              opacity: canPlanMeal ? 1 : 0.55,
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+            }}>
+            {!canPlanMeal && <Lock size={14} />}
             Add to planner
           </button>
           {ingredients.length > 0 && (
@@ -904,6 +914,9 @@ export default function MealsPage() {
   })
   const isAdmin = householdData?.role === 'admin'
 
+  const { allowed: canPlanMeal, onBlocked: onBlockedPlanMeal } = usePermissionGate('meals.plan')
+  const { allowed: canSuggestMeal, onBlocked: onBlockedSuggestMeal } = usePermissionGate('meals.suggest')
+
   // Planner query
   const weekStartStr = fmtDate(weekStart)
   const { data: plannerData, isLoading: plannerLoading } = useQuery({
@@ -1329,16 +1342,19 @@ export default function MealsPage() {
               <motion.button
                 type="button"
                 whileTap={{ y: 1 }}
-                onClick={() => openSlot(new Date(), 'dinner')}
+                aria-disabled={!canPlanMeal}
+                onClick={canPlanMeal ? () => openSlot(new Date(), 'dinner') : onBlockedPlanMeal}
                 style={{
                   display: 'flex', alignItems: 'center', gap: 6,
                   padding: '0 14px', height: 36, borderRadius: 10,
                   backgroundColor: COLOR, border: 'none', borderBottom: `3px solid ${COLOR_DARK}`,
                   color: '#fff', fontWeight: 800, fontSize: 13,
-                  cursor: 'pointer', flexShrink: 0,
+                  cursor: canPlanMeal ? 'pointer' : 'not-allowed',
+                  opacity: canPlanMeal ? 1 : 0.55,
+                  flexShrink: 0,
                 }}
               >
-                <Plus size={15} />
+                {canPlanMeal ? <Plus size={15} /> : <Lock size={15} />}
                 <span className="hidden sm:inline">Add Meal To Planner</span>
               </motion.button>
             </div>
@@ -1363,16 +1379,24 @@ export default function MealsPage() {
                   </div>
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8 }}>
                     {todaySlots.map(({ st, slot }) => (
-                      <button key={st} type="button" onClick={() => openSlot(todayDate, st)} style={{
-                        background: 'rgba(255,255,255,0.15)', borderRadius: 10, padding: '8px 6px',
-                        textAlign: 'center', border: 'none', cursor: 'pointer',
-                      }}>
+                      <button key={st} type="button"
+                        aria-disabled={!canPlanMeal}
+                        onClick={canPlanMeal ? () => openSlot(todayDate, st) : onBlockedPlanMeal}
+                        style={{
+                          background: 'rgba(255,255,255,0.15)', borderRadius: 10, padding: '8px 6px',
+                          textAlign: 'center', border: 'none',
+                          cursor: canPlanMeal ? 'pointer' : 'not-allowed',
+                          opacity: canPlanMeal ? 1 : 0.55,
+                        }}>
                         <div style={{ fontSize: 9, fontWeight: 800, color: 'rgba(255,255,255,0.6)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 3 }}>
                           {SLOT_LABELS[st]}
                         </div>
                         {slot
                           ? <div style={{ fontSize: 11, fontWeight: 800, color: '#fff', lineHeight: 1.2 }}>{slot.mealName}</div>
-                          : <div style={{ fontSize: 11, fontWeight: 600, color: 'rgba(255,255,255,0.45)', fontStyle: 'italic' }}>Tap to plan</div>
+                          : <div style={{ fontSize: 11, fontWeight: 600, color: 'rgba(255,255,255,0.45)', fontStyle: 'italic', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 2 }}>
+                              {!canPlanMeal && <Lock size={9} color="rgba(255,255,255,0.45)" />}
+                              Tap to plan
+                            </div>
                         }
                       </button>
                     ))}
@@ -1416,24 +1440,30 @@ export default function MealsPage() {
                             const slot = getSlot(day, st)
                             return slot ? (
                               <motion.button key={st} type="button" whileTap={{ y: 1 }}
-                                onClick={() => openSlot(day, st)}
+                                aria-disabled={!canPlanMeal}
+                                onClick={canPlanMeal ? () => openSlot(day, st) : onBlockedPlanMeal}
                                 style={{
                                   width: '100%', padding: '7px 8px', borderRadius: 10, marginBottom: 5,
-                                  backgroundColor: `${COLOR}12`, border: 'none', cursor: 'pointer', textAlign: 'left',
+                                  backgroundColor: `${COLOR}12`, border: 'none', textAlign: 'left',
+                                  cursor: canPlanMeal ? 'pointer' : 'not-allowed',
+                                  opacity: canPlanMeal ? 1 : 0.55,
                                 }}>
                                 <p style={{ margin: 0, fontSize: 9, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--roost-text-muted)' }}>{SLOT_LABELS[st]}</p>
                                 <p style={{ margin: '2px 0 0', fontSize: 11, fontWeight: 800, color: 'var(--roost-text-primary)', lineHeight: 1.2 }}>{slot.mealName}</p>
                               </motion.button>
                             ) : (
                               <motion.button key={st} type="button" whileTap={{ y: 1 }}
-                                onClick={() => openSlot(day, st)}
+                                aria-disabled={!canPlanMeal}
+                                onClick={canPlanMeal ? () => openSlot(day, st) : onBlockedPlanMeal}
                                 style={{
                                   width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4,
                                   padding: '7px 8px', borderRadius: 10, marginBottom: 5,
                                   border: `1.5px dashed ${COLOR}50`, backgroundColor: `${COLOR}06`,
-                                  cursor: 'pointer', fontSize: 10, fontWeight: 800, color: COLOR + '90',
+                                  fontSize: 10, fontWeight: 800, color: COLOR + '90',
+                                  cursor: canPlanMeal ? 'pointer' : 'not-allowed',
+                                  opacity: canPlanMeal ? 1 : 0.55,
                                 }}>
-                                <Plus size={10} /> Add {SLOT_LABELS[st].toLowerCase()}
+                                {canPlanMeal ? <Plus size={10} /> : <Lock size={10} />} Add {SLOT_LABELS[st].toLowerCase()}
                               </motion.button>
                             )
                           })}
@@ -1470,14 +1500,20 @@ export default function MealsPage() {
                             const hasIngredients = bankMeal ? parseIngredients(bankMeal.ingredients).length > 0 : false
                             return (
                               <div key={st} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 0', borderBottom: idx < SLOT_TYPES.length - 1 ? '1px solid var(--roost-border)' : 'none' }}>
-                                <button type="button" onClick={() => openSlot(day, st)} style={{
-                                  flex: 1, display: 'flex', alignItems: 'center', gap: 10,
-                                  backgroundColor: 'transparent', border: 'none', cursor: 'pointer', textAlign: 'left', padding: 0,
-                                }}>
+                                <button type="button"
+                                  aria-disabled={!canPlanMeal}
+                                  onClick={canPlanMeal ? () => openSlot(day, st) : onBlockedPlanMeal}
+                                  style={{
+                                    flex: 1, display: 'flex', alignItems: 'center', gap: 10,
+                                    backgroundColor: 'transparent', border: 'none', textAlign: 'left', padding: 0,
+                                    cursor: canPlanMeal ? 'pointer' : 'not-allowed',
+                                    opacity: canPlanMeal ? 1 : 0.55,
+                                  }}>
                                   <span style={{ fontSize: 11, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--roost-text-muted)', width: 68, flexShrink: 0 }}>
                                     {SLOT_LABELS[st]}
                                   </span>
-                                  <span style={{ fontSize: 13, fontWeight: slot ? 800 : 600, color: slot ? 'var(--roost-text-primary)' : 'var(--roost-text-muted)' }}>
+                                  <span style={{ fontSize: 13, fontWeight: slot ? 800 : 600, color: slot ? 'var(--roost-text-primary)' : 'var(--roost-text-muted)', display: 'flex', alignItems: 'center', gap: 4 }}>
+                                    {!slot && !canPlanMeal && <Lock size={11} />}
                                     {slot ? slot.mealName : 'Tap to plan'}
                                   </span>
                                 </button>
@@ -1642,9 +1678,11 @@ export default function MealsPage() {
                                 style={{ width: 34, height: 34, borderRadius: 9, border: 'none', backgroundColor: 'var(--roost-bg)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                                 <Eye size={14} color="var(--roost-text-secondary)" />
                               </button>
-                              <button type="button" title="Add to planner" onClick={() => { setBankAddMeal(m); setSlotOpen(true) }}
-                                style={{ width: 34, height: 34, borderRadius: 9, border: 'none', backgroundColor: 'var(--roost-bg)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                <Plus size={14} color={COLOR} />
+                              <button type="button" title="Add to planner"
+                                aria-disabled={!canPlanMeal}
+                                onClick={canPlanMeal ? () => { setBankAddMeal(m); setSlotOpen(true) } : onBlockedPlanMeal}
+                                style={{ width: 34, height: 34, borderRadius: 9, border: 'none', backgroundColor: 'var(--roost-bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: canPlanMeal ? 'pointer' : 'not-allowed', opacity: canPlanMeal ? 1 : 0.55 }}>
+                                {canPlanMeal ? <Plus size={14} color={COLOR} /> : <Lock size={14} color={COLOR} />}
                               </button>
                               {ing.length > 0 && (
                                 <button type="button" title="Add ingredients to grocery list" onClick={() => setGroceryPushMeal(m)}
@@ -1742,9 +1780,11 @@ export default function MealsPage() {
                         )}
                         {/* Actions */}
                         <div style={{ display: 'flex', gap: 6, borderTop: '1px solid var(--roost-border)', paddingTop: 10, marginTop: 'auto' }}>
-                          <button type="button" onClick={() => { setBankAddMeal(m); setSlotOpen(true) }}
-                            style={{ flex: 1, height: 34, borderRadius: 9, border: 'none', fontSize: 12, fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5, backgroundColor: COLOR, color: '#fff' }}>
-                            <Plus size={12} /> Plan
+                          <button type="button"
+                            aria-disabled={!canPlanMeal}
+                            onClick={canPlanMeal ? () => { setBankAddMeal(m); setSlotOpen(true) } : onBlockedPlanMeal}
+                            style={{ flex: 1, height: 34, borderRadius: 9, border: 'none', fontSize: 12, fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5, backgroundColor: COLOR, color: '#fff', cursor: canPlanMeal ? 'pointer' : 'not-allowed', opacity: canPlanMeal ? 1 : 0.55 }}>
+                            {canPlanMeal ? <Plus size={12} /> : <Lock size={12} />} Plan
                           </button>
                           {ing.length > 0 && (
                             <button type="button" onClick={() => setGroceryPushMeal(m)}
@@ -1789,9 +1829,11 @@ export default function MealsPage() {
                 <p style={{ margin: 0, fontSize: 20, fontWeight: 900, color: '#fff', marginBottom: 4 }}>What should we eat this week?</p>
                 <p style={{ margin: 0, fontSize: 14, fontWeight: 600, color: 'rgba(255,255,255,0.8)' }}>Anyone in the household can suggest meals. The family votes, you decide.</p>
               </div>
-              <button type="button" onClick={() => setSuggestOpen(true)}
-                style={{ padding: '12px 24px', borderRadius: 12, backgroundColor: '#fff', border: 'none', borderBottom: '3px solid #E5E7EB', fontSize: 14, fontWeight: 800, color: COLOR, cursor: 'pointer', flexShrink: 0, whiteSpace: 'nowrap', position: 'relative', zIndex: 1 }}>
-                + Suggest a meal
+              <button type="button"
+                aria-disabled={!canSuggestMeal}
+                onClick={canSuggestMeal ? () => setSuggestOpen(true) : onBlockedSuggestMeal}
+                style={{ padding: '12px 24px', borderRadius: 12, backgroundColor: '#fff', border: 'none', borderBottom: '3px solid #E5E7EB', fontSize: 14, fontWeight: 800, color: COLOR, flexShrink: 0, whiteSpace: 'nowrap', position: 'relative', zIndex: 1, display: 'flex', alignItems: 'center', gap: 6, cursor: canSuggestMeal ? 'pointer' : 'not-allowed', opacity: canSuggestMeal ? 1 : 0.55 }}>
+                {canSuggestMeal ? '+ Suggest a meal' : <><Lock size={14} /> Suggest a meal</>}
               </button>
             </div>
 
@@ -1899,6 +1941,8 @@ export default function MealsPage() {
         meal={previewMeal}
         onAddToPlanner={() => { setBankAddMeal(previewMeal!); setSlotOpen(true) }}
         onAddToGrocery={() => setGroceryPushMeal(previewMeal!)}
+        canPlanMeal={canPlanMeal}
+        onBlockedPlanMeal={onBlockedPlanMeal}
       />
     </>
   )

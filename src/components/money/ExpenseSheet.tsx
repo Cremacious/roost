@@ -223,6 +223,14 @@ export function ExpenseSheet({ open, onClose, members, currentUserId, isPremium,
 
   const totalAmount = parseFloat(amount) || 0
 
+  // The effective payer: the explicit "Paid by" choice, falling back to the
+  // current user (the one adding the expense) and then to the first member.
+  // Use this everywhere we filter the picker or compute participant counts,
+  // because `paidBy` state can be transiently empty before the session resolves
+  // or when the dropdown is in an indeterminate state — in those cases the
+  // current user is the right implicit payer.
+  const effectivePaidBy = paidBy || currentUserId || members[0]?.id || ''
+
   // ── Scan flow handlers ─────────────────────────────────────────────────
 
   function handleScanResult(receipt: ParsedReceipt) {
@@ -310,7 +318,6 @@ export function ExpenseSheet({ open, onClose, members, currentUserId, isPremium,
       toast.error('Invalid amount', { description: 'Enter a positive number.' }); return
     }
 
-    const effectivePaidBy = paidBy || currentUserId || members[0]?.id || ''
     if (!effectivePaidBy) {
       toast.error('Payer required', { description: 'Select who paid for this expense.' })
       return
@@ -753,7 +760,11 @@ export function ExpenseSheet({ open, onClose, members, currentUserId, isPremium,
 
           {/* Equal split member selector */}
           {splitMethod === 'equal' && (() => {
-            const participantCount = equalSelectedIds.size + 1 // +1 for payer
+            // Filter the selection set against effectivePaidBy so participantCount
+            // is correct even if equalSelectedIds was seeded before paidBy
+            // resolved (in which case it could include the payer themselves).
+            const selectedNonPayerCount = [...equalSelectedIds].filter(id => id !== effectivePaidBy).length
+            const participantCount = selectedNonPayerCount + 1 // +1 for payer
             const perPerson = participantCount > 1 && totalAmount > 0
               ? (totalAmount / participantCount).toFixed(2)
               : null
@@ -762,7 +773,7 @@ export function ExpenseSheet({ open, onClose, members, currentUserId, isPremium,
                 <p style={{ color: 'var(--roost-text-muted)', fontWeight: 600, fontSize: 12, marginBottom: 2 }}>
                   Split with (payer always included)
                 </p>
-                {members.filter(m => m.id !== paidBy).map(m => {
+                {members.filter(m => m.id !== effectivePaidBy).map(m => {
                   const checked = equalSelectedIds.has(m.id)
                   return (
                     <button
@@ -806,7 +817,7 @@ export function ExpenseSheet({ open, onClose, members, currentUserId, isPremium,
                     </button>
                   )
                 })}
-                {totalAmount > 0 && equalSelectedIds.size > 0 && (
+                {totalAmount > 0 && selectedNonPayerCount > 0 && (
                   <p style={{ color: 'var(--roost-text-muted)', fontWeight: 600, fontSize: 12, marginTop: 2 }}>
                     {participantCount} people · ${(totalAmount / participantCount).toFixed(2)} each
                   </p>
@@ -817,8 +828,10 @@ export function ExpenseSheet({ open, onClose, members, currentUserId, isPremium,
 
           {/* Custom $ splits */}
           {splitMethod === 'custom' && (() => {
+            // Filter selection against effectivePaidBy so a stale set (seeded
+            // before paidBy resolved) does not double-count the payer.
             const selectedSum = customSplits
-              .filter(s => customSelectedIds.has(s.userId))
+              .filter(s => customSelectedIds.has(s.userId) && s.userId !== effectivePaidBy)
               .reduce((s, sp) => s + (parseFloat(sp.amount) || 0), 0)
             const payerAmount = Math.max(0, totalAmount - selectedSum)
             const over = selectedSum > totalAmount + 0.02
@@ -827,7 +840,7 @@ export function ExpenseSheet({ open, onClose, members, currentUserId, isPremium,
                 <p style={{ color: 'var(--roost-text-muted)', fontWeight: 600, fontSize: 12, marginBottom: 2 }}>
                   Split with (payer covers the remainder)
                 </p>
-                {members.filter(m => m.id !== paidBy).map(m => {
+                {members.filter(m => m.id !== effectivePaidBy).map(m => {
                   const split = customSplits.find(s => s.userId === m.id)
                   const checked = customSelectedIds.has(m.id)
                   return (
@@ -898,7 +911,7 @@ export function ExpenseSheet({ open, onClose, members, currentUserId, isPremium,
           {/* Percent splits */}
           {splitMethod === 'percent' && (() => {
             const selectedPct = percentSplits
-              .filter(p => percentSelectedIds.has(p.userId))
+              .filter(p => percentSelectedIds.has(p.userId) && p.userId !== effectivePaidBy)
               .reduce((s, p) => s + (parseFloat(p.percent) || 0), 0)
             const payerPct = Math.max(0, 100 - selectedPct)
             const over = selectedPct > 100
@@ -907,7 +920,7 @@ export function ExpenseSheet({ open, onClose, members, currentUserId, isPremium,
                 <p style={{ color: 'var(--roost-text-muted)', fontWeight: 600, fontSize: 12, marginBottom: 2 }}>
                   Split with (payer covers the remaining %)
                 </p>
-                {members.filter(m => m.id !== paidBy).map(m => {
+                {members.filter(m => m.id !== effectivePaidBy).map(m => {
                   const entry = percentSplits.find(p => p.userId === m.id)
                   const pct = parseFloat(entry?.percent ?? '0') || 0
                   const dollars = (pct / 100) * totalAmount
@@ -1012,7 +1025,7 @@ export function ExpenseSheet({ open, onClose, members, currentUserId, isPremium,
           {/* Shares splits */}
           {splitMethod === 'shares' && (() => {
             const selectedNonPayerShares = shareSplits
-              .filter(sh => shareSelectedIds.has(sh.userId))
+              .filter(sh => shareSelectedIds.has(sh.userId) && sh.userId !== effectivePaidBy)
               .reduce((s, sh) => s + sh.shares, 0)
             const payerShares = 1
             const totalSharesIncPayer = payerShares + selectedNonPayerShares
@@ -1023,7 +1036,7 @@ export function ExpenseSheet({ open, onClose, members, currentUserId, isPremium,
                 <p style={{ color: 'var(--roost-text-muted)', fontWeight: 600, fontSize: 12, marginBottom: 2 }}>
                   Split with (payer counts as 1 share)
                 </p>
-                {members.filter(m => m.id !== paidBy).map(m => {
+                {members.filter(m => m.id !== effectivePaidBy).map(m => {
                   const entry = shareSplits.find(s => s.userId === m.id)
                   const shares = entry?.shares ?? 1
                   const dollars = perShareAmt * shares

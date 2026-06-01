@@ -1134,7 +1134,7 @@ export default function SettingsPage() {
   const router = useRouter();
   const queryClient = useQueryClient();
   const { data: sessionData } = useSession();
-  const { household, role, isPremium, statsVisibility } = useHousehold();
+  const { household, role, isPremium, statsVisibility, joinApprovalRequired } = useHousehold();
   const { temperatureUnit, latitude, longitude, updatePreferences } =
     useUserPreferences();
 
@@ -2346,6 +2346,68 @@ export default function SettingsPage() {
                   </button>
                 )}
               </div>
+
+              {/* Approval toggle — admin only */}
+              {isAdmin && (
+                <div
+                  className="p-4"
+                  style={{ borderTop: '1px solid var(--roost-border)' }}
+                >
+                  <div className="flex items-start justify-between gap-4">
+                    <div style={{ flex: 1 }}>
+                      <p className="text-sm" style={{ color: 'var(--roost-text-primary)', fontWeight: 700 }}>
+                        Require approval for new members
+                      </p>
+                      <p className="text-xs mt-0.5" style={{ color: 'var(--roost-text-muted)', fontWeight: 600 }}>
+                        Anyone with your household code must be approved before they can join.
+                      </p>
+                      {joinApprovalRequired === false && (
+                        <p className="text-xs mt-1" style={{ color: '#D97706', fontWeight: 700 }}>
+                          Anyone with your code can join immediately. Only share it with people you trust.
+                        </p>
+                      )}
+                    </div>
+                    <button
+                      type="button"
+                      role="switch"
+                      aria-checked={joinApprovalRequired}
+                      onClick={async () => {
+                        const newValue = !joinApprovalRequired
+                        await fetch(`/api/household/${household?.id}`, {
+                          method: 'PATCH',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({ joinApprovalRequired: newValue }),
+                        })
+                        queryClient.invalidateQueries({ queryKey: ['household'] })
+                      }}
+                      style={{
+                        width: 44,
+                        height: 24,
+                        borderRadius: 999,
+                        border: 'none',
+                        cursor: 'pointer',
+                        flexShrink: 0,
+                        backgroundColor: joinApprovalRequired ? '#22C55E' : '#D1D5DB',
+                        transition: 'background-color 0.2s',
+                        position: 'relative',
+                      }}
+                    >
+                      <span
+                        style={{
+                          position: 'absolute',
+                          top: 2,
+                          left: joinApprovalRequired ? 22 : 2,
+                          width: 20,
+                          height: 20,
+                          borderRadius: '50%',
+                          backgroundColor: '#ffffff',
+                          transition: 'left 0.2s',
+                        }}
+                      />
+                    </button>
+                  </div>
+                </div>
+              )}
 
               {role !== 'child' && (
                 <div

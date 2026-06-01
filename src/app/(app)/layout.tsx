@@ -3,6 +3,7 @@ import { Sidebar } from '@/components/layout/Sidebar'
 import { BottomNav } from '@/components/layout/BottomNav'
 import { TopBar } from '@/components/layout/TopBar'
 import { DevTools } from '@/components/dev/DevTools'
+import JoinRequestsBanner from '@/components/shared/JoinRequestsBanner'
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const session = await requireSession()
@@ -13,6 +14,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     <div className="flex" style={{ minHeight: '100dvh', backgroundColor: 'var(--roost-bg)' }}>
       <Sidebar />
       <TopBar />
+      <JoinRequestsBanner />
       <main
         className="flex-1 overflow-y-auto"
         style={{ paddingTop: 56, paddingBottom: 52 }}

@@ -37,6 +37,7 @@ export async function GET(request: NextRequest): Promise<Response> {
       premium_expires_at: households.premium_expires_at,
       stats_visibility: households.stats_visibility,
       meal_approval_mode: households.meal_approval_mode,
+      join_approval_required: households.join_approval_required,
     })
     .from(households)
     .where(and(eq(households.id, membership.householdId), isNull(households.deleted_at)))

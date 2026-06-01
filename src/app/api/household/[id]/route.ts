@@ -37,7 +37,7 @@ export async function PATCH(
     return r as Response;
   }
 
-  let body: { name?: string; statsVisibility?: Record<string, boolean>; mealApprovalMode?: 'admin_only' | 'open_vote' };
+  let body: { name?: string; statsVisibility?: Record<string, boolean>; mealApprovalMode?: 'admin_only' | 'open_vote'; joinApprovalRequired?: boolean };
   try {
     body = await request.json();
   } catch {
@@ -45,7 +45,7 @@ export async function PATCH(
   }
 
   // Build update payload — at least one field must be present
-  const updates: { name?: string; stats_visibility?: string; meal_approval_mode?: 'admin_only' | 'open_vote'; updated_at: Date } = {
+  const updates: { name?: string; stats_visibility?: string; meal_approval_mode?: 'admin_only' | 'open_vote'; join_approval_required?: boolean; updated_at: Date } = {
     updated_at: new Date(),
   };
 
@@ -68,7 +68,11 @@ export async function PATCH(
     updates.meal_approval_mode = body.mealApprovalMode;
   }
 
-  if (!updates.name && !updates.stats_visibility && !updates.meal_approval_mode) {
+  if (body.joinApprovalRequired !== undefined) {
+    updates.join_approval_required = body.joinApprovalRequired;
+  }
+
+  if (!updates.name && !updates.stats_visibility && !updates.meal_approval_mode && updates.join_approval_required === undefined) {
     return Response.json({ error: "Nothing to update" }, { status: 400 });
   }
 

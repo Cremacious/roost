@@ -30,6 +30,7 @@ interface HouseholdData {
     stripe_subscription_id: string | null;
     premium_expires_at: string | null;
     stats_visibility: string | null;
+    join_approval_required: boolean;
   };
   role: string;
   permissions: string[];
@@ -85,6 +86,7 @@ export function useHousehold() {
     stripeSubscriptionId: data?.household?.stripe_subscription_id ?? null,
     premiumExpiresAt,
     statsVisibility,
+    joinApprovalRequired: data?.household?.join_approval_required ?? true,
     isLoading,
     error,
   };

@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { requireSession } from '@/lib/auth/helpers'
 import { db } from '@/lib/db'
-import { households, householdMembers, memberPermissions, user } from '@/db/schema'
+import { households, householdMembers, memberPermissions, user, joinRequests } from '@/db/schema'
 import { eq, and, isNull } from 'drizzle-orm'
 
 async function checkMultiHouseholdLimit(userId: string): Promise<Response | null> {
@@ -80,6 +80,37 @@ export async function POST(request: Request) {
   const limitError = await checkMultiHouseholdLimit(session.user.id)
   if (limitError) return limitError
 
+  // --- Approval gate ---
+  if (household.join_approval_required) {
+    // Check for an existing pending request
+    const pendingRequest = await db
+      .select({ id: joinRequests.id })
+      .from(joinRequests)
+      .where(
+        and(
+          eq(joinRequests.householdId, household.id),
+          eq(joinRequests.userId, session.user.id),
+        )
+      )
+      .limit(1)
+
+    if (pendingRequest.length > 0) {
+      return NextResponse.json(
+        { error: 'You already have a pending request for this household', code: 'ALREADY_REQUESTED' },
+        { status: 409 }
+      )
+    }
+
+    await db.insert(joinRequests).values({
+      householdId: household.id,
+      userId: session.user.id,
+      type: 'code',
+    })
+
+    return NextResponse.json({ status: 'pending', householdName: household.name })
+  }
+
+  // --- Immediate join (approval not required) ---
   await db.insert(householdMembers).values({
     householdId: household.id,
     userId: session.user.id,
@@ -91,7 +122,6 @@ export async function POST(request: Request) {
     userId: session.user.id,
   })
 
-  // Mark onboarding complete in better-auth user table
   await db.update(user)
     .set({ onboardingCompleted: true, updatedAt: new Date() })
     .where(eq(user.id, session.user.id))

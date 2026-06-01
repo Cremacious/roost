@@ -1,10 +1,11 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
-import { Check, ChevronLeft } from 'lucide-react'
+import { Check, ChevronLeft, Clock } from 'lucide-react'
+import { toast } from 'sonner'
 
-type Step = 1 | '2a' | '2b' | 3
+type Step = 1 | '2a' | '2b' | 3 | 'pending'
 
 function DotProgress({ step }: { step: Step }) {
   const stepNum = step === 1 ? 1 : step === '2a' || step === '2b' ? 2 : 3
@@ -61,7 +62,6 @@ function DotProgress({ step }: { step: Step }) {
           )
         }
 
-        // inactive
         return (
           <div
             key={d}
@@ -117,9 +117,48 @@ export default function OnboardingPage() {
   const [householdName, setHouseholdName] = useState('')
   const [inviteCode, setInviteCode] = useState('')
   const [householdResult, setHouseholdResult] = useState<{ name: string } | null>(null)
+  const [pendingHouseholdName, setPendingHouseholdName] = useState('')
 
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+
+  const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null)
+
+  // Poll for approval when in pending state
+  useEffect(() => {
+    if (step !== 'pending') {
+      if (pollingRef.current) {
+        clearInterval(pollingRef.current)
+        pollingRef.current = null
+      }
+      return
+    }
+
+    async function checkStatus() {
+      const res = await fetch('/api/household/join-requests/status')
+      if (!res.ok) return
+      const data = await res.json()
+
+      if (data.status === 'approved') {
+        if (pollingRef.current) clearInterval(pollingRef.current)
+        await fetch('/api/auth/get-session?disableCookieCache=true')
+        router.push('/today')
+      } else if (data.status === 'not_found') {
+        if (pollingRef.current) clearInterval(pollingRef.current)
+        toast.error("Your request wasn't approved. You can try a different household.")
+        setStep(1)
+        setInviteCode('')
+        setError('')
+      }
+    }
+
+    checkStatus()
+    pollingRef.current = setInterval(checkStatus, 10_000)
+
+    return () => {
+      if (pollingRef.current) clearInterval(pollingRef.current)
+    }
+  }, [step, router])
 
   async function handleCreate(e: React.FormEvent) {
     e.preventDefault()
@@ -159,6 +198,9 @@ export default function OnboardingPage() {
       const data = await res.json()
       if (!res.ok) {
         setError(data.error ?? 'Failed to join household')
+      } else if (data.status === 'pending') {
+        setPendingHouseholdName(data.householdName)
+        setStep('pending')
       } else {
         setHouseholdResult({ name: data.name })
         await fetch('/api/auth/get-session?disableCookieCache=true')
@@ -181,7 +223,7 @@ export default function OnboardingPage() {
     borderRadius: 10,
     fontFamily: 'var(--font-nunito)',
     fontWeight: 700,
-    fontSize: 16, // 16px prevents iOS Safari auto-zoom
+    fontSize: 16,
     color: '#374151',
     outline: 'none',
     display: 'block',
@@ -397,6 +439,68 @@ export default function OnboardingPage() {
                 </button>
               </form>
             </>
+          )}
+
+          {/* Step pending: Waiting room */}
+          {step === 'pending' && (
+            <div style={{ textAlign: 'center', paddingTop: 4 }}>
+              <div
+                style={{
+                  width: 44,
+                  height: 44,
+                  borderRadius: '50%',
+                  backgroundColor: 'rgba(255,255,255,0.18)',
+                  border: '2px solid rgba(255,255,255,0.4)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  margin: '0 auto 14px',
+                }}
+              >
+                <Clock size={20} color="#ffffff" strokeWidth={2.5} />
+              </div>
+              <p
+                style={{
+                  fontSize: 12,
+                  fontWeight: 700,
+                  color: 'rgba(255,255,255,0.65)',
+                  marginBottom: 4,
+                }}
+              >
+                Waiting for approval
+              </p>
+              <h1
+                style={{
+                  fontWeight: 900,
+                  fontSize: 22,
+                  color: '#ffffff',
+                  marginBottom: 10,
+                  lineHeight: 1.2,
+                }}
+              >
+                {pendingHouseholdName}
+              </h1>
+              <p
+                style={{
+                  fontSize: 13,
+                  fontWeight: 600,
+                  color: 'rgba(255,255,255,0.7)',
+                  marginBottom: 20,
+                  lineHeight: 1.5,
+                }}
+              >
+                Your request has been sent to the admin. Hang tight.
+              </p>
+              <p
+                style={{
+                  fontSize: 11,
+                  fontWeight: 600,
+                  color: 'rgba(255,255,255,0.45)',
+                }}
+              >
+                Checking for approval...
+              </p>
+            </div>
           )}
 
           {/* Step 3: Success */}

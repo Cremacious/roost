@@ -1,7 +1,7 @@
 import { NextRequest } from 'next/server'
 import { requireSession } from '@/lib/auth/helpers'
 import { db } from '@/lib/db'
-import { joinRequests, householdMembers, memberPermissions, user } from '@/db/schema'
+import { joinRequests, householdMembers, memberPermissions, user, households } from '@/db/schema'
 import { and, eq, isNull } from 'drizzle-orm'
 import { logActivity } from '@/lib/utils/activity'
 
@@ -40,6 +40,30 @@ export async function POST(
 
   if (!req) {
     return Response.json({ error: 'Request not found' }, { status: 404 })
+  }
+
+  // Check free-tier member limit (5 members max)
+  const memberCount = await db
+    .select({ id: householdMembers.id })
+    .from(householdMembers)
+    .where(
+      and(
+        eq(householdMembers.householdId, req.householdId),
+        isNull(householdMembers.deletedAt),
+      )
+    )
+
+  const [hh] = await db
+    .select({ subscription_status: households.subscription_status })
+    .from(households)
+    .where(eq(households.id, req.householdId))
+    .limit(1)
+
+  if (hh?.subscription_status !== 'premium' && memberCount.length >= 5) {
+    return Response.json(
+      { error: 'Member limit reached for free tier', code: 'MEMBERS_LIMIT' },
+      { status: 403 }
+    )
   }
 
   await db.insert(householdMembers).values({

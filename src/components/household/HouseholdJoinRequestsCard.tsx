@@ -107,8 +107,8 @@ export default function HouseholdJoinRequestsCard() {
                 disabled={approveMutation.isPending || rejectMutation.isPending}
                 aria-label={`Approve ${req.name}`}
                 style={{
-                  height: 32,
-                  width: 32,
+                  height: 40,
+                  width: 40,
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
@@ -129,8 +129,8 @@ export default function HouseholdJoinRequestsCard() {
                 disabled={approveMutation.isPending || rejectMutation.isPending}
                 aria-label={`Decline ${req.name}`}
                 style={{
-                  height: 32,
-                  width: 32,
+                  height: 40,
+                  width: 40,
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',

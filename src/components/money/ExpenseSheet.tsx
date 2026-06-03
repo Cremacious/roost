@@ -176,8 +176,9 @@ export function ExpenseSheet({ open, onClose, members, currentUserId, isPremium,
   }
 
   function initEqualSplits(payerId: string) {
-    const others = members.filter(m => m.id !== payerId)
-    setEqualSelectedIds(new Set(others.length === 1 ? others.map(m => m.id) : []))
+    const nonPayer = members.filter(m => m.id !== payerId)
+    const preselect = nonPayer.length === 1
+    setEqualSelectedIds(new Set(preselect ? nonPayer.map(m => m.id) : []))
   }
 
   function handleSplitMethodChange(method: SplitMethod) {

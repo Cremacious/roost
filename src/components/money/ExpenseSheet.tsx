@@ -155,29 +155,29 @@ export function ExpenseSheet({ open, onClose, members, currentUserId, isPremium,
 
   function initCustomSplits(payerId: string) {
     const nonPayer = members.filter(m => m.id !== payerId)
-    setCustomSelectedIds(new Set(nonPayer.map(m => m.id)))
-    const n = nonPayer.length + 1 // include payer
-    const each = n > 0 && amount ? (parseFloat(amount) / n).toFixed(2) : ''
-    setCustomSplits(nonPayer.map(m => ({ userId: m.id, amount: each })))
+    const preselect = nonPayer.length === 1
+    setCustomSelectedIds(new Set(preselect ? nonPayer.map(m => m.id) : []))
+    const each = preselect && amount ? (parseFloat(amount) / 2).toFixed(2) : ''
+    setCustomSplits(preselect ? nonPayer.map(m => ({ userId: m.id, amount: each })) : [])
   }
 
   function initPercentSplits(payerId: string) {
     const nonPayer = members.filter(m => m.id !== payerId)
-    setPercentSelectedIds(new Set(nonPayer.map(m => m.id)))
-    const n = nonPayer.length + 1 // include payer
-    const each = n > 0 ? Math.round((100 / n) * 10) / 10 : 0
-    setPercentSplits(nonPayer.map(m => ({ userId: m.id, percent: String(each) })))
+    const preselect = nonPayer.length === 1
+    setPercentSelectedIds(new Set(preselect ? nonPayer.map(m => m.id) : []))
+    setPercentSplits(preselect ? nonPayer.map(m => ({ userId: m.id, percent: '50' })) : [])
   }
 
   function initShareSplits(payerId: string) {
     const nonPayer = members.filter(m => m.id !== payerId)
-    setShareSelectedIds(new Set(nonPayer.map(m => m.id)))
-    setShareSplits(nonPayer.map(m => ({ userId: m.id, shares: 1 })))
+    const preselect = nonPayer.length === 1
+    setShareSelectedIds(new Set(preselect ? nonPayer.map(m => m.id) : []))
+    setShareSplits(preselect ? nonPayer.map(m => ({ userId: m.id, shares: 1 })) : [])
   }
 
   function initEqualSplits(payerId: string) {
     const others = members.filter(m => m.id !== payerId)
-    setEqualSelectedIds(new Set(others.map(m => m.id)))
+    setEqualSelectedIds(new Set(others.length === 1 ? others.map(m => m.id) : []))
   }
 
   function handleSplitMethodChange(method: SplitMethod) {

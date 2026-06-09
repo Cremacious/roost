@@ -75,22 +75,22 @@ export function SettleSheet({ open, onClose, debt, currentUserId, members, payee
   }
 
   async function handleClaim() {
-    const ok = await post('/api/expenses/settle-all/claim', { creditorId: debt!.to })
+    const ok = await post('/api/expenses/settle-all/claim', { creditorId: debt!.to, splitIds: debt!.splitIds })
     if (ok) { toast.success('Claim sent', { description: `${creditorName} will confirm when received.` }); onClose() }
   }
 
   async function handleConfirm() {
-    const ok = await post('/api/expenses/settle-all/confirm', { debtorId: debt!.from })
+    const ok = await post('/api/expenses/settle-all/confirm', { debtorId: debt!.from, splitIds: debt!.splitIds })
     if (ok) { toast.success('Settled up!'); onClose() }
   }
 
   async function handleDispute() {
-    const ok = await post('/api/expenses/settle-all/dispute', { debtorId: debt!.from })
+    const ok = await post('/api/expenses/settle-all/dispute', { debtorId: debt!.from, splitIds: debt!.splitIds })
     if (ok) { toast.success('Disputed. They have been notified.'); onClose() }
   }
 
   async function handleCancel() {
-    const ok = await post('/api/expenses/settle-all/cancel', { creditorId: debt!.to })
+    const ok = await post('/api/expenses/settle-all/cancel', { creditorId: debt!.to, splitIds: debt!.splitIds })
     if (ok) { toast.success('Claim cancelled'); onClose() }
   }
 

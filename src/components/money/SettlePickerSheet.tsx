@@ -26,7 +26,6 @@ interface Props {
   open: boolean
   onClose: () => void
   debts: DebtItem[]
-  currentUserId: string
   members: Member[]
   onSelect: (debt: DebtItem) => void
 }
@@ -44,7 +43,7 @@ function MiniAvatar({ name, color }: { name: string; color?: string }) {
   )
 }
 
-export function SettlePickerSheet({ open, onClose, debts, currentUserId, members, onSelect }: Props) {
+export function SettlePickerSheet({ open, onClose, debts, members, onSelect }: Props) {
   const memberMap = new Map(members.map(m => [m.id, m]))
 
   // Debts where current user owes first, then debts where others owe current user
@@ -69,7 +68,7 @@ export function SettlePickerSheet({ open, onClose, debts, currentUserId, members
 
             return (
               <button
-                key={`${debt.from}-${debt.to}-${i}`}
+                key={`${debt.from}-${debt.to}`}
                 type="button"
                 onClick={() => { onSelect(debt); onClose() }}
                 style={{

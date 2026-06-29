@@ -287,16 +287,18 @@ function DashboardTab({ currentUserId, members, isPremium, onOpenExpense, onOpen
 
           {/* Action buttons */}
           <div className="flex flex-row gap-2 md:flex-col md:gap-2">
-            <button
-              onClick={() => onOpenSettlePicker()}
-              style={{
-                display: 'flex', alignItems: 'center', gap: 8, padding: '9px 16px', borderRadius: 10,
-                background: 'rgba(255,255,255,0.2)', border: '1.5px solid rgba(255,255,255,0.3)',
-                fontFamily: 'inherit', fontSize: 13, fontWeight: 800, color: 'white', cursor: 'pointer', whiteSpace: 'nowrap',
-              }}
-            >
-              <CheckCircle size={15} color="white" /> Settle up
-            </button>
+            {myDebts.length > 0 && (
+              <button
+                onClick={() => onOpenSettlePicker()}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 8, padding: '9px 16px', borderRadius: 10,
+                  background: 'rgba(255,255,255,0.2)', border: '1.5px solid rgba(255,255,255,0.3)',
+                  fontFamily: 'inherit', fontSize: 13, fontWeight: 800, color: 'white', cursor: 'pointer', whiteSpace: 'nowrap',
+                }}
+              >
+                <CheckCircle size={15} color="white" /> Settle up
+              </button>
+            )}
             <button
               onClick={() => isPremium ? onTabChange('insights') : setInsightsGateOpen(true)}
               style={{

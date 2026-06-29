@@ -29,6 +29,8 @@ import { usePlatformCapabilities } from '@/lib/hooks/usePlatformCapabilities'
 import { useSession } from '@/lib/auth/client'
 import PremiumGate from '@/components/shared/PremiumGate'
 
+const CLAIM_BANNER_KEY = 'roost-pending-claim-banner-dismissed'
+
 function EmptyState({ color, icon, title, body, buttonLabel, onButtonClick }: {
   color: string; icon: React.ReactNode; title: string; body: string; buttonLabel?: string; onButtonClick?: () => void
 }) {
@@ -237,7 +239,6 @@ function DashboardTab({ currentUserId, members, isPremium, onOpenExpense, onOpen
   const netPositive = netBalance >= 0
 
   const myDebts: DebtItem[] = myDebtsRaw
-  const firstOweDebt = myDebts.find((d: DebtItem) => d.iOwe) ?? null
 
   return (
     <div>
@@ -1630,7 +1631,6 @@ export default function MoneyPage() {
     (d: DebtItem) => !d.iOwe && d.pendingClaim?.settledByPayer === true
   )
 
-  const CLAIM_BANNER_KEY = 'roost-pending-claim-banner-dismissed'
   const showClaimBanner =
     pendingInboundClaims.length > 0 &&
     !claimBannerDismissed &&

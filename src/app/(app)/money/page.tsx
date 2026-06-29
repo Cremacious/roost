@@ -7,7 +7,7 @@ import { toast } from 'sonner'
 import {
   Plus, Wallet, Receipt, BarChart3, Target, TrendingUp,
   CheckCircle, Clock, AlertCircle, ChevronRight, Edit2, Trash2, ChevronDown, ChevronUp,
-  LayoutGrid, DollarSign, FileText, Camera, Users, Lock,
+  LayoutGrid, DollarSign, FileText, Camera, Users, Lock, X,
 } from 'lucide-react'
 import { format, parseISO, subDays } from 'date-fns'
 import { AreaChart, Area, XAxis, YAxis, Tooltip, PieChart, Pie, Cell, ResponsiveContainer } from 'recharts'
@@ -1561,6 +1561,7 @@ export default function MoneyPage() {
   const [billSheetOpen, setBillSheetOpen] = useState(false)
   const [budgetSheetOpen, setBudgetSheetOpen] = useState(false)
   const [editingBudget, setEditingBudget] = useState<EditableBudget | null>(null)
+  const [claimBannerDismissed, setClaimBannerDismissed] = useState(false)
 
   const { isPremium, role } = useHousehold()
   const isAdmin = role === 'admin'
@@ -1625,6 +1626,24 @@ export default function MoneyPage() {
   })
   const myDebtsRaw: DebtItem[] = dashboardData?.myDebts ?? []
 
+  const pendingInboundClaims = myDebtsRaw.filter(
+    (d: DebtItem) => !d.iOwe && d.pendingClaim?.settledByPayer === true
+  )
+
+  const CLAIM_BANNER_KEY = 'roost-pending-claim-banner-dismissed'
+  const showClaimBanner =
+    pendingInboundClaims.length > 0 &&
+    !claimBannerDismissed &&
+    (typeof window === 'undefined' ||
+      sessionStorage.getItem(CLAIM_BANNER_KEY) !== String(pendingInboundClaims.length))
+
+  function dismissClaimBanner() {
+    setClaimBannerDismissed(true)
+    if (typeof window !== 'undefined') {
+      sessionStorage.setItem(CLAIM_BANNER_KEY, String(pendingInboundClaims.length))
+    }
+  }
+
   return (
     <div style={{ maxWidth: 900, margin: '0 auto' }}>
       {/* ── Page title (non-sticky, flows naturally below TopBar) ── */}
@@ -1668,6 +1687,59 @@ export default function MoneyPage() {
       {/* ── Tab content ── */}
       <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.18 }}>
         <div className="px-6 md:px-7" style={{ paddingTop: 24, paddingBottom: 40 }}>
+          {showClaimBanner && (
+            <div style={{
+              display: 'flex', alignItems: 'center', gap: 10,
+              margin: '0 0 12px 0', padding: '12px 14px',
+              borderRadius: 12,
+              backgroundColor: '#FEF3C7',
+              border: '1.5px solid #FDE68A',
+              borderBottom: '3px solid #F59E0B',
+            }}>
+              <Clock size={16} color="#D97706" style={{ flexShrink: 0 }} />
+              <p style={{ flex: 1, margin: 0, fontSize: 13, fontWeight: 700, color: '#92400E' }}>
+                {pendingInboundClaims.length === 1
+                  ? (() => {
+                      const debt = pendingInboundClaims[0]
+                      const name = members.find((m: { id: string }) => m.id === debt.from)?.name ?? 'Someone'
+                      return `${name} says they paid you $${debt.amount.toFixed(2)}.`
+                    })()
+                  : `${pendingInboundClaims.length} people say they paid you.`}
+              </p>
+              <button
+                type="button"
+                onClick={() => {
+                  if (pendingInboundClaims.length === 1) {
+                    setSettleDebt(pendingInboundClaims[0])
+                  } else {
+                    setSettlePickerDebts(pendingInboundClaims)
+                    setSettlePickerOpen(true)
+                  }
+                }}
+                style={{
+                  padding: '6px 12px', borderRadius: 8, fontWeight: 700, fontSize: 12,
+                  backgroundColor: '#F59E0B', color: '#fff',
+                  border: 'none', borderBottom: '2px solid #D97706',
+                  cursor: 'pointer', flexShrink: 0,
+                }}
+              >
+                Review
+              </button>
+              <button
+                type="button"
+                aria-label="Dismiss"
+                onClick={dismissClaimBanner}
+                style={{
+                  width: 28, height: 28, borderRadius: 8, flexShrink: 0,
+                  backgroundColor: 'transparent', border: 'none',
+                  cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  color: '#92400E',
+                }}
+              >
+                <X size={14} />
+              </button>
+            </div>
+          )}
           {tab === 'dashboard' && (
             <DashboardTab
               currentUserId={currentUserId}

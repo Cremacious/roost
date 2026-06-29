@@ -761,6 +761,12 @@ export default function FoodPage() {
     return def ? def.id : activeListId;
   }, [listsData, activeListId]);
 
+  useEffect(() => {
+    if (resolvedActiveListId && resolvedActiveListId !== activeListId) {
+      setActiveListId(resolvedActiveListId);
+    }
+  }, [resolvedActiveListId, activeListId]);
+
   // ── Items query ──────────────────────────────────────────────────────────
   const {
     data,

@@ -18,6 +18,7 @@ import {
 } from '@/components/ui/alert-dialog'
 import { ExpenseSheet } from '@/components/money/ExpenseSheet'
 import { SettleSheet } from '@/components/money/SettleSheet'
+import { SettlePickerSheet } from '@/components/money/SettlePickerSheet'
 import { GoalSheet } from '@/components/money/GoalSheet'
 import { ContributeSheet } from '@/components/money/ContributeSheet'
 import { BillSheet } from '@/components/money/BillSheet'
@@ -176,13 +177,14 @@ interface MembersApiMember {
 
 // ─── Dashboard Tab ────────────────────────────────────────────────────────────
 
-function DashboardTab({ currentUserId, members, isPremium, onOpenExpense, onOpenSettle, onTabChange }: {
+function DashboardTab({ currentUserId, members, isPremium, onOpenExpense, onOpenSettle, onTabChange, onOpenSettlePicker }: {
   currentUserId: string
   members: Member[]
   isPremium: boolean
   onOpenExpense: () => void
   onOpenSettle: (debt: DebtItem) => void
   onTabChange: (tab: Tab) => void
+  onOpenSettlePicker: () => void
 }) {
   const queryClient = useQueryClient()
   const { canPush } = usePlatformCapabilities()
@@ -286,7 +288,7 @@ function DashboardTab({ currentUserId, members, isPremium, onOpenExpense, onOpen
           {/* Action buttons */}
           <div className="flex flex-row gap-2 md:flex-col md:gap-2">
             <button
-              onClick={() => firstOweDebt ? onOpenSettle(firstOweDebt) : onTabChange('expenses')}
+              onClick={() => onOpenSettlePicker()}
               style={{
                 display: 'flex', alignItems: 'center', gap: 8, padding: '9px 16px', borderRadius: 10,
                 background: 'rgba(255,255,255,0.2)', border: '1.5px solid rgba(255,255,255,0.3)',
@@ -1549,6 +1551,8 @@ export default function MoneyPage() {
   const [tab, setTab] = useState<Tab>('dashboard')
   const [expenseSheetOpen, setExpenseSheetOpen] = useState(false)
   const [settleDebt, setSettleDebt] = useState<DebtItem | null>(null)
+  const [settlePickerOpen, setSettlePickerOpen] = useState(false)
+  const [settlePickerDebts, setSettlePickerDebts] = useState<DebtItem[]>([])
   const [goalSheetOpen, setGoalSheetOpen] = useState(false)
   const [editingGoal, setEditingGoal] = useState<MoneyGoal | null>(null)
   const [contributeGoal, setContributeGoal] = useState<MoneyGoal | null>(null)
@@ -1612,6 +1616,13 @@ export default function MoneyPage() {
 
   const currentUserId = sessionData?.user?.id ?? ''
 
+  const { data: dashboardData } = useQuery({
+    queryKey: ['money-dashboard'],
+    queryFn: () => fetch('/api/money/dashboard').then(r => r.json()),
+    staleTime: 10_000,
+  })
+  const myDebtsRaw: DebtItem[] = dashboardData?.myDebts ?? []
+
   return (
     <div style={{ maxWidth: 900, margin: '0 auto' }}>
       {/* ── Page title (non-sticky, flows naturally below TopBar) ── */}
@@ -1663,6 +1674,10 @@ export default function MoneyPage() {
               onOpenExpense={() => setExpenseSheetOpen(true)}
               onOpenSettle={setSettleDebt}
               onTabChange={setTab}
+              onOpenSettlePicker={() => {
+                setSettlePickerDebts(myDebtsRaw)
+                setSettlePickerOpen(true)
+              }}
             />
           )}
           {tab === 'expenses' && (
@@ -1706,6 +1721,17 @@ export default function MoneyPage() {
         members={members}
         payeeVenmoHandle={settleDebt?.toVenmoHandle}
         payeeCashappHandle={settleDebt?.toCashappHandle}
+      />
+
+      <SettlePickerSheet
+        open={settlePickerOpen}
+        onClose={() => setSettlePickerOpen(false)}
+        debts={settlePickerDebts}
+        members={members}
+        onSelect={(debt) => {
+          setSettlePickerOpen(false)
+          setSettleDebt(debt)
+        }}
       />
 
       <GoalSheet

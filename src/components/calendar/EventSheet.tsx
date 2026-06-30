@@ -3,10 +3,10 @@
 import { useState, useEffect } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { motion } from 'framer-motion'
-import { Bell, CheckSquare, Clock, Lock, MapPin, Trash2, Users } from 'lucide-react'
+import { Bell, CalendarDays, CheckSquare, Clock, Lock, MapPin, Trash2, Users } from 'lucide-react'
 import { toast } from 'sonner'
 import { DayPicker } from 'react-day-picker'
-import { format, parseISO } from 'date-fns'
+import { format, addDays, addHours } from 'date-fns'
 import { DraggableSheet } from '@/components/shared/DraggableSheet'
 import { SECTION_COLORS } from '@/lib/constants/colors'
 import { CALENDAR_CATEGORIES } from '@/lib/constants/calendarCategories'
@@ -69,6 +69,29 @@ function toTimeStr(d: Date): string {
 
 function buildISO(dateStr: string, timeStr: string): string {
   return new Date(`${dateStr}T${timeStr}:00`).toISOString()
+}
+
+// Upcoming Saturday (today if today is already Saturday)
+function getWeekendDate(from: Date): Date {
+  const day = from.getDay() // 0 Sun .. 6 Sat
+  if (day === 6) return from
+  return addDays(from, 6 - day)
+}
+
+// Human-readable confirmation of the chosen date/time range
+function describeWhen(startDate: string, startTime: string, endDate: string, endTime: string, allDay: boolean): string {
+  const startObj = new Date(`${startDate}T${allDay ? '00:00' : startTime}:00`)
+  const endObj = new Date(`${endDate}T${allDay ? '23:59' : endTime}:00`)
+  if (isNaN(startObj.getTime())) return ''
+  const sameDay = startDate === endDate
+  if (allDay) {
+    return sameDay
+      ? `${format(startObj, 'EEEE, MMMM d')} · All day`
+      : `${format(startObj, 'EEEE, MMMM d')} to ${format(endObj, 'EEEE, MMMM d')} · All day`
+  }
+  return sameDay
+    ? `${format(startObj, 'EEEE, MMMM d')} · ${format(startObj, 'h:mm a')} to ${format(endObj, 'h:mm a')}`
+    : `${format(startObj, 'EEEE, MMMM d')}, ${format(startObj, 'h:mm a')} to ${format(endObj, 'EEEE, MMMM d')}, ${format(endObj, 'h:mm a')}`
 }
 
 function getInitials(name: string): string {
@@ -270,6 +293,26 @@ export default function EventSheet({
   const canDelete =
     isEdit && (event?.createdBy === currentUserId || members.find(m => m.userId === currentUserId)?.role === 'admin')
 
+  // Single source of truth for setting the start date: keeps end date,
+  // the desktop calendar month, and the highlighted day all in sync.
+  const applyStartDate = (ds: string) => {
+    setStartDate(ds)
+    if (ds > endDate) setEndDate(ds)
+    setCalMonth(new Date(`${ds}T12:00:00`))
+  }
+
+  // Changing the start time auto-bumps the end time to stay after start (+1h default)
+  const applyStartTime = (t: string) => {
+    setStartTime(t)
+    const startDT = new Date(`${startDate}T${t}:00`)
+    const endDT = new Date(`${endDate}T${endTime}:00`)
+    if (endDT <= startDT) {
+      const bumped = addHours(startDT, 1)
+      setEndDate(toDateStr(bumped))
+      setEndTime(toTimeStr(bumped))
+    }
+  }
+
   // Selected date for right-col calendar
   const selectedDate = startDate ? new Date(`${startDate}T12:00:00`) : undefined
 
@@ -295,11 +338,12 @@ export default function EventSheet({
               description={description} setDescription={setDescription}
               location={location} setLocation={setLocation}
               category={category} setCategory={setCategory}
-              startDate={startDate} setStartDate={setStartDate}
-              startTime={startTime} setStartTime={setStartTime}
+              startDate={startDate}
+              startTime={startTime}
               endDate={endDate} setEndDate={setEndDate}
               endTime={endTime} setEndTime={setEndTime}
               allDay={allDay} setAllDay={setAllDay}
+              applyStartDate={applyStartDate} applyStartTime={applyStartTime}
               attendeeIds={attendeeIds} toggleAttendee={toggleAttendee}
               rsvpEnabled={rsvpEnabled} setRsvpEnabled={setRsvpEnabled}
               notifyAll={notifyAll} handleNotifyAllToggle={handleNotifyAllToggle}
@@ -320,11 +364,12 @@ export default function EventSheet({
               description={description} setDescription={setDescription}
               location={location} setLocation={setLocation}
               category={category} setCategory={setCategory}
-              startDate={startDate} setStartDate={setStartDate}
-              startTime={startTime} setStartTime={setStartTime}
+              startDate={startDate}
+              startTime={startTime}
               endDate={endDate} setEndDate={setEndDate}
               endTime={endTime} setEndTime={setEndTime}
               allDay={allDay} setAllDay={setAllDay}
+              applyStartDate={applyStartDate} applyStartTime={applyStartTime}
               attendeeIds={attendeeIds} toggleAttendee={toggleAttendee}
               rsvpEnabled={rsvpEnabled} setRsvpEnabled={setRsvpEnabled}
               notifyAll={notifyAll} handleNotifyAllToggle={handleNotifyAllToggle}
@@ -362,14 +407,7 @@ export default function EventSheet({
                 selected={selectedDate}
                 month={calMonth}
                 onMonthChange={setCalMonth}
-                onSelect={(d) => {
-                  if (d) {
-                    const ds = toDateStr(d)
-                    setStartDate(ds)
-                    if (ds > endDate) setEndDate(ds)
-                    setCalMonth(d)
-                  }
-                }}
+                onSelect={(d) => { if (d) applyStartDate(toDateStr(d)) }}
               />
             </div>
 
@@ -437,11 +475,13 @@ interface LeftColProps {
   description: string; setDescription: (v: string) => void
   location: string; setLocation: (v: string) => void
   category: string; setCategory: (v: string) => void
-  startDate: string; setStartDate: (v: string) => void
-  startTime: string; setStartTime: (v: string) => void
+  startDate: string
+  startTime: string
   endDate: string; setEndDate: (v: string) => void
   endTime: string; setEndTime: (v: string) => void
   allDay: boolean; setAllDay: (fn: (v: boolean) => boolean) => void
+  applyStartDate: (ds: string) => void
+  applyStartTime: (t: string) => void
   attendeeIds: string[]; toggleAttendee: (uid: string) => void
   rsvpEnabled: boolean; setRsvpEnabled: (fn: (v: boolean) => boolean) => void
   notifyAll: boolean; handleNotifyAllToggle: () => void
@@ -456,8 +496,9 @@ interface LeftColProps {
 
 function LeftColumn({
   isEdit, title, setTitle, description, setDescription, location, setLocation,
-  category, setCategory, startDate, setStartDate, startTime, setStartTime,
+  category, setCategory, startDate, startTime,
   endDate, setEndDate, endTime, setEndTime, allDay, setAllDay,
+  applyStartDate, applyStartTime,
   attendeeIds, toggleAttendee, rsvpEnabled, setRsvpEnabled,
   notifyAll, handleNotifyAllToggle, notifySpecificIds, toggleNotifyMember,
   members, canDelete, saveMutation, handleSave, setShowDeleteDialog,
@@ -465,6 +506,16 @@ function LeftColumn({
   const { canPush } = usePlatformCapabilities()
   const { allowed: canEditEvent, onBlocked: onBlockedEditEvent } = usePermissionGate('calendar.edit')
   const editLocked = isEdit && !canEditEvent
+
+  // Quick-pick chips: Today / Tomorrow / This weekend (upcoming Saturday)
+  const chipBase = new Date()
+  const quickDates = [
+    { label: 'Today', date: toDateStr(chipBase) },
+    { label: 'Tomorrow', date: toDateStr(addDays(chipBase, 1)) },
+    { label: 'This weekend', date: toDateStr(getWeekendDate(chipBase)) },
+  ]
+  const summary = describeWhen(startDate, startTime, endDate, endTime, allDay)
+
   return (
     <>
       <p style={{ fontSize: 18, fontWeight: 800, color: '#0F172A' }}>
@@ -493,18 +544,41 @@ function LeftColumn({
         <TogglePill on={allDay} onToggle={() => setAllDay(v => !v)} />
       </div>
 
+      {/* Quick-pick date chips — set the start date instantly */}
+      <div>
+        <label style={labelStyle}>Quick pick</label>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+          {quickDates.map(c => {
+            const active = startDate === c.date
+            return (
+              <button key={c.label} type="button" onClick={() => applyStartDate(c.date)}
+                style={{
+                  minHeight: 36, padding: '7px 14px', borderRadius: 12,
+                  fontSize: 13, fontWeight: 700, cursor: 'pointer',
+                  border: active ? `1.5px solid ${COLOR}` : '1.5px solid #BAD3F7',
+                  borderBottom: active ? `3px solid ${COLOR_DARK}` : '3px solid #BAD3F7',
+                  backgroundColor: active ? COLOR : '#fff',
+                  color: active ? '#fff' : '#475569',
+                }}>
+                {c.label}
+              </button>
+            )
+          })}
+        </div>
+      </div>
+
       {/* Date + time — native inputs open OS picker on mobile */}
       <div style={{ display: 'grid', gridTemplateColumns: allDay ? '1fr' : '1fr 1fr', gap: 8 }}>
         <div>
           <label style={labelStyle}>Start date</label>
           <input type="date" value={startDate}
-            onChange={e => { setStartDate(e.target.value); if (e.target.value > endDate) setEndDate(e.target.value) }}
+            onChange={e => applyStartDate(e.target.value)}
             style={nativePickerStyle} />
         </div>
         {!allDay && (
           <div>
             <label style={labelStyle}>Start time</label>
-            <input type="time" value={startTime} onChange={e => setStartTime(e.target.value)} style={nativePickerStyle} />
+            <input type="time" value={startTime} onChange={e => applyStartTime(e.target.value)} style={nativePickerStyle} />
           </div>
         )}
       </div>
@@ -520,6 +594,18 @@ function LeftColumn({
           </div>
         )}
       </div>
+
+      {/* Human-readable confirmation of the chosen result */}
+      {summary && (
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: 8, marginTop: -4,
+          padding: '9px 13px', backgroundColor: '#EFF6FF',
+          border: '1.5px solid #BAD3F7', borderBottom: `3px solid ${COLOR_DARK}`, borderRadius: 12,
+        }}>
+          <CalendarDays size={15} style={{ color: COLOR, flexShrink: 0 }} />
+          <span style={{ fontSize: 13, fontWeight: 700, color: '#1E40AF' }}>{summary}</span>
+        </div>
+      )}
 
       {/* Category */}
       <div>

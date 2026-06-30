@@ -187,7 +187,7 @@ export default function MemberSheet({
     }
     setPinLoading(true)
     try {
-      const res = await fetch(`/api/household/members/${member.id}/pin`, {
+      const res = await fetch(`/api/household/members/${member!.id}/pin`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ pin }),
@@ -236,7 +236,7 @@ export default function MemberSheet({
   async function handleSavePermissions() {
     setPermissionsLoading(true)
     try {
-      const res = await fetch(`/api/household/members/${member.id}`, {
+      const res = await fetch(`/api/household/members/${member!.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ permissions }),
@@ -259,14 +259,14 @@ export default function MemberSheet({
   async function handleRemove() {
     setRemoveLoading(true)
     try {
-      const res = await fetch(`/api/household/members/${member.id}`, {
+      const res = await fetch(`/api/household/members/${member!.id}`, {
         method: 'DELETE',
       })
       if (!res.ok) {
         const data = await res.json().catch(() => ({}))
         throw new Error(data.error ?? 'Failed to remove member')
       }
-      toast.success(`${member.name} removed`)
+      toast.success(`${member!.name} removed`)
       onRefetch()
       onClose()
     } catch (err) {

@@ -66,6 +66,26 @@ const LIST_COLORS = [
   '#06B6D4',
 ];
 
+// Compute the bumped quantity when increasing an existing grocery item.
+// quantity is free text (e.g. "1 gal", "2 dozen"); we increment the leading
+// integer and keep any trailing text. The increment is the incoming numeric
+// quantity when present, otherwise 1. Empty, null, or non-numeric free text
+// ("a bunch") treats the single existing row as 1 and falls back to "2".
+function computeIncreasedQuantity(
+  existing: string | null,
+  incoming?: string,
+): string {
+  const existingStr = (existing ?? '').trim();
+  const incomingMatch = (incoming ?? '').trim().match(/^(\d+)/);
+  const increment = incomingMatch ? parseInt(incomingMatch[1], 10) : 1;
+  const existingMatch = existingStr.match(/^(\d+)(.*)$/);
+  if (existingMatch) {
+    const base = parseInt(existingMatch[1], 10);
+    return `${base + increment}${existingMatch[2]}`;
+  }
+  return String(1 + increment);
+}
+
 
 // ── Interfaces ────────────────────────────────────────────────────────────────
 
@@ -741,6 +761,10 @@ export default function FoodPage() {
   const [addingList, setAddingList] = useState(false);
   const [clearConfirmOpen, setClearConfirmOpen] = useState(false);
   const [commonItemsSheetOpen, setCommonItemsSheetOpen] = useState(false);
+  const [dupDialog, setDupDialog] = useState<{
+    item: GroceryItem;
+    incomingQuantity?: string;
+  } | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const qtyRef = useRef<HTMLInputElement>(null);
 
@@ -1167,18 +1191,57 @@ export default function FoodPage() {
     },
   });
 
+  // Single duplicate-check gate that every add path routes through. Looks for an
+  // existing item on the active list whose name matches case-insensitively
+  // (trimmed) and that is NOT checked (in the cart) and not soft-deleted (the
+  // items query already excludes soft-deleted rows). If a duplicate is found we
+  // open the dialog offering to increase the quantity; otherwise we add normally.
+  const requestAddItem = useCallback(
+    ({ name, quantity }: { name: string; quantity?: string }) => {
+      const trimmedName = name.trim();
+      if (!trimmedName) return;
+      const items =
+        queryClient.getQueryData<GroceryData>([
+          'grocery-items',
+          resolvedActiveListId,
+        ])?.items ?? [];
+      const target = trimmedName.toLowerCase();
+      const duplicate = items.find(
+        (i) => !i.isChecked && i.name.trim().toLowerCase() === target,
+      );
+      if (duplicate) {
+        setDupDialog({ item: duplicate, incomingQuantity: quantity });
+        return;
+      }
+      addMutation.mutate({ name: trimmedName, quantity: quantity || undefined });
+    },
+    [queryClient, resolvedActiveListId, addMutation],
+  );
+
+  // Confirm handler for the duplicate dialog: bump the existing item's quantity
+  // via the edit mutation (no new row) and show a success toast.
+  const handleConfirmIncrease = useCallback(() => {
+    if (!dupDialog) return;
+    const { item, incomingQuantity } = dupDialog;
+    const newQuantity = computeIncreasedQuantity(item.quantity, incomingQuantity);
+    editMutation.mutate({ id: item.id, name: item.name, quantity: newQuantity });
+    toast.success(`Increased ${item.name} to ${newQuantity}`);
+    setDupDialog(null);
+  }, [dupDialog, editMutation]);
+
   const handleQuickAdd = useCallback(() => {
     const name = input.trim();
     if (!name) return;
     const quantity = qtyInput.trim();
     setInput('');
     setQtyInput('');
-    addMutation.mutate({ name, quantity: quantity || undefined });
+    requestAddItem({ name, quantity: quantity || undefined });
     inputRef.current?.focus();
-  }, [input, qtyInput, addMutation]);
+  }, [input, qtyInput, requestAddItem]);
 
   // Quick-add from a common-item chip. Respects the same grocery.add permission
-  // gate as the quick-add bar and guards against a not-yet-resolved list.
+  // gate as the quick-add bar and guards against a not-yet-resolved list, then
+  // routes through the same duplicate-check gate as the quick-add bar.
   const handleCommonItemAdd = useCallback(
     (name: string) => {
       if (!canAddItem) {
@@ -1191,9 +1254,9 @@ export default function FoodPage() {
         });
         return;
       }
-      addMutation.mutate({ name });
+      requestAddItem({ name });
     },
-    [canAddItem, onBlockedAddItem, resolvedActiveListId, addMutation],
+    [canAddItem, onBlockedAddItem, resolvedActiveListId, requestAddItem],
   );
 
   // ── Derived ───────────────────────────────────────────────────────────────
@@ -2433,6 +2496,38 @@ export default function FoodPage() {
               }}
             >
               Clear
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog
+        open={!!dupDialog}
+        onOpenChange={(open) => {
+          if (!open) setDupDialog(null);
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Already on your list</AlertDialogTitle>
+            <AlertDialogDescription>
+              &quot;{dupDialog?.item.name}&quot; is already on this list. Increase
+              the quantity instead?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleConfirmIncrease}
+              style={{
+                backgroundColor: COLOR,
+                borderBottom: `3px solid ${COLOR_DARK}`,
+                border: 'none',
+                color: '#fff',
+                fontWeight: 800,
+              }}
+            >
+              Increase quantity
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

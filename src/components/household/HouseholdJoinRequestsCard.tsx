@@ -88,7 +88,7 @@ export default function HouseholdJoinRequestsCard() {
           >
             <MemberAvatar
               name={req.name}
-              color={req.avatarColor ?? '#6B7280'}
+              avatarColor={req.avatarColor ?? '#6B7280'}
               size="sm"
             />
             <div style={{ flex: 1, minWidth: 0 }}>
@@ -96,7 +96,7 @@ export default function HouseholdJoinRequestsCard() {
                 {req.name}
               </p>
               <p style={{ fontWeight: 600, fontSize: 11, color: 'var(--roost-text-muted)', margin: 0 }}>
-                Requested {relativeTime(new Date(req.createdAt))}
+                Requested {relativeTime(req.createdAt)}
               </p>
             </div>
             <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>

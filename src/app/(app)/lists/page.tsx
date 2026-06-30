@@ -1307,7 +1307,7 @@ export default function FoodPage() {
       <div style={{ backgroundColor: '#F9FAFB', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 16px 12px' }}>
         <div>
           <h1 style={{ margin: 0, fontWeight: 900, fontSize: 26, color: 'var(--roost-text-primary)', letterSpacing: '-0.3px' }}>
-            Grocery
+            Lists
           </h1>
           <p style={{ margin: '2px 0 0', fontSize: 13, fontWeight: 600, color: 'var(--roost-text-muted)' }}>
             {unchecked.length} {unchecked.length === 1 ? 'item' : 'items'}

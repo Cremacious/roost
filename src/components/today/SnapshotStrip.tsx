@@ -156,7 +156,7 @@ export function SnapshotStrip({ data }: { data: SnapshotData }) {
         href="/lists"
         iconBg="#DBEAFE"
         icon={<ShoppingCart size={16} color="#3B82F6" strokeWidth={2.5} />}
-        label="Grocery list"
+        label="Lists"
         value={groceryValue}
         valueStyle={groceryValueStyle}
         sub={grocerySub}

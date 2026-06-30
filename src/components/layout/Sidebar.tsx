@@ -36,7 +36,7 @@ const NAV_GROUPS = [
   },
   {
     items: [
-      { href: '/lists',    label: 'Shopping', icon: ShoppingCart },
+      { href: '/lists',    label: 'Lists',    icon: ShoppingCart },
       { href: '/money',    label: 'Money',    icon: Wallet },
       { href: '/meals',    label: 'Meals',    icon: UtensilsCrossed },
       { href: '/chores',   label: 'Chores',   icon: CheckSquare },

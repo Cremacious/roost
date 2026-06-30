@@ -28,7 +28,7 @@ const TABS = [
 ]
 
 const MORE_ITEMS = [
-  { href: '/lists',      label: 'Shopping',  icon: ShoppingCart,  color: '#F59E0B' },
+  { href: '/lists',      label: 'Lists',     icon: ShoppingCart,  color: '#F59E0B' },
   { href: '/chores',     label: 'Chores',    icon: CheckSquare,   color: '#EF4444' },
   { href: '/calendar',   label: 'Calendar',  icon: Calendar,      color: '#3B82F6' },
   { href: '/tasks',      label: 'Tasks',     icon: CheckCircle2,  color: '#EC4899' },

@@ -589,13 +589,26 @@ export default function ChoresPage() {
     queryFn: async () => {
       const r = await fetch('/api/household/me')
       if (!r.ok) throw new Error('Failed')
-      return r.json() as Promise<{ household: { id: string; name: string }; role: string; members: Member[] }>
+      return r.json() as Promise<{ household: { id: string; name: string }; role: string }>
+    },
+    staleTime: 60_000,
+  })
+
+  // /api/household/me does not return the member list, so fetch members
+  // separately from /api/household/members. Distinct query key to avoid
+  // colliding with the ['household'] (/me shape) cache used elsewhere.
+  const { data: membersData } = useQuery({
+    queryKey: ['household-members'],
+    queryFn: async () => {
+      const r = await fetch('/api/household/members')
+      if (!r.ok) throw new Error('Failed to load members')
+      return r.json() as Promise<{ members: Member[] }>
     },
     staleTime: 60_000,
   })
 
   const isAdmin = householdData?.role === 'admin'
-  const members = householdData?.members ?? []
+  const members = membersData?.members ?? []
   const currentUserId = session?.user?.id ?? ''
 
   const { allowed: canAddChore, onBlocked: onBlockedAddChore } = usePermissionGate('chores.add')

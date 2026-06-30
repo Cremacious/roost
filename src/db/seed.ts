@@ -790,6 +790,21 @@ async function main() {
   const freeKidId = await ensureChildUser('Test Child', freeHouseId, '1234', '#EC4899')
   const premiumKidId = await ensureChildUser('Premium Kid', premiumHouseId, '5678', '#F97316')
 
+  // admin.premium belongs to two households. Both /api/household/me and
+  // /api/household/members resolve the "current" household as the MOST-RECENTLY-JOINED
+  // one (ORDER BY created_at DESC), not activeHouseholdId. Pin the Premium House
+  // membership as the newest so it is the default view (with all 5 members), and age
+  // the Second House membership so it still exists for the multi-household switcher
+  // without hijacking the default landing household.
+  await db
+    .update(householdMembers)
+    .set({ createdAt: days(-30) })
+    .where(and(eq(householdMembers.householdId, secondHouseId), eq(householdMembers.userId, premiumAdminId)))
+  await db
+    .update(householdMembers)
+    .set({ createdAt: NOW })
+    .where(and(eq(householdMembers.householdId, premiumHouseId), eq(householdMembers.userId, premiumAdminId)))
+
   // Pin each user's active household so the app opens on the right place.
   await db.update(users).set({ activeHouseholdId: freeHouseId }).where(eq(users.id, freeAdminId))
   await db.update(users).set({ activeHouseholdId: freeHouseId }).where(eq(users.id, freeMemberId))

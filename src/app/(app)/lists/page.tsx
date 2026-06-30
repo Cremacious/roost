@@ -78,6 +78,10 @@ interface GroceryItem {
   addedBy: string;
   addedByAvatar?: string | null;
   createdAt: string;
+  // Stable client-side identity for optimistic rows. Set on the optimistic
+  // insert and preserved when the real server id arrives, so the rendered row
+  // keeps the same React key and framer-motion never replays its enter/exit.
+  clientKey?: string;
 }
 
 interface ListSummary {
@@ -783,6 +787,26 @@ export default function FoodPage() {
     enabled: !!activeListId,
     staleTime: 10_000,
     refetchInterval: 30_000,
+    // Carry the optimistic clientKey forward onto the matching server row so a
+    // background refetch keeps the same React key and never replays the add
+    // animation on a row that is already on screen.
+    structuralSharing: (oldData, newData) => {
+      const next = newData as GroceryData | undefined;
+      const old = oldData as GroceryData | undefined;
+      if (!next || !old) return newData;
+      const keyById = new Map(
+        old.items
+          .filter((i) => i.clientKey)
+          .map((i) => [i.id, i.clientKey as string]),
+      );
+      if (keyById.size === 0) return newData;
+      return {
+        ...next,
+        items: next.items.map((i) =>
+          keyById.has(i.id) ? { ...i, clientKey: keyById.get(i.id) } : i,
+        ),
+      };
+    },
   });
 
   // ── Planner query ────────────────────────────────────────────────────────
@@ -835,6 +859,10 @@ export default function FoodPage() {
   });
 
   // ── Add item ─────────────────────────────────────────────────────────────
+  // Uses resolvedActiveListId (not the raw activeListId state) so a quick tap on
+  // a common-item chip during first load never no-ops or throws while the sync
+  // effect catches up. Optimistically inserts the row so the chip gives instant
+  // feedback instead of appearing to do nothing for a network round-trip.
   const addMutation = useMutation({
     mutationFn: async ({
       name,
@@ -843,8 +871,9 @@ export default function FoodPage() {
       name: string;
       quantity?: string;
     }) => {
-      if (!activeListId) throw new Error('No active list');
-      const res = await fetch(`/api/grocery/lists/${activeListId}/items`, {
+      const listId = resolvedActiveListId;
+      if (!listId) throw new Error('No active list');
+      const res = await fetch(`/api/grocery/lists/${listId}/items`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name, quantity: quantity || undefined }),
@@ -852,15 +881,72 @@ export default function FoodPage() {
       if (!res.ok) throw new Error('Failed to add item');
       return res.json() as Promise<GroceryItem>;
     },
-    onError: () => {
+    onMutate: async ({ name, quantity }) => {
+      const listId = resolvedActiveListId;
+      if (!listId) return { prev: undefined, listId: null, clientKey: null };
+      await queryClient.cancelQueries({ queryKey: ['grocery-items', listId] });
+      const prev = queryClient.getQueryData<GroceryData>([
+        'grocery-items',
+        listId,
+      ]);
+      // Only insert optimistically when the list is already in cache, otherwise
+      // we fall back to a refetch in onSettled.
+      const clientKey = prev ? `temp-${crypto.randomUUID()}` : null;
+      if (prev && clientKey) {
+        const optimistic: GroceryItem = {
+          id: clientKey,
+          clientKey,
+          name,
+          quantity: quantity?.trim() ? quantity.trim() : null,
+          isChecked: false,
+          checkedAt: null,
+          addedBy: '',
+          addedByAvatar: null,
+          createdAt: new Date().toISOString(),
+        };
+        queryClient.setQueryData<GroceryData>(['grocery-items', listId], {
+          ...prev,
+          items: [...prev.items, optimistic],
+        });
+      }
+      return { prev, listId, clientKey };
+    },
+    onSuccess: (created, _vars, ctx) => {
+      // Adopt the real server id on the existing optimistic row while keeping
+      // its clientKey, so the React key never changes and the row does not
+      // re-animate. No items refetch needed, which is what caused the row to
+      // flash out and back in.
+      if (!ctx?.listId || !ctx.clientKey || !created?.id) return;
+      const current = queryClient.getQueryData<GroceryData>([
+        'grocery-items',
+        ctx.listId,
+      ]);
+      if (!current) return;
+      queryClient.setQueryData<GroceryData>(['grocery-items', ctx.listId], {
+        ...current,
+        items: current.items.map((i) =>
+          i.clientKey === ctx.clientKey ? { ...i, id: created.id } : i,
+        ),
+      });
+    },
+    onError: (_err, _vars, ctx) => {
+      if (ctx?.listId && ctx.prev) {
+        queryClient.setQueryData(['grocery-items', ctx.listId], ctx.prev);
+      }
       toast.error('Could not add item', {
         description: 'Check your connection and try again.',
       });
     },
-    onSettled: () => {
-      queryClient.invalidateQueries({
-        queryKey: ['grocery-items', activeListId],
-      });
+    onSettled: (_data, _err, _vars, ctx) => {
+      // When we could not insert optimistically (list not yet cached), refetch
+      // so the new item still shows up. When we did insert optimistically, skip
+      // the items refetch: it would replace the clientKey-tagged row with a
+      // plain server row and replay the add animation.
+      if (ctx?.listId && !ctx.clientKey) {
+        queryClient.invalidateQueries({
+          queryKey: ['grocery-items', ctx.listId],
+        });
+      }
       queryClient.invalidateQueries({ queryKey: ['grocery-lists'] });
     },
   });
@@ -1090,6 +1176,25 @@ export default function FoodPage() {
     addMutation.mutate({ name, quantity: quantity || undefined });
     inputRef.current?.focus();
   }, [input, qtyInput, addMutation]);
+
+  // Quick-add from a common-item chip. Respects the same grocery.add permission
+  // gate as the quick-add bar and guards against a not-yet-resolved list.
+  const handleCommonItemAdd = useCallback(
+    (name: string) => {
+      if (!canAddItem) {
+        onBlockedAddItem();
+        return;
+      }
+      if (!resolvedActiveListId) {
+        toast.error('No list selected', {
+          description: 'Create or pick a list first, then try again.',
+        });
+        return;
+      }
+      addMutation.mutate({ name });
+    },
+    [canAddItem, onBlockedAddItem, resolvedActiveListId, addMutation],
+  );
 
   // ── Derived ───────────────────────────────────────────────────────────────
   const unchecked = data?.items.filter((i) => !i.isChecked) ?? [];
@@ -1782,7 +1887,7 @@ export default function FoodPage() {
                     <AnimatePresence mode="popLayout">
                       {group.items.map((item, i) => (
                         <ItemRow
-                          key={item.id}
+                          key={item.clientKey ?? item.id}
                           item={item}
                           index={i}
                           onCheck={(id, val) =>
@@ -1802,7 +1907,7 @@ export default function FoodPage() {
               <AnimatePresence mode="popLayout">
                 {displayUnchecked.map((item, i) => (
                   <ItemRow
-                    key={item.id}
+                    key={item.clientKey ?? item.id}
                     item={item}
                     index={i}
                     onCheck={(id, val) =>
@@ -1974,7 +2079,7 @@ export default function FoodPage() {
                 <button
                   key={item.id}
                   type="button"
-                  onClick={() => addMutation.mutate({ name: item.name })}
+                  onClick={() => handleCommonItemAdd(item.name)}
                   style={{
                     display: 'flex',
                     alignItems: 'center',
@@ -2277,7 +2382,7 @@ export default function FoodPage() {
                 <button
                   key={item.id}
                   type="button"
-                  onClick={() => addMutation.mutate({ name: item.name })}
+                  onClick={() => handleCommonItemAdd(item.name)}
                   style={{
                     display: 'flex',
                     alignItems: 'center',

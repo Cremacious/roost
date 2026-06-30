@@ -1584,6 +1584,12 @@ export default function MoneyPage() {
 
   const { data: sessionData } = useSession()
 
+  const { data: dashboardData } = useQuery({
+    queryKey: ['money-dashboard'],
+    queryFn: () => fetch('/api/money/dashboard').then(r => r.json()),
+    staleTime: 10_000,
+  })
+
   if (role === 'child') {
     return (
       <div style={{ maxWidth: 900, margin: '0 auto', padding: '48px 24px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '60vh', textAlign: 'center' }}>
@@ -1626,11 +1632,6 @@ export default function MoneyPage() {
 
   const currentUserId = sessionData?.user?.id ?? ''
 
-  const { data: dashboardData } = useQuery({
-    queryKey: ['money-dashboard'],
-    queryFn: () => fetch('/api/money/dashboard').then(r => r.json()),
-    staleTime: 10_000,
-  })
   const myDebtsRaw: DebtItem[] = dashboardData?.myDebts ?? []
 
   const pendingInboundClaims = myDebtsRaw.filter(

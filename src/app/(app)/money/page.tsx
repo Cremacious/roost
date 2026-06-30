@@ -201,7 +201,7 @@ function DashboardTab({ currentUserId, members, isPremium, onOpenExpense, onOpen
       const res = await fetch('/api/expenses/settle-all/claim', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ creditorId: quickSettleDebt.to }),
+        body: JSON.stringify({ creditorId: quickSettleDebt.to, splitIds: quickSettleDebt.splitIds }),
       })
       if (!res.ok) throw new Error('Failed')
       toast.success('Claim sent', { description: `They will confirm when received.` })
@@ -443,18 +443,22 @@ function DashboardTab({ currentUserId, members, isPremium, onOpenExpense, onOpen
                 <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: 'var(--roost-text-muted)', textAlign: 'center', padding: '8px 0' }}>All settled up.</p>
               ) : myDebts.slice(0, 3).map((debt: DebtItem, i: number) => {
                 const iOwe = debt.iOwe ?? debt.from === currentUserId
+                const iClaimed = iOwe && !!debt.pendingClaim?.settledByPayer
                 const other = members.find(m => m.id === (iOwe ? debt.to : debt.from))
                 const otherName = other?.name ?? 'Unknown'
                 const initial = otherName.charAt(0).toUpperCase()
                 const avatarColors = ['#3B82F6', '#EC4899', '#F59E0B', '#A855F7', '#06B6D4']
                 const avatarBg = avatarColors[i % avatarColors.length]
+                // A claimed debt routes to the full settle sheet (waiting/cancel view), never
+                // the quick "I paid" dialog, so the debtor cannot re-send the same claim.
+                const handleOpen = () => iClaimed ? onOpenSettle(debt) : iOwe ? setQuickSettleDebt(debt) : onOpenSettle(debt)
                 return (
                   <div
                     key={i}
-                    onClick={() => iOwe ? setQuickSettleDebt(debt) : onOpenSettle(debt)}
+                    onClick={handleOpen}
                     style={{
                       background: 'var(--roost-surface)', border: '1.5px solid var(--roost-border)',
-                      borderBottom: `4px solid ${iOwe ? '#EF4444' : COLOR}`,
+                      borderBottom: `4px solid ${iClaimed ? '#F59E0B' : iOwe ? '#EF4444' : COLOR}`,
                       borderRadius: 14, padding: '14px 16px', cursor: 'pointer', marginBottom: i < Math.min(myDebts.length, 3) - 1 ? 10 : 0,
                     }}
                   >
@@ -465,7 +469,7 @@ function DashboardTab({ currentUserId, members, isPremium, onOpenExpense, onOpen
                         </div>
                         <div>
                           <div style={{ fontSize: 13, fontWeight: 800, color: 'var(--roost-text-primary)' }}>{otherName}</div>
-                          <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--roost-text-muted)' }}>{iOwe ? 'You owe' : 'Owes you'}</div>
+                          <div style={{ fontSize: 11, fontWeight: 700, color: iClaimed ? '#D97706' : 'var(--roost-text-muted)' }}>{iClaimed ? 'Awaiting confirmation' : iOwe ? 'You owe' : 'Owes you'}</div>
                         </div>
                       </div>
                       <div style={{ fontSize: 18, fontWeight: 900, letterSpacing: -0.5, color: iOwe ? '#EF4444' : COLOR }}>
@@ -477,14 +481,16 @@ function DashboardTab({ currentUserId, members, isPremium, onOpenExpense, onOpen
                     {(iOwe || canPush) && (
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end' }}>
                         <button
-                          onClick={(e) => { e.stopPropagation(); iOwe ? setQuickSettleDebt(debt) : onOpenSettle(debt) }}
+                          onClick={(e) => { e.stopPropagation(); handleOpen() }}
                           style={{
                             padding: '5px 12px', borderRadius: 8, border: '1.5px solid var(--roost-border)',
                             borderBottom: '2px solid var(--roost-border-bottom)', background: 'var(--roost-surface)',
-                            fontFamily: 'inherit', fontSize: 11, fontWeight: 800, color: 'var(--roost-text-secondary)', cursor: 'pointer',
+                            fontFamily: 'inherit', fontSize: 11, fontWeight: 800, color: iClaimed ? '#D97706' : 'var(--roost-text-secondary)', cursor: 'pointer',
+                            display: 'flex', alignItems: 'center', gap: 4,
                           }}
                         >
-                          {iOwe ? 'Settle up' : 'Remind'}
+                          {iClaimed && <Clock size={12} />}
+                          {iClaimed ? 'Awaiting confirmation' : iOwe ? 'Settle up' : 'Remind'}
                         </button>
                       </div>
                     )}

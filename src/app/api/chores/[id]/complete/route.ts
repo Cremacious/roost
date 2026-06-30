@@ -3,6 +3,7 @@ import { getSession, getUserHousehold } from '@/lib/auth/helpers'
 import { db } from '@/lib/db'
 import { chores, choreCompletions } from '@/db/schema'
 import { eq, and, isNull, gte, lt } from 'drizzle-orm'
+import { advanceNextDueAt } from '../../route'
 
 function startOfToday() {
   const d = new Date()
@@ -14,39 +15,6 @@ function startOfTomorrow() {
   const d = startOfToday()
   d.setDate(d.getDate() + 1)
   return d
-}
-
-function calcNextDueAt(frequency: string, customDays: string | null, from = new Date()): Date {
-  const next = new Date(from)
-  switch (frequency) {
-    case 'daily':
-      next.setDate(next.getDate() + 1)
-      break
-    case 'weekly':
-      next.setDate(next.getDate() + 7)
-      break
-    case 'biweekly':
-      next.setDate(next.getDate() + 14)
-      break
-    case 'monthly':
-      next.setMonth(next.getMonth() + 1)
-      break
-    case 'custom': {
-      if (customDays) {
-        const days = customDays.split(' ').map(Number).sort((a, b) => a - b)
-        const todayDow = next.getDay()
-        const nextDay = days.find(d => d > todayDow) ?? days[0]
-        const daysUntil = nextDay > todayDow ? nextDay - todayDow : 7 - todayDow + nextDay
-        next.setDate(next.getDate() + daysUntil)
-      } else {
-        next.setDate(next.getDate() + 7)
-      }
-      break
-    }
-    default:
-      next.setDate(next.getDate() + 7)
-  }
-  return next
 }
 
 function getWeekStart(): string {
@@ -89,7 +57,10 @@ export async function POST(
   }
 
   const now = new Date()
-  const nextDueAt = calcNextDueAt(chore.frequency, chore.customDays ?? null, now)
+  // Advance from the chore's existing due date so the chosen weekday /
+  // day-of-month is preserved across completions.
+  const lastDue = chore.nextDueAt ?? now
+  const nextDueAt = advanceNextDueAt(chore.frequency, chore.customDays ?? null, lastDue, now)
   const weekStart = getWeekStart()
 
   await db.insert(choreCompletions).values({

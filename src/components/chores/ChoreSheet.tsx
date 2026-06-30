@@ -17,6 +17,7 @@ export interface ChoreData {
   description: string | null
   frequency: string
   customDays: string | null
+  nextDueAt?: string | null
   assignedTo: string | null
 }
 
@@ -42,6 +43,29 @@ const FREQUENCIES = [
   { value: 'monthly',  label: 'Monthly' },
 ]
 
+const WEEKDAYS = [
+  { value: 0, short: 'S', name: 'Sunday' },
+  { value: 1, short: 'M', name: 'Monday' },
+  { value: 2, short: 'T', name: 'Tuesday' },
+  { value: 3, short: 'W', name: 'Wednesday' },
+  { value: 4, short: 'T', name: 'Thursday' },
+  { value: 5, short: 'F', name: 'Friday' },
+  { value: 6, short: 'S', name: 'Saturday' },
+]
+
+function toDateInput(d: Date): string {
+  const y = d.getFullYear()
+  const m = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${y}-${m}-${day}`
+}
+
+function ordinal(n: number): string {
+  const s = ['th', 'st', 'nd', 'rd']
+  const v = n % 100
+  return n + (s[(v - 20) % 10] || s[v] || s[0])
+}
+
 export default function ChoreSheet({ open, onClose, chore, members, isAdmin }: ChoreSheetProps) {
   const queryClient = useQueryClient()
   const isEditing = !!chore?.id
@@ -50,6 +74,9 @@ export default function ChoreSheet({ open, onClose, chore, members, isAdmin }: C
   const [description, setDescription] = useState('')
   const [frequency, setFrequency] = useState('weekly')
   const [assignedTo, setAssignedTo] = useState('')
+  const [dayOfWeek, setDayOfWeek] = useState(() => new Date().getDay())
+  const [dayOfMonth, setDayOfMonth] = useState(() => new Date().getDate())
+  const [startDate, setStartDate] = useState(() => toDateInput(new Date()))
 
   // Re-seed form state when the sheet opens or the chore being edited changes.
   const [prevOpen, setPrevOpen] = useState(false)
@@ -58,19 +85,34 @@ export default function ChoreSheet({ open, onClose, chore, members, isAdmin }: C
     setPrevOpen(open)
     setPrevChore(chore)
     if (open) {
+      const today = new Date()
+      const freq = chore?.frequency ?? 'weekly'
+      const due = chore?.nextDueAt ? new Date(chore.nextDueAt) : null
+      const cd = chore?.customDays ?? null
+      const hasDay = cd != null && cd !== ''
+
       setTitle(chore?.title ?? '')
       setDescription(chore?.description ?? '')
-      setFrequency(chore?.frequency ?? 'weekly')
+      setFrequency(freq)
       setAssignedTo(chore?.assignedTo ?? '')
+      setDayOfWeek(hasDay && (freq === 'weekly' || freq === 'biweekly') ? Number(cd) : (due ? due.getDay() : today.getDay()))
+      setDayOfMonth(hasDay && freq === 'monthly' ? Number(cd) : (due ? due.getDate() : today.getDate()))
+      setStartDate(due ? toDateInput(due) : toDateInput(today))
     }
   }
 
   const saveMutation = useMutation({
     mutationFn: async () => {
+      let customDays: string | null = null
+      if (frequency === 'weekly' || frequency === 'biweekly') customDays = String(dayOfWeek)
+      else if (frequency === 'monthly') customDays = String(dayOfMonth)
+
       const body = {
         title: title.trim(),
         description: description.trim() || null,
         frequency,
+        customDays,
+        startDate,
         assignedTo: assignedTo || null,
       }
       const url = isEditing ? `/api/chores/${chore!.id}` : '/api/chores'
@@ -205,6 +247,80 @@ export default function ChoreSheet({ open, onClose, chore, members, isAdmin }: C
                 )
               })}
             </div>
+          </div>
+
+          {/* Day-of-week picker (weekly / biweekly) */}
+          {(frequency === 'weekly' || frequency === 'biweekly') && (
+            <div>
+              <label style={labelStyle}>Repeats on</label>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 6 }}>
+                {WEEKDAYS.map(d => {
+                  const active = dayOfWeek === d.value
+                  return (
+                    <button
+                      key={d.value}
+                      type="button"
+                      aria-label={d.name}
+                      aria-pressed={active}
+                      onClick={() => setDayOfWeek(d.value)}
+                      style={{
+                        height: 44,
+                        borderRadius: 12,
+                        border: `1.5px solid ${active ? COLOR : 'var(--roost-border)'}`,
+                        borderBottom: `3px solid ${active ? COLOR_DARK : 'var(--roost-border-bottom)'}`,
+                        backgroundColor: active ? COLOR : 'var(--roost-surface)',
+                        color: active ? '#fff' : 'var(--roost-text-secondary)',
+                        fontWeight: 800,
+                        fontSize: 15,
+                        cursor: 'pointer',
+                        fontFamily: 'inherit',
+                      }}
+                    >
+                      {d.short}
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Day-of-month picker (monthly) */}
+          {frequency === 'monthly' && (
+            <div>
+              <label style={labelStyle}>Day of the month</label>
+              <select
+                style={{ ...inputStyle, cursor: 'pointer' }}
+                value={dayOfMonth}
+                onChange={e => setDayOfMonth(Number(e.target.value))}
+                onFocus={e => { e.currentTarget.style.borderColor = COLOR; e.currentTarget.style.borderBottomColor = COLOR_DARK }}
+                onBlur={e => { e.currentTarget.style.borderColor = 'var(--roost-border)'; e.currentTarget.style.borderBottomColor = 'var(--roost-border-bottom)' }}
+              >
+                {Array.from({ length: 31 }, (_, i) => i + 1).map(n => (
+                  <option key={n} value={n}>
+                    {ordinal(n)}
+                  </option>
+                ))}
+              </select>
+              <p style={{ fontSize: 11, fontWeight: 600, color: 'var(--roost-text-muted)', marginTop: 6 }}>
+                In shorter months it runs on the last day instead.
+              </p>
+            </div>
+          )}
+
+          {/* Starts on */}
+          <div>
+            <label style={labelStyle}>Starts on</label>
+            <input
+              type="date"
+              style={inputStyle}
+              value={startDate}
+              onChange={e => setStartDate(e.target.value)}
+              onFocus={e => { e.currentTarget.style.borderColor = COLOR; e.currentTarget.style.borderBottomColor = COLOR_DARK }}
+              onBlur={e => { e.currentTarget.style.borderColor = 'var(--roost-border)'; e.currentTarget.style.borderBottomColor = 'var(--roost-border-bottom)' }}
+            />
+            <p style={{ fontSize: 11, fontWeight: 600, color: 'var(--roost-text-muted)', marginTop: 6 }}>
+              The first time this chore is due, on or after this date.
+            </p>
           </div>
 
           {/* Assign to */}

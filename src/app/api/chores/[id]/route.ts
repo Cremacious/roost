@@ -3,7 +3,7 @@ import { getSession, getUserHousehold, checkMemberPermission } from '@/lib/auth/
 import { db } from '@/lib/db'
 import { chores } from '@/db/schema'
 import { eq, and, isNull } from 'drizzle-orm'
-import { calcNextDueAt } from '../route'
+import { calcNextDueAt, parseDateInput } from '../route'
 
 export async function PATCH(
   request: Request,
@@ -40,14 +40,17 @@ export async function PATCH(
   if (body.title !== undefined) updates.title = body.title.trim()
   if (body.description !== undefined) updates.description = body.description?.trim() || null
   if (body.assignedTo !== undefined) updates.assignedTo = body.assignedTo || null
-  if (body.frequency !== undefined) {
-    updates.frequency = body.frequency
-    updates.nextDueAt = calcNextDueAt(
-      body.frequency,
-      body.customDays !== undefined ? body.customDays : (chore.customDays ?? null)
-    )
-  }
+  if (body.frequency !== undefined) updates.frequency = body.frequency
   if (body.customDays !== undefined) updates.customDays = body.customDays || null
+
+  // Recompute the schedule when the frequency, chosen day, or start date changes,
+  // anchoring the first occurrence to the chosen day on/after the start date.
+  if (body.frequency !== undefined || body.customDays !== undefined || body.startDate !== undefined) {
+    const freq = body.frequency !== undefined ? body.frequency : chore.frequency
+    const customDays = body.customDays !== undefined ? (body.customDays || null) : (chore.customDays ?? null)
+    const from = body.startDate ? parseDateInput(body.startDate) : new Date()
+    updates.nextDueAt = calcNextDueAt(freq, customDays, from)
+  }
 
   await db.update(chores).set(updates).where(eq(chores.id, choreId))
 

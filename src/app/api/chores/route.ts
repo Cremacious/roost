@@ -16,26 +16,103 @@ function startOfTomorrow() {
   return d
 }
 
+// Largest valid day for a given month (handles 28/29/30/31).
+function daysInMonth(year: number, monthIndex: number): number {
+  return new Date(year, monthIndex + 1, 0).getDate()
+}
+
+// Parse a "YYYY-MM-DD" date input into local noon of that calendar day.
+// Noon keeps the stored day stable when the timestamp is read back in another
+// timezone, so the chosen weekday / day-of-month renders correctly client-side.
+export function parseDateInput(value: string): Date {
+  const [y, m, d] = value.split('-').map(Number)
+  return new Date(y, (m || 1) - 1, d || 1, 12, 0, 0, 0)
+}
+
+// First occurrence of the selected day on or after `from`.
+//  - weekly / biweekly: customDays holds a single weekday (0-6).
+//  - monthly: customDays holds a single day-of-month (1-31), clamped for short months.
+//  - daily: every day qualifies, so the first occurrence is the start date itself.
+//  - custom (legacy): customDays holds a space-separated weekday list.
 export function calcNextDueAt(frequency: string, customDays: string | null, from = new Date()): Date {
   const next = new Date(from)
+  next.setHours(12, 0, 0, 0)
+  const hasDay = customDays != null && customDays !== ''
+
   switch (frequency) {
-    case 'daily':    next.setDate(next.getDate() + 1); break
-    case 'weekly':   next.setDate(next.getDate() + 7); break
-    case 'biweekly': next.setDate(next.getDate() + 14); break
-    case 'monthly':  next.setMonth(next.getMonth() + 1); break
+    case 'daily':
+      break
+    case 'weekly':
+    case 'biweekly': {
+      const target = hasDay ? Number(customDays) : next.getDay()
+      const daysUntil = (((target - next.getDay()) % 7) + 7) % 7
+      next.setDate(next.getDate() + daysUntil)
+      break
+    }
+    case 'monthly': {
+      const dom = hasDay ? Number(customDays) : next.getDate()
+      const thisMonth = new Date(next)
+      thisMonth.setDate(daysInMonth(thisMonth.getFullYear(), thisMonth.getMonth()) >= dom ? dom : daysInMonth(thisMonth.getFullYear(), thisMonth.getMonth()))
+      if (thisMonth >= next) return thisMonth
+      const nextMonth = new Date(next.getFullYear(), next.getMonth() + 1, 1, 12, 0, 0, 0)
+      nextMonth.setDate(Math.min(dom, daysInMonth(nextMonth.getFullYear(), nextMonth.getMonth())))
+      return nextMonth
+    }
     case 'custom': {
       if (customDays) {
         const days = customDays.split(' ').map(Number).sort((a, b) => a - b)
         const todayDow = next.getDay()
-        const nextDay = days.find(d => d > todayDow) ?? days[0]
-        const daysUntil = nextDay > todayDow ? nextDay - todayDow : 7 - todayDow + nextDay
+        const nextDay = days.find(d => d >= todayDow) ?? days[0]
+        const daysUntil = nextDay >= todayDow ? nextDay - todayDow : 7 - todayDow + nextDay
         next.setDate(next.getDate() + daysUntil)
       } else {
         next.setDate(next.getDate() + 7)
       }
       break
     }
-    default: next.setDate(next.getDate() + 7)
+    default: {
+      const target = hasDay ? Number(customDays) : next.getDay()
+      const daysUntil = (((target - next.getDay()) % 7) + 7) % 7
+      next.setDate(next.getDate() + daysUntil)
+    }
+  }
+  return next
+}
+
+// Advance the schedule one period past the LAST due date, preserving the chosen
+// weekday / day-of-month. Used when a recurring chore is completed. If the chore
+// was overdue, keep advancing until the next due date is in the future.
+export function advanceNextDueAt(
+  frequency: string,
+  customDays: string | null,
+  lastDue: Date,
+  now = new Date(),
+): Date {
+  const hasDay = customDays != null && customDays !== ''
+
+  const advanceOne = (d: Date): Date => {
+    const r = new Date(d)
+    switch (frequency) {
+      case 'daily':    r.setDate(r.getDate() + 1); break
+      case 'weekly':   r.setDate(r.getDate() + 7); break
+      case 'biweekly': r.setDate(r.getDate() + 14); break
+      case 'monthly': {
+        const dom = hasDay ? Number(customDays) : r.getDate()
+        const m = new Date(r.getFullYear(), r.getMonth() + 1, 1, 12, 0, 0, 0)
+        m.setDate(Math.min(dom, daysInMonth(m.getFullYear(), m.getMonth())))
+        return m
+      }
+      case 'custom': return calcNextDueAt('custom', customDays, r)
+      default: r.setDate(r.getDate() + 7)
+    }
+    return r
+  }
+
+  let next = advanceOne(lastDue)
+  let guard = 0
+  while (next <= now && guard < 600) {
+    next = advanceOne(next)
+    guard++
   }
   return next
 }
@@ -139,8 +216,9 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Title required' }, { status: 400 })
   }
 
-  const { title, description, assignedTo, frequency = 'weekly', customDays } = body
-  const nextDueAt = calcNextDueAt(frequency, customDays ?? null)
+  const { title, description, assignedTo, frequency = 'weekly', customDays, startDate } = body
+  const from = startDate ? parseDateInput(startDate) : new Date()
+  const nextDueAt = calcNextDueAt(frequency, customDays ?? null, from)
 
   const [chore] = await db
     .insert(chores)

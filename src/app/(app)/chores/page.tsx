@@ -60,15 +60,21 @@ function tomorrowStart() {
   return d
 }
 
+function ordinalLabel(n: number): string {
+  const s = ['th', 'st', 'nd', 'rd']
+  const v = n % 100
+  return n + (s[(v - 20) % 10] || s[v] || s[0])
+}
+
 function freqLabel(freq: string, customDays: string | null): string {
+  const names = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+  const hasDay = customDays != null && customDays !== ''
   if (freq === 'daily') return 'Daily'
-  if (freq === 'weekly') return 'Weekly'
-  if (freq === 'biweekly') return '2 weeks'
-  if (freq === 'monthly') return 'Monthly'
+  if (freq === 'weekly') return hasDay ? `Weekly on ${names[Number(customDays)]}` : 'Weekly'
+  if (freq === 'biweekly') return hasDay ? `2 weeks on ${names[Number(customDays)]}` : '2 weeks'
+  if (freq === 'monthly') return hasDay ? `Monthly on the ${ordinalLabel(Number(customDays))}` : 'Monthly'
   if (freq === 'custom' && customDays) {
-    const days = customDays.split(' ').map(Number)
-    const names = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
-    return days.map(d => names[d]).join(', ')
+    return customDays.split(' ').map(Number).map(d => names[d]).join(', ')
   }
   return freq
 }
@@ -777,6 +783,7 @@ export default function ChoresPage() {
       description: chore.description,
       frequency: chore.frequency,
       customDays: chore.customDays,
+      nextDueAt: chore.nextDueAt,
       assignedTo: chore.assignedTo,
     })
     setSheetOpen(true)

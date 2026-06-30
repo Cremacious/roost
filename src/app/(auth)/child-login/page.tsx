@@ -149,9 +149,9 @@ function Step1({
           gap: 8,
           width: '100%',
           height: 56,
-          backgroundColor: '#EF4444',
+          backgroundColor: '#B91C1C',
           border: 'none',
-          borderBottom: '4px solid #C93B3B',
+          borderBottom: '4px solid #991B1B',
           borderRadius: 14,
           fontSize: 15,
           fontWeight: 800,
@@ -401,7 +401,7 @@ function Step3({
               width: 18,
               height: 18,
               borderRadius: '50%',
-              backgroundColor: i < pin.length ? '#EF4444' : '#F5C5C5',
+              backgroundColor: i < pin.length ? '#B91C1C' : '#F5C5C5',
               transition: 'background-color 0.1s',
             }}
           />

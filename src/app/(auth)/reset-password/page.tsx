@@ -116,7 +116,7 @@ function ResetPasswordForm() {
           <p style={{ color: '#EF4444', fontSize: 13, fontWeight: 700 }}>{error}</p>
         )}
 
-        <Button type="submit" loading={loading} color="#EF4444" darkColor="#C93B3B" size="lg">
+        <Button type="submit" loading={loading} color="#B91C1C" darkColor="#991B1B" size="lg">
           Update password
         </Button>
       </form>

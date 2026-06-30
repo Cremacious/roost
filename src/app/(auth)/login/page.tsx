@@ -83,7 +83,7 @@ function LoginForm() {
         className="hidden md:flex"
         style={{
           width: '40%',
-          backgroundColor: '#EF4444',
+          backgroundColor: '#B91C1C',
           flexDirection: 'column',
           justifyContent: 'center',
           alignItems: 'center',
@@ -245,7 +245,7 @@ function LoginForm() {
               <p style={{ color: '#EF4444', fontSize: 13, fontWeight: 700 }}>{error}</p>
             )}
 
-            <Button type="submit" loading={loading} color="#EF4444" darkColor="#C93B3B" size="lg">
+            <Button type="submit" loading={loading} color="#B91C1C" darkColor="#991B1B" size="lg">
               Sign in
             </Button>
 

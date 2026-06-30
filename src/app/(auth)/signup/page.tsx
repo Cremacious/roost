@@ -205,7 +205,7 @@ export default function SignupPage() {
         className="hidden md:flex"
         style={{
           width: '40%',
-          backgroundColor: '#EF4444',
+          backgroundColor: '#B91C1C',
           flexDirection: 'column',
           justifyContent: 'center',
           alignItems: 'center',
@@ -589,8 +589,8 @@ export default function SignupPage() {
             <Button
               type="submit"
               loading={loading}
-              color="#EF4444"
-              darkColor="#C93B3B"
+              color="#B91C1C"
+              darkColor="#991B1B"
               size="lg"
             >
               Create account

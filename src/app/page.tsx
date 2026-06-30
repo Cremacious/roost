@@ -109,7 +109,7 @@ export default async function HomePage() {
 
         /* ── Hero ──────────────────────────────────────────────── */
         .hero {
-          background: var(--red);
+          background: var(--red-deeper);
           min-height: 82vh;
           display: flex;
           flex-direction: column;
@@ -681,7 +681,7 @@ export default async function HomePage() {
 
         /* ── Bottom CTA ────────────────────────────────────────── */
         .bottom-cta {
-          background: var(--red);
+          background: var(--red-deeper);
           padding: 80px 24px;
           text-align: center;
           position: relative;

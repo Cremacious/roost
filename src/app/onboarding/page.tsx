@@ -262,9 +262,9 @@ export default function OnboardingPage() {
         style={{
           width: '100%',
           maxWidth: 420,
-          backgroundColor: '#EF4444',
+          backgroundColor: '#B91C1C',
           borderRadius: 18,
-          borderBottom: '5px solid #C93B3B',
+          borderBottom: '5px solid #991B1B',
           overflow: 'hidden',
         }}
       >

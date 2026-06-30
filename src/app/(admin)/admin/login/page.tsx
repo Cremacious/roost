@@ -2,11 +2,13 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { Eye, EyeOff } from 'lucide-react'
 
 export default function AdminLoginPage() {
   const router = useRouter()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
 
@@ -91,26 +93,52 @@ export default function AdminLoginPage() {
             <label style={{ display: 'block', fontSize: 11, fontWeight: 700, letterSpacing: '0.07em', color: '#94A3B8', marginBottom: 6, textTransform: 'uppercase' }}>
               Password
             </label>
-            <input
-              type="password"
-              value={password}
-              onChange={e => setPassword(e.target.value)}
-              required
-              autoComplete="current-password"
-              style={{
-                width: '100%',
-                padding: '10px 12px',
-                backgroundColor: '#0F172A',
-                border: '1.5px solid #334155',
-                borderRadius: 10,
-                color: '#F1F5F9',
-                fontSize: 14,
-                fontWeight: 600,
-                fontFamily: 'inherit',
-                outline: 'none',
-                boxSizing: 'border-box',
-              }}
-            />
+            <div style={{ position: 'relative' }}>
+              <input
+                type={showPassword ? 'text' : 'password'}
+                value={password}
+                onChange={e => setPassword(e.target.value)}
+                required
+                autoComplete="current-password"
+                style={{
+                  width: '100%',
+                  padding: '10px 12px',
+                  paddingRight: 44,
+                  backgroundColor: '#0F172A',
+                  border: '1.5px solid #334155',
+                  borderRadius: 10,
+                  color: '#F1F5F9',
+                  fontSize: 14,
+                  fontWeight: 600,
+                  fontFamily: 'inherit',
+                  outline: 'none',
+                  boxSizing: 'border-box',
+                }}
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(v => !v)}
+                tabIndex={-1}
+                aria-label={showPassword ? 'Hide password' : 'Show password'}
+                style={{
+                  position: 'absolute',
+                  right: 6,
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  width: 32,
+                  height: 32,
+                  background: 'none',
+                  border: 'none',
+                  cursor: 'pointer',
+                  color: '#94A3B8',
+                }}
+              >
+                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+              </button>
+            </div>
           </div>
 
           {error && (

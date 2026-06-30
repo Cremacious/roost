@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { resetPassword } from '@/lib/auth/client'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
+import { Eye, EyeOff } from 'lucide-react'
 import RoostLogo from '@/components/shared/RoostLogo'
 
 function ResetPasswordForm() {
@@ -15,6 +16,8 @@ function ResetPasswordForm() {
 
   const [password, setPassword] = useState('')
   const [confirm, setConfirm] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
+  const [showConfirm, setShowConfirm] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [done, setDone] = useState(false)
@@ -87,29 +90,79 @@ function ResetPasswordForm() {
           <label style={{ display: 'block', fontSize: 11, fontWeight: 800, letterSpacing: '0.07em', color: '#7A3F3F', marginBottom: 6 }}>
             NEW PASSWORD
           </label>
-          <Input
-            type="password"
-            value={password}
-            onChange={e => setPassword(e.target.value)}
-            placeholder="At least 8 characters"
-            required
-            autoComplete="new-password"
-            style={{ border: '1.5px solid #F5C5C5', borderBottom: '3px solid #DBADB0' }}
-          />
+          <div style={{ position: 'relative' }}>
+            <Input
+              type={showPassword ? 'text' : 'password'}
+              value={password}
+              onChange={e => setPassword(e.target.value)}
+              placeholder="At least 8 characters"
+              required
+              autoComplete="new-password"
+              style={{ border: '1.5px solid #F5C5C5', borderBottom: '3px solid #DBADB0', paddingRight: 44 }}
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword(v => !v)}
+              tabIndex={-1}
+              aria-label={showPassword ? 'Hide password' : 'Show password'}
+              style={{
+                position: 'absolute',
+                right: 6,
+                top: '50%',
+                transform: 'translateY(-50%)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                width: 32,
+                height: 32,
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer',
+                color: '#9B6060',
+              }}
+            >
+              {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+            </button>
+          </div>
         </div>
         <div>
           <label style={{ display: 'block', fontSize: 11, fontWeight: 800, letterSpacing: '0.07em', color: '#7A3F3F', marginBottom: 6 }}>
             CONFIRM PASSWORD
           </label>
-          <Input
-            type="password"
-            value={confirm}
-            onChange={e => setConfirm(e.target.value)}
-            placeholder="Same password again"
-            required
-            autoComplete="new-password"
-            style={{ border: '1.5px solid #F5C5C5', borderBottom: '3px solid #DBADB0' }}
-          />
+          <div style={{ position: 'relative' }}>
+            <Input
+              type={showConfirm ? 'text' : 'password'}
+              value={confirm}
+              onChange={e => setConfirm(e.target.value)}
+              placeholder="Same password again"
+              required
+              autoComplete="new-password"
+              style={{ border: '1.5px solid #F5C5C5', borderBottom: '3px solid #DBADB0', paddingRight: 44 }}
+            />
+            <button
+              type="button"
+              onClick={() => setShowConfirm(v => !v)}
+              tabIndex={-1}
+              aria-label={showConfirm ? 'Hide password' : 'Show password'}
+              style={{
+                position: 'absolute',
+                right: 6,
+                top: '50%',
+                transform: 'translateY(-50%)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                width: 32,
+                height: 32,
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer',
+                color: '#9B6060',
+              }}
+            >
+              {showConfirm ? <EyeOff size={18} /> : <Eye size={18} />}
+            </button>
+          </div>
         </div>
 
         {error && (

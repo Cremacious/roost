@@ -17,6 +17,8 @@ import {
   CalendarDays,
   UtensilsCrossed,
   Bell,
+  Eye,
+  EyeOff,
 } from 'lucide-react';
 import RoostLogo from '@/components/shared/RoostLogo';
 
@@ -144,6 +146,8 @@ export default function SignupPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirm, setConfirm] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [oauthLoading, setOauthLoading] = useState<'google' | 'apple' | null>(
@@ -523,18 +527,44 @@ export default function SignupPage() {
               >
                 PASSWORD
               </label>
-              <Input
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="Min 8 chars, uppercase, number"
-                required
-                autoComplete="new-password"
-                style={{
-                  border: '1.5px solid #F5C5C5',
-                  borderBottom: '3px solid #DBADB0',
-                }}
-              />
+              <div style={{ position: 'relative' }}>
+                <Input
+                  type={showPassword ? 'text' : 'password'}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Min 8 chars, uppercase, number"
+                  required
+                  autoComplete="new-password"
+                  style={{
+                    border: '1.5px solid #F5C5C5',
+                    borderBottom: '3px solid #DBADB0',
+                    paddingRight: 44,
+                  }}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((v) => !v)}
+                  tabIndex={-1}
+                  aria-label={showPassword ? 'Hide password' : 'Show password'}
+                  style={{
+                    position: 'absolute',
+                    right: 6,
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    width: 32,
+                    height: 32,
+                    background: 'none',
+                    border: 'none',
+                    cursor: 'pointer',
+                    color: '#9B6060',
+                  }}
+                >
+                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
+              </div>
               <StrengthBar password={password} />
             </div>
             <div>
@@ -550,22 +580,48 @@ export default function SignupPage() {
               >
                 CONFIRM PASSWORD
               </label>
-              <Input
-                type="password"
-                value={confirm}
-                onChange={(e) => setConfirm(e.target.value)}
-                placeholder="Re-enter your password"
-                required
-                autoComplete="new-password"
-                style={{
-                  border: confirmMismatch
-                    ? '1.5px solid #FCA5A5'
-                    : '1.5px solid #F5C5C5',
-                  borderBottom: confirmMismatch
-                    ? '3px solid #EF4444'
-                    : '3px solid #DBADB0',
-                }}
-              />
+              <div style={{ position: 'relative' }}>
+                <Input
+                  type={showConfirm ? 'text' : 'password'}
+                  value={confirm}
+                  onChange={(e) => setConfirm(e.target.value)}
+                  placeholder="Re-enter your password"
+                  required
+                  autoComplete="new-password"
+                  style={{
+                    border: confirmMismatch
+                      ? '1.5px solid #FCA5A5'
+                      : '1.5px solid #F5C5C5',
+                    borderBottom: confirmMismatch
+                      ? '3px solid #EF4444'
+                      : '3px solid #DBADB0',
+                    paddingRight: 44,
+                  }}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowConfirm((v) => !v)}
+                  tabIndex={-1}
+                  aria-label={showConfirm ? 'Hide password' : 'Show password'}
+                  style={{
+                    position: 'absolute',
+                    right: 6,
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    width: 32,
+                    height: 32,
+                    background: 'none',
+                    border: 'none',
+                    cursor: 'pointer',
+                    color: '#9B6060',
+                  }}
+                >
+                  {showConfirm ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
+              </div>
               {confirmMismatch && (
                 <p
                   style={{

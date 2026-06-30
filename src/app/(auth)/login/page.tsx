@@ -6,7 +6,7 @@ import Link from 'next/link'
 import { signIn, signInWithGoogle, signInWithApple } from '@/lib/auth/client'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
-import { CheckSquare, ShoppingCart, DollarSign, CalendarDays, UtensilsCrossed, Bell } from 'lucide-react'
+import { CheckSquare, ShoppingCart, DollarSign, CalendarDays, UtensilsCrossed, Bell, Eye, EyeOff } from 'lucide-react'
 import RoostLogo from '@/components/shared/RoostLogo'
 
 function GoogleIcon() {
@@ -44,6 +44,7 @@ function LoginForm() {
 
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const [oauthLoading, setOauthLoading] = useState<'google' | 'apple' | null>(null)
@@ -230,15 +231,40 @@ function LoginForm() {
               <label style={{ display: 'block', fontSize: 11, fontWeight: 800, letterSpacing: '0.07em', color: '#7A3F3F', marginBottom: 6 }}>
                 PASSWORD
               </label>
-              <Input
-                type="password"
-                value={password}
-                onChange={e => setPassword(e.target.value)}
-                placeholder="••••••••"
-                required
-                autoComplete="current-password"
-                style={{ border: '1.5px solid #F5C5C5', borderBottom: '3px solid #DBADB0' }}
-              />
+              <div style={{ position: 'relative' }}>
+                <Input
+                  type={showPassword ? 'text' : 'password'}
+                  value={password}
+                  onChange={e => setPassword(e.target.value)}
+                  placeholder="••••••••"
+                  required
+                  autoComplete="current-password"
+                  style={{ border: '1.5px solid #F5C5C5', borderBottom: '3px solid #DBADB0', paddingRight: 44 }}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(v => !v)}
+                  tabIndex={-1}
+                  aria-label={showPassword ? 'Hide password' : 'Show password'}
+                  style={{
+                    position: 'absolute',
+                    right: 6,
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    width: 32,
+                    height: 32,
+                    background: 'none',
+                    border: 'none',
+                    cursor: 'pointer',
+                    color: '#9B6060',
+                  }}
+                >
+                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
+              </div>
             </div>
 
             {error && (

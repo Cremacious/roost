@@ -3,77 +3,7 @@ import { getSession, getUserHousehold, checkMemberPermission } from '@/lib/auth/
 import { db } from '@/lib/db'
 import { calendarEvents, eventAttendees, householdMembers, users } from '@/db/schema'
 import { eq, and, isNull, gte, lt } from 'drizzle-orm'
-
-// ─── Recurrence expansion ──────────────────────────────────────────────────────
-
-function expandRecurring(
-  event: {
-    id: string
-    title: string
-    description: string | null
-    startTime: Date
-    endTime: Date
-    allDay: boolean
-    recurring: boolean
-    frequency: string | null
-    repeatEndType: string | null
-    repeatUntil: Date | null
-    repeatOccurrences: number | null
-    category: string | null
-    location: string | null
-    notifyMemberIds: string | null
-    rsvpEnabled: boolean
-    createdBy: string
-    creatorName: string
-  },
-  rangeStart: Date,
-  rangeEnd: Date,
-): Array<typeof event & { isRecurring: boolean; templateStartTime: string }> {
-  const results: Array<typeof event & { isRecurring: boolean; templateStartTime: string }> = []
-  if (!event.frequency) return results
-
-  const templateStartTime = event.startTime.toISOString()
-  const durationMs = event.endTime.getTime() - event.startTime.getTime()
-  let current = new Date(event.startTime)
-  let count = 0
-  const MAX = 60
-
-  while (count < MAX) {
-    // Check end conditions
-    if (event.repeatEndType === 'until_date' && event.repeatUntil && current > event.repeatUntil) break
-    if (event.repeatEndType === 'after_occurrences' && event.repeatOccurrences && count >= event.repeatOccurrences) break
-
-    if (current >= rangeStart && current < rangeEnd) {
-      results.push({
-        ...event,
-        startTime: new Date(current),
-        endTime: new Date(current.getTime() + durationMs),
-        isRecurring: true,
-        templateStartTime,
-      })
-    }
-
-    // Advance
-    const next = new Date(current)
-    switch (event.frequency) {
-      case 'daily':    next.setDate(next.getDate() + 1); break
-      case 'weekly':   next.setDate(next.getDate() + 7); break
-      case 'biweekly': next.setDate(next.getDate() + 14); break
-      case 'monthly':  next.setMonth(next.getMonth() + 1); break
-      case 'yearly':   next.setFullYear(next.getFullYear() + 1); break
-      default:         next.setDate(next.getDate() + 7)
-    }
-
-    if (next <= current) break // safety
-    current = next
-    count++
-
-    // Stop expanding if well past range
-    if (current > rangeEnd && results.length > 0) break
-  }
-
-  return results
-}
+import { expandRecurring } from '@/lib/utils/recurrence'
 
 // ─── GET ───────────────────────────────────────────────────────────────────────
 

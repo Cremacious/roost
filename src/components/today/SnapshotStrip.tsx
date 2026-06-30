@@ -52,6 +52,17 @@ function mealSubLabel(meal: SnapshotData['meal']): string {
   return `${weekday} ${slot.toLowerCase()}`
 }
 
+function eventSubLabel(event: SnapshotData['event']): string {
+  if (!event) return 'Tap to add'
+  const d = new Date(event.startsAt)
+  const eventDateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+  const time = d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
+  if (eventDateStr === todayLocalDateStr()) return `Today, ${time}`
+  if (eventDateStr === dateStrPlusDays(1)) return `Tomorrow, ${time}`
+  const date = d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })
+  return `${date}, ${time}`
+}
+
 interface SnapTileProps {
   href: string
   iconBg: string
@@ -162,16 +173,18 @@ export function SnapshotStrip({ data }: { data: SnapshotData }) {
         sub={grocerySub}
       />
 
-      {/* Event — coming soon */}
+      {/* Event */}
       <SnapTile
         href="/calendar"
-        iconBg="#F3F4F6"
-        icon={<Calendar size={16} color="#9CA3AF" strokeWidth={2.5} />}
+        iconBg="#DBEAFE"
+        icon={<Calendar size={16} color="#3B82F6" strokeWidth={2.5} />}
         label="Next event"
-        value="—"
-        valueStyle={{ color: 'var(--roost-text-muted)' }}
-        sub="Coming soon"
-        dimmed
+        value={data.event?.title ?? 'Nothing scheduled'}
+        valueStyle={{
+          fontSize: data.event ? 14 : 15,
+          color: data.event ? 'var(--roost-text-primary)' : 'var(--roost-text-muted)',
+        }}
+        sub={eventSubLabel(data.event)}
       />
     </div>
   )

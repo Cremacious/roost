@@ -10,8 +10,10 @@ import {
   mealPlanSlots,
   meals,
   reminders,
+  calendarEvents,
 } from '@/db/schema'
-import { eq, and, isNull, lt, gte, lte } from 'drizzle-orm'
+import { eq, and, isNull, lt, gte, lte, asc } from 'drizzle-orm'
+import { expandRecurring } from '@/lib/utils/recurrence'
 
 function todayStart() {
   const d = new Date()
@@ -65,6 +67,10 @@ export async function GET() {
   const start = todayStart()
   const end = todayEnd()
   const todayStr = todayDateStr()
+  // "Now" for the next-upcoming-event lookup, plus a 90-day window over which
+  // recurring templates are expanded to find their next occurrence.
+  const now = new Date()
+  const eventWindowEnd = new Date(now.getTime() + 90 * 24 * 60 * 60 * 1000)
   // Lookup window for the next upcoming meal. 7 days is generous enough that
   // any reasonably planned week is covered; if nothing falls in this window we
   // treat it as truly empty.
@@ -77,6 +83,8 @@ export async function GET() {
     myUnsettledSplits,
     defaultList,
     activeReminder,
+    nextNonRecurringEvent,
+    recurringEventTemplates,
   ] = await Promise.all([
     // Overdue chores assigned to current user
     db
@@ -171,6 +179,41 @@ export async function GET() {
         )
       )
       .limit(1),
+
+    // Soonest non-recurring upcoming event (start time at or after now)
+    db
+      .select({ title: calendarEvents.title, startTime: calendarEvents.startTime })
+      .from(calendarEvents)
+      .where(
+        and(
+          eq(calendarEvents.householdId, householdId),
+          isNull(calendarEvents.deletedAt),
+          eq(calendarEvents.recurring, false),
+          gte(calendarEvents.startTime, now),
+        )
+      )
+      .orderBy(asc(calendarEvents.startTime))
+      .limit(1),
+
+    // All recurring templates; expanded in JS below to find the next occurrence
+    db
+      .select({
+        title: calendarEvents.title,
+        startTime: calendarEvents.startTime,
+        endTime: calendarEvents.endTime,
+        frequency: calendarEvents.frequency,
+        repeatEndType: calendarEvents.repeatEndType,
+        repeatUntil: calendarEvents.repeatUntil,
+        repeatOccurrences: calendarEvents.repeatOccurrences,
+      })
+      .from(calendarEvents)
+      .where(
+        and(
+          eq(calendarEvents.householdId, householdId),
+          isNull(calendarEvents.deletedAt),
+          eq(calendarEvents.recurring, true),
+        )
+      ),
   ])
 
   // Grocery count
@@ -253,6 +296,23 @@ export async function GET() {
   })
   const nextMeal = sortedUpcoming[0] ?? null
 
+  // Next upcoming event: the soonest of the next non-recurring event and the
+  // earliest expanded occurrence of any recurring template within the window.
+  const candidateEvents: Array<{ title: string; startTime: Date }> = []
+  if (nextNonRecurringEvent[0]) {
+    candidateEvents.push(nextNonRecurringEvent[0])
+  }
+  for (const template of recurringEventTemplates) {
+    const occurrences = expandRecurring(template, now, eventWindowEnd)
+    if (occurrences[0]) {
+      candidateEvents.push({ title: occurrences[0].title, startTime: occurrences[0].startTime })
+    }
+  }
+  candidateEvents.sort((a, b) => a.startTime.getTime() - b.startTime.getTime())
+  const nextEvent = candidateEvents[0]
+    ? { title: candidateEvents[0].title, startsAt: candidateEvents[0].startTime.toISOString() }
+    : null
+
   return NextResponse.json({
     hero: { type: heroType, item: heroItem },
     chores: allChores,
@@ -261,7 +321,7 @@ export async function GET() {
         ? { name: nextMeal.mealName, slotDate: nextMeal.slotDate, slotType: nextMeal.slotType }
         : null,
       money: { balance: Math.abs(balance), label: moneyLabel },
-      event: null,
+      event: nextEvent,
       grocery: { count: groceryCount },
     },
   })

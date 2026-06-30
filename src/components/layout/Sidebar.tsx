@@ -66,22 +66,13 @@ export function Sidebar() {
   const { data: session } = useSession()
   const { role } = useHousehold()
 
-  const name = session?.user?.name ?? ''
-  const initials = name
-    .split(' ')
-    .map((p: string) => p[0])
-    .filter(Boolean)
-    .join('')
-    .slice(0, 2)
-    .toUpperCase()
-
   const roleLabel =
     role === 'admin'  ? 'Household admin'  :
     role === 'member' ? 'Member'           :
     role === 'guest'  ? 'Guest'            :
     role === 'child'  ? 'Child account'    : ''
 
-  const { data: profileData } = useQuery<{ user: { avatar_color: string | null } }>({
+  const { data: profileData } = useQuery<{ user: { avatar_color: string | null; name?: string } }>({
     queryKey: ['user-profile'],
     queryFn: async () => {
       const r = await fetch('/api/user/profile')
@@ -91,6 +82,17 @@ export function Sidebar() {
     staleTime: 60_000,
   })
   const avatarColor = profileData?.user?.avatar_color ?? 'rgba(255,255,255,0.18)'
+
+  // Child sessions do not reliably carry the name in useSession(); the app users
+  // table (via /api/user/profile) is the dependable source for all roles.
+  const name = profileData?.user?.name ?? session?.user?.name ?? ''
+  const initials = name
+    .split(' ')
+    .map((p: string) => p[0])
+    .filter(Boolean)
+    .join('')
+    .slice(0, 2)
+    .toUpperCase()
 
   return (
     <aside
@@ -139,13 +141,13 @@ export function Sidebar() {
                 >
                   <Icon
                     size={15}
-                    color={active ? '#C41E1E' : 'rgba(255,255,255,0.55)'}
+                    color={active ? '#C41E1E' : 'rgba(255,255,255,0.85)'}
                     strokeWidth={active ? 2.5 : 2}
                   />
                   <span style={{
                     fontSize: 12.5,
                     fontWeight: active ? 800 : 700,
-                    color: active ? '#C41E1E' : 'rgba(255,255,255,0.6)',
+                    color: active ? '#C41E1E' : 'rgba(255,255,255,0.95)',
                     flex: 1,
                   }}>
                     {label}

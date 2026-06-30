@@ -21,17 +21,7 @@ export default function MorePage() {
   const { data: session } = useSession()
   const [confirmOpen, setConfirmOpen] = useState(false)
 
-  const name = session?.user?.name ?? ''
-  const email = session?.user?.email ?? ''
-  const initials = name
-    .split(' ')
-    .map((p: string) => p[0])
-    .filter(Boolean)
-    .join('')
-    .slice(0, 2)
-    .toUpperCase()
-
-  const { data: profile } = useQuery<{ user?: { avatar_color?: string } }>({
+  const { data: profile } = useQuery<{ user?: { avatar_color?: string; name?: string } }>({
     queryKey: ['user-profile'],
     queryFn: async () => {
       const r = await fetch('/api/user/profile')
@@ -42,6 +32,18 @@ export default function MorePage() {
   })
 
   const avatarColor = profile?.user?.avatar_color ?? '#EF4444'
+
+  // Child sessions do not reliably carry the name in useSession(); the app users
+  // table (via /api/user/profile) is the dependable source for all roles.
+  const name = profile?.user?.name ?? session?.user?.name ?? ''
+  const email = session?.user?.email ?? ''
+  const initials = name
+    .split(' ')
+    .map((p: string) => p[0])
+    .filter(Boolean)
+    .join('')
+    .slice(0, 2)
+    .toUpperCase()
 
   async function handleSignOut() {
     applyTheme('default')

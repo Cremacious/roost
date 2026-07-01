@@ -1,6 +1,6 @@
 # Platform Capability Audit (Web vs Mobile App)
 
-Last updated: 2026-05-20
+Last updated: 2026-07-01
 
 ## Purpose
 
@@ -120,3 +120,29 @@ Cross-cutting:
       and stay as-is.
 - [x] Added a "Platform behavior" note to CLAUDE.md so future features default to
       the correct gating.
+
+## Money-rebuild re-verification (2026-07-01, issue #64)
+
+The Money module was rebuilt after the original audit was written, so this was a
+fresh verification sweep of the current code, not a rebuild. Findings:
+
+- Settlement "Remind" is still gated in both render sites. `money/page.tsx`
+  DashboardTab DebtCard shows the action only when `iOwe || canPush`, so the
+  creditor "Remind" affordance is hidden on web. `SettleSheet` i_claimed mode
+  gates the "Remind" button behind `canPush`. The `/api/expenses/settle-all/remind`
+  endpoint and its 24h rate limit are intact for the mobile path.
+- Calendar "Notify when saved" is still gated. `EventSheet` LeftColumn wraps the
+  whole notify card in `canPush`, covering the mobile and desktop render sites.
+- Invite/code sharing still uses `shareOrCopy` + `hasNativeShare` in
+  `InviteMemberSheet`, `household/page.tsx` (mobile + desktop hero), and
+  `settings/page.tsx` Household section. No bare `navigator.share` anywhere.
+- The only remaining `navigator.clipboard.writeText` callers are `AddChildSheet`
+  (child PIN, intentionally copy-only secret) and the admin promo-codes page
+  (internal tool). Both conform to the established decisions.
+- No new sheet or page in the rebuilt Money module (ExpenseSheet, SettleSheet,
+  SettlePickerSheet, BudgetSheet, BillSheet, GoalSheet, ContributeSheet,
+  ReceiptScanner, LineItemGrid/Review) exposes a push-only or native-share
+  affordance. Other `Send` icons in the app (meals suggestion, forgot-password,
+  task comment) are in-app server actions, not push.
+
+Result: everything already conforms. No code changes were needed. Verified for #64.

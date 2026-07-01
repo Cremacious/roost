@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useRouter } from 'next/navigation'
 import { UserCheck, X } from 'lucide-react'
@@ -9,12 +9,13 @@ import { useHousehold } from '@/lib/hooks/useHousehold'
 export default function JoinRequestsBanner() {
   const { role } = useHousehold()
   const router = useRouter()
-  const [dismissed, setDismissed] = useState(false)
-
-  useEffect(() => {
-    const key = 'roost-join-requests-banner-dismissed'
-    if (sessionStorage.getItem(key)) setDismissed(true)
-  }, [])
+  // Initialize from sessionStorage lazily. The banner renders null on the server
+  // (role/count come from a client query), so reading storage here is safe and
+  // avoids a setState-in-effect cascade.
+  const [dismissed, setDismissed] = useState(
+    () => typeof window !== 'undefined'
+      && sessionStorage.getItem('roost-join-requests-banner-dismissed') === '1',
+  )
 
   const { data } = useQuery({
     queryKey: ['join-requests'],

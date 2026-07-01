@@ -801,11 +801,12 @@ export default function FoodPage() {
     return def ? def.id : activeListId;
   }, [listsData, activeListId]);
 
-  useEffect(() => {
-    if (resolvedActiveListId && resolvedActiveListId !== activeListId) {
-      setActiveListId(resolvedActiveListId);
-    }
-  }, [resolvedActiveListId, activeListId]);
+  // Promote the resolved default into state once it becomes known. This is the
+  // documented "adjust state during render" pattern (it converges in one extra
+  // render) and avoids a setState-in-effect cascade.
+  if (resolvedActiveListId && resolvedActiveListId !== activeListId) {
+    setActiveListId(resolvedActiveListId);
+  }
 
   // ── Items query ──────────────────────────────────────────────────────────
   const {

@@ -3,6 +3,7 @@ import { getSession, getUserHousehold, checkMemberPermission } from '@/lib/auth/
 import { db } from '@/lib/db'
 import { tasks, projects, taskComments, taskDelegations, users } from '@/db/schema'
 import { eq, and, isNull, asc, desc, count, sql } from 'drizzle-orm'
+import { PLAN_LIMITS } from '@/lib/constants/planLimits'
 
 export async function GET(req: NextRequest) {
   const session = await getSession()
@@ -93,21 +94,24 @@ export async function GET(req: NextRequest) {
         .groupBy(taskComments.taskId)
     : []
 
-  // Fetch pending delegations for current user
+  // Fetch pending delegations for current user (joined to task title + sender)
   const pendingDelegations = await db
     .select({
       id: taskDelegations.id,
       taskId: taskDelegations.taskId,
-      fromUserId: taskDelegations.fromUserId,
-      toUserId: taskDelegations.toUserId,
-      status: taskDelegations.status,
+      taskTitle: tasks.title,
+      fromUserName: users.name,
+      fromUserAvatar: users.avatarColor,
       createdAt: taskDelegations.createdAt,
     })
     .from(taskDelegations)
+    .leftJoin(tasks, eq(taskDelegations.taskId, tasks.id))
+    .leftJoin(users, eq(taskDelegations.fromUserId, users.id))
     .where(and(
       eq(taskDelegations.householdId, householdId),
       eq(taskDelegations.toUserId, session.user.id),
       eq(taskDelegations.status, 'pending'),
+      isNull(tasks.deletedAt),
     ))
 
   // Fetch project info
@@ -159,6 +163,36 @@ export async function POST(req: NextRequest) {
 
   if (!title?.trim()) {
     return NextResponse.json({ error: 'Title is required' }, { status: 400 })
+  }
+
+  const isPremium = membership.household.subscriptionStatus === 'premium'
+
+  // Recurring tasks are a premium feature.
+  if (recurring && !isPremium) {
+    return NextResponse.json(
+      { error: 'Recurring tasks are a premium feature', code: 'RECURRING_TASKS_PREMIUM' },
+      { status: 403 }
+    )
+  }
+
+  // Free-tier active task limit (top-level tasks only; subtasks are exempt).
+  if (!isPremium && !parentTaskId) {
+    const [{ cnt }] = await db
+      .select({ cnt: count(tasks.id) })
+      .from(tasks)
+      .where(and(
+        eq(tasks.householdId, householdId),
+        isNull(tasks.deletedAt),
+        isNull(tasks.parentTaskId),
+        eq(tasks.completed, false),
+      ))
+    const limit = PLAN_LIMITS.free.tasks
+    if (Number(cnt) >= limit) {
+      return NextResponse.json(
+        { error: `Free plan is limited to ${limit} active tasks`, code: 'TASKS_LIMIT', limit, current: Number(cnt) },
+        { status: 403 }
+      )
+    }
   }
 
   // Depth guard: subtasks cannot themselves have subtasks

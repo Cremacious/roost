@@ -24,6 +24,8 @@ export type PlanTier = 'free' | 'premium'
 export const PLAN_LIMITS = {
   free: {
     chores: 10,
+    tasks: 10,
+    projects: 3,
     notes: 10,
     members: 5,
     children: 1,
@@ -33,6 +35,8 @@ export const PLAN_LIMITS = {
   },
   premium: {
     chores: Infinity,
+    tasks: Infinity,
+    projects: Infinity,
     notes: Infinity,
     members: Infinity,
     children: Infinity,
@@ -56,6 +60,8 @@ export const FEATURE_ACCESS = {
   choreHistory: { free: false, premium: true }, // NOTE: feature not built yet — see GitHub issue
   rewards: { free: false, premium: true },
   customChoreCategories: { free: false, premium: true },
+  // Tasks
+  recurringTasks: { free: false, premium: true }, // stored-but-inert today; regeneration engine is a follow-up
   // Calendar
   recurringEvents: { free: false, premium: true },
   // Reminders

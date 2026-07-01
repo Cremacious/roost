@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Check, Circle, Plus, Trash2 } from 'lucide-react'
+import { Check, Circle, Pencil, Plus, Trash2, X } from 'lucide-react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { motion, AnimatePresence } from 'framer-motion'
 import { toast } from 'sonner'
@@ -38,6 +38,8 @@ export default function SubtaskList({
   const qc = useQueryClient()
   const [addingTitle, setAddingTitle] = useState('')
   const [showAdd, setShowAdd] = useState(false)
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const [editingTitle, setEditingTitle] = useState('')
 
   const toggleMutation = useMutation({
     mutationFn: async ({ id, completed }: { id: string; completed: boolean }) => {
@@ -60,6 +62,28 @@ export default function SubtaskList({
     onSuccess: () => qc.invalidateQueries({ queryKey: ['tasks'] }),
     onError: () => toast.error('Could not delete subtask', { description: 'Please try again.' }),
   })
+
+  const renameMutation = useMutation({
+    mutationFn: async ({ id, title }: { id: string; title: string }) => {
+      const r = await fetch(`/api/tasks/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title }),
+      })
+      if (!r.ok) throw new Error((await r.json().catch(() => ({}))).error ?? 'Failed to rename subtask')
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['tasks'] })
+      setEditingId(null)
+      setEditingTitle('')
+    },
+    onError: (err: Error) => toast.error('Could not rename subtask', { description: err.message }),
+  })
+
+  function handleRenameSubmit() {
+    if (!editingId || !editingTitle.trim()) return
+    renameMutation.mutate({ id: editingId, title: editingTitle.trim() })
+  }
 
   const addMutation = useMutation({
     mutationFn: async (title: string) => {
@@ -107,7 +131,8 @@ export default function SubtaskList({
 
       <AnimatePresence initial={false}>
         {subtasks.map(sub => {
-          const canDelete = isAdmin || sub.createdBy === currentUserId
+          const canModify = isAdmin || sub.createdBy === currentUserId
+          const isEditing = editingId === sub.id
           return (
             <motion.div
               key={sub.id}
@@ -139,27 +164,83 @@ export default function SubtaskList({
                   }
                 </button>
               )}
-              <span style={{
-                flex: 1,
-                fontSize: 13,
-                fontWeight: 600,
-                color: sub.completed ? 'var(--roost-text-muted)' : 'var(--roost-text-primary)',
-                textDecoration: sub.completed ? 'line-through' : 'none',
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-                whiteSpace: 'nowrap',
-              }}>
-                {sub.title}
-              </span>
-              {canDelete && !isChild && (
-                <button
-                  type="button"
-                  onClick={() => deleteMutation.mutate(sub.id)}
-                  style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 2, flexShrink: 0 }}
-                  aria-label="Delete subtask"
-                >
-                  <Trash2 size={12} color="var(--roost-text-muted)" />
-                </button>
+              {isEditing ? (
+                <input
+                  autoFocus={false}
+                  value={editingTitle}
+                  onChange={e => setEditingTitle(e.target.value)}
+                  onKeyDown={e => {
+                    if (e.key === 'Enter') handleRenameSubmit()
+                    if (e.key === 'Escape') { setEditingId(null); setEditingTitle('') }
+                  }}
+                  style={{
+                    flex: 1,
+                    border: 'none',
+                    borderBottom: `2px solid ${COLOR}`,
+                    borderRadius: 0,
+                    padding: '2px 2px',
+                    fontSize: 13,
+                    fontWeight: 600,
+                    backgroundColor: 'transparent',
+                    color: 'var(--roost-text-primary)',
+                    outline: 'none',
+                  }}
+                />
+              ) : (
+                <span style={{
+                  flex: 1,
+                  fontSize: 13,
+                  fontWeight: 600,
+                  color: sub.completed ? 'var(--roost-text-muted)' : 'var(--roost-text-primary)',
+                  textDecoration: sub.completed ? 'line-through' : 'none',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
+                }}>
+                  {sub.title}
+                </span>
+              )}
+              {canModify && !isChild && (
+                isEditing ? (
+                  <>
+                    <button
+                      type="button"
+                      onClick={handleRenameSubmit}
+                      disabled={!editingTitle.trim() || renameMutation.isPending}
+                      style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 2, flexShrink: 0 }}
+                      aria-label="Save subtask"
+                    >
+                      <Check size={13} color={COLOR} strokeWidth={2.5} />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => { setEditingId(null); setEditingTitle('') }}
+                      style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 2, flexShrink: 0 }}
+                      aria-label="Cancel edit"
+                    >
+                      <X size={13} color="var(--roost-text-muted)" />
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => { setEditingId(sub.id); setEditingTitle(sub.title) }}
+                      style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 2, flexShrink: 0 }}
+                      aria-label="Rename subtask"
+                    >
+                      <Pencil size={12} color="var(--roost-text-muted)" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => deleteMutation.mutate(sub.id)}
+                      style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 2, flexShrink: 0 }}
+                      aria-label="Delete subtask"
+                    >
+                      <Trash2 size={12} color="var(--roost-text-muted)" />
+                    </button>
+                  </>
+                )
               )}
             </motion.div>
           )

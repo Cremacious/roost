@@ -5,13 +5,15 @@ export interface ParsedTask {
   dueDate: string | null  // ISO date YYYY-MM-DD
   dueTime: string | null  // HH:MM 24h
   priority: 'high' | 'medium' | 'low' | null
+  assignee: string | null // lower-cased first name from an "@name" token, if present
 }
 
-const PRIORITY_PATTERNS: Array<{ re: RegExp; value: 'high' | 'medium' | 'low' }> = [
-  { re: /\bhigh\b/i, value: 'high' },
-  { re: /\bmed(?:ium)?\b/i, value: 'medium' },
-  { re: /\blow\b/i, value: 'low' },
-]
+function normalizePriority(word: string): 'high' | 'medium' | 'low' {
+  const w = word.toLowerCase()
+  if (w === 'high') return 'high'
+  if (w === 'low') return 'low'
+  return 'medium' // med, medium
+}
 
 const WEEKDAY_FNS: Record<string, (date: Date) => Date> = {
   mon: nextMonday,
@@ -62,13 +64,27 @@ export function parseTaskInput(raw: string): ParsedTask {
   let priority: 'high' | 'medium' | 'low' | null = null
   let dueDate: string | null = null
   let dueTime: string | null = null
+  let assignee: string | null = null
 
-  // 1. Priority
-  for (const { re, value } of PRIORITY_PATTERNS) {
-    if (re.test(s)) {
-      priority = value
-      s = s.replace(re, '').trim()
-      break
+  // 0. Assignee — "@name" anywhere.
+  const assigneeMatch = s.match(/(?:^|\s)@(\w+)/)
+  if (assigneeMatch) {
+    assignee = assigneeMatch[1].toLowerCase()
+    s = s.replace(assigneeMatch[0], ' ').trim()
+  }
+
+  // 1. Priority — explicit "!high/!medium/!med/!low" anywhere, otherwise a bare
+  //    priority word ONLY when it is the last token (avoids "high chair",
+  //    "low-fat milk" false positives from matching mid-title words).
+  const explicitPriority = s.match(/(?:^|\s)!(high|medium|med|low)\b/i)
+  if (explicitPriority) {
+    priority = normalizePriority(explicitPriority[1])
+    s = s.replace(explicitPriority[0], ' ').trim()
+  } else {
+    const trailingPriority = s.match(/(?:^|\s)(high|medium|med|low)\s*$/i)
+    if (trailingPriority) {
+      priority = normalizePriority(trailingPriority[1])
+      s = s.slice(0, s.length - trailingPriority[0].length).trim()
     }
   }
 
@@ -114,9 +130,12 @@ export function parseTaskInput(raw: string): ParsedTask {
         const month = MONTH_MAP[monthDay[1].toLowerCase()]
         const day = parseInt(monthDay[2], 10)
         const d = new Date(today.getFullYear(), month, day)
-        if (d < today) d.setFullYear(today.getFullYear() + 1)
-        dueDate = toISODate(d)
-        s = s.replace(monthDay[0], '').trim()
+        // Reject impossible dates (e.g. "feb 30" would silently roll to Mar 2).
+        if (d.getMonth() === month && d.getDate() === day) {
+          if (d < today) d.setFullYear(today.getFullYear() + 1)
+          dueDate = toISODate(d)
+          s = s.replace(monthDay[0], '').trim()
+        }
       } else {
         // "12/25" or "12/25/2026"
         const slashDate = s.match(/\b(\d{1,2})\/(\d{1,2})(?:\/(\d{4}))?\b/)
@@ -125,9 +144,12 @@ export function parseTaskInput(raw: string): ParsedTask {
           const day = parseInt(slashDate[2], 10)
           const year = slashDate[3] ? parseInt(slashDate[3], 10) : today.getFullYear()
           const d = new Date(year, month, day)
-          if (!slashDate[3] && d < today) d.setFullYear(today.getFullYear() + 1)
-          dueDate = toISODate(d)
-          s = s.replace(slashDate[0], '').trim()
+          // Reject impossible dates (e.g. "2/30" would silently roll to Mar 2).
+          if (d.getMonth() === month && d.getDate() === day) {
+            if (!slashDate[3] && d < today) d.setFullYear(today.getFullYear() + 1)
+            dueDate = toISODate(d)
+            s = s.replace(slashDate[0], '').trim()
+          }
         }
       }
     }
@@ -136,5 +158,5 @@ export function parseTaskInput(raw: string): ParsedTask {
   // Clean up leftover punctuation/whitespace
   const title = s.replace(/\s{2,}/g, ' ').trim() || raw.trim()
 
-  return { title, dueDate, dueTime, priority }
+  return { title, dueDate, dueTime, priority, assignee }
 }

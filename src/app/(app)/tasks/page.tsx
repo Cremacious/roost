@@ -20,6 +20,8 @@ import TaskCommentSheet from '@/components/tasks/TaskCommentSheet'
 import ProjectSettingsSheet from '@/components/tasks/ProjectSettingsSheet'
 import { type ParsedTask } from '@/lib/utils/parseTaskInput'
 import { usePermissionGate } from '@/lib/hooks/usePermissionGate'
+import PremiumGate from '@/components/shared/PremiumGate'
+import { PLAN_LIMITS } from '@/lib/constants/planLimits'
 
 const COLOR = SECTION_COLORS.tasks.base
 const COLOR_DARK = SECTION_COLORS.tasks.dark
@@ -330,6 +332,7 @@ export default function TasksPage() {
   const [delegateTask, setDelegateTask] = useState<Task | null>(null)
   const [commentTask, setCommentTask] = useState<Task | null>(null)
   const [projectSettingsTarget, setProjectSettingsTarget] = useState<Project | null>(null)
+  const [upgradeCode, setUpgradeCode] = useState<string | null>(null)
 
   // ── Queries ────────────────────────────────────────────────────────────────
 
@@ -375,6 +378,9 @@ export default function TasksPage() {
   const allTasks = (tasksData?.tasks ?? []).filter(t => !t.parentTaskId)
   const pendingDelegations: PendingDelegation[] = tasksData?.pendingDelegations ?? []
   const projects: Project[] = projectsData?.projects ?? []
+
+  const activeTaskCount = allTasks.filter(t => !t.completed).length
+  const atTaskLimit = !isPremium && activeTaskCount >= PLAN_LIMITS.free.tasks
 
   // ── Mutations ──────────────────────────────────────────────────────────────
 
@@ -453,6 +459,13 @@ export default function TasksPage() {
       dueDate: parsed.dueDate ?? null,
       dueTime: parsed.dueTime ?? null,
     }
+    // Resolve a parsed "@name" assignee against household members by first name.
+    if (parsed.assignee) {
+      const match = members.find(
+        m => m.role !== 'child' && m.name.split(' ')[0].toLowerCase() === parsed.assignee
+      )
+      if (match) body.assignedTo = match.userId
+    }
     if (activeTab !== 'all' && activeTab !== 'today' && activeTab !== 'new') {
       body.projectId = activeTab
     }
@@ -462,8 +475,11 @@ export default function TasksPage() {
       body: JSON.stringify(body),
     })
     if (!r.ok) {
-      const data = await r.json()
-      throw new Error(data.error ?? 'Failed to create task')
+      const data = await r.json().catch(() => ({}))
+      const err = new Error(data.error ?? 'Failed to create task') as Error & { code?: string }
+      err.code = data.code
+      if (data.code) setUpgradeCode(data.code)
+      throw err
     }
     qc.invalidateQueries({ queryKey: ['tasks'] })
   }
@@ -618,7 +634,7 @@ export default function TasksPage() {
               <motion.button
                 type="button"
                 whileTap={{ y: 2 }}
-                onClick={canAddTask ? openNew : onBlockedAddTask}
+                onClick={!canAddTask ? onBlockedAddTask : atTaskLimit ? () => setUpgradeCode('TASKS_LIMIT') : openNew}
                 aria-label="Add task"
                 aria-disabled={!canAddTask}
                 style={{
@@ -755,6 +771,7 @@ export default function TasksPage() {
         projects={projects}
         isAdmin={isAdmin}
         isPremium={isPremium}
+        onUpgradeRequired={setUpgradeCode}
       />
 
       <DelegationSheet
@@ -783,6 +800,10 @@ export default function TasksPage() {
           isAdmin={isAdmin}
           onDeleted={() => setActiveTab('all')}
         />
+      )}
+
+      {!!upgradeCode && (
+        <PremiumGate feature="tasks" trigger="sheet" onClose={() => setUpgradeCode(null)} />
       )}
     </>
   )

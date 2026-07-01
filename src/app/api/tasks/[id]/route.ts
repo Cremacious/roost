@@ -27,11 +27,36 @@ export async function PATCH(
     return NextResponse.json({ error: 'Not found' }, { status: 404 })
   }
 
+  // Children have no task access (role preset: Tasks = none).
+  if (role === 'child') {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  }
+
   const body = await req.json()
   const {
     title, description, assignedTo, dueDate, dueTime, priority, completed,
     projectId, recurring, frequency, repeatEndType, repeatUntil, repeatOccurrences,
   } = body
+
+  // Field edits (anything other than a completion toggle) are restricted to the
+  // task creator or an admin. Completing/unchecking stays open to any member.
+  const EDIT_FIELDS = [
+    'title', 'description', 'assignedTo', 'dueDate', 'dueTime', 'priority',
+    'projectId', 'recurring', 'frequency', 'repeatEndType', 'repeatUntil', 'repeatOccurrences',
+  ]
+  const isFieldEdit = EDIT_FIELDS.some(f => body[f] !== undefined)
+  const isCreatorOrAdmin = existing.createdBy === session.user.id || role === 'admin'
+  if (isFieldEdit && !isCreatorOrAdmin) {
+    return NextResponse.json({ error: 'Only the task creator or an admin can edit this task' }, { status: 403 })
+  }
+
+  // Recurring tasks are a premium feature.
+  if (recurring === true && membership.household.subscriptionStatus !== 'premium') {
+    return NextResponse.json(
+      { error: 'Recurring tasks are a premium feature', code: 'RECURRING_TASKS_PREMIUM' },
+      { status: 403 }
+    )
+  }
 
   const updates: Partial<typeof tasks.$inferInsert> = {
     updatedAt: new Date(),

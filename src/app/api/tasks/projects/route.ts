@@ -3,6 +3,7 @@ import { getSession, getUserHousehold } from '@/lib/auth/helpers'
 import { db } from '@/lib/db'
 import { projects, tasks } from '@/db/schema'
 import { eq, and, isNull, count } from 'drizzle-orm'
+import { PLAN_LIMITS } from '@/lib/constants/planLimits'
 
 export async function GET() {
   const session = await getSession()
@@ -53,7 +54,8 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 
-  const { householdId, isPremium } = membership as typeof membership & { isPremium?: boolean }
+  const { householdId } = membership
+  const isPremium = membership.household.subscriptionStatus === 'premium'
   const body = await req.json()
   const { name, color } = body
 
@@ -61,18 +63,20 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Name is required' }, { status: 400 })
   }
 
-  // Check project limit for free tier
-  const [{ cnt }] = await db
-    .select({ cnt: count(projects.id) })
-    .from(projects)
-    .where(and(eq(projects.householdId, householdId), isNull(projects.deletedAt)))
+  // Free tier is capped; premium is unlimited.
+  const limit = isPremium ? PLAN_LIMITS.premium.projects : PLAN_LIMITS.free.projects
+  if (Number.isFinite(limit)) {
+    const [{ cnt }] = await db
+      .select({ cnt: count(projects.id) })
+      .from(projects)
+      .where(and(eq(projects.householdId, householdId), isNull(projects.deletedAt)))
 
-  const limit = 3
-  if (Number(cnt) >= limit) {
-    return NextResponse.json(
-      { error: 'Project limit reached', code: 'TASKS_PROJECTS_LIMIT', limit, current: Number(cnt) },
-      { status: 403 }
-    )
+    if (Number(cnt) >= limit) {
+      return NextResponse.json(
+        { error: `Free plan is limited to ${limit} projects`, code: 'TASKS_PROJECTS_LIMIT', limit, current: Number(cnt) },
+        { status: 403 }
+      )
+    }
   }
 
   const [project] = await db

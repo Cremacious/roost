@@ -3,6 +3,7 @@
 import { useState, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { CornerDownLeft } from 'lucide-react'
+import { toast } from 'sonner'
 import { parseTaskInput, ParsedTask } from '@/lib/utils/parseTaskInput'
 
 interface TaskQuickCaptureProps {
@@ -27,6 +28,13 @@ export default function TaskQuickCapture({ onAdd, color, colorDark }: TaskQuickC
     try {
       await onAdd(parsed)
       setValue('')
+    } catch (err) {
+      // Coded errors (e.g. limit hit) open an upgrade gate handled by the parent;
+      // only show a toast for uncoded failures. Keep the input so the text isn't lost.
+      const e = err as Error & { code?: string }
+      if (!e.code) {
+        toast.error('Could not add task', { description: e.message || 'Please try again.' })
+      }
     } finally {
       setLoading(false)
       inputRef.current?.focus()
@@ -92,7 +100,7 @@ export default function TaskQuickCapture({ onAdd, color, colorDark }: TaskQuickC
       </div>
 
       <AnimatePresence>
-        {flash && (flash.dueDate || flash.priority) && (
+        {flash && (flash.dueDate || flash.priority || flash.assignee) && (
           <motion.div
             initial={{ opacity: 0, y: -4 }}
             animate={{ opacity: 1, y: 0 }}
@@ -119,6 +127,14 @@ export default function TaskQuickCapture({ onAdd, color, colorDark }: TaskQuickC
                 background: color + '18', color: color,
               }}>
                 {flash.priority}
+              </span>
+            )}
+            {flash.assignee && (
+              <span style={{
+                fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 20,
+                background: color + '18', color: color,
+              }}>
+                @{flash.assignee}
               </span>
             )}
           </motion.div>

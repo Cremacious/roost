@@ -7,7 +7,7 @@ import { toast } from 'sonner'
 import {
   Plus, Wallet, Receipt, BarChart3, Target, TrendingUp,
   CheckCircle, Clock, AlertCircle, ChevronRight, Edit2, Trash2, ChevronDown, ChevronUp,
-  LayoutGrid, DollarSign, FileText, Camera, Users, Lock, X, Pause, Play,
+  LayoutGrid, DollarSign, FileText, Camera, Users, Lock, X, Pause, Play, Download,
 } from 'lucide-react'
 import { format, parseISO, subDays } from 'date-fns'
 import { AreaChart, Area, XAxis, YAxis, Tooltip, PieChart, Pie, Cell, ResponsiveContainer } from 'recharts'
@@ -23,6 +23,7 @@ import { GoalSheet } from '@/components/money/GoalSheet'
 import { ContributeSheet } from '@/components/money/ContributeSheet'
 import { BillSheet, type EditableBill } from '@/components/money/BillSheet'
 import { BudgetSheet, type EditableBudget } from '@/components/money/BudgetSheet'
+import { ExportSheet } from '@/components/money/ExportSheet'
 import { useHousehold } from '@/lib/hooks/useHousehold'
 import { usePermissionGate } from '@/lib/hooks/usePermissionGate'
 import { usePlatformCapabilities } from '@/lib/hooks/usePlatformCapabilities'
@@ -780,10 +781,9 @@ function YearAccordion({ year, groups, manage }: { year: number; groups: Expense
   )
 }
 
-function ExpensesTab({ currentUserId, members, isPremium, isAdmin, onOpenExpense, onOpenSettle, onEditExpense, onUpgradeRequired }: {
+function ExpensesTab({ currentUserId, members, isAdmin, onOpenExpense, onOpenSettle, onEditExpense, onUpgradeRequired }: {
   currentUserId: string
   members: Member[]
-  isPremium: boolean
   isAdmin: boolean
   onOpenExpense: () => void
   onOpenSettle: (debt: DebtItem) => void
@@ -1590,7 +1590,7 @@ function GoalsTab({ isPremium, isAdmin, onNewGoal, onEditGoal, onContribute }: {
 
 const CHART_COLORS = ['#22C55E', '#3B82F6', '#F59E0B', '#EF4444', '#A855F7', '#F97316', '#06B6D4', '#EC4899']
 
-function InsightsTab({ isPremium }: { isPremium: boolean }) {
+function InsightsTab({ isPremium, onExport }: { isPremium: boolean; onExport: () => void }) {
   const [range, setRange] = useState<'7' | '30' | '90'>('30')
 
   const { data, isLoading } = useQuery({
@@ -1623,12 +1623,25 @@ function InsightsTab({ isPremium }: { isPremium: boolean }) {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-      <div style={{ display: 'flex', gap: 8 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
         {rangePills.map(p => (
           <button key={p.value} onClick={() => setRange(p.value)} style={{ padding: '6px 12px', borderRadius: 8, fontWeight: 700, fontSize: 12, backgroundColor: range === p.value ? COLOR : 'var(--roost-surface)', color: range === p.value ? '#fff' : 'var(--roost-text-secondary)', border: `1.5px solid ${range === p.value ? COLOR : 'var(--roost-border)'}`, borderBottom: `3px solid ${range === p.value ? COLOR_DARK : 'var(--roost-border-bottom)'}`, cursor: 'pointer' }}>
             {p.label}
           </button>
         ))}
+        <button
+          type="button"
+          onClick={onExport}
+          style={{
+            marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 6,
+            padding: '6px 12px', borderRadius: 8,
+            backgroundColor: 'var(--roost-surface)', color: 'var(--roost-text-secondary)',
+            border: '1.5px solid var(--roost-border)', borderBottom: '3px solid var(--roost-border-bottom)',
+            fontFamily: 'inherit', fontSize: 12, fontWeight: 700, cursor: 'pointer',
+          }}
+        >
+          <Download size={14} color={COLOR} /> Export
+        </button>
       </div>
 
       <SlabCard color={COLOR}>
@@ -1757,6 +1770,7 @@ export default function MoneyPage() {
   const [editingBill, setEditingBill] = useState<EditableBill | null>(null)
   const [budgetSheetOpen, setBudgetSheetOpen] = useState(false)
   const [editingBudget, setEditingBudget] = useState<EditableBudget | null>(null)
+  const [exportSheetOpen, setExportSheetOpen] = useState(false)
   const [claimBannerDismissed, setClaimBannerDismissed] = useState(false)
 
   const { isPremium, role } = useHousehold()
@@ -1957,7 +1971,6 @@ export default function MoneyPage() {
             <ExpensesTab
               currentUserId={currentUserId}
               members={members}
-              isPremium={isPremium}
               isAdmin={isAdmin}
               onOpenExpense={openCreateExpense}
               onOpenSettle={setSettleDebt}
@@ -1975,7 +1988,7 @@ export default function MoneyPage() {
               onContribute={setContributeGoal}
             />
           )}
-          {tab === 'insights' && <InsightsTab isPremium={isPremium} />}
+          {tab === 'insights' && <InsightsTab isPremium={isPremium} onExport={() => setExportSheetOpen(true)} />}
         </div>
       </motion.div>
 
@@ -2037,6 +2050,11 @@ export default function MoneyPage() {
         open={budgetSheetOpen}
         onClose={() => { setBudgetSheetOpen(false); setEditingBudget(null) }}
         budget={editingBudget}
+      />
+
+      <ExportSheet
+        open={exportSheetOpen}
+        onClose={() => setExportSheetOpen(false)}
       />
     </div>
   )

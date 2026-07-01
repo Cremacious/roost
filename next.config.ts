@@ -20,7 +20,9 @@ const nextConfig: NextConfig = {
     root: __dirname,
   },
   transpilePackages: ['@roost/constants', '@roost/utils', '@roost/api-types'],
-  serverExternalPackages: ['@node-rs/argon2'],
+  // pdfkit loads its built-in .afm font metrics from its own package via fs at
+  // runtime; keeping it external stops the bundler from breaking those requires.
+  serverExternalPackages: ['@node-rs/argon2', 'pdfkit'],
 }
 
 export default nextConfig

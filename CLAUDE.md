@@ -797,15 +797,15 @@ src/app/api/chores/history/route.ts         GET: premium-only, filtered chore_co
 src/app/(app)/chores/history/page.tsx       Chore completion history: member pills, date range, stats row, date-grouped list, load more
 src/app/(app)/expenses/page.tsx             Expenses: two-col desktop (balance hero + settle + expenses), chip strip mobile, pending confirmations
 src/components/expenses/SettleSheet.tsx     Two-sided settle flow: claim / waiting / confirm-or-dispute modes
-src/components/expenses/ExportSheet.tsx     Export: date range, quick-range pills, CSV/PDF format, preview, file download
+src/components/money/ExportSheet.tsx        v2 export sheet (DraggableSheet): From/To + quick-range pills (This month/Last month/Last 3 months/This year), CSV/PDF toggle, live count+total preview, client-side blob download. Opened from the Money page Insights tab Export button (premium only; the Insights tab itself is premium-gated, so free users see the Insights "Premium feature" state and never reach the export button).
 src/app/api/expenses/settle-all/route.ts    POST: initiate claim (settled_by_payer=true), replaced immediate-settle
 src/app/api/expenses/settle-all/claim/route.ts    POST: debtor claims they paid creditor
 src/app/api/expenses/settle-all/confirm/route.ts  POST: creditor confirms receipt, sets settled=true
 src/app/api/expenses/settle-all/dispute/route.ts  POST: creditor disputes claim, resets settled_by_payer
 src/app/api/expenses/settle-all/cancel/route.ts   POST: debtor cancels their pending claim
 src/app/api/expenses/settle-all/remind/route.ts   POST: send reminder to payee (rate limited 1/24h)
-src/app/api/expenses/export/route.ts        GET: export expenses as CSV or PDF (pdfkit, premium only)
-src/app/api/expenses/export/preview/route.ts  GET: preview count + total for date range (premium only)
+src/app/api/expenses/export/route.ts        GET ?from=&to=&format=csv|pdf: premium + non-child export of expenses (deleted_at null, is_recurring_draft false) in the createdAt range, joined to paidBy name + category name. CSV (Date/Title/Amount/Paid by/Category/Notes, UTF-8 BOM) or PDF (pdfkit built-in Helvetica, header + green summary box + month-grouped table). PDF Buffer wrapped in new Uint8Array() before Response. runtime='nodejs'; pdfkit in serverExternalPackages. numeric amounts parseFloat'd. Children + non-premium get 403 (EXPORT_PREMIUM).
+src/app/api/expenses/export/preview/route.ts  GET ?from=&to=: same premium + non-child gate, returns { count, total } for the range so ExportSheet can show a live preview.
 src/app/api/cron/settlement-reminders/route.ts  Daily 10am UTC: notify payees of pending claims >7 days old
 src/db/schema/recurring_expenses.ts           recurring_expense_templates table: id, household_id, created_by, title, category, notes, total_amount, frequency, next_due_date, last_posted_at, paused, splits (json), created_at, updated_at, deleted_at
 src/app/api/expenses/recurring/route.ts       GET: list all templates (non-deleted, premium-gated); POST: create template (admin + premium); exports advanceRecurringDate(from, frequency) helper
@@ -887,10 +887,19 @@ src/lib/constants/colors.ts                   Added "stats": "#6366F1" (indigo) 
 - DebtCard passes initialState ("pending" | "initial") to openSettle, SettleSheet accepts initialState prop to force the waiting view.
 - pendingClaim is embedded directly on each DebtItem from the API (not a separate flat array). API route embeds it via enhancedDebts map.
 - Expense row shows "your share" below total: green (you paid, owed back), red (you owe), gray (settled)
-- Export: ExportSheet with date range (From/To + quick-range pills), CSV/PDF format toggle, preview count/total
-  - GET /api/expenses/export?from=&to=&format=csv|pdf triggers file download
-  - GET /api/expenses/export/preview?from=&to= returns {count, total}
-  - PDF via pdfkit (built-in fonts only, no filesystem): header, summary box, expense table grouped by month
+- Export (premium, re-implemented for v2): Money page > Insights tab header > Export button (right-aligned
+  next to the range pills). Opens ExportSheet (src/components/money/ExportSheet.tsx). Export lives under
+  Insights because it is a reporting/analytics action; the Insights tab is already premium-gated (free users
+  see its "Premium feature" state), so the export button only renders for premium and free users are gated by
+  the Insights gate itself (no separate export gate is triggered). FEATURE_ACCESS.export in planLimits.ts and
+  the "export" entry in PREMIUM_GATE_CONFIG remain as the catalog entry for the feature.
+  - ExportSheet: From/To date inputs + quick-range pills (This month / Last month / Last 3 months / This year),
+    CSV/PDF format toggle, live count+total preview line, Download button (fetch -> blob -> temp anchor -> click).
+  - GET /api/expenses/export?from=&to=&format=csv|pdf triggers file download (premium + non-child; 403 EXPORT_PREMIUM otherwise, 403 for children)
+  - GET /api/expenses/export/preview?from=&to= returns {count, total} (same gate)
+  - CSV: header (Date, Title, Amount, Paid by, Category, Notes) + one row per expense, UTF-8 BOM, RFC-4180 quoting
+  - PDF via pdfkit (built-in Helvetica only, no filesystem font loading): Roost header, green summary box
+    (count + total), expense table grouped by month; runtime='nodejs', pdfkit in serverExternalPackages
   - pdfkit Buffer must be wrapped in new Uint8Array() before passing to Response constructor
 - API returns pendingClaims[] and totalSpentThisMonth alongside debts/balances/expenses
 - Debt simplification algorithm: net balance per person, greedy creditor/debtor matching

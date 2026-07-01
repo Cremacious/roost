@@ -70,6 +70,7 @@ export const FEATURE_ACCESS = {
   insights: { free: false, premium: true },
   receiptScanning: { free: false, premium: true },
   recurringExpenses: { free: false, premium: true },
+  export: { free: false, premium: true }, // CSV/PDF expense export
   // Meals
   unlimitedMealBank: { free: false, premium: true },
   // Household

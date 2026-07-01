@@ -2,6 +2,7 @@ import type { LucideIcon } from 'lucide-react'
 import {
   CheckSquare, ShoppingBag, DollarSign, CalendarDays,
   FileText, Bell, UtensilsCrossed, Users, Star, BarChart2, Tag, UserPlus, Home,
+  Download,
 } from 'lucide-react'
 
 export interface PremiumGateConfig {
@@ -125,6 +126,16 @@ export const PREMIUM_GATE_CONFIG: Record<string, PremiumGateConfig> = {
     featureColor: 'stats',
     featureHex: '#6366F1',
     featureDarkHex: '#4F46E5',
+  },
+  export: {
+    icon: Download,
+    title: 'Unlock expense export',
+    subtitle: 'Take your expense history anywhere you need it.',
+    perks: ['Export to CSV for spreadsheets', 'Export to PDF for records', 'Filter by any date range'],
+    valueProp: 'Your records, ready to download.',
+    featureColor: 'expenses',
+    featureHex: '#22C55E',
+    featureDarkHex: '#159040',
   },
   'chore-categories': {
     icon: Tag,

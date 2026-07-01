@@ -95,14 +95,17 @@ function ToggleRow({
   label,
   description,
   onChange,
+  locked = false,
 }: {
   checked: boolean
   label: string
   description: string
   onChange: (value: boolean) => void
+  locked?: boolean
 }) {
   return (
     <label
+      aria-disabled={locked || undefined}
       style={{
         display: 'flex',
         gap: 12,
@@ -110,7 +113,8 @@ function ToggleRow({
         justifyContent: 'space-between',
         padding: '12px 0',
         borderBottom: '1px solid var(--roost-border)',
-        cursor: 'pointer',
+        cursor: locked ? 'not-allowed' : 'pointer',
+        opacity: locked ? 0.55 : 1,
       }}
     >
       <div style={{ flex: 1, minWidth: 0 }}>
@@ -121,7 +125,8 @@ function ToggleRow({
         type="button"
         role="switch"
         aria-checked={checked}
-        onClick={() => onChange(!checked)}
+        aria-disabled={locked || undefined}
+        onClick={() => { if (!locked) onChange(!checked) }}
         style={{
           width: 44,
           height: 26,
@@ -130,7 +135,7 @@ function ToggleRow({
           background: checked ? '#6366F1' : 'var(--roost-bg)',
           position: 'relative',
           flexShrink: 0,
-          cursor: 'pointer',
+          cursor: locked ? 'not-allowed' : 'pointer',
           transition: 'all 0.15s ease',
         }}
       >
@@ -163,7 +168,7 @@ export default function MemberSheet({
   const [removeOpen, setRemoveOpen] = useState(false)
   const [removeLoading, setRemoveLoading] = useState(false)
   const [permissions, setPermissions] = useState<MemberPermissions | null>(null)
-  const [permissionsLoading, setPermissionsLoading] = useState(false)
+  const [permissionsSaving, setPermissionsSaving] = useState(false)
   const [upgradeAllowed, setUpgradeAllowed] = useState(false)
   const [upgradeSaving, setUpgradeSaving] = useState(false)
 
@@ -233,26 +238,37 @@ export default function MemberSheet({
     }
   }
 
-  async function handleSavePermissions() {
-    setPermissionsLoading(true)
+  // Permission toggles save immediately (per CLAUDE.md: "Changes take effect
+  // immediately server-side"). Optimistic update, revert the single key on error.
+  async function handleTogglePermission(key: keyof MemberPermissions, value: boolean) {
+    if (!permissions || !member) return
+    const next = { ...permissions, [key]: value }
+    setPermissions(next)
+    setPermissionsSaving(true)
     try {
-      const res = await fetch(`/api/household/members/${member!.id}`, {
+      // Never send finance permissions on for a child; the server rejects it
+      // with a 400 and children can never hold these flags.
+      const payload =
+        member.role === 'child'
+          ? { ...next, expensesView: false, expensesAdd: false }
+          : next
+      const res = await fetch(`/api/household/members/${member.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ permissions }),
+        body: JSON.stringify({ permissions: payload }),
       })
       if (!res.ok) {
         const data = await res.json().catch(() => ({}))
-        throw new Error(data.error ?? 'Failed to save permissions')
+        throw new Error(data.error ?? 'Failed to update permissions')
       }
-      toast.success('Permissions updated')
       onRefetch()
     } catch (err) {
+      setPermissions((prev) => (prev ? { ...prev, [key]: !value } : prev))
       toast.error('Could not update permissions', {
         description: err instanceof Error ? err.message : 'Please try again.',
       })
     } finally {
-      setPermissionsLoading(false)
+      setPermissionsSaving(false)
     }
   }
 
@@ -332,47 +348,36 @@ export default function MemberSheet({
 
           {!isAdmin && (
             <div style={DIVIDER_STYLE}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-                <Shield size={16} color="#6366F1" />
-                <span style={SECTION_LABEL_STYLE}>Permission overrides</span>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: 8 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <Shield size={16} color="#6366F1" />
+                  <span style={SECTION_LABEL_STYLE}>Permission overrides</span>
+                </div>
+                {permissionsSaving && (
+                  <span style={{ fontSize: 11, fontWeight: 700, color: '#6366F1' }}>Saving...</span>
+                )}
               </div>
               <p style={{ margin: '0 0 6px', fontSize: 12, fontWeight: 600, color: 'var(--roost-text-muted)', lineHeight: 1.5 }}>
-                These toggles override the member&apos;s default role permissions for this household.
+                These toggles override the member&apos;s default role permissions for this household. Changes save automatically.
               </p>
               <div>
-                {PERMISSION_FIELDS.map((field, index) => (
-                  <div key={field.key} style={index === PERMISSION_FIELDS.length - 1 ? { borderBottom: 'none' } : undefined}>
-                    <ToggleRow
-                      checked={permissions[field.key]}
-                      label={field.label}
-                      description={field.description}
-                      onChange={(value) => setPermissions((prev) => (prev ? { ...prev, [field.key]: value } : prev))}
-                    />
-                  </div>
-                ))}
+                {PERMISSION_FIELDS.map((field, index) => {
+                  // Children can never hold finance permissions; render those two
+                  // rows locked off (matches the server-side child finance block).
+                  const financeLocked = isChild && (field.key === 'expensesView' || field.key === 'expensesAdd')
+                  return (
+                    <div key={field.key} style={index === PERMISSION_FIELDS.length - 1 ? { borderBottom: 'none' } : undefined}>
+                      <ToggleRow
+                        checked={financeLocked ? false : permissions[field.key]}
+                        label={field.label}
+                        description={financeLocked ? 'Locked for child accounts. Children never have access to household money.' : field.description}
+                        locked={financeLocked}
+                        onChange={(value) => handleTogglePermission(field.key, value)}
+                      />
+                    </div>
+                  )
+                })}
               </div>
-              <motion.button
-                whileTap={{ y: 1 }}
-                type="button"
-                onClick={handleSavePermissions}
-                disabled={permissionsLoading}
-                style={{
-                  width: '100%',
-                  height: 46,
-                  marginTop: 14,
-                  borderRadius: 12,
-                  background: '#6366F1',
-                  border: 'none',
-                  borderBottom: '3px solid #4338CA',
-                  color: '#fff',
-                  fontSize: 14,
-                  fontWeight: 800,
-                  cursor: permissionsLoading ? 'not-allowed' : 'pointer',
-                  opacity: permissionsLoading ? 0.6 : 1,
-                }}
-              >
-                {permissionsLoading ? 'Saving permissions...' : 'Save permission overrides'}
-              </motion.button>
             </div>
           )}
 

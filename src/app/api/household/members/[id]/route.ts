@@ -63,6 +63,16 @@ export async function PATCH(
     return Response.json({ error: 'Invalid permissions payload' }, { status: 400 })
   }
 
+  // Child accounts can never hold finance permissions, regardless of the admin
+  // checklist. Attempting to enable either is a hard 400 (see CLAUDE.md
+  // Permission Rules); the child finance block is a documented invariant.
+  if (target.role === 'child' && (permissions.expensesView || permissions.expensesAdd)) {
+    return Response.json(
+      { error: 'Children cannot be granted expense permissions', code: 'CHILD_FINANCE_LOCKED' },
+      { status: 400 },
+    )
+  }
+
   const normalized = Object.fromEntries(
     PERMISSION_KEYS.map((key) => [key, Boolean(permissions[key])])
   )

@@ -65,6 +65,137 @@ function RoleBadge({ role }: { role: string }) {
   )
 }
 
+// ─── Member row ─────────────────────────────────────────────────────────────
+// Defined at module scope (not inside HouseholdPage) so its component identity
+// is stable across page re-renders. A component defined inside the page would
+// get a new identity every render, forcing React to remount every row and
+// replay the enter animation, which looked like the members list "reloading".
+
+function MemberRow({
+  member,
+  index,
+  currentUserId,
+  isAdmin,
+  onGear,
+  onRemove,
+}: {
+  member: SheetMember
+  index: number
+  currentUserId: string
+  isAdmin: boolean
+  onGear: (m: SheetMember) => void
+  onRemove: (m: SheetMember) => void
+}) {
+  const isSelf     = member.userId === currentUserId
+  const isAdminRow = member.role === 'admin'
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 6 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: Math.min(index * 0.04, 0.2), duration: 0.15 }}
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: 10,
+        padding: '10px 0',
+        borderBottom: '1px solid var(--roost-border)',
+      }}
+    >
+      {/* Avatar */}
+      <div style={{ position: 'relative', flexShrink: 0 }}>
+        <MemberAvatar name={member.name} avatarColor={member.avatarColor} size="md" />
+        {isAdminRow && (
+          <div style={{
+            position: 'absolute',
+            top: -5,
+            right: -3,
+            width: 14,
+            height: 14,
+            background: '#F59E0B',
+            borderRadius: '50%',
+            border: '2px solid var(--roost-surface)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}>
+            <svg viewBox="0 0 24 24" fill="white" stroke="none" width={7} height={7}>
+              <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+            </svg>
+          </div>
+        )}
+      </div>
+
+      {/* Info */}
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+          <span style={{ fontSize: 13, fontWeight: 800, color: 'var(--roost-text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            {member.name}
+          </span>
+          {isSelf && (
+            <span style={{ fontSize: 10, fontWeight: 700, color: '#15803D', background: '#DCFCE7', padding: '1px 5px', borderRadius: 4, flexShrink: 0 }}>
+              You
+            </span>
+          )}
+        </div>
+        <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--roost-text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          {member.email ?? (member.role === 'child' ? 'No account, child profile' : '')}
+        </div>
+      </div>
+
+      {/* Right: badge + actions */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
+        <RoleBadge role={member.role} />
+
+        {/* Gear button (admin only) */}
+        {isAdmin && (
+          <button
+            onClick={() => onGear(member)}
+            style={{
+              width: 28,
+              height: 28,
+              borderRadius: 8,
+              border: '1.5px solid var(--roost-border)',
+              borderBottom: '2px solid var(--roost-border-bottom)',
+              background: 'var(--roost-surface)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer',
+              flexShrink: 0,
+            }}
+            aria-label={`Edit ${member.name}`}
+          >
+            <Settings2 size={13} color="var(--roost-text-muted)" />
+          </button>
+        )}
+
+        {/* Remove button (admin only, not self, not other admins) */}
+        {isAdmin && !isSelf && !isAdminRow && (
+          <button
+            onClick={() => onRemove(member)}
+            style={{
+              width: 26,
+              height: 26,
+              borderRadius: 7,
+              border: '1.5px solid #FEE2E2',
+              background: '#FEE2E2',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer',
+              flexShrink: 0,
+            }}
+            aria-label={`Remove ${member.name}`}
+          >
+            <X size={11} color="#B91C1C" />
+          </button>
+        )}
+      </div>
+    </motion.div>
+  )
+}
+
 // ─── Main page ────────────────────────────────────────────────────────────────
 
 export default function HouseholdPage() {
@@ -321,119 +452,6 @@ export default function HouseholdPage() {
     </div>
   )
 
-  // ── Member row ─────────────────────────────────────────────────────────────
-
-  function MemberRow({ member, index }: { member: SheetMember; index: number }) {
-    const isSelf    = member.userId === currentUserId
-    const isAdminRow = member.role === 'admin'
-
-    return (
-      <motion.div
-        initial={{ opacity: 0, y: 6 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: Math.min(index * 0.04, 0.2), duration: 0.15 }}
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: 10,
-          padding: '10px 0',
-          borderBottom: '1px solid var(--roost-border)',
-        }}
-      >
-        {/* Avatar */}
-        <div style={{ position: 'relative', flexShrink: 0 }}>
-          <MemberAvatar name={member.name} avatarColor={member.avatarColor} size="md" />
-          {isAdminRow && (
-            <div style={{
-              position: 'absolute',
-              top: -5,
-              right: -3,
-              width: 14,
-              height: 14,
-              background: '#F59E0B',
-              borderRadius: '50%',
-              border: '2px solid var(--roost-surface)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}>
-              <svg viewBox="0 0 24 24" fill="white" stroke="none" width={7} height={7}>
-                <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
-              </svg>
-            </div>
-          )}
-        </div>
-
-        {/* Info */}
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-            <span style={{ fontSize: 13, fontWeight: 800, color: 'var(--roost-text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-              {member.name}
-            </span>
-            {isSelf && (
-              <span style={{ fontSize: 10, fontWeight: 700, color: '#15803D', background: '#DCFCE7', padding: '1px 5px', borderRadius: 4, flexShrink: 0 }}>
-                You
-              </span>
-            )}
-          </div>
-          <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--roost-text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-            {member.email ?? (member.role === 'child' ? 'No account, child profile' : '')}
-          </div>
-        </div>
-
-        {/* Right: badge + actions */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
-          <RoleBadge role={member.role} />
-
-          {/* Gear button (admin only) */}
-          {isAdmin && (
-            <button
-              onClick={() => setGearMember(member)}
-              style={{
-                width: 28,
-                height: 28,
-                borderRadius: 8,
-                border: '1.5px solid var(--roost-border)',
-                borderBottom: '2px solid var(--roost-border-bottom)',
-                background: 'var(--roost-surface)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                cursor: 'pointer',
-                flexShrink: 0,
-              }}
-              aria-label={`Edit ${member.name}`}
-            >
-              <Settings2 size={13} color="var(--roost-text-muted)" />
-            </button>
-          )}
-
-          {/* Remove button (admin only, not self, not other admins) */}
-          {isAdmin && !isSelf && !isAdminRow && (
-            <button
-              onClick={() => setRemoveTarget(member)}
-              style={{
-                width: 26,
-                height: 26,
-                borderRadius: 7,
-                border: '1.5px solid #FEE2E2',
-                background: '#FEE2E2',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                cursor: 'pointer',
-                flexShrink: 0,
-              }}
-              aria-label={`Remove ${member.name}`}
-            >
-              <X size={11} color="#B91C1C" />
-            </button>
-          )}
-        </div>
-      </motion.div>
-    )
-  }
-
   // ── Invite row ─────────────────────────────────────────────────────────────
 
   const InviteRow = (
@@ -546,7 +564,15 @@ export default function HouseholdPage() {
       {/* Slab body */}
       <div style={{ padding: '6px 16px 14px' }}>
         {members.map((m, i) => (
-          <MemberRow key={m.userId} member={m} index={i} />
+          <MemberRow
+            key={m.userId}
+            member={m}
+            index={i}
+            currentUserId={currentUserId}
+            isAdmin={isAdmin}
+            onGear={setGearMember}
+            onRemove={setRemoveTarget}
+          />
         ))}
         {InviteRow}
       </div>

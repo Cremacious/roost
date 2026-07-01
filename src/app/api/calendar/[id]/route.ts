@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getSession, getUserHousehold, checkMemberPermission } from '@/lib/auth/helpers'
+import { getSession, getUserHousehold, checkMemberPermission, isHouseholdPremium } from '@/lib/auth/helpers'
 import { db } from '@/lib/db'
 import { calendarEvents, eventAttendees } from '@/db/schema'
 import { eq, and } from 'drizzle-orm'
@@ -30,6 +30,10 @@ export async function PATCH(
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 
+  if (role === 'child') {
+    return NextResponse.json({ error: 'Children cannot edit calendar events', code: 'PERMISSION_DENIED' }, { status: 403 })
+  }
+
   const canEdit = await checkMemberPermission(session.user.id, householdId, role, 'calendarEdit')
   if (!canEdit) return NextResponse.json({ error: 'You do not have permission to edit calendar events', code: 'PERMISSION_DENIED' }, { status: 403 })
 
@@ -55,6 +59,17 @@ export async function PATCH(
     body = await req.json()
   } catch {
     return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 })
+  }
+
+  // Turning an event into a recurring one is premium-only.
+  if (body.recurring === true && !existing.recurring) {
+    const isPremium = await isHouseholdPremium(householdId)
+    if (!isPremium) {
+      return NextResponse.json(
+        { error: 'Recurring events are a premium feature', code: 'RECURRING_EVENTS_PREMIUM' },
+        { status: 403 },
+      )
+    }
   }
 
   const updates: Partial<typeof existing> = {
@@ -121,6 +136,9 @@ export async function DELETE(
 
   if (!existing) return NextResponse.json({ error: 'Not found' }, { status: 404 })
   if (existing.householdId !== householdId) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  if (role === 'child') {
+    return NextResponse.json({ error: 'Children cannot delete calendar events', code: 'PERMISSION_DENIED' }, { status: 403 })
+  }
   if (existing.createdBy !== session.user.id && role !== 'admin') {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }

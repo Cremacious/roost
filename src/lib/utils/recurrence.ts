@@ -27,7 +27,11 @@ export function expandRecurring<T extends RecurrenceFields>(
   const durationMs = event.endTime.getTime() - event.startTime.getTime()
   let current = new Date(event.startTime)
   let count = 0
-  const MAX = 60
+  // Safety cap on total iterations. Sized so even a daily event started ~10
+  // years before the viewed range still expands into it. `count` doubles as the
+  // occurrence index used for the after_occurrences end condition, so we must
+  // walk every occurrence from the template start rather than skipping ahead.
+  const MAX = 3660
 
   while (count < MAX) {
     // Check end conditions

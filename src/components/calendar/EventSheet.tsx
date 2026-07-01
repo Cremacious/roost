@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { motion } from 'framer-motion'
-import { Bell, CalendarDays, CheckSquare, Clock, Lock, MapPin, Trash2, Users } from 'lucide-react'
+import { Bell, CalendarDays, CheckSquare, Clock, Lock, MapPin, Repeat, Trash2, Users } from 'lucide-react'
 import { toast } from 'sonner'
 import { DayPicker } from 'react-day-picker'
 import { format, addDays, addHours } from 'date-fns'
@@ -55,7 +55,23 @@ interface EventSheetProps {
   members: Member[]
   defaultDate?: Date
   currentUserId: string
+  isPremium: boolean
+  onUpgradeRequired?: (code: string) => void
 }
+
+const FREQUENCY_OPTIONS = [
+  { value: 'daily', label: 'Daily' },
+  { value: 'weekly', label: 'Weekly' },
+  { value: 'biweekly', label: 'Biweekly' },
+  { value: 'monthly', label: 'Monthly' },
+  { value: 'yearly', label: 'Yearly' },
+] as const
+
+const END_TYPE_OPTIONS = [
+  { value: 'forever', label: 'Forever' },
+  { value: 'until_date', label: 'Until date' },
+  { value: 'after_occurrences', label: 'After N' },
+] as const
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -148,6 +164,8 @@ export default function EventSheet({
   members,
   defaultDate,
   currentUserId,
+  isPremium,
+  onUpgradeRequired,
 }: EventSheetProps) {
   const isEdit = Boolean(event)
   const qc = useQueryClient()
@@ -166,6 +184,11 @@ export default function EventSheet({
   const [allDay, setAllDay] = useState(false)
   const [attendeeIds, setAttendeeIds] = useState<string[]>([])
   const [rsvpEnabled, setRsvpEnabled] = useState(false)
+  const [recurring, setRecurring] = useState(false)
+  const [frequency, setFrequency] = useState<string>('weekly')
+  const [repeatEndType, setRepeatEndType] = useState<string>('forever')
+  const [repeatUntil, setRepeatUntil] = useState('')
+  const [repeatOccurrences, setRepeatOccurrences] = useState(10)
   const [notifyAll, setNotifyAll] = useState(false)
   const [notifySpecificIds, setNotifySpecificIds] = useState<string[]>([])
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
@@ -180,8 +203,13 @@ export default function EventSheet({
       setDescription(event.description ?? '')
       setLocation(event.location ?? '')
       setCategory(event.category ?? '')
-      const s = new Date(event.startTime)
-      const e = new Date(event.endTime)
+      // For a recurring instance, anchor edits on the series template start so
+      // saving updates the whole series without rebasing it to the clicked day.
+      const instStart = new Date(event.startTime)
+      const instEnd = new Date(event.endTime)
+      const durationMs = instEnd.getTime() - instStart.getTime()
+      const s = event.isRecurring && event.templateStartTime ? new Date(event.templateStartTime) : instStart
+      const e = new Date(s.getTime() + durationMs)
       setStartDate(toDateStr(s))
       setStartTime(toTimeStr(s))
       setEndDate(toDateStr(e))
@@ -190,6 +218,11 @@ export default function EventSheet({
       setCalMonth(s)
       setAttendeeIds(event.attendees.map(a => a.userId))
       setRsvpEnabled(event.rsvpEnabled)
+      setRecurring(event.recurring)
+      setFrequency(event.frequency ?? 'weekly')
+      setRepeatEndType(event.repeatEndType ?? 'forever')
+      setRepeatUntil(event.repeatUntil ? toDateStr(new Date(event.repeatUntil)) : '')
+      setRepeatOccurrences(event.repeatOccurrences ?? 10)
       if (event.notifyMemberIds === 'all') {
         setNotifyAll(true); setNotifySpecificIds([])
       } else if (event.notifyMemberIds) {
@@ -206,6 +239,8 @@ export default function EventSheet({
       setAllDay(false); setCalMonth(d)
       setAttendeeIds([]); setRsvpEnabled(false)
       setNotifyAll(false); setNotifySpecificIds([])
+      setRecurring(false); setFrequency('weekly'); setRepeatEndType('forever')
+      setRepeatUntil(''); setRepeatOccurrences(10)
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [event, defaultDate, open])
@@ -231,6 +266,15 @@ export default function EventSheet({
         notifyMemberIds,
         rsvpEnabled,
         attendeeIds,
+        recurring,
+        frequency: recurring ? frequency : undefined,
+        repeatEndType: recurring ? repeatEndType : undefined,
+        repeatUntil:
+          recurring && repeatEndType === 'until_date' && repeatUntil
+            ? new Date(`${repeatUntil}T23:59:59`).toISOString()
+            : undefined,
+        repeatOccurrences:
+          recurring && repeatEndType === 'after_occurrences' ? repeatOccurrences : undefined,
       }
 
       const url = isEdit ? `/api/calendar/${event!.id}` : '/api/calendar'
@@ -238,7 +282,9 @@ export default function EventSheet({
       const res = await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
       if (!res.ok) {
         const data = await res.json().catch(() => ({}))
-        throw new Error(data.error ?? 'Failed to save event')
+        const error = new Error(data.error ?? 'Failed to save event') as Error & { code?: string }
+        error.code = data.code
+        throw error
       }
       return res.json()
     },
@@ -247,7 +293,11 @@ export default function EventSheet({
       toast.success(isEdit ? 'Event updated' : 'Event added')
       onClose()
     },
-    onError: (err: Error) => {
+    onError: (err: Error & { code?: string }) => {
+      if (err.code && (err.code === 'RECURRING_EVENTS_PREMIUM' || err.code === 'CALENDAR_LIMIT') && onUpgradeRequired) {
+        onUpgradeRequired(err.code)
+        return
+      }
       toast.error('Could not save event', { description: err.message })
     },
   })
@@ -288,6 +338,15 @@ export default function EventSheet({
   const handleNotifyAllToggle = () => {
     setNotifyAll(v => !v)
     setNotifySpecificIds([])
+  }
+
+  // Recurring is premium-only. Free users hit the upgrade gate on toggle-on.
+  const handleRepeatToggle = () => {
+    if (!recurring && !isPremium) {
+      onUpgradeRequired?.('RECURRING_EVENTS_PREMIUM')
+      return
+    }
+    setRecurring(v => !v)
   }
 
   const canDelete =
@@ -346,6 +405,12 @@ export default function EventSheet({
               applyStartDate={applyStartDate} applyStartTime={applyStartTime}
               attendeeIds={attendeeIds} toggleAttendee={toggleAttendee}
               rsvpEnabled={rsvpEnabled} setRsvpEnabled={setRsvpEnabled}
+              recurring={recurring} handleRepeatToggle={handleRepeatToggle}
+              frequency={frequency} setFrequency={setFrequency}
+              repeatEndType={repeatEndType} setRepeatEndType={setRepeatEndType}
+              repeatUntil={repeatUntil} setRepeatUntil={setRepeatUntil}
+              repeatOccurrences={repeatOccurrences} setRepeatOccurrences={setRepeatOccurrences}
+              isPremium={isPremium}
               notifyAll={notifyAll} handleNotifyAllToggle={handleNotifyAllToggle}
               notifySpecificIds={notifySpecificIds} toggleNotifyMember={toggleNotifyMember}
               members={members}
@@ -372,6 +437,12 @@ export default function EventSheet({
               applyStartDate={applyStartDate} applyStartTime={applyStartTime}
               attendeeIds={attendeeIds} toggleAttendee={toggleAttendee}
               rsvpEnabled={rsvpEnabled} setRsvpEnabled={setRsvpEnabled}
+              recurring={recurring} handleRepeatToggle={handleRepeatToggle}
+              frequency={frequency} setFrequency={setFrequency}
+              repeatEndType={repeatEndType} setRepeatEndType={setRepeatEndType}
+              repeatUntil={repeatUntil} setRepeatUntil={setRepeatUntil}
+              repeatOccurrences={repeatOccurrences} setRepeatOccurrences={setRepeatOccurrences}
+              isPremium={isPremium}
               notifyAll={notifyAll} handleNotifyAllToggle={handleNotifyAllToggle}
               notifySpecificIds={notifySpecificIds} toggleNotifyMember={toggleNotifyMember}
               members={members}
@@ -484,6 +555,12 @@ interface LeftColProps {
   applyStartTime: (t: string) => void
   attendeeIds: string[]; toggleAttendee: (uid: string) => void
   rsvpEnabled: boolean; setRsvpEnabled: (fn: (v: boolean) => boolean) => void
+  recurring: boolean; handleRepeatToggle: () => void
+  frequency: string; setFrequency: (v: string) => void
+  repeatEndType: string; setRepeatEndType: (v: string) => void
+  repeatUntil: string; setRepeatUntil: (v: string) => void
+  repeatOccurrences: number; setRepeatOccurrences: (v: number) => void
+  isPremium: boolean
   notifyAll: boolean; handleNotifyAllToggle: () => void
   notifySpecificIds: string[]; toggleNotifyMember: (uid: string) => void
   members: Member[]
@@ -500,6 +577,9 @@ function LeftColumn({
   endDate, setEndDate, endTime, setEndTime, allDay, setAllDay,
   applyStartDate, applyStartTime,
   attendeeIds, toggleAttendee, rsvpEnabled, setRsvpEnabled,
+  recurring, handleRepeatToggle, frequency, setFrequency,
+  repeatEndType, setRepeatEndType, repeatUntil, setRepeatUntil,
+  repeatOccurrences, setRepeatOccurrences, isPremium,
   notifyAll, handleNotifyAllToggle, notifySpecificIds, toggleNotifyMember,
   members, canDelete, saveMutation, handleSave, setShowDeleteDialog,
 }: LeftColProps) {
@@ -606,6 +686,91 @@ function LeftColumn({
           <span style={{ fontSize: 13, fontWeight: 700, color: '#1E40AF' }}>{summary}</span>
         </div>
       )}
+
+      {/* Repeat / recurrence */}
+      <div>
+        <div style={{
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          padding: '8px 13px', backgroundColor: '#F8FAFC',
+          border: '1.5px solid #BAD3F7', borderBottom: `3px solid ${COLOR_DARK}`, borderRadius: 12,
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, fontWeight: 700, color: '#374151' }}>
+            {recurring || isPremium ? <Repeat size={15} style={{ color: COLOR }} /> : <Lock size={15} style={{ color: '#94A3B8' }} />}
+            Repeat
+          </div>
+          <TogglePill on={recurring} onToggle={handleRepeatToggle} />
+        </div>
+
+        {recurring && (
+          <div style={{ marginTop: 10, display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {/* Frequency */}
+            <div>
+              <label style={labelStyle}>Frequency</label>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                {FREQUENCY_OPTIONS.map(f => {
+                  const active = frequency === f.value
+                  return (
+                    <button key={f.value} type="button" onClick={() => setFrequency(f.value)}
+                      style={{
+                        padding: '5px 11px', borderRadius: 20, fontSize: 12, fontWeight: 700, cursor: 'pointer',
+                        border: active ? `1.5px solid ${COLOR}` : '1.5px solid transparent',
+                        backgroundColor: active ? COLOR : '#F1F5F9',
+                        color: active ? '#fff' : '#475569',
+                      }}>
+                      {f.label}
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+
+            {/* End condition */}
+            <div>
+              <label style={labelStyle}>Ends</label>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                {END_TYPE_OPTIONS.map(t => {
+                  const active = repeatEndType === t.value
+                  return (
+                    <button key={t.value} type="button" onClick={() => setRepeatEndType(t.value)}
+                      style={{
+                        padding: '5px 11px', borderRadius: 20, fontSize: 12, fontWeight: 700, cursor: 'pointer',
+                        border: active ? `1.5px solid ${COLOR}` : '1.5px solid transparent',
+                        backgroundColor: active ? COLOR : '#F1F5F9',
+                        color: active ? '#fff' : '#475569',
+                      }}>
+                      {t.label}
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+
+            {repeatEndType === 'until_date' && (
+              <div>
+                <label style={labelStyle}>Repeat until</label>
+                <input type="date" value={repeatUntil} onChange={e => setRepeatUntil(e.target.value)} style={nativePickerStyle} />
+              </div>
+            )}
+
+            {repeatEndType === 'after_occurrences' && (
+              <div>
+                <label style={labelStyle}>Number of times</label>
+                <input
+                  type="number" min={1} max={365} value={repeatOccurrences}
+                  onChange={e => setRepeatOccurrences(Math.max(1, parseInt(e.target.value || '1', 10)))}
+                  style={inputStyle}
+                />
+              </div>
+            )}
+
+            {isEdit && (
+              <p style={{ fontSize: 11, fontWeight: 600, color: COLOR }}>
+                Editing this event updates every occurrence in the series.
+              </p>
+            )}
+          </div>
+        )}
+      </div>
 
       {/* Category */}
       <div>

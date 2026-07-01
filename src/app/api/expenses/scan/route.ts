@@ -1,13 +1,9 @@
 import { NextResponse } from 'next/server'
-import { getSession, getUserHousehold } from '@/lib/auth/helpers'
-import { db } from '@/lib/db'
-import { receiptScanUsage } from '@/db/schema'
-import { eq, and } from 'drizzle-orm'
+import { getSession, getUserHousehold, isHouseholdPremium } from '@/lib/auth/helpers'
 import { parseReceiptImage } from '@/lib/utils/azureReceipts'
 import { createRateLimiter } from '@/lib/utils/rateLimit'
 
 const MAX_BASE64_LENGTH = 14_000_000 // ~10MB
-const FREE_TIER_SCAN_LIMIT = 75
 
 // Per-user burst limit: 10 scans per 5 minutes.
 // This protects the Azure OCR quota (500 free scans/month for the whole account)
@@ -24,6 +20,18 @@ export async function POST(request: Request) {
 
   if (membership.role === 'child') {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  }
+
+  // Receipt scanning is premium-only. Free households cannot scan at all.
+  const isPremium = await isHouseholdPremium(membership.householdId)
+  if (!isPremium) {
+    return NextResponse.json(
+      {
+        error: 'Receipt scanning is a premium feature.',
+        code: 'RECEIPT_SCANNING_PREMIUM',
+      },
+      { status: 403 }
+    )
   }
 
   // Burst rate limit: checked before body parsing to fail fast and cheaply
@@ -54,64 +62,8 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Receipt scanning not configured' }, { status: 503 })
   }
 
-  // Quota check for free tier (75 scans/month)
-  const isPremium = membership.household.subscriptionStatus === 'premium'
-  if (!isPremium) {
-    const currentMonth = new Date().toISOString().slice(0, 7) // YYYY-MM
-    const [usage] = await db
-      .select({ count: receiptScanUsage.count })
-      .from(receiptScanUsage)
-      .where(
-        and(
-          eq(receiptScanUsage.householdId, membership.householdId),
-          eq(receiptScanUsage.month, currentMonth),
-        )
-      )
-      .limit(1)
-
-    if (usage && usage.count >= FREE_TIER_SCAN_LIMIT) {
-      return NextResponse.json(
-        {
-          error: 'Monthly scan limit reached. Upgrade to premium for unlimited scans.',
-          code: 'SCAN_LIMIT_REACHED',
-          limit: FREE_TIER_SCAN_LIMIT,
-          current: usage.count,
-        },
-        { status: 403 }
-      )
-    }
-  }
-
   try {
     const receipt = await parseReceiptImage(body.imageBase64)
-
-    // Increment usage counter after successful scan (free tier only)
-    if (!isPremium) {
-      const currentMonth = new Date().toISOString().slice(0, 7)
-      const [existing] = await db
-        .select({ id: receiptScanUsage.id, count: receiptScanUsage.count })
-        .from(receiptScanUsage)
-        .where(
-          and(
-            eq(receiptScanUsage.householdId, membership.householdId),
-            eq(receiptScanUsage.month, currentMonth),
-          )
-        )
-        .limit(1)
-
-      if (existing) {
-        await db
-          .update(receiptScanUsage)
-          .set({ count: existing.count + 1, updatedAt: new Date() })
-          .where(eq(receiptScanUsage.id, existing.id))
-      } else {
-        await db.insert(receiptScanUsage).values({
-          householdId: membership.householdId,
-          month: currentMonth,
-          count: 1,
-        })
-      }
-    }
 
     if (receipt.lineItems.length === 0) {
       return NextResponse.json({

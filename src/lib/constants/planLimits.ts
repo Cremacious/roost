@@ -29,7 +29,6 @@ export const PLAN_LIMITS = {
     children: 1,
     householdsPerUser: 1,
     groceryLists: 1,
-    receiptScansPerMonth: 75,
     calendarEventsPerMonth: 20,
   },
   premium: {
@@ -39,7 +38,6 @@ export const PLAN_LIMITS = {
     children: Infinity,
     householdsPerUser: Infinity,
     groceryLists: Infinity,
-    receiptScansPerMonth: Infinity,
     calendarEventsPerMonth: Infinity,
   },
 } as const

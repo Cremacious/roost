@@ -622,7 +622,7 @@ export function ExpenseSheet({ open, onClose, members, currentUserId, isPremium,
                 Scan receipt to auto-fill
               </p>
               <p style={{ color: COLOR_DARK, fontWeight: 600, fontSize: 12, margin: 0, opacity: 0.7 }}>
-                {isPremium ? '75 free scans/month' : 'Premium feature'}
+                {isPremium ? 'Unlimited scans' : 'Premium feature'}
               </p>
             </div>
           </button>

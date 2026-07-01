@@ -10,6 +10,7 @@ import { SnapshotStrip } from '@/components/today/SnapshotStrip'
 import { SkeletonCard, Skeleton } from '@/components/ui/skeleton'
 import WelcomeModal from '@/components/shared/WelcomeModal'
 import { UpgradeAccountBanner } from '@/components/account/UpgradeAccountBanner'
+import RewardsWidget from '@/components/shared/RewardsWidget'
 
 interface ChoreItem { id: string; title: string; nextDueAt: string | null; frequency?: string; overdue: boolean }
 interface TodayData {
@@ -77,6 +78,8 @@ export default function TodayPage() {
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ['today'] })
+      // Keep the rewards widget's progress in sync when a chore is completed here.
+      queryClient.invalidateQueries({ queryKey: ['rewards-child'] })
     },
   })
 
@@ -185,6 +188,10 @@ export default function TodayPage() {
             </div>
           </div>
         )}
+
+        {/* Child/member rewards — renders nothing for free households or users
+            with no reward goals (hidden via the /api/rewards/child response) */}
+        <RewardsWidget />
 
         <p style={{ fontSize: 10, fontWeight: 800, color: 'var(--roost-text-muted)', letterSpacing: '0.08em', margin: 0 }}>
           QUICK LOOK

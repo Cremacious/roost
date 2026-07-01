@@ -6,6 +6,8 @@ import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { Gift, Plus, ChevronLeft, Trophy, CheckCircle, Zap, ToggleLeft, ToggleRight, Edit2 } from 'lucide-react'
 import RewardRuleSheet, { type RewardRule, type RewardMember } from '@/components/chores/RewardRuleSheet'
+import RewardsWidget from '@/components/shared/RewardsWidget'
+import { useHousehold } from '@/lib/hooks/useHousehold'
 
 const COLOR = '#A855F7'
 const COLOR_DARK = '#7C28C8'
@@ -234,6 +236,12 @@ export default function RewardsPage() {
   const router = useRouter()
   const queryClient = useQueryClient()
 
+  // Premium status is a household-level fact — read it from the household, not
+  // from /api/rewards (which is admin-only and 403s for non-admins). A premium
+  // child/member must NOT be shown the free-tier upsell.
+  const { role, isPremium, isLoading: householdLoading } = useHousehold()
+  const isAdmin = role === 'admin'
+
   const [sheetOpen, setSheetOpen] = useState(false)
   const [editingRule, setEditingRule] = useState<RuleWithProgress | null>(null)
   const [togglingId, setTogglingId] = useState<string | null>(null)
@@ -245,6 +253,8 @@ export default function RewardsPage() {
       if (!r.ok) throw new Error('Failed to load rewards')
       return r.json()
     },
+    // Only admins can read the management endpoint; skip the guaranteed 403.
+    enabled: isAdmin,
   })
 
   const toggleMutation = useMutation({
@@ -263,7 +273,6 @@ export default function RewardsPage() {
     },
   })
 
-  const isPremium = data?.isPremium ?? false
   const members: RewardMember[] = data?.members ?? []
   const rules = data?.rules ?? []
 
@@ -277,7 +286,9 @@ export default function RewardsPage() {
     setSheetOpen(true)
   }
 
-  if (isLoading) {
+  // Wait for household to resolve before deciding which view to show, so a
+  // premium non-admin never briefly sees the upsell.
+  if (householdLoading || (isAdmin && isLoading)) {
     return (
       <div style={{ maxWidth: 768, margin: '0 auto', padding: '24px 16px 80px' }}>
         <div style={{ height: 32, width: 160, borderRadius: 8, backgroundColor: 'var(--roost-border)', marginBottom: 24 }} />
@@ -351,6 +362,44 @@ export default function RewardsPage() {
             Upgrade to Premium
           </button>
         </div>
+      </motion.div>
+    )
+  }
+
+  // Premium non-admin (child or member): show their own rewards, not the
+  // admin management page (which they cannot load — /api/rewards is admin-only).
+  if (!isAdmin) {
+    return (
+      <motion.div
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.18 }}
+        style={{ maxWidth: 768, margin: '0 auto', padding: '24px 16px 80px' }}
+      >
+        <button
+          type="button"
+          onClick={() => router.push('/chores')}
+          style={{
+            display: 'flex', alignItems: 'center', gap: 6,
+            background: 'none', border: 'none', cursor: 'pointer',
+            color: 'var(--roost-text-muted)', fontSize: 14, fontWeight: 700,
+            marginBottom: 20, padding: 0, fontFamily: 'inherit',
+          }}
+        >
+          <ChevronLeft size={16} />
+          Back to chores
+        </button>
+
+        <div style={{ marginBottom: 20 }}>
+          <h1 style={{ fontSize: 26, fontWeight: 900, color: 'var(--roost-text-primary)', marginBottom: 4 }}>
+            Rewards
+          </h1>
+          <p style={{ fontSize: 14, color: 'var(--roost-text-muted)', fontWeight: 600 }}>
+            Your goals and earnings
+          </p>
+        </div>
+
+        <RewardsWidget showWhenEmpty />
       </motion.div>
     )
   }

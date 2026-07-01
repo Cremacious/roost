@@ -4,7 +4,7 @@ import { db } from '@/lib/db'
 import { calendarEvents, eventAttendees, householdMembers, users } from '@/db/schema'
 import { eq, and, isNull, gte, lt, count, inArray } from 'drizzle-orm'
 import { expandRecurring } from '@/lib/utils/recurrence'
-import { FREE_TIER_LIMITS } from '@/lib/constants/freeTierLimits'
+import { PLAN_LIMITS } from '@/lib/constants/planLimits'
 
 // ─── GET ───────────────────────────────────────────────────────────────────────
 
@@ -239,7 +239,7 @@ export async function POST(req: NextRequest) {
           lt(calendarEvents.startTime, monthEnd),
         ),
       )
-    const limit = FREE_TIER_LIMITS.calendarEventsPerMonth
+    const limit = PLAN_LIMITS.free.calendarEventsPerMonth
     if (n >= limit) {
       return NextResponse.json(
         {

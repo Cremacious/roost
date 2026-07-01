@@ -709,7 +709,7 @@ src/components/shared/PremiumGate.tsx          Unified premium gate: 3 trigger v
 src/lib/constants/premiumGateConfig.ts         PREMIUM_GATE_CONFIG: 13 feature entries (chores/grocery/expenses/calendar/tasks/notes/reminders/meals/allowances/guests/themes/stats/chore-categories), each with featureColor, featureHex, featureDarkHex, icon, title, subtitle, perks[], valueProp. "allowances" key used for the Rewards feature gate (key name kept stable, copy updated to reflect flexible rewards system).
 src/components/settings/MemberSheet.tsx        Admin member management: role picker, 12 permission toggles, child PIN change, rewards info callout (pointing to Chores page), remove member
 src/components/dev/DevTools.tsx                Dev-only floating toolbar: premium toggle switch, user info, household info
-src/lib/constants/freeTierLimits.ts            FREE_TIER_LIMITS: members(5), children(1), chores(5), tasks(10), calendarEventsPerMonth(20), notes(10), activeSingleReminders(5), mealBank(5), groceryLists(1)
+src/lib/constants/planLimits.ts               Single source of truth for plan limits. PLAN_LIMITS (free/premium countable caps, Infinity = unlimited: chores, notes, members, children, householdsPerUser, groceryLists, receiptScansPerMonth, calendarEventsPerMonth), FEATURE_ACCESS (premium feature matrix), helpers tierFor(), planLimit(), hasFeature()
 src/lib/utils/premiumGating.ts                 Server-side limit checkers: checkChoreLimit, checkTaskLimit, checkNoteLimit, checkCalendarEventLimit, checkReminderLimit, checkMealBankLimit, checkMemberLimit
 src/components/chores/ChoreSheet.tsx           Add/edit sheet: slab inputs, slab freq toggles, slab day buttons; isPremium + onUpgradeRequired props; Lock icon on premium-only freqs
 src/components/chores/LeaderboardSheet.tsx     Weekly leaderboard: slab cards, gold/silver/bronze rank badges
@@ -1304,7 +1304,7 @@ Designer brief (send this when hiring):
   Brand red: #EF4444
 
 ## Premium Enforcement UX Patterns
-- Free tier limits live in src/lib/constants/freeTierLimits.ts (FREE_TIER_LIMITS)
+- Free tier limits live in src/lib/constants/planLimits.ts (PLAN_LIMITS countable caps + FEATURE_ACCESS premium matrix)
 - Server-side limit checks live in src/lib/utils/premiumGating.ts
 - API routes return 403 with { error, code, limit, current } shape when limit hit
 - Error codes: CHORES_LIMIT, RECURRING_CHORES_PREMIUM, TASKS_LIMIT, NOTES_LIMIT,

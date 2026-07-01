@@ -30,6 +30,7 @@ export const PLAN_LIMITS = {
     householdsPerUser: 1,
     groceryLists: 1,
     receiptScansPerMonth: 75,
+    calendarEventsPerMonth: 20,
   },
   premium: {
     chores: Infinity,
@@ -39,6 +40,7 @@ export const PLAN_LIMITS = {
     householdsPerUser: Infinity,
     groceryLists: Infinity,
     receiptScansPerMonth: Infinity,
+    calendarEventsPerMonth: Infinity,
   },
 } as const
 

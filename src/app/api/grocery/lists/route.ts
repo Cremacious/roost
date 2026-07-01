@@ -1,8 +1,9 @@
 import { NextResponse } from 'next/server'
 import { getSession, getUserHousehold, checkMemberPermission } from '@/lib/auth/helpers'
 import { db } from '@/lib/db'
-import { groceryLists, groceryItems } from '@/db/schema'
+import { groceryLists, groceryItems, households } from '@/db/schema'
 import { eq, and, isNull, sql } from 'drizzle-orm'
+import { planLimit } from '@/lib/constants/planLimits'
 
 async function getOrCreateDefaultList(householdId: string, userId: string) {
   const existing = await db
@@ -65,6 +66,34 @@ export async function POST(request: Request) {
 
   const canCreate = await checkMemberPermission(session.user.id, membership.householdId, membership.role, 'groceryCreateList')
   if (!canCreate) return NextResponse.json({ error: 'You do not have permission to create grocery lists', code: 'PERMISSION_DENIED' }, { status: 403 })
+
+  // Free households are capped at a single list; premium is unlimited.
+  // Enforced here (not just client-side) so the paywall can't be bypassed.
+  const [hh] = await db
+    .select({ status: households.subscription_status, expiresAt: households.premium_expires_at })
+    .from(households)
+    .where(eq(households.id, membership.householdId))
+    .limit(1)
+  const isPremium =
+    hh?.status === 'premium' && (hh.expiresAt === null || hh.expiresAt > new Date())
+  if (!isPremium) {
+    const [{ count }] = await db
+      .select({ count: sql<number>`count(*)`.mapWith(Number) })
+      .from(groceryLists)
+      .where(and(eq(groceryLists.householdId, membership.householdId), isNull(groceryLists.deletedAt)))
+    const limit = planLimit('free', 'groceryLists')
+    if (count >= limit) {
+      return NextResponse.json(
+        {
+          error: 'Upgrade to Premium to create more than one list',
+          code: 'MULTIPLE_LISTS_PREMIUM',
+          limit,
+          current: count,
+        },
+        { status: 403 },
+      )
+    }
+  }
 
   const body = await request.json()
   const name = (body.name ?? '').trim()

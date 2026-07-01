@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { getSession, getUserHousehold, checkMemberPermission } from '@/lib/auth/helpers'
 import { db } from '@/lib/db'
-import { groceryLists, groceryItems } from '@/db/schema'
+import { groceryLists, groceryItems, users } from '@/db/schema'
 import { eq, and, isNull, asc } from 'drizzle-orm'
 
 export async function GET(
@@ -29,6 +29,7 @@ export async function GET(
 
   if (!list) return NextResponse.json({ error: 'List not found' }, { status: 404 })
 
+  // leftJoin so an item is never dropped if its adder's users row is missing.
   const items = await db
     .select({
       id: groceryItems.id,
@@ -36,10 +37,12 @@ export async function GET(
       quantity: groceryItems.quantity,
       isChecked: groceryItems.isChecked,
       checkedAt: groceryItems.checkedAt,
-      addedBy: groceryItems.addedBy,
+      addedByName: users.name,
+      addedByAvatar: users.avatarColor,
       createdAt: groceryItems.createdAt,
     })
     .from(groceryItems)
+    .leftJoin(users, eq(groceryItems.addedBy, users.id))
     .where(
       and(
         eq(groceryItems.listId, listId),
@@ -58,7 +61,8 @@ export async function GET(
       quantity: i.quantity,
       isChecked: i.isChecked,
       checkedAt: i.checkedAt?.toISOString() ?? null,
-      addedBy: i.addedBy,
+      addedBy: i.addedByName ?? 'Unknown',
+      addedByAvatar: i.addedByAvatar ?? null,
       createdAt: i.createdAt.toISOString(),
     })),
   })

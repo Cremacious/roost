@@ -31,6 +31,13 @@ export async function PATCH(
     updates.name = name
   }
 
+  if (body.quantity !== undefined) {
+    updates.quantity =
+      typeof body.quantity === 'string' && body.quantity.trim()
+        ? body.quantity.trim()
+        : null
+  }
+
   const [updated] = await db
     .update(groceryItems)
     .set(updates)

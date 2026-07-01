@@ -22,6 +22,8 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { groupItemsBySection } from '@/lib/utils/grocerySort';
 import { CommonItemsSheet } from '@/components/grocery/CommonItemsSheet';
 import { usePermissionGate } from '@/lib/hooks/usePermissionGate';
+import { useHousehold } from '@/lib/hooks/useHousehold';
+import PremiumGate from '@/components/shared/PremiumGate';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -753,6 +755,12 @@ export default function FoodPage() {
   const queryClient = useQueryClient();
   const { allowed: canAddItem, onBlocked: onBlockedAddItem } = usePermissionGate('grocery.add')
   const { allowed: canCreateList, onBlocked: onBlockedCreateList } = usePermissionGate('grocery.create_list')
+  const { isPremium } = useHousehold();
+  // "New list" is blocked when the member lacks the permission OR the household
+  // is on the free plan (free = one list only). Permission is checked first so
+  // upgrading never grants a permission an admin disabled.
+  const listLocked = !canCreateList || !isPremium;
+  const [showListGate, setShowListGate] = useState(false);
   const [activeListId, setActiveListId] = useState<string | null>(null);
   const [input, setInput] = useState('');
   const [qtyInput, setQtyInput] = useState('');
@@ -767,6 +775,10 @@ export default function FoodPage() {
   } | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const qtyRef = useRef<HTMLInputElement>(null);
+  const tabsRef = useRef<HTMLDivElement>(null);
+  // Scroll progress indicator for the list tabs row: only shown when the pills
+  // overflow. thumbW is the visible fraction; thumbPos is 0..1 scroll position.
+  const [tabScroll, setTabScroll] = useState({ overflow: false, thumbW: 1, thumbPos: 0 });
 
   // ── Lists query ──────────────────────────────────────────────────────────
   const { data: listsData, isLoading: listsLoading } = useQuery<{
@@ -867,7 +879,14 @@ export default function FoodPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name }),
       });
-      if (!res.ok) throw new Error('Failed to create list');
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        const err = new Error(data.error ?? 'Failed to create list') as Error & {
+          code?: string;
+        };
+        err.code = data.code;
+        throw err;
+      }
       return res.json() as Promise<ListSummary>;
     },
     onSuccess: (newList) => {
@@ -875,12 +894,33 @@ export default function FoodPage() {
       setActiveListId(newList.id);
       setAddingList(false);
     },
-    onError: () => {
+    onError: (err: Error & { code?: string }) => {
+      // Free households that reach the single-list cap get the upgrade sheet
+      // instead of a misleading network error toast.
+      if (err.code === 'MULTIPLE_LISTS_PREMIUM') {
+        setAddingList(false);
+        setShowListGate(true);
+        return;
+      }
       toast.error('Could not create list', {
         description: 'Check your connection and try again.',
       });
     },
   });
+
+  // Gate the "New list" affordance: permission first (admin-disabled beats any
+  // upgrade), then the free single-list cap (opens the upgrade sheet).
+  const handleNewListClick = useCallback(() => {
+    if (!canCreateList) {
+      onBlockedCreateList();
+      return;
+    }
+    if (!isPremium) {
+      setShowListGate(true);
+      return;
+    }
+    setAddingList(true);
+  }, [canCreateList, onBlockedCreateList, isPremium]);
 
   // ── Add item ─────────────────────────────────────────────────────────────
   // Uses resolvedActiveListId (not the raw activeListId state) so a quick tap on
@@ -1271,6 +1311,30 @@ export default function FoodPage() {
   const isLoading = listsLoading || (itemsLoading && !!activeListId);
   const lists = listsData?.lists ?? [];
 
+  // Track whether the list tabs overflow and where the scroll sits, so the
+  // progress indicator can hint that more lists are off-screen (the native
+  // scrollbar is hidden). Recomputes on resize and on scroll.
+  useEffect(() => {
+    const el = tabsRef.current;
+    if (!el) return;
+    const update = () => {
+      const { scrollWidth, clientWidth, scrollLeft } = el;
+      const overflow = scrollWidth > clientWidth + 1;
+      const thumbW = overflow ? clientWidth / scrollWidth : 1;
+      const maxScroll = scrollWidth - clientWidth;
+      const thumbPos = maxScroll > 0 ? scrollLeft / maxScroll : 0;
+      setTabScroll({ overflow, thumbW, thumbPos });
+    };
+    update();
+    const ro = new ResizeObserver(update);
+    ro.observe(el);
+    el.addEventListener('scroll', update, { passive: true });
+    return () => {
+      ro.disconnect();
+      el.removeEventListener('scroll', update);
+    };
+  }, [lists.length]);
+
   // Deduplicated meals with ingredients for this week
   const mealsThisWeek = (() => {
     if (!plannerData?.slots) return [];
@@ -1412,7 +1476,9 @@ export default function FoodPage() {
       </div>
 
       {/* ── List tabs bar ── */}
+      <div style={{ position: 'relative', backgroundColor: '#F9FAFB' }}>
       <div
+        ref={tabsRef}
         style={{
           backgroundColor: '#F9FAFB',
           padding: '0 16px',
@@ -1484,8 +1550,8 @@ export default function FoodPage() {
         {!addingList && (
           <button
             type="button"
-            onClick={canCreateList ? () => setAddingList(true) : onBlockedCreateList}
-            aria-disabled={!canCreateList}
+            onClick={handleNewListClick}
+            aria-disabled={listLocked}
             style={{
               display: 'flex',
               alignItems: 'center',
@@ -1498,19 +1564,47 @@ export default function FoodPage() {
               fontSize: 12,
               fontWeight: 700,
               color: 'var(--roost-text-muted)',
-              cursor: canCreateList ? 'pointer' : 'not-allowed',
+              cursor: listLocked ? 'not-allowed' : 'pointer',
               flexShrink: 0,
               fontFamily: 'inherit',
-              opacity: canCreateList ? 1 : 0.55,
+              opacity: listLocked ? 0.55 : 1,
             }}
           >
-            {canCreateList ? (
-              <Plus size={11} color="var(--roost-text-muted)" />
-            ) : (
+            {listLocked ? (
               <Lock size={11} color="var(--roost-text-muted)" />
+            ) : (
+              <Plus size={11} color="var(--roost-text-muted)" />
             )}
             New list
           </button>
+        )}
+      </div>
+        {tabScroll.overflow && (
+          <div
+            style={{
+              position: 'absolute',
+              bottom: 0,
+              left: 16,
+              right: 16,
+              height: 3,
+              borderRadius: 2,
+              backgroundColor: COLOR + '20',
+              overflow: 'hidden',
+            }}
+          >
+            <motion.div
+              style={{
+                position: 'absolute',
+                top: 0,
+                height: '100%',
+                borderRadius: 2,
+                backgroundColor: COLOR,
+                width: `${tabScroll.thumbW * 100}%`,
+              }}
+              animate={{ left: `${tabScroll.thumbPos * (100 - tabScroll.thumbW * 100)}%` }}
+              transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+            />
+          </div>
         )}
       </div>
 
@@ -2286,8 +2380,8 @@ export default function FoodPage() {
               })}
               <button
                 type="button"
-                onClick={canCreateList ? () => setAddingList(true) : onBlockedCreateList}
-                aria-disabled={!canCreateList}
+                onClick={handleNewListClick}
+                aria-disabled={listLocked}
                 style={{
                   display: 'flex',
                   alignItems: 'center',
@@ -2296,17 +2390,17 @@ export default function FoodPage() {
                   fontSize: 12,
                   fontWeight: 700,
                   color: 'var(--roost-text-muted)',
-                  cursor: canCreateList ? 'pointer' : 'not-allowed',
+                  cursor: listLocked ? 'not-allowed' : 'pointer',
                   background: 'none',
                   border: 'none',
                   fontFamily: 'inherit',
-                  opacity: canCreateList ? 1 : 0.55,
+                  opacity: listLocked ? 0.55 : 1,
                 }}
               >
-                {canCreateList ? (
-                  <Plus size={11} color="var(--roost-text-muted)" />
-                ) : (
+                {listLocked ? (
                   <Lock size={11} color="var(--roost-text-muted)" />
+                ) : (
+                  <Plus size={11} color="var(--roost-text-muted)" />
                 )}
                 New list
               </button>
@@ -2473,6 +2567,14 @@ export default function FoodPage() {
       {/* /content layout */}
 
       <CommonItemsSheet open={commonItemsSheetOpen} onClose={() => setCommonItemsSheetOpen(false)} />
+
+      {showListGate && (
+        <PremiumGate
+          feature="grocery"
+          trigger="sheet"
+          onClose={() => setShowListGate(false)}
+        />
+      )}
 
       <AlertDialog open={clearConfirmOpen} onOpenChange={setClearConfirmOpen}>
         <AlertDialogContent>

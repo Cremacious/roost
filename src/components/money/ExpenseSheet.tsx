@@ -41,6 +41,15 @@ interface SplitTemplate {
 type SplitMethod = 'equal' | 'custom' | 'percent' | 'payer'
 type ScanStep = 'idle' | 'scanning' | 'reviewing' | 'grid'
 
+export interface EditableExpense {
+  id: string
+  title: string
+  amount: string | number
+  categoryId?: string | null
+  notes?: string | null
+  paidBy: string
+}
+
 interface Props {
   open: boolean
   onClose: () => void
@@ -48,6 +57,10 @@ interface Props {
   currentUserId: string
   isPremium: boolean
   onUpgradeRequired?: (code: string) => void
+  // When set, the sheet opens in edit mode: only title, category, and notes are
+  // editable (the PATCH endpoint accepts nothing else). Amount, payer, and the
+  // split editor are read-only in this mode.
+  expense?: EditableExpense | null
 }
 
 // ── Helpers ────────────────────────────────────────────────────────────────
@@ -71,13 +84,16 @@ function MiniAvatar({ member }: { member: Member }) {
 
 // ── Component ──────────────────────────────────────────────────────────────
 
-export function ExpenseSheet({ open, onClose, members, currentUserId, isPremium, onUpgradeRequired }: Props) {
+export function ExpenseSheet({ open, onClose, members, currentUserId, isPremium, onUpgradeRequired, expense }: Props) {
   const qc = useQueryClient()
+
+  const editing = !!expense
 
   // Form state
   const [title, setTitle] = useState('')
   const [amount, setAmount] = useState('')
   const [categoryId, setCategoryId] = useState('')
+  const [notes, setNotes] = useState('')
   const [paidBy, setPaidBy] = useState(currentUserId ?? '')
   const [splitMethod, setSplitMethod] = useState<SplitMethod>('payer')
   const [customSplits, setCustomSplits] = useState<CustomSplit[]>([])
@@ -144,6 +160,18 @@ export function ExpenseSheet({ open, onClose, members, currentUserId, isPremium,
     }
   }, [currentUserId])
 
+  // Seed the form from the expense being edited. `expense` is a stable state
+  // value from the parent, so this only fires when the sheet opens in edit mode.
+  useEffect(() => {
+    if (open && expense) {
+      setTitle(expense.title)
+      setAmount(String(expense.amount))
+      setCategoryId(expense.categoryId ?? '')
+      setNotes(expense.notes ?? '')
+      setPaidBy(expense.paidBy)
+    }
+  }, [open, expense])
+
   // ── Init helpers ───────────────────────────────────────────────────────
 
   // All four splits use the same mental model: the logged-in user (you) is
@@ -192,6 +220,7 @@ export function ExpenseSheet({ open, onClose, members, currentUserId, isPremium,
     setTitle('')
     setAmount('')
     setCategoryId('')
+    setNotes('')
     setPaidBy(currentUserId)
     setSplitMethod('payer')
     setCustomSplits([])
@@ -306,6 +335,38 @@ export function ExpenseSheet({ open, onClose, members, currentUserId, isPremium,
 
   async function handleSave() {
     if (!title.trim()) { toast.error('Title required', { description: 'Give the expense a name.' }); return }
+
+    // Edit mode: only title, category, and notes can change. The amount, payer,
+    // and splits are locked, so we PATCH just those three fields.
+    if (editing && expense) {
+      setSaving(true)
+      try {
+        const res = await fetch(`/api/expenses/${expense.id}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            title: title.trim(),
+            categoryId: categoryId || null,
+            notes: notes.trim() || null,
+          }),
+        })
+        const data = await res.json().catch(() => ({}))
+        if (!res.ok) {
+          toast.error('Failed to save', { description: data.error ?? 'Something went wrong.' })
+          return
+        }
+        toast.success('Expense updated')
+        qc.invalidateQueries({ queryKey: ['expenses'] })
+        qc.invalidateQueries({ queryKey: ['money-dashboard'] })
+        qc.invalidateQueries({ queryKey: ['budgets'] })
+        resetForm()
+        onClose()
+      } finally {
+        setSaving(false)
+      }
+      return
+    }
+
     if (!amount || isNaN(parseFloat(amount)) || parseFloat(amount) <= 0) {
       toast.error('Invalid amount', { description: 'Enter a positive number.' }); return
     }
@@ -394,6 +455,7 @@ export function ExpenseSheet({ open, onClose, members, currentUserId, isPremium,
           paidBy: effectivePaidBy,
           splits,
           ...(categoryId ? { categoryId } : {}),
+          ...(notes.trim() ? { notes: notes.trim() } : {}),
           ...(receiptData ? { receiptData: JSON.stringify(receiptData) } : {}),
         }),
       })
@@ -512,10 +574,11 @@ export function ExpenseSheet({ open, onClose, members, currentUserId, isPremium,
       {!showScanFlow && (
         <div className="px-4 pb-8">
           <p className="mb-5 text-lg" style={{ color: 'var(--roost-text-primary)', fontWeight: 800 }}>
-            Add expense
+            {editing ? 'Edit expense' : 'Add expense'}
           </p>
 
           {/* Scan banner (create mode only) */}
+          {!editing && (
           <button
             onClick={() => {
               if (!isPremium) {
@@ -563,8 +626,9 @@ export function ExpenseSheet({ open, onClose, members, currentUserId, isPremium,
               </p>
             </div>
           </button>
+          )}
 
-          {/* Amount */}
+          {/* Amount (locked in edit mode: the amount and its splits cannot change) */}
           <div style={{ marginBottom: 16 }}>
             <label style={labelStyle}>Amount</label>
             <div style={{ position: 'relative' }}>
@@ -578,9 +642,18 @@ export function ExpenseSheet({ open, onClose, members, currentUserId, isPremium,
                 placeholder="0.00"
                 value={amount}
                 onChange={e => setAmount(e.target.value)}
-                style={{ ...inputStyle, paddingLeft: 24 }}
+                disabled={editing}
+                style={{
+                  ...inputStyle, paddingLeft: 24,
+                  ...(editing ? { opacity: 0.6, cursor: 'not-allowed', backgroundColor: 'var(--roost-bg)' } : {}),
+                }}
               />
             </div>
+            {editing && (
+              <p style={{ color: 'var(--roost-text-muted)', fontWeight: 600, fontSize: 12, marginTop: 6 }}>
+                The amount and split cannot be changed after an expense is created.
+              </p>
+            )}
           </div>
 
           {/* Description */}
@@ -623,7 +696,20 @@ export function ExpenseSheet({ open, onClose, members, currentUserId, isPremium,
             </div>
           )}
 
-          {/* Paid by */}
+          {/* Notes */}
+          <div style={{ marginBottom: 16 }}>
+            <label style={labelStyle}>Notes</label>
+            <textarea
+              placeholder="Anything worth remembering about this expense"
+              value={notes}
+              onChange={e => setNotes(e.target.value)}
+              rows={3}
+              style={{ ...inputStyle, resize: 'vertical', minHeight: 72, lineHeight: 1.4 }}
+            />
+          </div>
+
+          {/* Paid by (locked in edit mode) */}
+          {!editing && (
           <div style={{ marginBottom: 16 }}>
             <label style={labelStyle}>Paid by</label>
             <select value={paidBy} onChange={e => handlePaidByChange(e.target.value)} style={inputStyle}>
@@ -632,9 +718,10 @@ export function ExpenseSheet({ open, onClose, members, currentUserId, isPremium,
               ))}
             </select>
           </div>
+          )}
 
           {/* Saved templates section */}
-          {templates.length > 0 && (
+          {!editing && templates.length > 0 && (
             <div style={{ marginBottom: 16 }}>
               <button
                 onClick={() => setTemplatesOpen(v => !v)}
@@ -712,7 +799,8 @@ export function ExpenseSheet({ open, onClose, members, currentUserId, isPremium,
             </div>
           )}
 
-          {/* Split method */}
+          {/* Split method (locked in edit mode: PATCH does not accept splits) */}
+          {!editing && (
           <div style={{ marginBottom: 16 }}>
             <label style={labelStyle}>Split</label>
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
@@ -728,9 +816,10 @@ export function ExpenseSheet({ open, onClose, members, currentUserId, isPremium,
               ))}
             </div>
           </div>
+          )}
 
           {/* Equal split member selector */}
-          {splitMethod === 'equal' && (() => {
+          {!editing && splitMethod === 'equal' && (() => {
             // Count only the selected other members; you (the logged-in user)
             // are always the implicit +1, so participantCount stays correct even
             // if equalSelectedIds was seeded before the session resolved.
@@ -798,7 +887,7 @@ export function ExpenseSheet({ open, onClose, members, currentUserId, isPremium,
           })()}
 
           {/* Custom $ splits */}
-          {splitMethod === 'custom' && (() => {
+          {!editing && splitMethod === 'custom' && (() => {
             // Filter selection against selfId; you are implicit and cover the
             // remainder, so your own row never appears in the picker.
             const selectedSum = customSplits
@@ -880,7 +969,7 @@ export function ExpenseSheet({ open, onClose, members, currentUserId, isPremium,
           })()}
 
           {/* Percent splits */}
-          {splitMethod === 'percent' && (() => {
+          {!editing && splitMethod === 'percent' && (() => {
             const selectedPct = percentSplits
               .filter(p => percentSelectedIds.has(p.userId) && p.userId !== selfId)
               .reduce((s, p) => s + (parseFloat(p.percent) || 0), 0)
@@ -994,7 +1083,7 @@ export function ExpenseSheet({ open, onClose, members, currentUserId, isPremium,
           })()}
 
           {/* Save as template (for non-equal, non-payer methods) */}
-          {(splitMethod === 'custom' || splitMethod === 'percent') && (
+          {!editing && (splitMethod === 'custom' || splitMethod === 'percent') && (
             <div style={{ marginBottom: 16 }}>
               <label style={{
                 display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer',
@@ -1031,7 +1120,7 @@ export function ExpenseSheet({ open, onClose, members, currentUserId, isPremium,
               opacity: saving ? 0.7 : 1,
             }}
           >
-            {saving ? 'Saving...' : 'Add expense'}
+            {saving ? 'Saving...' : editing ? 'Save changes' : 'Add expense'}
           </button>
         </div>
       )}

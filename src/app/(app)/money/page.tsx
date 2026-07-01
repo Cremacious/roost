@@ -121,6 +121,8 @@ interface RecentExpense {
   paidBy: string
   paidByName: string
   createdAt: string
+  categoryId?: string | null
+  notes?: string | null
 }
 
 interface CategoryBreakdown {
@@ -664,10 +666,25 @@ function groupExpenses(expenseList: RecentExpense[]): { currentGroup: ExpenseGro
   return { currentGroup, olderGroups }
 }
 
-function ExpenseRow({ e, index }: { e: RecentExpense; index: number }) {
+interface ExpenseManage {
+  currentUserId: string
+  isAdmin: boolean
+  onEdit: (e: RecentExpense) => void
+  onDelete: (e: RecentExpense) => void
+  deletingId: string | null
+}
+
+function ExpenseRow({ e, index, canManage, onEdit, onDelete, deleting }: {
+  e: RecentExpense
+  index: number
+  canManage?: boolean
+  onEdit?: (e: RecentExpense) => void
+  onDelete?: (e: RecentExpense) => void
+  deleting?: boolean
+}) {
   return (
     <motion.div key={e.id} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: Math.min(index * 0.03, 0.15) }}>
-      <SlabCard color="var(--roost-border-bottom)">
+      <SlabCard color="var(--roost-border-bottom)" pressable={!!(canManage && onEdit)} onClick={canManage && onEdit ? () => onEdit(e) : undefined}>
         <div style={{ padding: '12px 14px', display: 'flex', alignItems: 'center', gap: 10 }}>
           <div style={{ flex: 1, minWidth: 0 }}>
             <p style={{ margin: 0, fontWeight: 700, fontSize: 14, color: 'var(--roost-text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{e.title}</p>
@@ -676,13 +693,23 @@ function ExpenseRow({ e, index }: { e: RecentExpense; index: number }) {
             </p>
           </div>
           <span style={{ fontWeight: 800, fontSize: 16, color: 'var(--roost-text-primary)', flexShrink: 0 }}>${parseFloat(String(e.amount)).toFixed(2)}</span>
+          {canManage && onDelete && (
+            <button
+              aria-label="Delete expense"
+              onClick={(ev) => { ev.stopPropagation(); onDelete(e) }}
+              disabled={deleting}
+              style={{ padding: 6, borderRadius: 8, border: 'none', backgroundColor: 'transparent', cursor: deleting ? 'not-allowed' : 'pointer', opacity: deleting ? 0.4 : 0.6, display: 'flex', alignItems: 'center', flexShrink: 0 }}
+            >
+              <Trash2 size={15} color="#EF4444" />
+            </button>
+          )}
         </div>
       </SlabCard>
     </motion.div>
   )
 }
 
-function MonthAccordion({ group, defaultOpen = false }: { group: ExpenseGroup; defaultOpen?: boolean }) {
+function MonthAccordion({ group, defaultOpen = false, manage }: { group: ExpenseGroup; defaultOpen?: boolean; manage?: ExpenseManage }) {
   const [open, setOpen] = useState(defaultOpen)
   return (
     <div>
@@ -704,14 +731,22 @@ function MonthAccordion({ group, defaultOpen = false }: { group: ExpenseGroup; d
       </button>
       {open && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6, paddingBottom: 8 }}>
-          {group.expenses.map((e, i) => <ExpenseRow key={e.id} e={e} index={i} />)}
+          {group.expenses.map((e, i) => (
+            <ExpenseRow
+              key={e.id} e={e} index={i}
+              canManage={!!manage && (manage.isAdmin || e.paidBy === manage.currentUserId)}
+              onEdit={manage?.onEdit}
+              onDelete={manage?.onDelete}
+              deleting={manage?.deletingId === e.id}
+            />
+          ))}
         </div>
       )}
     </div>
   )
 }
 
-function YearAccordion({ year, groups }: { year: number; groups: ExpenseGroup[] }) {
+function YearAccordion({ year, groups, manage }: { year: number; groups: ExpenseGroup[]; manage?: ExpenseManage }) {
   const [open, setOpen] = useState(false)
   const totalExpenses = groups.reduce((sum, g) => sum + g.expenses.length, 0)
   const totalAmount = groups.reduce((sum, g) => sum + g.total, 0)
@@ -735,26 +770,70 @@ function YearAccordion({ year, groups }: { year: number; groups: ExpenseGroup[] 
       </button>
       {open && (
         <div style={{ paddingLeft: 12 }}>
-          {groups.map(g => <MonthAccordion key={`${g.year}-${g.month}`} group={g} />)}
+          {groups.map(g => <MonthAccordion key={`${g.year}-${g.month}`} group={g} manage={manage} />)}
         </div>
       )}
     </div>
   )
 }
 
-function ExpensesTab({ currentUserId, members, isPremium, onOpenExpense, onOpenSettle, onUpgradeRequired }: {
+function ExpensesTab({ currentUserId, members, isPremium, isAdmin, onOpenExpense, onOpenSettle, onEditExpense, onUpgradeRequired }: {
   currentUserId: string
   members: Member[]
   isPremium: boolean
+  isAdmin: boolean
   onOpenExpense: () => void
   onOpenSettle: (debt: DebtItem) => void
+  onEditExpense: (e: RecentExpense) => void
   onUpgradeRequired?: (code: string) => void
 }) {
+  const qc = useQueryClient()
+  const [pendingDelete, setPendingDelete] = useState<{ id: string; title: string } | null>(null)
+  const [deletingId, setDeletingId] = useState<string | null>(null)
+
   const { data, isLoading } = useQuery({
     queryKey: ['expenses'],
     queryFn: () => fetch('/api/expenses').then(r => { if (!r.ok) throw new Error(`${r.status}`); return r.json() }),
     staleTime: 10_000,
   })
+
+  function handleDelete(e: RecentExpense) {
+    setPendingDelete({ id: e.id, title: e.title })
+  }
+
+  async function confirmDelete() {
+    if (!pendingDelete) return
+    const { id, title } = pendingDelete
+    setPendingDelete(null)
+    setDeletingId(id)
+
+    // Optimistic removal from the cached list; revert on failure.
+    const prev = qc.getQueryData<{ expenses?: RecentExpense[] }>(['expenses'])
+    qc.setQueryData<{ expenses?: RecentExpense[] }>(['expenses'], (old) =>
+      old ? { ...old, expenses: (old.expenses ?? []).filter((x) => x.id !== id) } : old
+    )
+
+    try {
+      const res = await fetch(`/api/expenses/${id}`, { method: 'DELETE' })
+      if (!res.ok) {
+        if (prev) qc.setQueryData(['expenses'], prev)
+        const err = await res.json().catch(() => ({}))
+        toast.error('Could not delete expense', { description: err.error ?? 'Something went wrong.' })
+        return
+      }
+      toast.success(`"${title}" removed`)
+      qc.invalidateQueries({ queryKey: ['money-dashboard'] })
+      qc.invalidateQueries({ queryKey: ['budgets'] })
+    } catch {
+      if (prev) qc.setQueryData(['expenses'], prev)
+      toast.error('Could not delete expense', { description: 'Network error. Try again.' })
+    } finally {
+      setDeletingId(null)
+      qc.invalidateQueries({ queryKey: ['expenses'] })
+    }
+  }
+
+  const manage: ExpenseManage = { currentUserId, isAdmin, onEdit: onEditExpense, onDelete: handleDelete, deletingId }
 
   if (isLoading) return <LoadingRows />
 
@@ -826,7 +905,15 @@ function ExpensesTab({ currentUserId, members, isPremium, onOpenExpense, onOpenS
                 {currentGroup.label}
               </p>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                {currentGroup.expenses.map((e, i) => <ExpenseRow key={e.id} e={e} index={i} />)}
+                {currentGroup.expenses.map((e, i) => (
+                  <ExpenseRow
+                    key={e.id} e={e} index={i}
+                    canManage={isAdmin || e.paidBy === currentUserId}
+                    onEdit={onEditExpense}
+                    onDelete={handleDelete}
+                    deleting={deletingId === e.id}
+                  />
+                ))}
               </div>
             </div>
           )}
@@ -835,7 +922,7 @@ function ExpensesTab({ currentUserId, members, isPremium, onOpenExpense, onOpenS
           {sameYearOlder.length > 0 && (
             <div style={{ marginTop: currentGroup ? 12 : 0 }}>
               {sameYearOlder.map(g => (
-                <MonthAccordion key={`${g.year}-${g.month}`} group={g} />
+                <MonthAccordion key={`${g.year}-${g.month}`} group={g} manage={manage} />
               ))}
             </div>
           )}
@@ -844,7 +931,7 @@ function ExpensesTab({ currentUserId, members, isPremium, onOpenExpense, onOpenS
           {priorYears.length > 0 && (
             <div style={{ marginTop: 4 }}>
               {priorYears.map(([year, groups]) => (
-                <YearAccordion key={year} year={year} groups={groups} />
+                <YearAccordion key={year} year={year} groups={groups} manage={manage} />
               ))}
             </div>
           )}
@@ -859,6 +946,21 @@ function ExpensesTab({ currentUserId, members, isPremium, onOpenExpense, onOpenS
           onButtonClick={onOpenExpense}
         />
       )}
+
+      <AlertDialog open={!!pendingDelete} onOpenChange={(v) => { if (!v) setPendingDelete(null) }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete expense?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {pendingDelete?.title} will be removed along with its splits. This cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <button onClick={() => setPendingDelete(null)} style={{ padding: '10px 18px', borderRadius: 10, fontWeight: 700, fontSize: 14, backgroundColor: 'var(--roost-surface)', color: 'var(--roost-text-primary)', border: '1.5px solid var(--roost-border)', borderBottom: '3px solid var(--roost-border-bottom)', cursor: 'pointer' }}>Cancel</button>
+            <button onClick={confirmDelete} style={{ padding: '10px 18px', borderRadius: 10, fontWeight: 700, fontSize: 14, backgroundColor: '#EF4444', color: '#fff', border: 'none', borderBottom: '3px solid #C93B3B', cursor: 'pointer' }}>Delete</button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }
@@ -1559,6 +1661,7 @@ function ordinal(n: number) {
 export default function MoneyPage() {
   const [tab, setTab] = useState<Tab>('dashboard')
   const [expenseSheetOpen, setExpenseSheetOpen] = useState(false)
+  const [editingExpense, setEditingExpense] = useState<RecentExpense | null>(null)
   const [settleDebt, setSettleDebt] = useState<DebtItem | null>(null)
   const [settlePickerOpen, setSettlePickerOpen] = useState(false)
   const [settlePickerDebts, setSettlePickerDebts] = useState<DebtItem[]>([])
@@ -1632,6 +1735,9 @@ export default function MoneyPage() {
 
   const currentUserId = sessionData?.user?.id ?? ''
 
+  // Always clear any in-progress edit before opening the sheet to add a new expense.
+  const openCreateExpense = () => { setEditingExpense(null); setExpenseSheetOpen(true) }
+
   const myDebtsRaw: DebtItem[] = dashboardData?.myDebts ?? []
 
   const pendingInboundClaims = myDebtsRaw.filter(
@@ -1663,7 +1769,7 @@ export default function MoneyPage() {
           <p style={{ margin: '3px 0 0', fontSize: 13, fontWeight: 600, color: 'var(--roost-text-secondary)' }}>Expenses, bills and goals</p>
         </div>
         <button
-          onClick={canAddExpense ? () => setExpenseSheetOpen(true) : onBlockedAddExpense}
+          onClick={canAddExpense ? openCreateExpense : onBlockedAddExpense}
           aria-disabled={!canAddExpense}
           style={{
             display: 'flex', alignItems: 'center', gap: 6,
@@ -1752,7 +1858,7 @@ export default function MoneyPage() {
               currentUserId={currentUserId}
               members={members}
               isPremium={isPremium}
-              onOpenExpense={() => setExpenseSheetOpen(true)}
+              onOpenExpense={openCreateExpense}
               onOpenSettle={setSettleDebt}
               onTabChange={setTab}
               onOpenSettlePicker={() => {
@@ -1766,8 +1872,10 @@ export default function MoneyPage() {
               currentUserId={currentUserId}
               members={members}
               isPremium={isPremium}
-              onOpenExpense={() => setExpenseSheetOpen(true)}
+              isAdmin={isAdmin}
+              onOpenExpense={openCreateExpense}
               onOpenSettle={setSettleDebt}
+              onEditExpense={(e) => { setEditingExpense(e); setExpenseSheetOpen(true) }}
             />
           )}
           {tab === 'bills' && <BillsTab isPremium={isPremium} isAdmin={isAdmin} currentUserId={currentUserId} onAddBill={() => setBillSheetOpen(true)} />}
@@ -1788,10 +1896,11 @@ export default function MoneyPage() {
       {/* ── Sheets ── */}
       <ExpenseSheet
         open={expenseSheetOpen}
-        onClose={() => setExpenseSheetOpen(false)}
+        onClose={() => { setExpenseSheetOpen(false); setEditingExpense(null) }}
         members={members}
         currentUserId={currentUserId}
         isPremium={isPremium}
+        expense={editingExpense}
       />
 
       <SettleSheet

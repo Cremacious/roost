@@ -102,6 +102,29 @@ export async function requirePremium(householdId: string): Promise<void> {
   }
 }
 
+/**
+ * Non-throwing premium check. Returns true when the household is currently
+ * premium (permanent, or a still-valid time-limited subscription). Unlike
+ * requirePremium it does not throw or perform lazy cleanup — use it when you
+ * need to branch on premium status inside a route (e.g. free-tier limits).
+ */
+export async function isHouseholdPremium(householdId: string): Promise<boolean> {
+  const [row] = await db
+    .select({
+      status: households.subscription_status,
+      expiresAt: households.premium_expires_at,
+    })
+    .from(households)
+    .where(eq(households.id, householdId))
+    .limit(1)
+
+  if (!row) return false
+  return (
+    row.status === 'premium' &&
+    (row.expiresAt === null || row.expiresAt > new Date())
+  )
+}
+
 export async function getSession() {
   return auth.api.getSession({ headers: await headers() })
 }

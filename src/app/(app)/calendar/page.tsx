@@ -31,10 +31,12 @@ import {
 } from 'date-fns'
 import { useSession } from '@/lib/auth/client'
 import { usePermissionGate } from '@/lib/hooks/usePermissionGate'
+import { useHousehold } from '@/lib/hooks/useHousehold'
 import { SECTION_COLORS } from '@/lib/constants/colors'
 import { getCategoryColor } from '@/lib/constants/calendarCategories'
 import EventSheet, { type CalendarEventFull, type Member } from '@/components/calendar/EventSheet'
 import DaySheet from '@/components/calendar/DaySheet'
+import PremiumGate from '@/components/shared/PremiumGate'
 
 const COLOR = SECTION_COLORS.calendar.base
 const COLOR_DARK = SECTION_COLORS.calendar.dark
@@ -62,7 +64,9 @@ export default function CalendarPage() {
   const currentUserId = sessionData?.user?.id ?? ''
 
   const { allowed: canAddEvent, onBlocked: onBlockedAddEvent } = usePermissionGate('calendar.add')
+  const { isPremium } = useHousehold()
 
+  const [upgradeOpen, setUpgradeOpen] = useState(false)
   const [currentMonth, setCurrentMonth] = useState(() => startOfMonth(new Date()))
   const [view, setView] = useState<'month' | 'agenda'>('month')
   const [selectedDay, setSelectedDay] = useState<Date | null>(null)
@@ -163,6 +167,14 @@ export default function CalendarPage() {
     setMobileWeekStart(next)
     // Sync month if we cross a boundary
     setCurrentMonth(startOfMonth(next))
+  }
+
+  // Jump every view back to the current date
+  const goToToday = () => {
+    const now = new Date()
+    setCurrentMonth(startOfMonth(now))
+    setMobileWeekStart(startOfWeek(now, { weekStartsOn: 0 }))
+    setMobileSelectedDay(startOfDay(now))
   }
 
   const openEventSheet = (event?: CalendarEventFull | null, date?: Date) => {
@@ -321,6 +333,24 @@ export default function CalendarPage() {
               >
                 <ChevronRight size={16} />
               </button>
+              <button
+                type="button"
+                onClick={goToToday}
+                style={{
+                  height: 32,
+                  padding: '0 14px',
+                  borderRadius: 10,
+                  border: '1.5px solid #BAD3F7',
+                  borderBottom: '3px solid #1A5CB5',
+                  backgroundColor: 'var(--roost-surface)',
+                  color: COLOR,
+                  fontSize: 12,
+                  fontWeight: 800,
+                  cursor: 'pointer',
+                }}
+              >
+                Today
+              </button>
             </div>
 
             {/* Month grid */}
@@ -447,9 +477,29 @@ export default function CalendarPage() {
               >
                 <ChevronLeft size={16} />
               </button>
-              <p style={{ fontSize: 13, fontWeight: 800, color: 'var(--roost-text-primary)' }}>
-                {format(mobileWeekStart, 'MMMM yyyy')}
-              </p>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <p style={{ fontSize: 13, fontWeight: 800, color: 'var(--roost-text-primary)' }}>
+                  {format(mobileWeekStart, 'MMMM yyyy')}
+                </p>
+                <button
+                  type="button"
+                  onClick={goToToday}
+                  style={{
+                    height: 24,
+                    padding: '0 10px',
+                    borderRadius: 8,
+                    border: '1.5px solid #BAD3F7',
+                    borderBottom: '2px solid #1A5CB5',
+                    backgroundColor: 'var(--roost-surface)',
+                    color: COLOR,
+                    fontSize: 11,
+                    fontWeight: 800,
+                    cursor: 'pointer',
+                  }}
+                >
+                  Today
+                </button>
+              </div>
               <button
                 type="button"
                 onClick={() => goMobileWeek(1)}
@@ -574,7 +624,14 @@ export default function CalendarPage() {
         members={members}
         defaultDate={addingWithDate ?? undefined}
         currentUserId={currentUserId}
+        isPremium={isPremium}
+        onUpgradeRequired={() => setUpgradeOpen(true)}
       />
+
+      {/* Premium gate (recurring events + monthly event limit) */}
+      {upgradeOpen && (
+        <PremiumGate feature="calendar" trigger="sheet" onClose={() => setUpgradeOpen(false)} />
+      )}
     </div>
   )
 }

@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getSession, getUserHousehold, checkMemberPermission } from '@/lib/auth/helpers'
+import { getSession, getUserHousehold, checkMemberPermission, isHouseholdPremium } from '@/lib/auth/helpers'
 import { db } from '@/lib/db'
 import { calendarEvents, eventAttendees, householdMembers, users } from '@/db/schema'
-import { eq, and, isNull, gte, lt } from 'drizzle-orm'
+import { eq, and, isNull, gte, lt, count, inArray } from 'drizzle-orm'
 import { expandRecurring } from '@/lib/utils/recurrence'
+import { FREE_TIER_LIMITS } from '@/lib/constants/freeTierLimits'
 
 // ─── GET ───────────────────────────────────────────────────────────────────────
 
@@ -103,34 +104,11 @@ export async function GET(req: NextRequest) {
   ]
   allEvents.sort((a, b) => a.startTime.getTime() - b.startTime.getTime())
 
-  // Fetch attendees for all unique event IDs
+  // Fetch attendees for all events in a single query scoped to those IDs
   const eventIds = [...new Set(allEvents.map(e => e.id))]
-  const allAttendees = eventIds.length > 0
-    ? await db
-        .select({
-          eventId: eventAttendees.eventId,
-          userId: eventAttendees.userId,
-          rsvpStatus: eventAttendees.rsvpStatus,
-          name: users.name,
-          avatarColor: users.avatarColor,
-        })
-        .from(eventAttendees)
-        .innerJoin(users, eq(eventAttendees.userId, users.id))
-        .where(
-          // Use inArray equivalent by filtering in JS for simplicity
-          and(
-            eq(eventAttendees.eventId, eventIds[0]), // placeholder, replaced below
-          )
-        )
-    : []
-
-  // Re-fetch attendees properly using a loop or raw SQL approach
-  // Since we can't use inArray easily without knowing import, fetch per event if needed
-  // Actually, let's use a single join approach with all event IDs
   const attendeeMap = new Map<string, Array<{ userId: string; name: string; avatarColor: string | null; rsvpStatus: string | null }>>()
 
   if (eventIds.length > 0) {
-    // Fetch all attendees for all events in one query using raw SQL workaround
     const attendeeRows = await db
       .select({
         eventId: eventAttendees.eventId,
@@ -141,9 +119,9 @@ export async function GET(req: NextRequest) {
       })
       .from(eventAttendees)
       .innerJoin(users, eq(eventAttendees.userId, users.id))
+      .where(inArray(eventAttendees.eventId, eventIds))
 
     for (const row of attendeeRows) {
-      if (!eventIds.includes(row.eventId)) continue
       if (!attendeeMap.has(row.eventId)) attendeeMap.set(row.eventId, [])
       attendeeMap.get(row.eventId)!.push({
         userId: row.userId,
@@ -192,6 +170,11 @@ export async function POST(req: NextRequest) {
   const { householdId, role } = membership
   const userId = session.user.id
 
+  // Children are view-only on the calendar, regardless of permission overrides.
+  if (role === 'child') {
+    return NextResponse.json({ error: 'Children cannot add calendar events', code: 'PERMISSION_DENIED' }, { status: 403 })
+  }
+
   const canAdd = await checkMemberPermission(userId, householdId, role, 'calendarAdd')
   if (!canAdd) return NextResponse.json({ error: 'You do not have permission to add calendar events', code: 'PERMISSION_DENIED' }, { status: 403 })
 
@@ -227,6 +210,47 @@ export async function POST(req: NextRequest) {
   }
   if (body.recurring && !body.frequency) {
     return NextResponse.json({ error: 'Frequency is required for recurring events' }, { status: 400 })
+  }
+
+  const isPremium = await isHouseholdPremium(householdId)
+
+  // Recurring events are premium-only.
+  if (body.recurring && !isPremium) {
+    return NextResponse.json(
+      { error: 'Recurring events are a premium feature', code: 'RECURRING_EVENTS_PREMIUM' },
+      { status: 403 },
+    )
+  }
+
+  // Free households can create a limited number of events per calendar month.
+  if (!isPremium) {
+    const startDt = new Date(body.startTime)
+    const monthStart = new Date(startDt.getFullYear(), startDt.getMonth(), 1)
+    const monthEnd = new Date(startDt.getFullYear(), startDt.getMonth() + 1, 1)
+    const [{ n }] = await db
+      .select({ n: count() })
+      .from(calendarEvents)
+      .where(
+        and(
+          eq(calendarEvents.householdId, householdId),
+          isNull(calendarEvents.deletedAt),
+          eq(calendarEvents.recurring, false),
+          gte(calendarEvents.startTime, monthStart),
+          lt(calendarEvents.startTime, monthEnd),
+        ),
+      )
+    const limit = FREE_TIER_LIMITS.calendarEventsPerMonth
+    if (n >= limit) {
+      return NextResponse.json(
+        {
+          error: `Free households are limited to ${limit} events per month`,
+          code: 'CALENDAR_LIMIT',
+          limit,
+          current: n,
+        },
+        { status: 403 },
+      )
+    }
   }
 
   const [newEvent] = await db
@@ -301,7 +325,7 @@ async function sendEventNotifications(
   const userRows = await db
     .select({ id: users.id, pushToken: users.pushToken })
     .from(users)
-    .where(eq(users.id, targetUserIds[0])) // simplified, would need inArray
+    .where(inArray(users.id, targetUserIds))
 
   const tokens = userRows.map(u => u.pushToken).filter(Boolean)
   if (tokens.length === 0) return

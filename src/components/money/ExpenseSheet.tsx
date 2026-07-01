@@ -863,7 +863,7 @@ export function ExpenseSheet({ open, onClose, members, currentUserId, isPremium,
                           />
                         </div>
                       ) : (
-                        <span style={{ width: 100, textAlign: 'right', color: 'var(--roost-text-muted)', fontWeight: 700, fontSize: 13 }}>—</span>
+                        <span style={{ width: 100, textAlign: 'right', color: 'var(--roost-text-muted)', fontWeight: 700, fontSize: 13 }}>-</span>
                       )}
                     </div>
                   )
@@ -951,12 +951,12 @@ export function ExpenseSheet({ open, onClose, members, currentUserId, isPremium,
                             width: 70, textAlign: 'right', fontWeight: 700, fontSize: 13,
                             color: 'var(--roost-text-muted)',
                           }}>
-                            {totalAmount > 0 ? `$${dollars.toFixed(2)}` : '--'}
+                            {totalAmount > 0 ? `$${dollars.toFixed(2)}` : '-'}
                           </span>
                         </>
                       ) : (
                         <>
-                          <span style={{ width: 80, textAlign: 'right', color: 'var(--roost-text-muted)', fontWeight: 700, fontSize: 13 }}>—</span>
+                          <span style={{ width: 80, textAlign: 'right', color: 'var(--roost-text-muted)', fontWeight: 700, fontSize: 13 }}>-</span>
                           <span style={{ width: 70 }} />
                         </>
                       )}

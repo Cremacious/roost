@@ -98,7 +98,7 @@ export function SettleSheet({ open, onClose, debt, currentUserId, members, payee
     const res = await fetch('/api/expenses/settle-all/remind', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ creditorId: debt!.to }),
+      body: JSON.stringify({ splitIds: debt!.splitIds }),
     })
     const data = await res.json()
     if (res.status === 429) { toast.error('Already reminded recently', { description: 'You can send one reminder every 24 hours.' }); return }
@@ -255,7 +255,7 @@ export function SettleSheet({ open, onClose, debt, currentUserId, members, payee
               Confirm I received it
             </button>
             <button onClick={handleDispute} disabled={loading} style={{ ...btnBase, backgroundColor: 'var(--roost-surface)', color: '#EF4444', border: '1.5px solid #FECACA', borderBottom: '3px solid #FCA5A5' }}>
-              Dispute — I did not receive it
+              Dispute, I did not receive it
             </button>
           </div>
         )}

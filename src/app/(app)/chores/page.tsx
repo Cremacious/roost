@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, type ReactNode } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Plus, Trophy, Gift, ChevronDown, ChevronUp, Check, Clock, AlertCircle, Lock } from 'lucide-react'
@@ -12,6 +12,9 @@ import { SECTION_COLORS } from '@/lib/constants/colors'
 import ChoreSheet, { type ChoreData } from '@/components/chores/ChoreSheet'
 import LeaderboardSheet from '@/components/chores/LeaderboardSheet'
 import { SectionGroup } from '@/components/shared/SectionGroup'
+import PremiumGate from '@/components/shared/PremiumGate'
+import { useHousehold } from '@/lib/hooks/useHousehold'
+import { PLAN_LIMITS } from '@/lib/constants/planLimits'
 
 const COLOR = SECTION_COLORS.chores.base
 const COLOR_DARK = SECTION_COLORS.chores.dark
@@ -443,6 +446,58 @@ function RowDivider() {
   return <div style={{ height: 1, backgroundColor: 'var(--roost-border)', marginInline: 14 }} />
 }
 
+const PAGE_SIZE = 15
+
+// Renders a section's chore rows capped at PAGE_SIZE, with a "Show N more"
+// button that reveals the rest. Used for the main open sections.
+function PaginatedRows({
+  items,
+  color,
+  renderRow,
+}: {
+  items: ChoreItem[]
+  color: string
+  renderRow: (chore: ChoreItem) => ReactNode
+}) {
+  const [showAll, setShowAll] = useState(false)
+  const visible = showAll ? items : items.slice(0, PAGE_SIZE)
+  const hidden = items.length - visible.length
+
+  return (
+    <>
+      {visible.map((chore, i) => (
+        <div key={chore.id}>
+          {i > 0 && <RowDivider />}
+          {renderRow(chore)}
+        </div>
+      ))}
+      {hidden > 0 && (
+        <>
+          <RowDivider />
+          <button
+            type="button"
+            onClick={() => setShowAll(true)}
+            style={{
+              width: '100%',
+              padding: '11px 14px',
+              background: 'none',
+              border: 'none',
+              color,
+              fontWeight: 800,
+              fontSize: 13,
+              cursor: 'pointer',
+              fontFamily: 'inherit',
+              textAlign: 'center',
+            }}
+          >
+            Show {hidden} more
+          </button>
+        </>
+      )}
+    </>
+  )
+}
+
 // ─── Sidebar widgets ──────────────────────────────────────────────────────────
 
 function ThisWeekCard({
@@ -578,6 +633,9 @@ export default function ChoresPage() {
   const [completing, setCompleting] = useState<Set<string>>(new Set())
   const [unchecking, setUnchecking] = useState<Set<string>>(new Set())
   const [snoozingId, setSnoozingId] = useState<string | null>(null)
+  const [upgradeCode, setUpgradeCode] = useState<string | null>(null)
+
+  const { isPremium } = useHousehold()
 
   const { data: choreData, isLoading, isError } = useQuery({
     queryKey: ['chores'],
@@ -619,6 +677,16 @@ export default function ChoresPage() {
 
   const { allowed: canAddChore, onBlocked: onBlockedAddChore } = usePermissionGate('chores.add')
   const { allowed: canEditChore, onBlocked: onBlockedEditChore } = usePermissionGate('chores.edit')
+
+  // Free-tier chore count limit (source of truth: planLimits.ts).
+  const choreCount = choreData?.chores.length ?? 0
+  const atChoreLimit = !isPremium && choreCount >= PLAN_LIMITS.free.chores
+
+  function handleAddChore() {
+    if (!canAddChore) { onBlockedAddChore(); return }
+    if (atChoreLimit) { setUpgradeCode('CHORES_LIMIT'); return }
+    openAdd()
+  }
 
   // ── Filter + group ───────────────────────────────────────────────────────
 
@@ -813,12 +881,7 @@ export default function ChoresPage() {
       {groups.overdue.length > 0 && (
         <motion.div key="overdue" layout initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.15 }}>
           <SectionGroup label="Overdue" count={groups.overdue.length} color="#EF4444" slabColor="#C93B3B">
-            {groups.overdue.map((chore, i) => (
-              <div key={chore.id}>
-                {i > 0 && <RowDivider />}
-                <ChoreRow {...makeChoreRowProps(chore)} />
-              </div>
-            ))}
+            <PaginatedRows items={groups.overdue} color="#EF4444" renderRow={chore => <ChoreRow {...makeChoreRowProps(chore)} />} />
           </SectionGroup>
         </motion.div>
       )}
@@ -827,12 +890,7 @@ export default function ChoresPage() {
       {groups.today.length > 0 && (
         <motion.div key="today" layout initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.15, delay: 0.04 }}>
           <SectionGroup label="Due today" count={groups.today.length} color={COLOR} slabColor={COLOR_DARK}>
-            {groups.today.map((chore, i) => (
-              <div key={chore.id}>
-                {i > 0 && <RowDivider />}
-                <ChoreRow {...makeChoreRowProps(chore)} />
-              </div>
-            ))}
+            <PaginatedRows items={groups.today} color={COLOR} renderRow={chore => <ChoreRow {...makeChoreRowProps(chore)} />} />
           </SectionGroup>
         </motion.div>
       )}
@@ -841,12 +899,7 @@ export default function ChoresPage() {
       {groups.upcoming.length > 0 && (
         <motion.div key="upcoming" layout initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.15, delay: 0.08 }}>
           <SectionGroup label="Upcoming" count={groups.upcoming.length} color="var(--roost-text-secondary)" slabColor="var(--roost-border-bottom)">
-            {groups.upcoming.map((chore, i) => (
-              <div key={chore.id}>
-                {i > 0 && <RowDivider />}
-                <ChoreRow {...makeChoreRowProps(chore)} />
-              </div>
-            ))}
+            <PaginatedRows items={groups.upcoming} color="var(--roost-text-secondary)" renderRow={chore => <ChoreRow {...makeChoreRowProps(chore)} />} />
           </SectionGroup>
         </motion.div>
       )}
@@ -947,8 +1000,9 @@ export default function ChoresPage() {
           <motion.button
             type="button"
             whileTap={{ y: 1 }}
-            onClick={() => setLeaderboardOpen(true)}
+            onClick={() => isPremium ? setLeaderboardOpen(true) : setUpgradeCode('LEADERBOARD_PREMIUM')}
             title="Leaderboard"
+            aria-disabled={!isPremium}
             style={{
               height: 40,
               paddingInline: 12,
@@ -957,7 +1011,8 @@ export default function ChoresPage() {
               borderBottom: '3px solid var(--roost-border-bottom)',
               backgroundColor: 'var(--roost-surface)',
               color: 'var(--roost-text-secondary)',
-              cursor: 'pointer',
+              cursor: isPremium ? 'pointer' : 'not-allowed',
+              opacity: isPremium ? 1 : 0.55,
               display: 'flex',
               alignItems: 'center',
               gap: 6,
@@ -966,15 +1021,16 @@ export default function ChoresPage() {
               fontSize: 13,
             }}
           >
-            <Trophy size={16} />
+            {isPremium ? <Trophy size={16} /> : <Lock size={16} />}
             <span className="hidden md:inline">Leaderboard</span>
           </motion.button>
 
           <motion.button
             type="button"
             whileTap={{ y: 1 }}
-            onClick={() => router.push('/chores/rewards')}
+            onClick={() => isPremium ? router.push('/chores/rewards') : setUpgradeCode('ALLOWANCES_PREMIUM')}
             title="Rewards"
+            aria-disabled={!isPremium}
             style={{
               height: 40,
               paddingInline: 12,
@@ -983,7 +1039,8 @@ export default function ChoresPage() {
               borderBottom: '3px solid var(--roost-border-bottom)',
               backgroundColor: 'var(--roost-surface)',
               color: 'var(--roost-text-secondary)',
-              cursor: 'pointer',
+              cursor: isPremium ? 'pointer' : 'not-allowed',
+              opacity: isPremium ? 1 : 0.55,
               display: 'flex',
               alignItems: 'center',
               gap: 6,
@@ -992,14 +1049,14 @@ export default function ChoresPage() {
               fontSize: 13,
             }}
           >
-            <Gift size={16} />
+            {isPremium ? <Gift size={16} /> : <Lock size={16} />}
             <span className="hidden md:inline">Rewards</span>
           </motion.button>
 
           <motion.button
             type="button"
             whileTap={{ y: 2 }}
-            onClick={canAddChore ? openAdd : onBlockedAddChore}
+            onClick={handleAddChore}
             aria-label="Add chore"
             aria-disabled={!canAddChore}
             style={{
@@ -1250,12 +1307,22 @@ export default function ChoresPage() {
         chore={editingChore}
         members={members}
         isAdmin={isAdmin}
+        isPremium={isPremium}
+        onUpgradeRequired={setUpgradeCode}
       />
 
       <LeaderboardSheet
         open={leaderboardOpen}
         onClose={() => setLeaderboardOpen(false)}
       />
+
+      {upgradeCode && (
+        <PremiumGate
+          feature={upgradeCode === 'ALLOWANCES_PREMIUM' ? 'allowances' : 'chores'}
+          trigger="sheet"
+          onClose={() => setUpgradeCode(null)}
+        />
+      )}
     </motion.div>
   )
 }

@@ -2,7 +2,8 @@ import { NextResponse } from 'next/server'
 import { getSession, getUserHousehold } from '@/lib/auth/helpers'
 import { db } from '@/lib/db'
 import { chores, choreCompletions, users, memberPermissions } from '@/db/schema'
-import { eq, and, isNull, gte, lt } from 'drizzle-orm'
+import { eq, and, isNull, gte, lt, count } from 'drizzle-orm'
+import { PLAN_LIMITS } from '@/lib/constants/planLimits'
 
 function startOfToday() {
   const d = new Date()
@@ -195,6 +196,7 @@ export async function POST(request: Request) {
   if (!membership) return NextResponse.json({ error: 'No household' }, { status: 403 })
 
   const { householdId, role } = membership
+  const isPremium = membership.household.subscriptionStatus === 'premium'
 
   if (role !== 'admin') {
     const [perms] = await db
@@ -217,6 +219,31 @@ export async function POST(request: Request) {
   }
 
   const { title, description, assignedTo, frequency = 'weekly', customDays, startDate } = body
+
+  // Free-tier chore count limit.
+  if (!isPremium) {
+    const [row] = await db
+      .select({ cnt: count() })
+      .from(chores)
+      .where(and(eq(chores.householdId, householdId), isNull(chores.deletedAt)))
+    const limit = PLAN_LIMITS.free.chores
+    const current = Number(row?.cnt ?? 0)
+    if (current >= limit) {
+      return NextResponse.json(
+        { error: `Free plan is limited to ${limit} chores`, code: 'CHORES_LIMIT', limit, current },
+        { status: 403 },
+      )
+    }
+  }
+
+  // Recurring (non-daily) chores are a premium feature. Daily is free.
+  if (!isPremium && frequency !== 'daily') {
+    return NextResponse.json(
+      { error: 'Recurring chores are a premium feature', code: 'RECURRING_CHORES_PREMIUM' },
+      { status: 403 },
+    )
+  }
+
   const from = startDate ? parseDateInput(startDate) : new Date()
   const nextDueAt = calcNextDueAt(frequency, customDays ?? null, from)
 

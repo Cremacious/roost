@@ -32,6 +32,9 @@ export const chores = pgTable('chores', {
   >(),
   customDays: text('custom_days'),
   nextDueAt: timestamp('next_due_at'),
+  // The due date immediately before the most recent completion, so unchecking
+  // that completion can restore the schedule instead of leaving it advanced.
+  prevDueAt: timestamp('prev_due_at'),
   lastCompletedAt: timestamp('last_completed_at'),
   createdBy: text('created_by')
     .notNull()

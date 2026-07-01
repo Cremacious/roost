@@ -2,7 +2,7 @@
 
 import { useRouter } from 'next/navigation'
 import { CheckCircle2, ArrowLeft } from 'lucide-react'
-import { Sheet, SheetContent } from '@/components/ui/sheet'
+import { DraggableSheet } from '@/components/shared/DraggableSheet'
 import { PREMIUM_GATE_CONFIG } from '@/lib/constants/premiumGateConfig'
 
 export type PremiumGateFeature = keyof typeof PREMIUM_GATE_CONFIG
@@ -114,12 +114,17 @@ export default function PremiumGate({ feature, trigger, onClose }: PremiumGatePr
   const router = useRouter()
 
   if (trigger === 'sheet') {
+    const config = PREMIUM_GATE_CONFIG[feature]
     return (
-      <Sheet open onOpenChange={(v) => { if (!v && onClose) onClose() }}>
-        <SheetContent side="bottom" style={{ borderRadius: '20px 20px 0 0', padding: '20px 20px 40px' }}>
+      <DraggableSheet
+        open
+        onOpenChange={(v) => { if (!v && onClose) onClose() }}
+        featureColor={config?.featureHex}
+      >
+        <div style={{ padding: '0 20px 24px' }}>
           <GateContent feature={feature} onClose={onClose} />
-        </SheetContent>
-      </Sheet>
+        </div>
+      </DraggableSheet>
     )
   }
 

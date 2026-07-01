@@ -76,6 +76,8 @@ export async function POST(
     .update(chores)
     .set({
       lastCompletedAt: now,
+      // Remember the pre-advance due date so an uncheck can restore it.
+      prevDueAt: chore.nextDueAt ?? null,
       nextDueAt,
       updatedAt: now,
     })
@@ -98,7 +100,14 @@ export async function DELETE(
 
   const { householdId } = membership
 
-  await db
+  const chore = await db
+    .select({ prevDueAt: chores.prevDueAt })
+    .from(chores)
+    .where(and(eq(chores.id, choreId), eq(chores.householdId, householdId), isNull(chores.deletedAt)))
+    .limit(1)
+    .then(r => r[0] ?? null)
+
+  const deleted = await db
     .delete(choreCompletions)
     .where(
       and(
@@ -109,6 +118,15 @@ export async function DELETE(
         lt(choreCompletions.completedAt, startOfTomorrow()),
       )
     )
+    .returning({ id: choreCompletions.id })
+
+  // Only restore the schedule if we actually undid a completion.
+  if (deleted.length > 0 && chore?.prevDueAt) {
+    await db
+      .update(chores)
+      .set({ nextDueAt: chore.prevDueAt, prevDueAt: null, updatedAt: new Date() })
+      .where(eq(chores.id, choreId))
+  }
 
   return NextResponse.json({ ok: true })
 }

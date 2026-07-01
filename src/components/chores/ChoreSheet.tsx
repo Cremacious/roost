@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { motion } from 'framer-motion'
-import { Trash2 } from 'lucide-react'
+import { Lock, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { DraggableSheet } from '@/components/shared/DraggableSheet'
 import { SECTION_COLORS } from '@/lib/constants/colors'
@@ -34,6 +34,8 @@ interface ChoreSheetProps {
   chore?: ChoreData | null
   members: Member[]
   isAdmin: boolean
+  isPremium?: boolean
+  onUpgradeRequired?: (code: string) => void
 }
 
 const FREQUENCIES = [
@@ -66,7 +68,7 @@ function ordinal(n: number): string {
   return n + (s[(v - 20) % 10] || s[v] || s[0])
 }
 
-export default function ChoreSheet({ open, onClose, chore, members, isAdmin }: ChoreSheetProps) {
+export default function ChoreSheet({ open, onClose, chore, members, isAdmin, isPremium = false, onUpgradeRequired }: ChoreSheetProps) {
   const queryClient = useQueryClient()
   const isEditing = !!chore?.id
 
@@ -86,7 +88,7 @@ export default function ChoreSheet({ open, onClose, chore, members, isAdmin }: C
     setPrevChore(chore)
     if (open) {
       const today = new Date()
-      const freq = chore?.frequency ?? 'weekly'
+      const freq = chore?.frequency ?? (isPremium ? 'weekly' : 'daily')
       const due = chore?.nextDueAt ? new Date(chore.nextDueAt) : null
       const cd = chore?.customDays ?? null
       const hasDay = cd != null && cd !== ''
@@ -124,7 +126,9 @@ export default function ChoreSheet({ open, onClose, chore, members, isAdmin }: C
       })
       if (!r.ok) {
         const d = await r.json().catch(() => ({}))
-        throw new Error(d.error ?? 'Failed to save chore')
+        const err = new Error(d.error ?? 'Failed to save chore') as Error & { code?: string }
+        err.code = d.code
+        throw err
       }
       return r.json()
     },
@@ -133,7 +137,12 @@ export default function ChoreSheet({ open, onClose, chore, members, isAdmin }: C
       toast.success(isEditing ? 'Chore updated' : 'Chore added')
       onClose()
     },
-    onError: (err: Error) => {
+    onError: (err: Error & { code?: string }) => {
+      if (err.code && onUpgradeRequired) {
+        onClose()
+        onUpgradeRequired(err.code)
+        return
+      }
       toast.error('Could not save chore', { description: err.message })
     },
   })
@@ -224,11 +233,16 @@ export default function ChoreSheet({ open, onClose, chore, members, isAdmin }: C
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
               {FREQUENCIES.map(f => {
                 const active = frequency === f.value
+                const locked = !isPremium && f.value !== 'daily'
                 return (
                   <button
                     key={f.value}
                     type="button"
-                    onClick={() => setFrequency(f.value)}
+                    aria-disabled={locked}
+                    onClick={() => {
+                      if (locked) { onUpgradeRequired?.('RECURRING_CHORES_PREMIUM'); return }
+                      setFrequency(f.value)
+                    }}
                     style={{
                       height: 44,
                       borderRadius: 12,
@@ -240,8 +254,14 @@ export default function ChoreSheet({ open, onClose, chore, members, isAdmin }: C
                       fontSize: 14,
                       cursor: 'pointer',
                       fontFamily: 'inherit',
+                      opacity: locked ? 0.6 : 1,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: 6,
                     }}
                   >
+                    {locked && <Lock size={13} />}
                     {f.label}
                   </button>
                 )

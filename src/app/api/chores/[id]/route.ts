@@ -36,6 +36,18 @@ export async function PATCH(
 
   const body = await request.json().catch(() => ({}))
 
+  // Recurring (non-daily) chores are premium. Block switching a chore INTO a
+  // recurring frequency while free; editing an already-recurring chore (same
+  // frequency) is still allowed so legacy/downgraded chores stay editable.
+  const isPremium = membership.household.subscriptionStatus === 'premium'
+  const newFrequency = body.frequency !== undefined ? body.frequency : chore.frequency
+  if (!isPremium && newFrequency !== 'daily' && newFrequency !== chore.frequency) {
+    return NextResponse.json(
+      { error: 'Recurring chores are a premium feature', code: 'RECURRING_CHORES_PREMIUM' },
+      { status: 403 },
+    )
+  }
+
   const updates: Record<string, unknown> = { updatedAt: new Date() }
   if (body.title !== undefined) updates.title = body.title.trim()
   if (body.description !== undefined) updates.description = body.description?.trim() || null

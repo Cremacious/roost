@@ -1,7 +1,7 @@
 'use client'
 
 import { useQuery } from '@tanstack/react-query'
-import { Trophy, Medal, Star } from 'lucide-react'
+import { Trophy, Medal, Star, Flame } from 'lucide-react'
 import { DraggableSheet } from '@/components/shared/DraggableSheet'
 import { SECTION_COLORS } from '@/lib/constants/colors'
 
@@ -15,6 +15,7 @@ interface LeaderboardEntry {
   role: string
   points: number
   completions: number
+  streak: number
 }
 
 function Avatar({ name, color, size = 36 }: { name: string; color: string | null; size?: number }) {
@@ -147,6 +148,22 @@ export default function LeaderboardSheet({ open, onClose }: LeaderboardSheetProp
                     <p style={{ fontSize: 12, color: 'var(--roost-text-muted)', marginTop: 1 }}>
                       {entry.completions} chore{entry.completions !== 1 ? 's' : ''} completed
                     </p>
+                    {entry.streak > 0 && (
+                      <span
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: 3,
+                          marginTop: 3,
+                          fontSize: 11,
+                          fontWeight: 800,
+                          color: '#F97316',
+                        }}
+                      >
+                        <Flame size={12} style={{ color: '#F97316' }} />
+                        {entry.streak} day{entry.streak !== 1 ? 's' : ''} streak
+                      </span>
+                    )}
                   </div>
 
                   <div style={{ textAlign: 'right' }}>

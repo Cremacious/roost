@@ -367,11 +367,24 @@ export default function TasksPage() {
     staleTime: 60_000,
   })
 
-  const members: Member[] = householdData?.members ?? []
+  // /api/household/me does not return the member list, so fetch members
+  // separately from /api/household/members. Distinct query key to avoid
+  // colliding with the ['household-me'] (/me shape) cache used above.
+  const { data: membersData } = useQuery({
+    queryKey: ['household-members'],
+    queryFn: async () => {
+      const r = await fetch('/api/household/members')
+      if (!r.ok) throw new Error('Failed to load members')
+      return r.json() as Promise<{ members: Member[] }>
+    },
+    staleTime: 60_000,
+  })
+
+  const members: Member[] = membersData?.members ?? []
   const myRole: string = householdData?.role ?? 'member'
   const isAdmin = myRole === 'admin'
   const isChild = myRole === 'child'
-  const isPremium: boolean = householdData?.household?.subscriptionStatus === 'premium'
+  const isPremium: boolean = householdData?.household?.subscription_status === 'premium'
 
   const { allowed: canAddTask, onBlocked: onBlockedAddTask } = usePermissionGate('tasks.add')
 

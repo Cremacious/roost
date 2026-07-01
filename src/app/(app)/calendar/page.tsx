@@ -114,18 +114,19 @@ export default function CalendarPage() {
     staleTime: 30_000,
   })
 
-  // Fetch members
-  const { data: householdData } = useQuery({
-    queryKey: ['household-me'],
+  // /api/household/me does not return the member list, so fetch members
+  // from /api/household/members for the event attendee picker.
+  const { data: membersData } = useQuery({
+    queryKey: ['household-members'],
     queryFn: async () => {
-      const res = await fetch('/api/household/me')
-      if (!res.ok) throw new Error('Failed to fetch household')
-      return res.json() as Promise<{ members: Member[]; role: string }>
+      const res = await fetch('/api/household/members')
+      if (!res.ok) throw new Error('Failed to load members')
+      return res.json() as Promise<{ members: Member[] }>
     },
     staleTime: 60_000,
   })
 
-  const members: Member[] = householdData?.members ?? []
+  const members: Member[] = membersData?.members ?? []
 
   const events: CalendarEventFull[] = eventsData?.events ?? []
 

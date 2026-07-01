@@ -10,6 +10,7 @@ import { usePermissionGate } from '@/lib/hooks/usePermissionGate'
 import { SECTION_COLORS } from '@/lib/constants/colors'
 import { SlabCard } from '@/components/ui/SlabCard'
 import NoteSheet, { type NoteData } from '@/components/notes/NoteSheet'
+import PremiumGate from '@/components/shared/PremiumGate'
 
 const COLOR = SECTION_COLORS.notes.base
 const COLOR_DARK = SECTION_COLORS.notes.dark
@@ -143,23 +144,10 @@ export default function NotesPage() {
   })
   const myRole = householdData?.role ?? 'member'
   const isAdmin = myRole === 'admin'
-  const isPremium = householdData?.household?.subscriptionStatus === 'premium'
+  const isPremium = householdData?.household?.subscription_status === 'premium'
 
   function handleUpgradeRequired(code: string) {
     setUpgradeCode(code)
-    if (code === 'NOTES_LIMIT') {
-      toast.error('Note limit reached', {
-        description: 'Free accounts are limited to 10 notes. Upgrade to Premium for unlimited notes.',
-      })
-    } else if (code === 'RICH_TEXT_NOTES_PREMIUM') {
-      toast.error('Rich text is a Premium feature', {
-        description: 'Upgrade to Premium to use headings, checklists, and formatting in your notes.',
-      })
-    } else {
-      toast.error('Premium required', {
-        description: 'Upgrade to Premium to unlock this feature.',
-      })
-    }
   }
 
   const deleteMutation = useMutation({
@@ -309,6 +297,10 @@ export default function NotesPage() {
         isPremium={isPremium}
         onUpgradeRequired={handleUpgradeRequired}
       />
+
+      {!!upgradeCode && (
+        <PremiumGate feature="notes" trigger="sheet" onClose={() => setUpgradeCode(null)} />
+      )}
     </>
   )
 }

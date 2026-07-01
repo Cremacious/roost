@@ -110,6 +110,29 @@ export default function NoteSheet({
     },
   })
 
+  // Silent background save for rich-text auto-save. Unlike saveMutation it never
+  // closes the sheet or fires a success toast, so editing is not interrupted.
+  const autoSaveMutation = useMutation({
+    mutationFn: async (body: { title: string | null; content: string; isRichText: boolean }) => {
+      const r = await fetch(`/api/notes/${note!.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      })
+      if (!r.ok) {
+        const data = await r.json()
+        throw new Error(data.error ?? 'Failed')
+      }
+      return r.json()
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['notes'] })
+    },
+    onError: (err: Error) => {
+      toast.error('Could not auto-save note', { description: err.message })
+    },
+  })
+
   function handleSave() {
     if (!title.trim() && !content.trim()) {
       toast.error('Empty note', { description: 'Add a title or some content.' })
@@ -125,9 +148,9 @@ export default function NoteSheet({
     if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current)
     autoSaveTimer.current = setTimeout(() => {
       if (!html.trim() || html === '<p></p>') return
-      saveMutation.mutate({ title: title.trim() || null, content: html, isRichText: true })
+      autoSaveMutation.mutate({ title: title.trim() || null, content: html, isRichText: true })
     }, 800)
-  }, [isEditing, title, saveMutation])
+  }, [isEditing, title, autoSaveMutation])
 
   function handleEnableRichText() {
     if (!isPremium) {

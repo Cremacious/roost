@@ -143,6 +143,18 @@ export default function RemindersPage() {
   const myRole = householdData?.role ?? 'member'
   const isAdmin = myRole === 'admin'
 
+  // /api/household/me does not return the member list, so fetch members
+  // separately from /api/household/members for the notify-members picker.
+  const { data: membersData } = useQuery({
+    queryKey: ['household-members'],
+    queryFn: async () => {
+      const r = await fetch('/api/household/members')
+      if (!r.ok) throw new Error('Failed to load members')
+      return r.json() as Promise<{ members: { userId: string; name: string; avatarColor: string | null }[] }>
+    },
+    staleTime: 60_000,
+  })
+
   const completeMutation = useMutation({
     mutationFn: async (id: string) => {
       const r = await fetch(`/api/reminders/${id}/complete`, { method: 'POST' })
@@ -180,7 +192,7 @@ export default function RemindersPage() {
 
   const hasAny = reminders.length > 0
 
-  const members: Member[] = (householdData?.members ?? []).map((m: { userId: string; name: string; avatarColor: string | null }) => ({
+  const members: Member[] = (membersData?.members ?? []).map((m) => ({
     userId: m.userId,
     name: m.name,
     avatarColor: m.avatarColor,

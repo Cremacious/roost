@@ -30,13 +30,15 @@ export async function GET() {
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1)
 
   const [billTemplates, draftExpenses] = await Promise.all([
+    // All recurring templates for the household. Both "bills" (isBill=true) and
+    // recurring expense templates (isBill=false) surface here so they can be
+    // edited / paused / resumed from the same Bills tab (issues #77, #78).
     db
       .select()
       .from(recurringExpenses)
       .where(
         and(
           eq(recurringExpenses.householdId, householdId),
-          eq(recurringExpenses.isBill, true),
           isNull(recurringExpenses.deletedAt)
         )
       ),
@@ -70,6 +72,7 @@ export async function GET() {
       amount: t.totalAmount,
       dueDay: t.dueDay,
       frequency: t.frequency,
+      categoryId: t.categoryId,
       paused: t.paused,
       status,
       splits: JSON.parse(t.splits ?? '[]'),

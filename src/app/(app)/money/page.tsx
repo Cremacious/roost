@@ -7,7 +7,7 @@ import { toast } from 'sonner'
 import {
   Plus, Wallet, Receipt, BarChart3, Target, TrendingUp,
   CheckCircle, Clock, AlertCircle, ChevronRight, Edit2, Trash2, ChevronDown, ChevronUp,
-  LayoutGrid, DollarSign, FileText, Camera, Users, Lock, X,
+  LayoutGrid, DollarSign, FileText, Camera, Users, Lock, X, Pause, Play,
 } from 'lucide-react'
 import { format, parseISO, subDays } from 'date-fns'
 import { AreaChart, Area, XAxis, YAxis, Tooltip, PieChart, Pie, Cell, ResponsiveContainer } from 'recharts'
@@ -21,7 +21,7 @@ import { SettleSheet } from '@/components/money/SettleSheet'
 import { SettlePickerSheet } from '@/components/money/SettlePickerSheet'
 import { GoalSheet } from '@/components/money/GoalSheet'
 import { ContributeSheet } from '@/components/money/ContributeSheet'
-import { BillSheet } from '@/components/money/BillSheet'
+import { BillSheet, type EditableBill } from '@/components/money/BillSheet'
 import { BudgetSheet, type EditableBudget } from '@/components/money/BudgetSheet'
 import { useHousehold } from '@/lib/hooks/useHousehold'
 import { usePermissionGate } from '@/lib/hooks/usePermissionGate'
@@ -111,6 +111,9 @@ interface Bill {
   title: string
   amount: string | number
   dueDay: number | null
+  frequency: string
+  categoryId?: string | null
+  paused: boolean
   status: 'paid' | 'due_soon' | 'overdue' | 'upcoming'
 }
 
@@ -967,33 +970,68 @@ function ExpensesTab({ currentUserId, members, isPremium, isAdmin, onOpenExpense
 
 // ─── Bills Tab ────────────────────────────────────────────────────────────────
 
-function BillRow({ bill, isAdmin = false, onMarkPaid, marking = false, onDelete, deleting = false }: {
+function BillRow({ bill, isAdmin = false, onMarkPaid, marking = false, onEdit, onDelete, deleting = false, onTogglePause, pausing = false }: {
   bill: Bill
   isAdmin?: boolean
   onMarkPaid?: (id: string) => void
   marking?: boolean
+  onEdit?: (bill: Bill) => void
   onDelete?: (id: string, title: string) => void
   deleting?: boolean
+  onTogglePause?: (bill: Bill) => void
+  pausing?: boolean
 }) {
+  const paused = bill.paused
   const cfg = STATUS_CONFIG[bill.status]
   const isPaid = bill.status === 'paid'
+  const rowColor = paused ? 'var(--roost-text-muted)' : cfg.color
 
   return (
-    <SlabCard color={cfg.color}>
-      <div style={{ padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 10 }}>
+    <SlabCard color={rowColor}>
+      <div style={{ padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 10, opacity: paused ? 0.6 : 1 }}>
         <div style={{ flex: 1 }}>
-          <p style={{ margin: 0, fontWeight: 700, fontSize: 14, color: 'var(--roost-text-primary)' }}>{bill.title}</p>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <p style={{ margin: 0, fontWeight: 700, fontSize: 14, color: 'var(--roost-text-primary)' }}>{bill.title}</p>
+            {paused && (
+              <span style={{ fontSize: 10, fontWeight: 800, padding: '2px 8px', borderRadius: 6, backgroundColor: 'var(--roost-bg)', color: 'var(--roost-text-muted)', border: '1px solid var(--roost-border)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                Paused
+              </span>
+            )}
+          </div>
           <p style={{ margin: '2px 0 0', fontSize: 12, fontWeight: 600, color: 'var(--roost-text-muted)' }}>
             {bill.dueDay ? `Due on the ${bill.dueDay}${ordinal(bill.dueDay)}` : 'No due date set'}
           </p>
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 6 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <span style={{ fontWeight: 800, fontSize: 16, color: 'var(--roost-text-primary)' }}>${parseFloat(String(bill.amount)).toFixed(2)}</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+            <span style={{ fontWeight: 800, fontSize: 16, color: 'var(--roost-text-primary)', marginRight: 4 }}>${parseFloat(String(bill.amount)).toFixed(2)}</span>
+            {isAdmin && onTogglePause && (
+              <button
+                onClick={() => onTogglePause(bill)}
+                disabled={pausing}
+                aria-label={paused ? 'Resume bill' : 'Pause bill'}
+                title={paused ? 'Resume' : 'Pause'}
+                style={{ padding: 6, borderRadius: 8, border: 'none', backgroundColor: 'transparent', cursor: pausing ? 'not-allowed' : 'pointer', opacity: pausing ? 0.4 : 0.6, display: 'flex', alignItems: 'center' }}
+              >
+                {paused ? <Play size={15} color={COLOR} /> : <Pause size={15} color="var(--roost-text-secondary)" />}
+              </button>
+            )}
+            {isAdmin && onEdit && (
+              <button
+                onClick={() => onEdit(bill)}
+                aria-label="Edit bill"
+                title="Edit"
+                style={{ padding: 6, borderRadius: 8, border: 'none', backgroundColor: 'transparent', cursor: 'pointer', opacity: 0.6, display: 'flex', alignItems: 'center' }}
+              >
+                <Edit2 size={15} color="var(--roost-text-secondary)" />
+              </button>
+            )}
             {isAdmin && onDelete && (
               <button
                 onClick={() => onDelete(bill.id, bill.title)}
                 disabled={deleting}
+                aria-label="Delete bill"
+                title="Delete"
                 style={{ padding: 6, borderRadius: 8, border: 'none', backgroundColor: 'transparent', cursor: deleting ? 'not-allowed' : 'pointer', opacity: deleting ? 0.4 : 0.6, display: 'flex', alignItems: 'center' }}
               >
                 <Trash2 size={15} color="#EF4444" />
@@ -1001,10 +1039,10 @@ function BillRow({ bill, isAdmin = false, onMarkPaid, marking = false, onDelete,
             )}
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 4, justifyContent: 'flex-end' }}>
-            {cfg.icon}
-            <span style={{ fontSize: 12, fontWeight: 700, color: cfg.color }}>{cfg.label}</span>
+            {!paused && cfg.icon}
+            <span style={{ fontSize: 12, fontWeight: 700, color: rowColor }}>{paused ? 'Paused' : cfg.label}</span>
           </div>
-          {isAdmin && !isPaid && onMarkPaid && (
+          {isAdmin && !isPaid && !paused && onMarkPaid && (
             <button
               onClick={() => onMarkPaid(bill.id)}
               disabled={marking}
@@ -1019,15 +1057,17 @@ function BillRow({ bill, isAdmin = false, onMarkPaid, marking = false, onDelete,
   )
 }
 
-function BillsTab({ isPremium, isAdmin, currentUserId, onAddBill }: {
+function BillsTab({ isPremium, isAdmin, currentUserId, onAddBill, onEditBill }: {
   isPremium: boolean
   isAdmin: boolean
   currentUserId: string
   onAddBill: () => void
+  onEditBill: (bill: EditableBill) => void
 }) {
   const qc = useQueryClient()
   const [markingId, setMarkingId] = useState<string | null>(null)
   const [deletingId, setDeletingId] = useState<string | null>(null)
+  const [pausingId, setPausingId] = useState<string | null>(null)
   const [pendingDelete, setPendingDelete] = useState<{ id: string; title: string } | null>(null)
 
   const { data, isLoading } = useQuery({
@@ -1083,6 +1123,40 @@ function BillsTab({ isPremium, isAdmin, currentUserId, onAddBill }: {
     }
   }
 
+  async function handleTogglePause(bill: Bill) {
+    const next = !bill.paused
+    setPausingId(bill.id)
+
+    // Optimistic update on the bills cache
+    const prev = qc.getQueryData(['bills'])
+    qc.setQueryData(['bills'], (old: { bills?: Bill[] } | undefined) => {
+      if (!old?.bills) return old
+      return { ...old, bills: old.bills.map(b => b.id === bill.id ? { ...b, paused: next } : b) }
+    })
+
+    try {
+      const res = await fetch(`/api/expenses/recurring/${bill.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ paused: next }),
+      })
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}))
+        if (prev) qc.setQueryData(['bills'], prev)
+        toast.error(next ? 'Could not pause bill' : 'Could not resume bill', { description: data.error ?? 'Something went wrong.' })
+        return
+      }
+      toast.success(next ? `"${bill.title}" paused` : `"${bill.title}" resumed`)
+      qc.invalidateQueries({ queryKey: ['money-dashboard'] })
+    } catch {
+      if (prev) qc.setQueryData(['bills'], prev)
+      toast.error(next ? 'Could not pause bill' : 'Could not resume bill', { description: 'Network error. Try again.' })
+    } finally {
+      setPausingId(null)
+      qc.invalidateQueries({ queryKey: ['bills'] })
+    }
+  }
+
   if (!isPremium) {
     return (
       <EmptyState color={COLOR} icon={<FileText size={28} />} title="Premium feature"
@@ -1127,7 +1201,18 @@ function BillsTab({ isPremium, isAdmin, currentUserId, onAddBill }: {
           </SlabCard>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             {bills.map((bill: Bill) => (
-              <BillRow key={bill.id} bill={bill} isAdmin={isAdmin} onMarkPaid={handleMarkPaid} marking={markingId === bill.id} onDelete={handleDelete} deleting={deletingId === bill.id} />
+              <BillRow
+                key={bill.id}
+                bill={bill}
+                isAdmin={isAdmin}
+                onMarkPaid={handleMarkPaid}
+                marking={markingId === bill.id}
+                onEdit={(b) => onEditBill({ id: b.id, title: b.title, amount: b.amount, frequency: b.frequency, dueDay: b.dueDay, categoryId: b.categoryId })}
+                onDelete={handleDelete}
+                deleting={deletingId === bill.id}
+                onTogglePause={handleTogglePause}
+                pausing={pausingId === bill.id}
+              />
             ))}
           </div>
         </>
@@ -1669,6 +1754,7 @@ export default function MoneyPage() {
   const [editingGoal, setEditingGoal] = useState<MoneyGoal | null>(null)
   const [contributeGoal, setContributeGoal] = useState<MoneyGoal | null>(null)
   const [billSheetOpen, setBillSheetOpen] = useState(false)
+  const [editingBill, setEditingBill] = useState<EditableBill | null>(null)
   const [budgetSheetOpen, setBudgetSheetOpen] = useState(false)
   const [editingBudget, setEditingBudget] = useState<EditableBudget | null>(null)
   const [claimBannerDismissed, setClaimBannerDismissed] = useState(false)
@@ -1878,7 +1964,7 @@ export default function MoneyPage() {
               onEditExpense={(e) => { setEditingExpense(e); setExpenseSheetOpen(true) }}
             />
           )}
-          {tab === 'bills' && <BillsTab isPremium={isPremium} isAdmin={isAdmin} currentUserId={currentUserId} onAddBill={() => setBillSheetOpen(true)} />}
+          {tab === 'bills' && <BillsTab isPremium={isPremium} isAdmin={isAdmin} currentUserId={currentUserId} onAddBill={() => { setEditingBill(null); setBillSheetOpen(true) }} onEditBill={(b) => { setEditingBill(b); setBillSheetOpen(true) }} />}
           {tab === 'budget' && <BudgetTab isPremium={isPremium} isAdmin={isAdmin} onAddBudget={() => setBudgetSheetOpen(true)} onEditBudget={(b) => { setEditingBudget(b); setBudgetSheetOpen(true) }} />}
           {tab === 'goals' && (
             <GoalsTab
@@ -1943,7 +2029,8 @@ export default function MoneyPage() {
 
       <BillSheet
         open={billSheetOpen}
-        onClose={() => setBillSheetOpen(false)}
+        onClose={() => { setBillSheetOpen(false); setEditingBill(null) }}
+        bill={editingBill}
       />
 
       <BudgetSheet

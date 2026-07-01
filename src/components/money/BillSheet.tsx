@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { DraggableSheet } from '@/components/shared/DraggableSheet'
@@ -16,13 +16,24 @@ const COLOR_DARK = '#15803D'
 
 type Frequency = 'monthly' | 'weekly' | 'yearly'
 
+export interface EditableBill {
+  id: string
+  title: string
+  amount: string | number
+  frequency: string
+  dueDay: number | null
+  categoryId?: string | null
+}
+
 interface Props {
   open: boolean
   onClose: () => void
+  bill?: EditableBill | null
 }
 
-export function BillSheet({ open, onClose }: Props) {
+export function BillSheet({ open, onClose, bill }: Props) {
   const qc = useQueryClient()
+  const isEditing = !!bill
 
   const [title, setTitle] = useState('')
   const [amount, setAmount] = useState('')
@@ -31,6 +42,21 @@ export function BillSheet({ open, onClose }: Props) {
   const [nextDueDate, setNextDueDate] = useState('')
   const [categoryId, setCategoryId] = useState('')
   const [saving, setSaving] = useState(false)
+
+  // Pre-fill when editing
+  useEffect(() => {
+    if (open && bill) {
+      setTitle(bill.title)
+      setAmount(parseFloat(String(bill.amount)).toFixed(2))
+      const freq = (['monthly', 'weekly', 'yearly'] as const).includes(bill.frequency as Frequency)
+        ? (bill.frequency as Frequency)
+        : 'monthly'
+      setFrequency(freq)
+      setDueDay(bill.dueDay != null ? String(bill.dueDay) : '')
+      setNextDueDate('')
+      setCategoryId(bill.categoryId ?? '')
+    }
+  }, [open, bill])
 
   const { data: categories = [] } = useQuery<Category[]>({
     queryKey: ['expense-categories'],
@@ -83,37 +109,64 @@ export function BillSheet({ open, onClose }: Props) {
       toast.error('Invalid amount', { description: 'Enter a positive number.' })
       return
     }
-    if (!nextDueDate) {
+    // Next due date is required only when creating a new bill.
+    if (!isEditing && !nextDueDate) {
       toast.error('Due date required', { description: 'Set when this bill is next due.' })
       return
     }
 
-    const body: Record<string, unknown> = {
-      title: title.trim(),
-      totalAmount: parseFloat(amount).toFixed(2),
-      frequency,
-      nextDueDate,
-      isBill: true,
-      splits: [],
-      ...(categoryId ? { categoryId } : {}),
-    }
-    if (frequency === 'monthly' && dueDay) {
-      body.dueDay = parseInt(dueDay)
-    }
-
     setSaving(true)
     try {
-      const res = await fetch('/api/expenses/recurring', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
-      })
+      let res: Response
+      if (isEditing) {
+        const body: Record<string, unknown> = {
+          title: title.trim(),
+          totalAmount: parseFloat(amount).toFixed(2),
+          frequency,
+          categoryId: categoryId || null,
+          dueDay: frequency === 'monthly' && dueDay ? parseInt(dueDay) : null,
+        }
+        // Only override the schedule if the user changed the due day this session.
+        if (nextDueDate) body.nextDueDate = nextDueDate
+
+        res = await fetch(`/api/expenses/recurring/${bill.id}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body),
+        })
+      } else {
+        const body: Record<string, unknown> = {
+          title: title.trim(),
+          totalAmount: parseFloat(amount).toFixed(2),
+          frequency,
+          nextDueDate,
+          isBill: true,
+          splits: [],
+          ...(categoryId ? { categoryId } : {}),
+        }
+        if (frequency === 'monthly' && dueDay) {
+          body.dueDay = parseInt(dueDay)
+        }
+
+        res = await fetch('/api/expenses/recurring', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body),
+        })
+      }
+
       const data = await res.json()
       if (!res.ok) {
-        toast.error('Could not save bill', { description: data.error ?? 'Something went wrong.' })
+        toast.error(isEditing ? 'Could not update bill' : 'Could not save bill', {
+          description: data.error ?? 'Something went wrong.',
+        })
         return
       }
-      toast.success('Bill added', { description: `"${title.trim()}" is now being tracked.` })
+      toast.success(isEditing ? 'Bill updated' : 'Bill added', {
+        description: isEditing
+          ? `"${title.trim()}" has been updated.`
+          : `"${title.trim()}" is now being tracked.`,
+      })
       qc.invalidateQueries({ queryKey: ['bills'] })
       qc.invalidateQueries({ queryKey: ['money-dashboard'] })
       handleClose()
@@ -152,7 +205,7 @@ export function BillSheet({ open, onClose }: Props) {
     >
       <div className="px-4 pb-8">
         <p className="mb-5 text-lg" style={{ color: 'var(--roost-text-primary)', fontWeight: 800 }}>
-          Add bill
+          {isEditing ? 'Edit bill' : 'Add bill'}
         </p>
 
         {/* Name */}
@@ -254,6 +307,11 @@ export function BillSheet({ open, onClose }: Props) {
             onChange={e => setNextDueDate(e.target.value)}
             style={inputStyle}
           />
+          {isEditing && (
+            <p style={{ margin: '4px 0 0', fontSize: 12, fontWeight: 600, color: 'var(--roost-text-muted)' }}>
+              Leave blank to keep the current schedule.
+            </p>
+          )}
         </div>
 
         <button
@@ -268,7 +326,7 @@ export function BillSheet({ open, onClose }: Props) {
             opacity: saving ? 0.7 : 1,
           }}
         >
-          {saving ? 'Saving...' : 'Add bill'}
+          {saving ? 'Saving...' : isEditing ? 'Save changes' : 'Add bill'}
         </button>
       </div>
     </DraggableSheet>

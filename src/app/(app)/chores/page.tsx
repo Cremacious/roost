@@ -3,7 +3,7 @@
 import { useState, useMemo, type ReactNode } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Plus, Trophy, Gift, ChevronDown, ChevronUp, Check, Clock, AlertCircle, Lock } from 'lucide-react'
+import { Plus, Trophy, Gift, History, ChevronDown, ChevronUp, Check, Clock, AlertCircle, Lock } from 'lucide-react'
 import { toast } from 'sonner'
 import { useSession } from '@/lib/auth/client'
 import { usePermissionGate } from '@/lib/hooks/usePermissionGate'
@@ -997,6 +997,32 @@ export default function ChoresPage() {
 
         {/* Action buttons */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <motion.button
+            type="button"
+            whileTap={{ y: 1 }}
+            onClick={() => router.push('/chores/history')}
+            title="History"
+            style={{
+              height: 40,
+              paddingInline: 12,
+              borderRadius: 12,
+              border: '1.5px solid var(--roost-border)',
+              borderBottom: '3px solid var(--roost-border-bottom)',
+              backgroundColor: 'var(--roost-surface)',
+              color: 'var(--roost-text-secondary)',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 6,
+              fontFamily: 'inherit',
+              fontWeight: 700,
+              fontSize: 13,
+            }}
+          >
+            <History size={16} />
+            <span className="hidden md:inline">History</span>
+          </motion.button>
+
           <motion.button
             type="button"
             whileTap={{ y: 1 }}

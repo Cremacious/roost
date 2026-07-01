@@ -82,7 +82,7 @@ export async function GET() {
     upcomingMealSlots,
     myUnsettledSplits,
     defaultList,
-    activeReminder,
+    dueReminders,
     nextNonRecurringEvent,
     recurringEventTemplates,
   ] = await Promise.all([
@@ -164,21 +164,30 @@ export async function GET() {
       )
       .limit(1),
 
-    // Active reminder due today for current user
+    // Active reminders due today for the household. Relevance to the current
+    // user (self / specific / household) is resolved in JS below to mirror the
+    // canonical filter in GET /api/reminders, so a reminder someone else set
+    // that notifies this user still surfaces in the hero.
     db
-      .select({ id: reminders.id, title: reminders.title, nextRemindAt: reminders.nextRemindAt })
+      .select({
+        id: reminders.id,
+        title: reminders.title,
+        nextRemindAt: reminders.nextRemindAt,
+        notifyType: reminders.notifyType,
+        notifyUserIds: reminders.notifyUserIds,
+        createdBy: reminders.createdBy,
+      })
       .from(reminders)
       .where(
         and(
           eq(reminders.householdId, householdId),
-          eq(reminders.createdBy, userId),
           eq(reminders.completed, false),
           isNull(reminders.deletedAt),
           isNull(reminders.snoozedUntil),
           lte(reminders.nextRemindAt, end),
         )
       )
-      .limit(1),
+      .orderBy(asc(reminders.nextRemindAt)),
 
     // Soonest non-recurring upcoming event (start time at or after now)
     db
@@ -271,6 +280,18 @@ export async function GET() {
   let heroType: HeroType = 'all_clear'
   let heroItem: object | null = null
 
+  // Resolve the soonest reminder actually relevant to this user, mirroring the
+  // canonical filter in GET /api/reminders (self / specific / household).
+  const relevantReminder = dueReminders.find(r => {
+    if (r.notifyType === 'household') return true
+    if (r.notifyType === 'self') return r.createdBy === userId
+    if (r.notifyType === 'specific') {
+      const ids = JSON.parse(r.notifyUserIds ?? '[]') as string[]
+      return r.createdBy === userId || ids.includes(userId)
+    }
+    return r.createdBy === userId
+  }) ?? null
+
   if (overdueChores.length > 0) {
     heroType = 'overdue_chore'
     const c = overdueChores[0]
@@ -279,10 +300,14 @@ export async function GET() {
     heroType = 'due_chore'
     const c = dueTodayChores[0]
     heroItem = { id: c.id, title: c.title, nextDueAt: c.nextDueAt?.toISOString() ?? null, frequency: c.frequency, overdue: false }
-  } else if (activeReminder[0]) {
+  } else if (relevantReminder) {
     heroType = 'reminder'
-    const r = activeReminder[0]
-    heroItem = { id: r.id, title: r.title, nextRemindAt: r.nextRemindAt.toISOString() }
+    heroItem = {
+      id: relevantReminder.id,
+      title: relevantReminder.title,
+      nextRemindAt: relevantReminder.nextRemindAt.toISOString(),
+      ownedByUser: relevantReminder.createdBy === userId,
+    }
   }
 
   // Pick the next upcoming meal by sorting on (slotDate, slotType ordinal). The

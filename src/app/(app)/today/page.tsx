@@ -13,8 +13,10 @@ import { UpgradeAccountBanner } from '@/components/account/UpgradeAccountBanner'
 import RewardsWidget from '@/components/shared/RewardsWidget'
 
 interface ChoreItem { id: string; title: string; nextDueAt: string | null; frequency?: string; overdue: boolean }
+interface HeroReminderItem { id: string; title: string; nextRemindAt: string; ownedByUser?: boolean }
+type HeroType = 'overdue_chore' | 'due_chore' | 'reminder' | 'all_clear'
 interface TodayData {
-  hero: { type: 'overdue_chore' | 'due_chore' | 'reminder' | 'all_clear'; item: ChoreItem | null }
+  hero: { type: HeroType; item: ChoreItem | HeroReminderItem | null }
   chores: ChoreItem[]
   snapshot: {
     meal: { name: string; slotDate: string; slotType: 'breakfast' | 'lunch' | 'dinner' | 'snack' } | null
@@ -27,6 +29,7 @@ interface TodayData {
 export default function TodayPage() {
   const queryClient = useQueryClient()
   const [completedIds, setCompletedIds] = useState<Set<string>>(new Set())
+  const [dismissedReminderIds, setDismissedReminderIds] = useState<Set<string>>(new Set())
 
   const [welcomeDismissed, setWelcomeDismissed] = useState(false)
 
@@ -83,6 +86,49 @@ export default function TodayPage() {
     },
   })
 
+  // Reminder hero actions. Both optimistically dismiss the reminder from the
+  // hero, then let the refetch reconcile (surfacing the next reminder or the
+  // all-clear state).
+  const reminderDoneMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const res = await fetch(`/api/reminders/${id}/complete`, { method: 'POST' })
+      if (!res.ok) throw new Error('Failed to complete reminder')
+    },
+    onMutate: (id) => {
+      setDismissedReminderIds(prev => new Set(prev).add(id))
+    },
+    onError: (_err, id) => {
+      setDismissedReminderIds(prev => {
+        const next = new Set(prev)
+        next.delete(id)
+        return next
+      })
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['today'] })
+    },
+  })
+
+  const reminderSnoozeMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const res = await fetch(`/api/reminders/${id}/snooze`, { method: 'POST' })
+      if (!res.ok) throw new Error('Failed to snooze reminder')
+    },
+    onMutate: (id) => {
+      setDismissedReminderIds(prev => new Set(prev).add(id))
+    },
+    onError: (_err, id) => {
+      setDismissedReminderIds(prev => {
+        const next = new Set(prev)
+        next.delete(id)
+        return next
+      })
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['today'] })
+    },
+  })
+
   const dateLabel = format(new Date(), 'EEEE, MMMM d').toUpperCase()
 
   // Render WelcomeModal regardless of today-data loading state so it is
@@ -130,6 +176,39 @@ export default function TodayPage() {
 
   const visibleChores = data.chores.filter(c => !completedIds.has(c.id))
 
+  // Compute the hero client-side from the same optimistic state that drives the
+  // chore list, so completing/dismissing the hero item advances it instantly
+  // (to the next chore, the reminder, or all-clear) instead of waiting on the
+  // 30s refetch. This also closes the double-submit window: once the hero chore
+  // is optimistically completed it is no longer the hero, so its button is gone.
+  const overdueVisible = visibleChores.filter(c => c.overdue)
+  const dueVisible = visibleChores.filter(c => !c.overdue)
+  const serverReminder =
+    data.hero.type === 'reminder' ? (data.hero.item as HeroReminderItem | null) : null
+  const reminderStillActive =
+    serverReminder !== null && !dismissedReminderIds.has(serverReminder.id)
+
+  let heroType: HeroType
+  let heroItem: ChoreItem | HeroReminderItem | null
+  if (overdueVisible.length > 0) {
+    heroType = 'overdue_chore'
+    heroItem = overdueVisible[0]
+  } else if (dueVisible.length > 0) {
+    heroType = 'due_chore'
+    heroItem = dueVisible[0]
+  } else if (reminderStillActive) {
+    heroType = 'reminder'
+    heroItem = serverReminder
+  } else {
+    heroType = 'all_clear'
+    heroItem = null
+  }
+
+  const heroActionPending =
+    completeMutation.isPending ||
+    reminderDoneMutation.isPending ||
+    reminderSnoozeMutation.isPending
+
   return (
     <>
       {welcomeModal}
@@ -146,9 +225,12 @@ export default function TodayPage() {
         <UpgradeAccountBanner />
 
         <HeroCard
-          type={data.hero.type}
-          item={data.hero.item}
+          type={heroType}
+          item={heroItem}
           onCompleteChore={id => completeMutation.mutate(id)}
+          onReminderDone={id => reminderDoneMutation.mutate(id)}
+          onReminderSnooze={id => reminderSnoozeMutation.mutate(id)}
+          actionDisabled={heroActionPending}
         />
 
         {visibleChores.length > 0 && (

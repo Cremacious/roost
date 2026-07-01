@@ -5,12 +5,17 @@ import { Check } from 'lucide-react'
 import { differenceInCalendarDays } from 'date-fns'
 
 interface ChoreItem { id: string; title: string; nextDueAt: string | null; frequency?: string; overdue: boolean }
-interface ReminderItem { id: string; title: string; nextRemindAt: string }
+interface ReminderItem { id: string; title: string; nextRemindAt: string; ownedByUser?: boolean }
 
 interface HeroCardProps {
   type: 'overdue_chore' | 'due_chore' | 'reminder' | 'all_clear'
   item: ChoreItem | ReminderItem | null
   onCompleteChore?: (id: string) => void
+  onReminderDone?: (id: string) => void
+  onReminderSnooze?: (id: string) => void
+  /** Disables the primary action while a mutation for this hero is in flight,
+   *  preventing a rapid double-submit before the refetch advances the hero. */
+  actionDisabled?: boolean
 }
 
 function formatFreq(f?: string | null): string {
@@ -29,7 +34,7 @@ const BG: Record<string, string> = {
   all_clear:     '#22C55E',
 }
 
-export function HeroCard({ type, item, onCompleteChore }: HeroCardProps) {
+export function HeroCard({ type, item, onCompleteChore, onReminderDone, onReminderSnooze, actionDisabled = false }: HeroCardProps) {
   const choreItem  = (type === 'overdue_chore' || type === 'due_chore') ? item as ChoreItem | null : null
   const reminderItem = type === 'reminder' ? item as ReminderItem | null : null
   const bg = BG[type]
@@ -58,7 +63,7 @@ export function HeroCard({ type, item, onCompleteChore }: HeroCardProps) {
   } else if (type === 'reminder' && reminderItem) {
     eyebrow = 'Reminder'
     title   = reminderItem.title
-    meta    = 'Set by you · Due today'
+    meta    = reminderItem.ownedByUser === false ? 'Due today' : 'Set by you · Due today'
   } else if (type === 'all_clear') {
     eyebrow = "You're all caught up"
     title   = 'Nothing on your plate today'
@@ -97,14 +102,16 @@ export function HeroCard({ type, item, onCompleteChore }: HeroCardProps) {
       <div style={{ display: 'flex', gap: 8, position: 'relative', zIndex: 1 }}>
         {(type === 'overdue_chore' || type === 'due_chore') && choreItem && onCompleteChore && (
           <button
-            onClick={() => onCompleteChore(choreItem.id)}
+            onClick={() => { if (!actionDisabled) onCompleteChore(choreItem.id) }}
+            disabled={actionDisabled}
             style={{
               display: 'inline-flex', alignItems: 'center', gap: 6,
               padding: '10px 18px', borderRadius: 11,
               background: 'white', border: 'none',
               fontFamily: 'inherit', fontSize: 13, fontWeight: 900,
               color: type === 'overdue_chore' ? '#B91C1C' : '#92400E',
-              cursor: 'pointer',
+              cursor: actionDisabled ? 'default' : 'pointer',
+              opacity: actionDisabled ? 0.6 : 1,
             }}
           >
             <Check size={14} strokeWidth={2.5} />
@@ -112,13 +119,21 @@ export function HeroCard({ type, item, onCompleteChore }: HeroCardProps) {
           </button>
         )}
 
-        {type === 'reminder' && (
+        {type === 'reminder' && reminderItem && (
           <>
-            <button style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '10px 18px', borderRadius: 11, background: 'white', border: 'none', fontFamily: 'inherit', fontSize: 13, fontWeight: 900, color: '#1D4ED8', cursor: 'pointer' }}>
+            <button
+              onClick={() => { if (!actionDisabled) onReminderDone?.(reminderItem.id) }}
+              disabled={actionDisabled}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '10px 18px', borderRadius: 11, background: 'white', border: 'none', fontFamily: 'inherit', fontSize: 13, fontWeight: 900, color: '#1D4ED8', cursor: actionDisabled ? 'default' : 'pointer', opacity: actionDisabled ? 0.6 : 1 }}
+            >
               <Check size={14} strokeWidth={2.5} />
               Done
             </button>
-            <button style={{ display: 'inline-flex', alignItems: 'center', padding: '10px 18px', borderRadius: 11, background: 'rgba(255,255,255,0.15)', border: '1.5px solid rgba(255,255,255,0.25)', fontFamily: 'inherit', fontSize: 13, fontWeight: 900, color: 'white', cursor: 'pointer' }}>
+            <button
+              onClick={() => { if (!actionDisabled) onReminderSnooze?.(reminderItem.id) }}
+              disabled={actionDisabled}
+              style={{ display: 'inline-flex', alignItems: 'center', padding: '10px 18px', borderRadius: 11, background: 'rgba(255,255,255,0.15)', border: '1.5px solid rgba(255,255,255,0.25)', fontFamily: 'inherit', fontSize: 13, fontWeight: 900, color: 'white', cursor: actionDisabled ? 'default' : 'pointer', opacity: actionDisabled ? 0.6 : 1 }}
+            >
               Snooze
             </button>
           </>

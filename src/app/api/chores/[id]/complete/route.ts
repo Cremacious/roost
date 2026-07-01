@@ -56,6 +56,34 @@ export async function POST(
     return NextResponse.json({ error: 'Chore not found' }, { status: 404 })
   }
 
+  // Idempotency guard: one completion per chore/user/day. Without this, a rapid
+  // double-submit (e.g. double-tapping the Today hero button before the refetch
+  // lands) inserts a second completion row, double-counting points and
+  // double-advancing the schedule. The uncheck (DELETE) path already scopes to
+  // today's window, so at most one completion per day is the intended model.
+  const alreadyCompleted = await db
+    .select({ id: choreCompletions.id })
+    .from(choreCompletions)
+    .where(
+      and(
+        eq(choreCompletions.choreId, choreId),
+        eq(choreCompletions.householdId, householdId),
+        eq(choreCompletions.userId, session.user.id),
+        gte(choreCompletions.completedAt, startOfToday()),
+        lt(choreCompletions.completedAt, startOfTomorrow()),
+      )
+    )
+    .limit(1)
+    .then(r => r[0] ?? null)
+
+  if (alreadyCompleted) {
+    return NextResponse.json({
+      ok: true,
+      alreadyCompleted: true,
+      nextDueAt: chore.nextDueAt?.toISOString() ?? null,
+    })
+  }
+
   const now = new Date()
   // Advance from the chore's existing due date so the chosen weekday /
   // day-of-month is preserved across completions.

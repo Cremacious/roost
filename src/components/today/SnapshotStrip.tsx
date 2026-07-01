@@ -121,8 +121,8 @@ export function SnapshotStrip({ data }: { data: SnapshotData }) {
   const moneySub   = data.money.label === 'clear'
     ? 'No open balances'
     : data.money.label === 'owed'
-      ? 'Net — owed to you'
-      : 'Net — you owe'
+      ? 'Net balance, owed to you'
+      : 'Net balance, you owe'
   const moneyIconBg    = data.money.label === 'owing' ? '#FEE2E2' : '#DCFCE7'
   const moneyIconColor = data.money.label === 'owing' ? '#EF4444' : '#22C55E'
 

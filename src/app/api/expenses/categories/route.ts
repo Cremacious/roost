@@ -32,7 +32,20 @@ export async function GET() {
       )
     )
 
-  return NextResponse.json(rows)
+  // Return a flat array with snake_case fields to match the shared Category
+  // interface (src/components/expenses/CategoryPicker.tsx), which every consumer
+  // (settings management + money BillSheet/BudgetSheet/ExpenseSheet) reads from.
+  return NextResponse.json(
+    rows.map((r) => ({
+      id: r.id,
+      name: r.name,
+      icon: r.icon,
+      color: r.color,
+      is_default: r.isDefault,
+      is_custom: r.isCustom,
+      status: r.status,
+    }))
+  )
 }
 
 export async function POST(req: NextRequest) {

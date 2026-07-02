@@ -16,7 +16,6 @@ export async function GET() {
       avatar_color: users.avatarColor,
       timezone: users.timezone,
       language: users.language,
-      theme: users.theme,
       has_seen_welcome: users.hasSeenWelcome,
       is_child_account: users.isChildAccount,
       venmo_handle: users.venmoHandle,

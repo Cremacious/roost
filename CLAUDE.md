@@ -364,33 +364,34 @@ Tasks: one-off to-dos
 - All UI copy goes through translation keys, no hardcoded strings
 
 ## Features: Theme System
-- Each user has their own saved theme stored in users.theme (DB)
-- 2 themes only: default, midnight (both free, no premium gate)
-  default = "Default" (clean neutral light: bg #F9FAFB, surface #FFFFFF, borders #E5E7EB)
-  midnight = "Midnight" (soft dark gray: bg #111827, surface #1F2937, dark:true)
+- SINGLE THEME at launch. There is exactly one theme ("Default", a clean neutral light
+  look: bg #F9FAFB, surface #FFFFFF, borders #E5E7EB). There is NO theme picker and NO
+  theme switching. Decision (issue #36): ship one theme; the old midnight theme and the
+  whole switching stack were removed.
+- The theme is expressed entirely via CSS variables defined in globals.css :root. There is
+  no runtime theme application, no ThemeProvider, no useTheme()/setTheme, no
+  /api/user/theme, no users.theme column read/write, and no data-theme/data-dark attributes.
+  Removed files: src/components/providers/ThemeProvider.tsx, src/lib/constants/themes.ts,
+  src/lib/store/themeStore.ts, src/app/api/user/theme/route.ts.
+  (The users.theme DB column is left in place, dormant; a db:push would drop it. Not urgent.)
+- Because there is one light theme, sign-out no longer needs a theme reset (the old
+  applyTheme(DEFAULT_THEME)-before-signOut convention is gone from Sidebar and /more).
 - Red appears ONLY in: chores feature, brand/logo, destructive actions (delete, sign out),
   auth page left panel, upgrade/billing CTAs, homepage hero, sidebar background. Nowhere else.
 - Sidebar background: hardcoded #DC2626 (brand red). Does NOT use --roost-sidebar-bg CSS variable.
   Sidebar active state: rgba(255,255,255,0.22) white fill on red background.
   All sidebar text, icons, and dividers use white/rgba-white values — no CSS variables inside the sidebar.
-- ThemeProvider reads user's theme server-side, applies CSS variables on mount
-- ThemeProvider accepts string for initialTheme; any unknown key (forest/slate/sand/warm/etc.)
-  resolves to DEFAULT_THEME ('default')
-- useTheme() hook: { theme, setTheme } -- setTheme applies instantly + PATCHes API
-- CSS variables: --roost-bg, --roost-surface, --roost-border, --roost-border-bottom,
-  --roost-text-primary, --roost-text-secondary, --roost-text-muted,
+- CSS variables (all defined in globals.css :root): --roost-bg, --roost-surface, --roost-border,
+  --roost-border-bottom, --roost-text-primary, --roost-text-secondary, --roost-text-muted,
   --roost-topbar-bg, --roost-topbar-border,
   --roost-sidebar-bg, --roost-sidebar-border, --roost-sidebar-active-bg,
   --roost-sidebar-active-text, --roost-sidebar-inactive-text, --roost-sidebar-divider,
   --roost-weather-bg, --roost-weather-color
-- ThemeProvider sets data-theme and data-dark attributes on <html> element
-- ThemeProvider also overrides shadcn CSS vars (--background, --card, etc.)
-  and sets --primary: near-black (light) or near-white (dark) — NOT red.
-  This makes Switch, Checkbox, and other shadcn components use neutral color when active.
+- globals.css :root also sets the shadcn CSS vars (--background, --card, etc.) and
+  --primary: near-black — NOT red. This makes Switch, Checkbox, and other shadcn components
+  use a neutral color when active.
 - SlabCard is the base card for the entire app: rounded-2xl, border + 4px colored bottom
-- Settings page (/settings) has a theme picker grid (2 cards) -- changes apply instantly, no save button
-- Selected theme card: border 2px solid #EF4444, border-bottom 4px solid #C93B3B
-  (brand red selection indicator is a meta-UI element, acceptable here)
+- There is NO Appearance/theme section in Settings (removed with the picker).
 
 ## Brand Guidelines
 - Primary brand color: #EF4444 (Roost Red)
@@ -591,7 +592,7 @@ src/app/(app)/              All authenticated routes
 src/app/api/                API route handlers
 src/components/ui/          shadcn primitives
 src/components/layout/      Shell, nav, sidebar
-src/components/providers/   Client providers (ThemeProvider)
+src/components/providers/   Client providers (QueryProvider)
 src/components/dashboard/   Home screen components
 src/lib/utils/              Shared utilities, NO DOM dependencies (activity.ts, etc.)
 src/components/shared/      Reused across features (SlabCard, QueryProvider, EmptyState, StatCard, PageHeader, SectionColorBadge, MemberAvatar)
@@ -603,8 +604,6 @@ src/lib/auth/index.ts                          better-auth server config
 src/lib/auth/client.ts                         better-auth client (signIn, signUp, signOut, useSession)
 src/lib/auth/helpers.ts                        requireSession, requireHouseholdMember, requireHouseholdAdmin, requirePremium, blockChild
 src/lib/constants/colors.ts                    All 8 section colors, always import from here
-src/lib/constants/themes.ts                    2 themes: default (neutral light), midnight (dark). Both free.
-src/lib/store/themeStore.ts                    Zustand store: { theme, setTheme }
 src/lib/db/index.ts                            Neon + Drizzle instance
 src/db/schema/auth.ts                          better-auth tables (user, session, account, verification)
 src/db/schema/households.ts
@@ -626,10 +625,10 @@ src/app/(auth)/child-login/page.tsx            Household code + PIN, 64px inputs
 src/app/(app)/layout.tsx                       App shell: TopBar + Sidebar + BottomNav + QueryProvider
 src/app/(app)/onboarding/page.tsx              3-step create/join household flow
 src/app/(app)/dashboard/page.tsx               Tile grid + activity feed, all CSS variable colors
-src/app/(app)/settings/page.tsx                Full settings page: Profile, Appearance, Preferences, Household, Members (all roles), Notifications, Billing, Danger Zone (admin)
+src/app/(app)/settings/page.tsx                Full settings page: Profile, Preferences, Household, Members (all roles), Notifications, Billing, Danger Zone (admin)
 src/app/(app)/chores/page.tsx                  Chores list, summary bar, view toggle, optimistic completion + uncheck
-src/app/layout.tsx                             Root layout: Nunito font, ThemeProvider with server-side theme
-src/app/globals.css                            Tailwind + shadcn vars + --roost-* CSS variable defaults
+src/app/layout.tsx                             Root layout: Nunito font, QueryProvider, Toaster (no ThemeProvider — single theme via globals.css :root)
+src/app/globals.css                            Tailwind + shadcn vars + --roost-* CSS variable defaults (single default theme, :root only)
 src/app/api/auth/[...all]/route.ts             better-auth catch-all handler
 src/app/api/auth/child-login/route.ts          GET: list child accounts for a household (public, by householdCode); POST: verify PIN + create session via internalAdapter
 src/app/api/household/create/route.ts          POST: create household, generate unique code
@@ -655,7 +654,6 @@ src/app/api/household/activity/route.ts        GET: activity items with paginati
 src/components/layout/TopBar.tsx               Household name, weather, clock, avatars -- all CSS variable colors
 src/components/layout/BottomNav.tsx            Mobile 4-tab nav + More sheet (Profile, Settings, Sign out with AlertDialog confirm)
 src/components/layout/Sidebar.tsx              Desktop 220px sidebar with icon+label for all 9 nav items; sign out button at bottom with AlertDialog confirm
-src/components/providers/ThemeProvider.tsx     Applies theme CSS vars; exports useTheme() hook
 src/components/shared/QueryProvider.tsx        TanStack Query client provider
 src/lib/utils/activity.ts                      logActivity(params) helper -- wraps insert, never throws, safe to call from any route
 src/lib/utils/grocerySort.ts                   STORE_SECTIONS, StoreSection, classifyItem(name), groupItemsBySection(items) -- pure client-side keyword classifier for grocery smart sort
@@ -1173,7 +1171,7 @@ src/lib/constants/colors.ts                   Added "stats": "#6366F1" (indigo) 
 - Danger zone actions require the user to type "DELETE" into a confirmation input before the destructive button enables. Never allow destructive household actions (delete all data, delete household) with a single click or simple OK dialog.
 - Child financial permissions (expenses.view, expenses.add) are always locked off regardless of admin checklist. The API enforces this: enabling child-locked permissions for a child role returns 400.
 - PIN is always hashed before storage (hashPassword from better-auth/crypto). Never store child PINs in plain text.
-- Settings page sections: Profile (avatar color, name, email, timezone, password change), Appearance (theme grid), Preferences (temperature unit, location, language), Household (rename, invite code, transfer admin), Members (all roles — admin sees interactive list with MemberSheet; non-admins see read-only list with name + role badge), Notifications (info text only: push notifications coming in iOS/Android apps, no toggles), Promotions (promo code redemption input + active promo status cards), Billing (plan status, upgrade), Danger Zone (admin only, delete data, delete household).
+- Settings page sections: Profile (avatar color, name, email, timezone, password change), Preferences (temperature unit, location, language), Household (rename, invite code, transfer admin), Members (all roles — admin sees interactive list with MemberSheet; non-admins see read-only list with name + role badge), Notifications (info text only: push notifications coming in iOS/Android apps, no toggles), Promotions (promo code redemption input + active promo status cards), Billing (plan status, upgrade), Danger Zone (admin only, delete data, delete household).
 - MemberSheet (admin only): role changes, 12 permission toggles, child PIN change (nested sheet), allowance config (child only), remove member. Child-locked permissions rendered as disabled switches.
 - The 12 member permissions: expenses.view, expenses.add, chores.add, chores.edit, grocery.add, grocery.create_list, calendar.add, calendar.edit, tasks.add, notes.add, meals.plan, meals.suggest
 - Add flow pattern per feature page:
@@ -1354,16 +1352,10 @@ Designer brief (send this when hiring):
 - Chore history date filtering: parse date strings with `new Date("${dateStr}T00:00:00")` (no Z) to get local midnight, then use date-fns startOfDay/endOfDay. Using `new Date("2026-04-08")` parses UTC midnight — setHours() then breaks on non-UTC servers.
 - Chore history users join: leftJoin (not innerJoin) so completions are never silently dropped if a users row is missing
 - Grocery: pill row shows for (isPremium || lists.length > 1); + button shows Lock icon for free users
-- Settings theme picker: all themes are free, no lock UI, selecting any theme calls setTheme() directly
+- No theme picker (single theme, see Features: Theme System). The whole switching stack was removed.
 - Expenses: free users see inline upgrade pitch card (no blurred preview), premium users see full module
-- Sign out: AlertDialog confirmation in both Sidebar (desktop) and BottomNav More sheet (mobile)
-  Calls applyTheme(DEFAULT_THEME) BEFORE signOut() to immediately reset CSS vars, then router.push('/login'), no toast on success
-  This prevents midnight theme bleeding into the login page or a new user's session
-- Theme on signout: always reset to DEFAULT_THEME immediately in handleSignOut (both Sidebar and BottomNav)
-  Do NOT wait for page reload — call applyTheme(DEFAULT_THEME) synchronously before signOut()
-- ThemeProvider does NOT read from localStorage. Theme comes exclusively from the server-side initialTheme prop
-  (read from users.theme in DB in RootLayout). New users without a users row get DEFAULT_THEME.
-- users.theme DB default is 'default' (not 'warm' or any removed theme). Unknown theme keys resolve to DEFAULT_THEME.
+- Sign out: Sidebar (desktop) and /more (mobile) call signOut() then router.push('/login'),
+  no toast on success. No theme reset needed (single light theme).
 - Onboarding page background: #FFC8C8 (light pink). Content card: #C41E1E (dark red), borderRadius 24px.
   All text on the card uses white/rgba-white (never CSS variables). Option cards are white (#ffffff) with
   red-tinted icon boxes. Inputs use rgba-white border/background. Logo: icon-only (wordmark={false}).

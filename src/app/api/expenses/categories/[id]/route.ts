@@ -56,10 +56,14 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
   if (!cat) return NextResponse.json({ error: 'Not found' }, { status: 404 })
   if (cat.isDefault) return NextResponse.json({ error: 'Cannot delete default categories' }, { status: 400 })
 
-  // unlink expenses that use this category
-  await db.update(expenses).set({ categoryId: null }).where(eq(expenses.categoryId, id))
+  // unlink expenses that use this category (they fall back to "Other")
+  const moved = await db
+    .update(expenses)
+    .set({ categoryId: null })
+    .where(eq(expenses.categoryId, id))
+    .returning({ id: expenses.id })
 
   await db.update(expenseCategories).set({ deletedAt: new Date() }).where(eq(expenseCategories.id, id))
 
-  return NextResponse.json({ ok: true })
+  return NextResponse.json({ ok: true, moved: moved.length })
 }

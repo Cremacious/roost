@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { useQueryClient } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import {
   ArrowLeft,
   CheckCircle2,
@@ -24,9 +24,43 @@ import { toast } from 'sonner'
 import { useHousehold } from '@/lib/hooks/useHousehold'
 import { SlabCard } from '@/components/ui/SlabCard'
 import { PageContainer } from '@/components/layout/PageContainer'
+import { PLAN_LIMITS } from '@/lib/constants/planLimits'
 
 const GREEN = '#22C55E'
 const GREEN_DARK = '#159040'
+
+function UsageRow({
+  label,
+  color,
+  count,
+  limit,
+}: {
+  label: string
+  color: string
+  count: number
+  limit: number
+}) {
+  const pct = limit > 0 ? Math.min((count / limit) * 100, 100) : 0
+  const atLimit = count >= limit
+  return (
+    <div>
+      <div className="mb-1.5 flex items-center justify-between">
+        <span className="text-sm" style={{ color: 'var(--roost-text-primary)', fontWeight: 700 }}>
+          {label}
+        </span>
+        <span
+          className="text-xs"
+          style={{ color: atLimit ? color : 'var(--roost-text-muted)', fontWeight: 700 }}
+        >
+          {count} / {limit} used
+        </span>
+      </div>
+      <div className="h-2 w-full overflow-hidden rounded-full" style={{ backgroundColor: 'var(--roost-bg)' }}>
+        <div className="h-full rounded-full" style={{ width: `${pct}%`, backgroundColor: color }} />
+      </div>
+    </div>
+  )
+}
 
 const FEATURE_LIST = [
   { icon: DollarSign, label: 'Bill splitting and expense tracking' },
@@ -104,6 +138,61 @@ export default function BillingPage() {
   const [showCancelConfirm, setShowCancelConfirm] = useState(false)
 
   const isAdmin = role === 'admin'
+
+  // Free-tier usage bars: only fetch for free households (premium is unlimited).
+  const usageEnabled = !isLoading && !isPremium
+  const choresUsage = useQuery({
+    queryKey: ['billing-usage', 'chores'],
+    queryFn: async () => {
+      const r = await fetch('/api/chores')
+      if (!r.ok) return { chores: [] }
+      return r.json()
+    },
+    enabled: usageEnabled,
+    staleTime: 30_000,
+  })
+  const membersUsage = useQuery({
+    queryKey: ['billing-usage', 'members'],
+    queryFn: async () => {
+      const r = await fetch('/api/household/members')
+      if (!r.ok) return { members: [] }
+      return r.json()
+    },
+    enabled: usageEnabled,
+    staleTime: 30_000,
+  })
+  const listsUsage = useQuery({
+    queryKey: ['billing-usage', 'grocery-lists'],
+    queryFn: async () => {
+      const r = await fetch('/api/grocery/lists')
+      if (!r.ok) return { lists: [] }
+      return r.json()
+    },
+    enabled: usageEnabled,
+    staleTime: 30_000,
+  })
+  const remindersUsage = useQuery({
+    queryKey: ['billing-usage', 'reminders'],
+    queryFn: async () => {
+      const r = await fetch('/api/reminders')
+      if (!r.ok) return { reminders: [] }
+      return r.json()
+    },
+    enabled: usageEnabled,
+    staleTime: 30_000,
+  })
+
+  const usageItems = [
+    { label: 'Chores', color: '#EF4444', count: choresUsage.data?.chores?.length ?? 0, limit: PLAN_LIMITS.free.chores },
+    { label: 'Members', color: '#3B82F6', count: membersUsage.data?.members?.length ?? 0, limit: PLAN_LIMITS.free.members },
+    { label: 'Grocery lists', color: '#F59E0B', count: listsUsage.data?.lists?.length ?? 0, limit: PLAN_LIMITS.free.groceryLists },
+    {
+      label: 'Reminders',
+      color: '#06B6D4',
+      count: (remindersUsage.data?.reminders ?? []).filter((r: { completed?: boolean }) => !r.completed).length,
+      limit: PLAN_LIMITS.free.reminders,
+    },
+  ]
 
   async function handleCheckout() {
     setIsCheckingOut(true)
@@ -401,6 +490,28 @@ export default function BillingPage() {
                 )}
               </div>
             </SlabCard>
+
+            {/* ---- Free-tier usage ---- */}
+            {!isPremium && (
+              <SlabCard>
+                <div className="p-5">
+                  <p
+                    className="mb-1 text-sm"
+                    style={{ color: 'var(--roost-text-primary)', fontWeight: 800 }}
+                  >
+                    Your plan usage
+                  </p>
+                  <p className="mb-4 text-xs" style={{ color: 'var(--roost-text-muted)', fontWeight: 600 }}>
+                    Upgrade to Premium to remove these limits.
+                  </p>
+                  <div className="space-y-4">
+                    {usageItems.map((item) => (
+                      <UsageRow key={item.label} {...item} />
+                    ))}
+                  </div>
+                </div>
+              </SlabCard>
+            )}
 
             {/* ---- Premium features list ---- */}
             <SlabCard>

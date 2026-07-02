@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
+import { Lock } from 'lucide-react'
 import { useSession } from '@/lib/auth/client'
 import { SECTION_COLORS } from '@/lib/constants/colors'
 import { DraggableSheet } from '@/components/shared/DraggableSheet'
@@ -69,9 +70,11 @@ interface ReminderSheetProps {
   onClose: () => void
   reminder?: ReminderData | null
   members: Member[]
+  isPremium?: boolean
+  onUpgradeRequired?: (code: string) => void
 }
 
-export function ReminderSheet({ open, onClose, reminder, members }: ReminderSheetProps) {
+export function ReminderSheet({ open, onClose, reminder, members, isPremium = false, onUpgradeRequired }: ReminderSheetProps) {
   const { data: session } = useSession()
   const currentUserId = session?.user?.id ?? ''
   const qc = useQueryClient()
@@ -128,7 +131,11 @@ export function ReminderSheet({ open, onClose, reminder, members }: ReminderShee
       toast.success(reminder ? 'Reminder updated' : 'Reminder set')
       onClose()
     },
-    onError: (err: Error) => {
+    onError: (err: Error & { code?: string }) => {
+      if (err.code && onUpgradeRequired) {
+        onUpgradeRequired(err.code)
+        return
+      }
       toast.error('Could not save reminder', { description: err.message })
     },
   })
@@ -195,11 +202,16 @@ export function ReminderSheet({ open, onClose, reminder, members }: ReminderShee
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
             {FREQUENCIES.map(f => {
               const active = frequency === f.value
+              const locked = !isPremium && f.value !== 'once'
               return (
                 <button
                   key={f.value}
                   type="button"
-                  onClick={() => setFrequency(f.value)}
+                  aria-disabled={locked}
+                  onClick={() => {
+                    if (locked) { onUpgradeRequired?.('RECURRING_REMINDERS_PREMIUM'); return }
+                    setFrequency(f.value)
+                  }}
                   style={{
                     flex: '1 1 80px',
                     padding: '10px 0',
@@ -211,8 +223,14 @@ export function ReminderSheet({ open, onClose, reminder, members }: ReminderShee
                     fontWeight: 800,
                     fontSize: 13,
                     cursor: 'pointer',
+                    opacity: locked ? 0.6 : 1,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: 5,
                   }}
                 >
+                  {locked && <Lock size={12} />}
                   {f.label}
                 </button>
               )
@@ -225,11 +243,16 @@ export function ReminderSheet({ open, onClose, reminder, members }: ReminderShee
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: notifyType === 'specific' ? 12 : 0 }}>
             {NOTIFY_TYPES.map(n => {
               const active = notifyType === n.value
+              const locked = !isPremium && n.value !== 'self'
               return (
                 <button
                   key={n.value}
                   type="button"
-                  onClick={() => setNotifyType(n.value)}
+                  aria-disabled={locked}
+                  onClick={() => {
+                    if (locked) { onUpgradeRequired?.('REMINDER_NOTIFY_PREMIUM'); return }
+                    setNotifyType(n.value)
+                  }}
                   style={{
                     flex: '1 1 100px',
                     padding: '10px 0',
@@ -241,8 +264,14 @@ export function ReminderSheet({ open, onClose, reminder, members }: ReminderShee
                     fontWeight: 800,
                     fontSize: 13,
                     cursor: 'pointer',
+                    opacity: locked ? 0.6 : 1,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: 5,
                   }}
                 >
+                  {locked && <Lock size={12} />}
                   {n.label}
                 </button>
               )

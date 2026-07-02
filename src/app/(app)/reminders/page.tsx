@@ -3,11 +3,14 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Plus, Bell, Pencil, Trash2, Check, Clock } from 'lucide-react'
+import { Plus, Bell, Pencil, Trash2, Check, Clock, Lock } from 'lucide-react'
 import { SectionGroup } from '@/components/shared/SectionGroup'
 import { toast } from 'sonner'
 import { useSession } from '@/lib/auth/client'
 import { SECTION_COLORS } from '@/lib/constants/colors'
+import { PLAN_LIMITS } from '@/lib/constants/planLimits'
+import { useHousehold } from '@/lib/hooks/useHousehold'
+import PremiumGate from '@/components/shared/PremiumGate'
 import { SlabCard } from '@/components/ui/SlabCard'
 import { ReminderSheet, type ReminderData, type Member } from '@/components/reminders/ReminderSheet'
 
@@ -91,18 +94,26 @@ function ReminderRow({ reminder, canModify, onComplete, onUndo, onEdit, onDelete
           </div>
         </div>
 
-        {canModify && (
-          <div style={{ display: 'flex', gap: 4, flexShrink: 0 }}>
-            {!reminder.completed && !snoozed && (
+        {(snoozed || canModify) && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
+            {snoozed && (
+              <motion.button whileTap={{ y: 1 }} type="button" onClick={() => onUndo(reminder.id)}
+                style={{ height: 36, padding: '0 12px', borderRadius: 10, border: 'none', backgroundColor: 'var(--roost-bg)', cursor: 'pointer', color: COLOR, fontWeight: 800, fontSize: 13 }}>
+                Undo
+              </motion.button>
+            )}
+            {canModify && !reminder.completed && !snoozed && (
               <motion.button whileTap={{ y: 1 }} type="button" onClick={() => onEdit(reminder)}
                 style={{ width: 36, height: 36, borderRadius: 10, border: 'none', backgroundColor: 'var(--roost-bg)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <Pencil size={14} color="var(--roost-text-secondary)" />
               </motion.button>
             )}
-            <motion.button whileTap={{ y: 1 }} type="button" onClick={() => onDelete(reminder.id)}
-              style={{ width: 36, height: 36, borderRadius: 10, border: 'none', backgroundColor: 'var(--roost-bg)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <Trash2 size={14} color="#EF4444" />
-            </motion.button>
+            {canModify && (
+              <motion.button whileTap={{ y: 1 }} type="button" onClick={() => onDelete(reminder.id)}
+                style={{ width: 36, height: 36, borderRadius: 10, border: 'none', backgroundColor: 'var(--roost-bg)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Trash2 size={14} color="#EF4444" />
+              </motion.button>
+            )}
           </div>
         )}
       </div>
@@ -115,10 +126,12 @@ export default function RemindersPage() {
   const { data: session } = useSession()
   const currentUserId = session?.user?.id ?? ''
   const qc = useQueryClient()
+  const { isPremium } = useHousehold()
 
   const [sheetOpen, setSheetOpen] = useState(false)
   const [editReminder, setEditReminder] = useState<Reminder | null>(null)
   const [completedCollapsed, setCompletedCollapsed] = useState(true)
+  const [upgradeCode, setUpgradeCode] = useState<string | null>(null)
 
   const { data, isLoading, isError } = useQuery({
     queryKey: ['reminders'],
@@ -190,7 +203,14 @@ export default function RemindersPage() {
   const snoozed = active.filter(r => isSnoozed(r))
   const completed = reminders.filter(r => r.completed)
 
+  const atLimit = !isPremium && active.length >= PLAN_LIMITS.free.reminders
   const hasAny = reminders.length > 0
+
+  function handleAdd() {
+    if (atLimit) { setUpgradeCode('REMINDERS_LIMIT'); return }
+    setEditReminder(null)
+    setSheetOpen(true)
+  }
 
   const members: Member[] = (membersData?.members ?? []).map((m) => ({
     userId: m.userId,
@@ -254,11 +274,11 @@ export default function RemindersPage() {
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div>
             <h1 style={{ margin: 0, fontWeight: 900, fontSize: 26, color: 'var(--roost-text-primary)', letterSpacing: '-0.3px' }}>Reminders</h1>
-            <p style={{ margin: '2px 0 0', fontSize: 13, fontWeight: 600, color: 'var(--roost-text-muted)' }}>{active.length} active</p>
+            <p style={{ margin: '2px 0 0', fontSize: 13, fontWeight: 600, color: 'var(--roost-text-muted)' }}>{active.length - snoozed.length} active</p>
           </div>
-          <motion.button whileTap={{ y: 2 }} type="button" onClick={() => { setEditReminder(null); setSheetOpen(true) }}
-            style={{ width: 40, height: 40, borderRadius: 12, backgroundColor: COLOR, border: 'none', borderBottom: `3px solid ${COLOR_DARK}`, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0 }}>
-            <Plus size={20} color="#fff" />
+          <motion.button whileTap={{ y: 2 }} type="button" aria-disabled={atLimit} onClick={handleAdd}
+            style={{ width: 40, height: 40, borderRadius: 12, backgroundColor: COLOR, border: 'none', borderBottom: `3px solid ${COLOR_DARK}`, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0, opacity: atLimit ? 0.55 : 1 }}>
+            {atLimit ? <Lock size={18} color="#fff" /> : <Plus size={20} color="#fff" />}
           </motion.button>
         </div>
 
@@ -270,7 +290,7 @@ export default function RemindersPage() {
               </div>
               <p style={{ margin: 0, fontWeight: 800, fontSize: 16, color: 'var(--roost-text-primary)' }}>Nothing pending.</p>
               <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: 'var(--roost-text-secondary)' }}>No reminders set. Bold move.</p>
-              <motion.button whileTap={{ y: 2 }} type="button" onClick={() => { setEditReminder(null); setSheetOpen(true) }}
+              <motion.button whileTap={{ y: 2 }} type="button" onClick={handleAdd}
                 style={{ marginTop: 8, padding: '11px 20px', borderRadius: 12, border: 'none', borderBottom: `3px solid ${COLOR_DARK}`, backgroundColor: COLOR, color: '#fff', fontWeight: 800, fontSize: 14, cursor: 'pointer' }}>
                 Add a reminder
               </motion.button>
@@ -289,7 +309,17 @@ export default function RemindersPage() {
         onClose={() => { setSheetOpen(false); setEditReminder(null) }}
         reminder={editReminder ? toReminderData(editReminder) : null}
         members={members}
+        isPremium={isPremium}
+        onUpgradeRequired={setUpgradeCode}
       />
+
+      {upgradeCode && (
+        <PremiumGate
+          feature="reminders"
+          trigger="sheet"
+          onClose={() => setUpgradeCode(null)}
+        />
+      )}
     </>
   )
 }

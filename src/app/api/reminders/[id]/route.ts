@@ -17,6 +17,7 @@ export async function PATCH(
   if (!membership) return NextResponse.json({ error: 'No household' }, { status: 403 })
 
   const { householdId, role } = membership
+  const isPremium = membership.household.subscriptionStatus === 'premium'
 
   const [existing] = await db.select().from(reminders).where(eq(reminders.id, id)).limit(1)
   if (!existing || existing.householdId !== householdId) {
@@ -29,6 +30,20 @@ export async function PATCH(
 
   const body = await req.json()
   const { title, note, remindAt, frequency, customDays, notifyType, notifyUserIds } = body
+
+  // Free households cannot edit a reminder into premium-only settings.
+  if (!isPremium && frequency !== undefined && frequency !== 'once') {
+    return NextResponse.json(
+      { error: 'Recurring reminders are a premium feature', code: 'RECURRING_REMINDERS_PREMIUM' },
+      { status: 403 },
+    )
+  }
+  if (!isPremium && notifyType !== undefined && notifyType !== 'self') {
+    return NextResponse.json(
+      { error: 'Notifying others is a premium feature', code: 'REMINDER_NOTIFY_PREMIUM' },
+      { status: 403 },
+    )
+  }
 
   const updates: Record<string, unknown> = { updatedAt: new Date() }
   if (title !== undefined) updates.title = title.trim()

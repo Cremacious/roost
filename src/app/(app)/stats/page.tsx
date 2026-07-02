@@ -233,7 +233,7 @@ const GROUP_COLORS: Record<string, string> = {
 // ---- Main page --------------------------------------------------------------
 
 export default function StatsPage() {
-  const { isPremium, statsVisibility } = useHousehold();
+  const { isPremium, statsVisibility, isLoading: householdLoading } = useHousehold();
   const [quickRange, setQuickRange] = useState<QuickRange>("30d");
   const [customFrom, setCustomFrom] = useState(format(subDays(new Date(), 30), "yyyy-MM-dd"));
   const [customTo, setCustomTo] = useState(format(new Date(), "yyyy-MM-dd"));
@@ -250,6 +250,18 @@ export default function StatsPage() {
     enabled: isPremium === true,
     staleTime: 60_000,
   });
+
+  // While the household query is still resolving, isPremium is transiently false.
+  // Show a skeleton instead of flashing the premium gate at premium users.
+  if (householdLoading) {
+    return (
+      <PageContainer>
+        <div className="py-6">
+          <StatsSkeleton />
+        </div>
+      </PageContainer>
+    );
+  }
 
   if (isPremium === false) {
     return (
@@ -434,7 +446,7 @@ export default function StatsPage() {
               {/* Chart 1: Chore completions over time */}
               {statsVisibility.chores && (
                 <ChartCard title="Chore Activity">
-                  {(chores.completionsOverTime?.length ?? 0) < 2 ? (
+                  {(chores.completionsOverTime?.length ?? 0) === 0 ? (
                     <EmptyChart message="No chore data for this period" />
                   ) : (
                     <div style={{ height: 180 }}>
@@ -481,7 +493,8 @@ export default function StatsPage() {
                             stroke="#EF4444"
                             fill="url(#choreAreaGrad)"
                             strokeWidth={2.5}
-                            dot={false}
+                            // A lone data point draws no line, so show its dot.
+                            dot={(chores.completionsOverTime?.length ?? 0) === 1 ? { r: 4, fill: "#EF4444", strokeWidth: 0 } : false}
                             activeDot={{ r: 5, fill: "#EF4444", strokeWidth: 0 }}
                           />
                         </AreaChart>
@@ -642,7 +655,9 @@ export default function StatsPage() {
                 )}
               </ChartCard>)}
 
-              {/* Chart 5: Activity breakdown */}
+              {/* Chart 5: Activity breakdown — intentionally not gated by a
+                  statsVisibility toggle. It is a cross-cutting household summary
+                  and there is no per-section "activity" visibility key. */}
               <ChartCard title="Activity Breakdown">
                 {activityGroups.length === 0 ? (
                   <EmptyChart message="No activity logged yet" />

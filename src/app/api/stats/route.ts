@@ -1,12 +1,11 @@
 import { NextRequest } from "next/server";
-import { getSession, getUserHousehold } from "@/lib/auth/helpers";
+import { getSession, getUserHousehold, isHouseholdPremium } from "@/lib/auth/helpers";
 import { db } from "@/lib/db";
 import {
   chores,
   choreCompletions,
   expenseCategories,
   expenses,
-  expenseSplits,
   tasks,
   mealPlanSlots,
   meals,
@@ -30,8 +29,10 @@ export async function GET(request: NextRequest): Promise<Response> {
   }
   const { householdId } = membership;
 
-  // Premium check
-  if (membership.household.subscriptionStatus !== "premium") {
+  // Premium check — use the shared premium gate so premium_expires_at (expired
+  // promos, subscriptions cancelled past period end) is honored, not just the
+  // raw subscription_status column.
+  if (!(await isHouseholdPremium(householdId))) {
     return Response.json({ error: "Premium required", code: "STATS_PREMIUM" }, { status: 403 });
   }
 
@@ -42,8 +43,10 @@ export async function GET(request: NextRequest): Promise<Response> {
     return Response.json({ error: "start and end are required" }, { status: 400 });
   }
 
-  const startDate = new Date(`${start}T00:00:00`);
-  const endDate = new Date(`${end}T23:59:59`);
+  // Parse as explicit UTC day boundaries so range filtering is host-timezone
+  // independent (matches UTC-stored timestamps on Vercel and in local dev).
+  const startDate = new Date(`${start}T00:00:00.000Z`);
+  const endDate = new Date(`${end}T23:59:59.999Z`);
 
   const [
     // Chores
@@ -56,7 +59,6 @@ export async function GET(request: NextRequest): Promise<Response> {
     q6_totalSpent,
     q7_byCategory,
     q8_spendingOverTime,
-    q9_settledVsUnsettled,
     // Tasks
     q10_tasksSummary,
     q11_overdueTasks,
@@ -231,22 +233,6 @@ export async function GET(request: NextRequest): Promise<Response> {
       )
       .groupBy(sql`date_trunc('week', ${expenses.createdAt})`)
       .orderBy(sql`date_trunc('week', ${expenses.createdAt})`),
-
-    // 9. Settled vs unsettled split count
-    db
-      .select({
-        settled: sql<number>`cast(count(*) filter (where ${expenseSplits.settled} = true) as int)`,
-        unsettled: sql<number>`cast(count(*) filter (where ${expenseSplits.settled} = false) as int)`,
-      })
-      .from(expenseSplits)
-      .innerJoin(
-        expenses,
-        and(
-          eq(expenseSplits.expenseId, expenses.id),
-          eq(expenses.householdId, householdId),
-          isNull(expenses.deletedAt),
-        )
-      ),
 
     // ---- TASKS ----------------------------------------------------------------
 
@@ -491,11 +477,6 @@ export async function GET(request: NextRequest): Promise<Response> {
     week: r.week,
     total: parseFloat(r.total ?? "0"),
   }));
-  const settledVsUnsettled = {
-    settled: q9_settledVsUnsettled[0]?.settled ?? 0,
-    unsettled: q9_settledVsUnsettled[0]?.unsettled ?? 0,
-  };
-
   const taskSummary = q10_tasksSummary[0];
   const totalCreated = taskSummary?.totalCreated ?? 0;
   const totalCompleted = taskSummary?.totalCompleted ?? 0;
@@ -556,7 +537,7 @@ export async function GET(request: NextRequest): Promise<Response> {
 
   return Response.json({
     chores: { totalCompletions, completionsPerMember, mostCompletedChore, completionsOverTime, pointsPerMember },
-    expenses: { totalSpent, byCategory, overTime: spendingOverTime, settledVsUnsettled },
+    expenses: { totalSpent, byCategory, overTime: spendingOverTime },
     tasks: { totalCreated, totalCompleted, completionRate, overdueCount, byPriority },
     meals: { totalPlanned, mostPlannedMeal, suggestions },
     grocery: { itemsAdded, itemsChecked, checkRate, mostAddedItem },

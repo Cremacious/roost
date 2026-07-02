@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getSession, getUserHousehold } from '@/lib/auth/helpers'
+import { getSession, getUserHousehold, isHouseholdPremium } from '@/lib/auth/helpers'
 import { db } from '@/lib/db'
 import { mealSuggestions, meals, mealPlanSlots, mealSuggestionVotes, households } from '@/db/schema'
-import { eq, and, sql } from 'drizzle-orm'
+import { eq, and, sql, count, isNull } from 'drizzle-orm'
+
+const FREE_MEAL_BANK_LIMIT = 5
 
 export async function POST(
   req: NextRequest,
@@ -70,6 +72,25 @@ export async function POST(
 
   const body = await req.json()
   const { destination } = body // 'bank' | 'reject' | 'planner'
+
+  // Approving to bank or planner inserts a bank meal, so it counts against the
+  // free-tier meal-bank limit (rejecting does not create a meal).
+  if (destination === 'bank' || destination === 'planner') {
+    const premium = await isHouseholdPremium(householdId)
+    if (!premium) {
+      const [{ cnt }] = await db
+        .select({ cnt: count(meals.id) })
+        .from(meals)
+        .where(and(eq(meals.householdId, householdId), isNull(meals.deletedAt), eq(meals.inBank, true)))
+
+      if (Number(cnt) >= FREE_MEAL_BANK_LIMIT) {
+        return NextResponse.json(
+          { error: `Free plan is limited to ${FREE_MEAL_BANK_LIMIT} saved meals`, code: 'MEAL_BANK_LIMIT', limit: FREE_MEAL_BANK_LIMIT, current: Number(cnt) },
+          { status: 403 }
+        )
+      }
+    }
+  }
 
   if (destination === 'reject') {
     await db

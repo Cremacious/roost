@@ -19,14 +19,25 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
 
   if (!meal) return NextResponse.json({ error: 'Meal not found' }, { status: 404 })
 
+  // Optional subset of ingredient indices the caller wants to add. Indices refer
+  // to positions in the meal's saved ingredient array (before empty-name filtering),
+  // matching how the client parses them. Absent/invalid means add every ingredient.
+  const body = await req.json().catch(() => ({}))
+  const selectedIndices: number[] | null = Array.isArray(body?.selectedIndices)
+    ? body.selectedIndices.filter((n: unknown) => Number.isInteger(n))
+    : null
+
   let ingredients: { name: string; quantity?: string; unit?: string }[] = []
   try {
     const raw = JSON.parse(meal.ingredients ?? '[]')
     if (Array.isArray(raw)) {
-      ingredients = raw.map((item: unknown) => {
-        if (typeof item === 'string') return { name: item }
-        return item as { name: string; quantity?: string; unit?: string }
-      }).filter(i => i.name?.trim())
+      ingredients = raw
+        .map((item: unknown) => {
+          if (typeof item === 'string') return { name: item }
+          return item as { name: string; quantity?: string; unit?: string }
+        })
+        .filter((_, i) => (selectedIndices ? selectedIndices.includes(i) : true))
+        .filter(i => i.name?.trim())
     }
   } catch { /* noop */ }
 

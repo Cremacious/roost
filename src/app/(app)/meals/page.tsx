@@ -280,9 +280,11 @@ function GroceryPushSheet({
 
 // ── MealSheet ─────────────────────────────────────────────────────────────────
 
+const FREE_MEAL_BANK_LIMIT = 5
+
 function MealSheet({
-  open, onClose, meal, onSaved,
-}: { open: boolean; onClose: () => void; meal: Meal | null; onSaved: () => void }) {
+  open, onClose, meal, onSaved, isPremium, mealCount,
+}: { open: boolean; onClose: () => void; meal: Meal | null; onSaved: () => void; isPremium: boolean; mealCount: number }) {
   const [name, setName] = useState('')
   const [category, setCategory] = useState<MealCategory | ''>('')
   const [description, setDescription] = useState('')
@@ -303,6 +305,11 @@ function MealSheet({
 
   async function handleSave() {
     if (!name.trim()) { toast.error('Name required', { description: 'Give the meal a name.' }); return }
+    // Free-tier meal-bank limit pre-check (create only; editing an existing meal is always allowed).
+    if (!meal && !isPremium && mealCount >= FREE_MEAL_BANK_LIMIT) {
+      toast.error('Meal bank is full', { description: `Free plan is limited to ${FREE_MEAL_BANK_LIMIT} saved meals. Upgrade to premium for unlimited meals.` })
+      return
+    }
     setSaving(true)
     try {
       const filtered = ingredients.filter(i => i.name.trim())
@@ -480,11 +487,11 @@ function MealPreviewSheet({
 // ── SlotPickerSheet ───────────────────────────────────────────────────────────
 
 function SlotPickerSheet({
-  open, onClose, day, slotType, existingSlot, bankMeals, onSaved, onRemoved, preSelectedMeal,
+  open, onClose, day, slotType, existingSlot, bankMeals, onSaved, onRemoved, preSelectedMeal, canRemove,
 }: {
   open: boolean; onClose: () => void; day: Date | null; slotType: SlotType | null
   existingSlot: PlannerSlot | null; bankMeals: Meal[]; onSaved: () => void; onRemoved: () => void
-  preSelectedMeal?: Meal | null
+  preSelectedMeal?: Meal | null; canRemove: boolean
 }) {
   const [mode, setMode] = useState<'menu' | 'bank' | 'quick' | 'datePickerForMeal'>('menu')
   const [search, setSearch] = useState('')
@@ -493,6 +500,7 @@ function SlotPickerSheet({
   const [pickerDay, setPickerDay] = useState<Date>(new Date())
   const [pickerSlotType, setPickerSlotType] = useState<SlotType>('dinner')
   const [busy, setBusy] = useState(false)
+  const [confirmRemove, setConfirmRemove] = useState(false)
 
   const prevOpen = useRef(false)
   if (open && !prevOpen.current) {
@@ -503,7 +511,7 @@ function SlotPickerSheet({
     } else {
       setMode('menu')
     }
-    setSearch(''); setQuickName(''); setSaveToBankToggle(false)
+    setSearch(''); setQuickName(''); setSaveToBankToggle(false); setConfirmRemove(false)
   }
   prevOpen.current = open
 
@@ -631,14 +639,34 @@ function SlotPickerSheet({
               borderBottom: '3px solid var(--roost-border)', backgroundColor: 'var(--roost-surface)',
               color: 'var(--roost-text-primary)', fontWeight: 800, fontSize: 15, cursor: 'pointer',
             }}>Quick add by name</button>
-            {existingSlot && (
-              <button type="button" onClick={handleRemove} disabled={busy} style={{
-                width: '100%', padding: '12px 0', borderRadius: 14, border: 'none', backgroundColor: 'transparent',
-                color: '#EF4444', fontWeight: 700, fontSize: 14, cursor: 'pointer',
-                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-              }}>
-                <Trash2 size={14} /> Remove from plan
-              </button>
+            {existingSlot && canRemove && (
+              confirmRemove ? (
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <button type="button" onClick={handleRemove} disabled={busy} style={{
+                    flex: 1, padding: '12px 0', borderRadius: 14, border: 'none', borderBottom: '3px solid #B91C1C',
+                    backgroundColor: '#EF4444', color: '#fff', fontWeight: 800, fontSize: 14,
+                    cursor: busy ? 'not-allowed' : 'pointer', opacity: busy ? 0.7 : 1,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                  }}>
+                    <Trash2 size={14} /> {busy ? 'Removing...' : 'Confirm remove'}
+                  </button>
+                  <button type="button" onClick={() => setConfirmRemove(false)} disabled={busy} style={{
+                    padding: '12px 18px', borderRadius: 14, border: '1.5px solid var(--roost-border)', borderBottom: '3px solid var(--roost-border)',
+                    backgroundColor: 'var(--roost-surface)', color: 'var(--roost-text-secondary)', fontWeight: 700, fontSize: 14,
+                    cursor: busy ? 'not-allowed' : 'pointer',
+                  }}>
+                    Cancel
+                  </button>
+                </div>
+              ) : (
+                <button type="button" onClick={() => setConfirmRemove(true)} disabled={busy} style={{
+                  width: '100%', padding: '12px 0', borderRadius: 14, border: 'none', backgroundColor: 'transparent',
+                  color: '#EF4444', fontWeight: 700, fontSize: 14, cursor: 'pointer',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                }}>
+                  <Trash2 size={14} /> Remove from plan
+                </button>
+              )
             )}
           </div>
         )}
@@ -913,9 +941,21 @@ export default function MealsPage() {
     staleTime: 60_000,
   })
   const isAdmin = householdData?.role === 'admin'
+  const hh = householdData?.household as { subscription_status?: string; premium_expires_at?: string | null } | undefined
+  const isPremium = hh?.subscription_status === 'premium'
+    && (!hh?.premium_expires_at || new Date(hh.premium_expires_at) > new Date())
 
   const { allowed: canPlanMeal, onBlocked: onBlockedPlanMeal } = usePermissionGate('meals.plan')
   const { allowed: canSuggestMeal, onBlocked: onBlockedSuggestMeal } = usePermissionGate('meals.suggest')
+
+  // Adding to the meal bank is gated behind meals.plan and always blocked for children.
+  const isChild = householdData?.role === 'child'
+  const canAddMeal = canPlanMeal && !isChild
+  function openAddMeal() {
+    if (!canAddMeal) { onBlockedPlanMeal(); return }
+    setEditMeal(null)
+    setMealSheetOpen(true)
+  }
 
   // Planner query
   const weekStartStr = fmtDate(weekStart)
@@ -1035,12 +1075,13 @@ export default function MealsPage() {
             const toggling = s.userVote === voteType
             const wasUp = s.userVote === 'up'
             const wasDown = s.userVote === 'down'
-            return {
-              ...s,
-              userVote: toggling ? null : voteType,
-              upvotes: voteType === 'up' ? (toggling ? s.upvotes - 1 : s.upvotes + 1 - (wasUp ? 0 : 0)) : wasUp ? s.upvotes - 1 : s.upvotes,
-              downvotes: voteType === 'down' ? (toggling ? s.downvotes - 1 : s.downvotes + 1) : wasDown ? s.downvotes - 1 : s.downvotes,
-            }
+            const nextVote = toggling ? null : voteType
+            // Drop the previous vote's tally, then add the new one unless toggling off.
+            let upvotes = s.upvotes - (wasUp ? 1 : 0)
+            let downvotes = s.downvotes - (wasDown ? 1 : 0)
+            if (nextVote === 'up') upvotes += 1
+            if (nextVote === 'down') downvotes += 1
+            return { ...s, userVote: nextVote, upvotes, downvotes }
           }),
         }
       })
@@ -1594,9 +1635,10 @@ export default function MealsPage() {
                 <input style={{ ...INPUT_STYLE, paddingLeft: 34, backgroundColor: 'var(--roost-bg)' }} placeholder="Search meals..." value={bankSearch} onChange={e => setBankSearch(e.target.value)} />
               </div>
               <motion.button whileTap={{ y: 2 }} type="button"
-                onClick={() => { setEditMeal(null); setMealSheetOpen(true) }}
-                style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '10px 20px', borderRadius: 12, backgroundColor: COLOR, border: 'none', borderBottom: `3px solid ${COLOR_DARK}`, fontSize: 14, fontWeight: 800, color: '#fff', cursor: 'pointer', whiteSpace: 'nowrap' }}>
-                <Plus size={14} /> Add meal
+                aria-disabled={!canAddMeal}
+                onClick={openAddMeal}
+                style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '10px 20px', borderRadius: 12, backgroundColor: COLOR, border: 'none', borderBottom: `3px solid ${COLOR_DARK}`, fontSize: 14, fontWeight: 800, color: '#fff', cursor: canAddMeal ? 'pointer' : 'not-allowed', opacity: canAddMeal ? 1 : 0.55, whiteSpace: 'nowrap' }}>
+                {canAddMeal ? <Plus size={14} /> : <Lock size={14} />} Add meal
               </motion.button>
             </div>
 
@@ -1624,8 +1666,8 @@ export default function MealsPage() {
                 <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: 'var(--roost-text-secondary)' }}>
                   {bankSearch || bankCategory !== 'all' ? 'Try a different search or category.' : 'Add meals to your bank so you can plan them later.'}
                 </p>
-                {!bankSearch && bankCategory === 'all' && (
-                  <motion.button whileTap={{ y: 2 }} type="button" onClick={() => { setEditMeal(null); setMealSheetOpen(true) }}
+                {!bankSearch && bankCategory === 'all' && canAddMeal && (
+                  <motion.button whileTap={{ y: 2 }} type="button" onClick={openAddMeal}
                     style={{ marginTop: 8, padding: '11px 20px', borderRadius: 12, border: 'none', borderBottom: `3px solid ${COLOR_DARK}`, backgroundColor: COLOR, color: '#fff', fontWeight: 800, fontSize: 14, cursor: 'pointer' }}>
                     Add first meal
                   </motion.button>
@@ -1712,15 +1754,17 @@ export default function MealsPage() {
                 <div className="hidden sm:grid" style={{ gridTemplateColumns: 'repeat(3, 1fr)', gap: 14 }}>
                   {/* Add new meal card */}
                   <motion.button whileTap={{ y: 2 }} type="button"
-                    onClick={() => { setEditMeal(null); setMealSheetOpen(true) }}
+                    aria-disabled={!canAddMeal}
+                    onClick={openAddMeal}
                     style={{
                       display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
                       textAlign: 'center', gap: 10, minHeight: 190,
                       backgroundColor: `${COLOR}08`, border: `1.5px dashed ${COLOR}`,
-                      borderBottom: `4px dashed ${COLOR}`, borderRadius: 16, padding: 18, cursor: 'pointer',
+                      borderBottom: `4px dashed ${COLOR}`, borderRadius: 16, padding: 18,
+                      cursor: canAddMeal ? 'pointer' : 'not-allowed', opacity: canAddMeal ? 1 : 0.55,
                     }}>
                     <div style={{ width: 50, height: 50, borderRadius: 14, backgroundColor: COLOR, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      <Plus size={24} color="#fff" />
+                      {canAddMeal ? <Plus size={24} color="#fff" /> : <Lock size={24} color="#fff" />}
                     </div>
                     <div style={{ fontSize: 15, fontWeight: 800, color: COLOR_DARK }}>Add new meal</div>
                     <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--roost-text-muted)' }}>Save a recipe to reuse in your planner</div>
@@ -1907,6 +1951,7 @@ export default function MealsPage() {
 
 
       <MealSheet open={mealSheetOpen} onClose={() => { setMealSheetOpen(false); setEditMeal(null) }} meal={editMeal}
+        isPremium={isPremium} mealCount={bankMeals.length}
         onSaved={() => qc.invalidateQueries({ queryKey: ['meals'] })} />
 
       <SlotPickerSheet
@@ -1915,6 +1960,7 @@ export default function MealsPage() {
         day={slotDay}
         slotType={slotType}
         existingSlot={bankAddMeal ? null : existingSlot}
+        canRemove={!bankAddMeal && !!existingSlot && (isAdmin || existingSlot.createdBy === currentUserId)}
         bankMeals={bankMeals}
         preSelectedMeal={bankAddMeal}
         onSaved={() => qc.invalidateQueries({ queryKey: ['planner', weekStartStr] })}

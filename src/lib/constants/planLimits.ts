@@ -32,6 +32,7 @@ export const PLAN_LIMITS = {
     householdsPerUser: 1,
     groceryLists: 1,
     calendarEventsPerMonth: 20,
+    reminders: 5,
   },
   premium: {
     chores: Infinity,
@@ -43,6 +44,7 @@ export const PLAN_LIMITS = {
     householdsPerUser: Infinity,
     groceryLists: Infinity,
     calendarEventsPerMonth: Infinity,
+    reminders: Infinity,
   },
 } as const
 
@@ -66,6 +68,7 @@ export const FEATURE_ACCESS = {
   recurringEvents: { free: false, premium: true },
   // Reminders
   recurringReminders: { free: false, premium: true },
+  reminderNotifyOthers: { free: false, premium: true }, // notify Everyone / Specific people
   // Notes
   richTextNotes: { free: false, premium: true },
   // Grocery

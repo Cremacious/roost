@@ -2,8 +2,9 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getSession, getUserHousehold } from '@/lib/auth/helpers'
 import { db } from '@/lib/db'
 import { reminders } from '@/db/schema'
-import { eq, and, isNull, asc } from 'drizzle-orm'
+import { eq, and, isNull, asc, count } from 'drizzle-orm'
 import { logActivity } from '@/lib/utils/activity'
+import { PLAN_LIMITS } from '@/lib/constants/planLimits'
 
 export function calcNextRemindAt(remindAt: Date, frequency: string | null, customDays: string | null): Date {
   if (!frequency || frequency === 'once') return remindAt
@@ -54,11 +55,48 @@ export async function POST(req: NextRequest) {
   if (!membership) return NextResponse.json({ error: 'No household' }, { status: 403 })
 
   const { householdId } = membership
+  const isPremium = membership.household.subscriptionStatus === 'premium'
   const body = await req.json()
   const { title, note, remindAt, frequency, customDays, notifyType, notifyUserIds } = body
 
   if (!title?.trim()) return NextResponse.json({ error: 'Title is required' }, { status: 400 })
   if (!remindAt) return NextResponse.json({ error: 'Remind date is required' }, { status: 400 })
+
+  // Recurring reminders are a premium feature. Once is free.
+  if (!isPremium && frequency && frequency !== 'once') {
+    return NextResponse.json(
+      { error: 'Recurring reminders are a premium feature', code: 'RECURRING_REMINDERS_PREMIUM' },
+      { status: 403 },
+    )
+  }
+
+  // Notifying anyone other than yourself is a premium feature.
+  if (!isPremium && notifyType && notifyType !== 'self') {
+    return NextResponse.json(
+      { error: 'Notifying others is a premium feature', code: 'REMINDER_NOTIFY_PREMIUM' },
+      { status: 403 },
+    )
+  }
+
+  // Free-tier active reminder limit (not completed, not deleted).
+  if (!isPremium) {
+    const [row] = await db
+      .select({ cnt: count() })
+      .from(reminders)
+      .where(and(
+        eq(reminders.householdId, householdId),
+        eq(reminders.completed, false),
+        isNull(reminders.deletedAt),
+      ))
+    const limit = PLAN_LIMITS.free.reminders
+    const current = Number(row?.cnt ?? 0)
+    if (current >= limit) {
+      return NextResponse.json(
+        { error: `Free plan is limited to ${limit} active reminders`, code: 'REMINDERS_LIMIT', limit, current },
+        { status: 403 },
+      )
+    }
+  }
 
   const remindDate = new Date(remindAt)
   const nextRemindDate = calcNextRemindAt(remindDate, frequency ?? 'once', customDays ?? null)

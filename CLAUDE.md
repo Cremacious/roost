@@ -237,9 +237,10 @@ so Expo can reuse it. UI stays in Next.js. Expo calls same API routes.
 - Decision: push-only controls are HIDDEN on web (not shown-disabled). Already
   applied to: settlement "Remind" (money DashboardTab + SettleSheet) and calendar
   event "Notify" (EventSheet LeftColumn).
-- Reminders are the exception: the reminders cron writes reminder_receipts and
-  ReminderBanner polls /api/reminders/due, so reminder notify types work in-app on
-  web. Do not gate reminder notify behind canPush.
+- Reminders are the exception: the reminders cron writes reminder_receipts and due
+  reminders surface in-app via the Today page hero (GET /api/today), so reminder notify
+  types work in-app on web. Do not gate reminder notify behind canPush. (The old
+  ReminderBanner + /api/reminders/due were removed in favor of the Today hero.)
 - Sharing: use shareOrCopy() in src/lib/utils/share.ts (native Web Share API when
   available, clipboard fallback). Used for household-code sharing in
   InviteMemberSheet, household/page.tsx, and settings Household section. Secret
@@ -765,15 +766,13 @@ src/components/meals/MealSlotSheet.tsx        Slot picker: menu mode, bank searc
 src/components/meals/SuggestionSheet.tsx      Suggest a meal: name, target day, target slot, ingredients, note, prep time (all roles); posts to /api/meals/suggest
 src/app/(app)/meals/page.tsx                  Full meals module: Planner/Meal Bank/Suggestions tabs
 src/db/schema/reminders.ts                    reminders + reminder_receipts tables (frequency, notify_type, next_remind_at)
-src/app/api/reminders/route.ts                GET (filtered by notify_type + user) + POST (create + receipts + activity log)
+src/app/api/reminders/route.ts                GET (filtered by notify_type + user) + POST (create + premium gates: recurring/notify-others/5-active-limit + activity log)
 src/app/api/reminders/[id]/route.ts           PATCH + DELETE (creator or admin, soft delete, recalculates next_remind_at)
-src/app/api/reminders/[id]/complete/route.ts  POST: complete (once) or advance (recurring); DELETE: undo one-time only
-src/app/api/reminders/[id]/seen/route.ts      POST: upsert reminder_receipt seen=true for current user
-src/app/api/reminders/due/route.ts            GET: reminders due in next 24h for current user (used by banner + dashboard)
+src/app/api/reminders/[id]/complete/route.ts  POST: complete (once) or snooze/advance (recurring); DELETE: undo (once = clear completed; recurring = clear snoozed_until + restore next_remind_at to remind_at)
+(Removed: src/app/api/reminders/due/route.ts and src/components/shared/ReminderBanner.tsx. Due reminders now surface in-app via the Today page hero, GET /api/today.)
 src/app/api/cron/reminders/route.ts           Vercel cron GET (every 15min): process due reminders, create receipts, advance recurring
-src/app/(app)/reminders/page.tsx              Full reminders module: grouped sections (overdue/today/week/later/done), filter, stats
-src/components/reminders/ReminderSheet.tsx    Create/edit: title, note, date+time picker, frequency + custom days, notify type + member list; onUpgradeRequired prop
-src/components/shared/ReminderBanner.tsx      Dismissible banner below TopBar when reminders due (polls every 60s, session-dismissed)
+src/app/(app)/reminders/page.tsx              Full reminders module: grouped sections (overdue/today/upcoming/snoozed/completed), premium gating, stats (exclude snoozed), snoozed-row Undo
+src/components/reminders/ReminderSheet.tsx    Create/edit: title, note, date+time picker, frequency + notify type + member list; isPremium + onUpgradeRequired props; Lock icons on recurring freqs + notify-others for free users
 vercel.json                                   Cron schedule: /api/cron/reminders every 15 minutes
 src/components/layout/PageContainer.tsx        Content width constraint: max-w-4xl (896px) centered, full width mobile
 src/app/(app)/activity/page.tsx               Full activity feed: paginated list, 20 per page, Load more button
@@ -845,9 +844,25 @@ src/lib/constants/colors.ts                   Added "stats": "#6366F1" (indigo) 
 - Completing recurring: shows "Done for now?" dialog with next occurrence date before confirming
 - Completing one-time: shows simple "Mark as done?" dialog
 - Snoozed section: collapsed by default, between Later and Completed sections in list
-- Stats (active count) exclude snoozed reminders
-- In-app banner polls /api/reminders/due every 60 seconds
-- Banner dismisses per-session via sessionStorage key "roost-reminder-banner-dismissed"
+- Stats (active count) exclude snoozed reminders: the reminders page subtitle renders
+  active.length - snoozed.length (both are non-completed sets; the difference is the
+  non-snoozed active count).
+- Snoozed rows expose an "Undo" button (cyan/reminders color, no confirmation) that calls
+  DELETE /api/reminders/[id]/complete: for recurring this clears snoozed_until and restores
+  next_remind_at to the reminder's remind_at.
+- Premium gating (free = one-time, self-notify, max 5 active reminders):
+  - Free limit is PLAN_LIMITS.free.reminders = 5 active (not completed, not deleted).
+    Enforced server-side in POST /api/reminders (403 REMINDERS_LIMIT) and client-side by
+    locking the header add button (Lock icon) when at the limit.
+  - Recurring (weekly/monthly/etc, anything not 'once') is premium: server 403
+    RECURRING_REMINDERS_PREMIUM (POST + PATCH); client Lock icon on non-'once' frequency pills.
+  - Notify-others (Everyone/Specific, anything not 'self') is premium: server 403
+    REMINDER_NOTIFY_PREMIUM (POST + PATCH); client Lock icon on non-'self' notify pills.
+  - ReminderSheet takes isPremium + onUpgradeRequired; the page renders
+    PremiumGate feature="reminders" trigger="sheet" keyed off an upgradeCode state, and
+    routes any server upgrade code (incl. REMINDERS_LIMIT) from the save onError to the gate.
+- Due reminders surface in-app via the Today page hero (GET /api/today), not a banner.
+  The old ReminderBanner + GET /api/reminders/due + /api/reminders/[id]/seen were removed.
 - Cron job runs every 15 minutes on Vercel, secured with CRON_SECRET env var
 - Cron creates reminder_receipts (seen=false) for all notified users when reminder fires
 - Push notifications: TODO when Expo app is built (push_token on users table)

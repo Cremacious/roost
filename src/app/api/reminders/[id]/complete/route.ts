@@ -66,13 +66,16 @@ export async function DELETE(
   }
 
   const isOnce = !existing.frequency || existing.frequency === 'once'
-  if (!isOnce) {
-    return NextResponse.json({ error: 'Cannot undo recurring reminders' }, { status: 400 })
-  }
+
+  // Recurring: undo the snooze by clearing snoozed_until and restoring the next
+  // fire to the reminder's original remind_at. One-time: clear the completed flag.
+  const updates = isOnce
+    ? { completed: false, updatedAt: new Date() }
+    : { snoozedUntil: null, nextRemindAt: existing.remindAt, updatedAt: new Date() }
 
   const [updated] = await db
     .update(reminders)
-    .set({ completed: false, updatedAt: new Date() })
+    .set(updates)
     .where(eq(reminders.id, id))
     .returning()
 

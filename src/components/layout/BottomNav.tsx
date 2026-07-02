@@ -17,8 +17,18 @@ import {
   FileText,
   BarChart2,
   Settings,
+  LogOut,
 } from 'lucide-react'
 import { DraggableSheet } from '@/components/shared/DraggableSheet'
+import { signOut } from '@/lib/auth/client'
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogFooter,
+} from '@/components/ui/alert-dialog'
 
 const TABS = [
   { href: '/today',     label: 'Today',     icon: Home,           activeColor: '#EF4444' },
@@ -42,12 +52,18 @@ export function BottomNav() {
   const pathname = usePathname()
   const router = useRouter()
   const [moreOpen, setMoreOpen] = useState(false)
+  const [signOutConfirmOpen, setSignOutConfirmOpen] = useState(false)
 
   const moreActive = MORE_ITEMS.some(item => pathname === item.href || pathname.startsWith(item.href + '/'))
 
   function handleMoreItemClick(href: string) {
     setMoreOpen(false)
     router.push(href)
+  }
+
+  async function handleSignOut() {
+    await signOut()
+    router.push('/login')
   }
 
   return (
@@ -156,8 +172,70 @@ export function BottomNav() {
               )
             })}
           </div>
+
+          {/* Sign out */}
+          <button
+            onClick={() => setSignOutConfirmOpen(true)}
+            style={{
+              width: '100%',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 12,
+              marginTop: 12,
+              padding: '14px 14px',
+              backgroundColor: 'var(--roost-surface)',
+              border: '1.5px solid var(--roost-border)',
+              borderBottom: '3px solid rgba(239,68,68,0.3)',
+              borderRadius: 12,
+              cursor: 'pointer',
+              textAlign: 'left',
+            }}
+          >
+            <div
+              style={{
+                width: 36,
+                height: 36,
+                borderRadius: 9,
+                backgroundColor: 'rgba(239,68,68,0.1)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0,
+              }}
+            >
+              <LogOut size={18} color="#EF4444" strokeWidth={2} />
+            </div>
+            <span style={{ fontSize: 13, fontWeight: 800, color: '#EF4444' }}>
+              Sign out
+            </span>
+          </button>
         </div>
       </DraggableSheet>
+
+      <AlertDialog open={signOutConfirmOpen} onOpenChange={setSignOutConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Sign out?</AlertDialogTitle>
+            <AlertDialogDescription>
+              You will need to sign back in to access your household.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <button
+              onClick={() => setSignOutConfirmOpen(false)}
+              style={{ padding: '9px 18px', borderRadius: 10, border: '1.5px solid var(--roost-border)', borderBottom: '3px solid var(--roost-border-bottom)', background: 'var(--roost-surface)', fontFamily: 'inherit', fontSize: 13, fontWeight: 700, color: 'var(--roost-text-secondary)', cursor: 'pointer' }}
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleSignOut}
+              style={{ padding: '9px 18px', borderRadius: 10, border: 'none', borderBottom: '3px solid #C93B3B', backgroundColor: '#EF4444', fontFamily: 'inherit', fontSize: 13, fontWeight: 800, color: '#fff', cursor: 'pointer' }}
+            >
+              Sign out
+            </button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   )
 }

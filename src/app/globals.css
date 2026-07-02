@@ -142,3 +142,30 @@ body {
   cursor: pointer;
   accent-color: #A855F7;
 }
+
+/* ── Sonner toasts ─────────────────────────────────────────────────────────
+   richColors stays off (Toaster in layout.tsx); we control the look here so it
+   matches the slab design system: neutral surface + a 4px border-bottom whose
+   color signals the toast type (success green, error red, warning amber,
+   info blue). !important overrides sonner's injected inline defaults. */
+[data-sonner-toast] {
+  background: var(--roost-surface) !important;
+  border: 1.5px solid var(--roost-border) !important;
+  border-bottom: 4px solid var(--roost-border-bottom) !important;
+  border-radius: 12px !important;
+  color: var(--roost-text-primary) !important;
+  font-family: var(--font-nunito), sans-serif !important;
+  font-weight: 700 !important;
+}
+[data-sonner-toast] [data-description] {
+  color: var(--roost-text-secondary) !important;
+  font-weight: 600 !important;
+}
+[data-sonner-toast][data-type="success"] { border-bottom-color: #22C55E !important; }
+[data-sonner-toast][data-type="success"] [data-icon] { color: #22C55E !important; }
+[data-sonner-toast][data-type="error"] { border-bottom-color: #EF4444 !important; }
+[data-sonner-toast][data-type="error"] [data-icon] { color: #EF4444 !important; }
+[data-sonner-toast][data-type="warning"] { border-bottom-color: #F59E0B !important; }
+[data-sonner-toast][data-type="warning"] [data-icon] { color: #F59E0B !important; }
+[data-sonner-toast][data-type="info"] { border-bottom-color: #3B82F6 !important; }
+[data-sonner-toast][data-type="info"] [data-icon] { color: #3B82F6 !important; }

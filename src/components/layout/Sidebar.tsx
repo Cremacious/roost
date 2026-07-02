@@ -24,6 +24,14 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useHousehold } from '@/lib/hooks/useHousehold'
 import { useState } from 'react'
 import { useRouter as useNextRouter } from 'next/navigation'
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogFooter,
+} from '@/components/ui/alert-dialog'
 
 // ─── Nav group structure ──────────────────────────────────────────────────────
 
@@ -65,6 +73,7 @@ export function Sidebar() {
   const router    = useRouter()
   const { data: session } = useSession()
   const { role } = useHousehold()
+  const [signOutConfirmOpen, setSignOutConfirmOpen] = useState(false)
 
   const roleLabel =
     role === 'admin'  ? 'Household admin'  :
@@ -95,6 +104,7 @@ export function Sidebar() {
     .toUpperCase()
 
   return (
+    <>
     <aside
       className="hidden md:flex flex-col flex-shrink-0"
       style={{
@@ -199,7 +209,7 @@ export function Sidebar() {
 
           {/* Sign out */}
           <button
-            onClick={async () => { await signOut(); router.push('/login') }}
+            onClick={() => setSignOutConfirmOpen(true)}
             title="Sign out"
             style={{
               width: 26,
@@ -220,6 +230,32 @@ export function Sidebar() {
         </div>
       </div>
     </aside>
+
+    <AlertDialog open={signOutConfirmOpen} onOpenChange={setSignOutConfirmOpen}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Sign out?</AlertDialogTitle>
+          <AlertDialogDescription>
+            You will need to sign back in to access your household.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <button
+            onClick={() => setSignOutConfirmOpen(false)}
+            style={{ padding: '9px 18px', borderRadius: 10, border: '1.5px solid var(--roost-border)', borderBottom: '3px solid var(--roost-border-bottom)', background: 'var(--roost-surface)', fontFamily: 'inherit', fontSize: 13, fontWeight: 700, color: 'var(--roost-text-secondary)', cursor: 'pointer' }}
+          >
+            Cancel
+          </button>
+          <button
+            onClick={async () => { await signOut(); router.push('/login') }}
+            style={{ padding: '9px 18px', borderRadius: 10, border: 'none', borderBottom: '3px solid #C93B3B', backgroundColor: '#EF4444', fontFamily: 'inherit', fontSize: 13, fontWeight: 800, color: '#fff', cursor: 'pointer' }}
+          >
+            Sign out
+          </button>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+    </>
   )
 }
 

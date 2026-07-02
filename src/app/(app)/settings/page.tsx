@@ -1185,6 +1185,9 @@ export default function SettingsPage() {
       });
       if (!r.ok) throw new Error('Failed');
       toast.success('Household deleted');
+      // Flush the cached session so the proxy sees onboardingCompleted=false and
+      // lets us into /onboarding instead of bouncing back to /today.
+      await fetch('/api/auth/get-session?disableCookieCache=true');
       router.push('/onboarding');
     } catch {
       toast.error('Could not delete household', {

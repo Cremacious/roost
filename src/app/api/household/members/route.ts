@@ -42,9 +42,9 @@ const DEFAULT_PERMISSIONS = {
     groceryCreateList: false,
     calendarAdd: true,
     calendarEdit: false,
-    tasksAdd: true,
-    notesAdd: true,
-    mealsPlan: true,
+    tasksAdd: false,
+    notesAdd: false,
+    mealsPlan: false,
     mealsSuggest: true,
   },
   child: {

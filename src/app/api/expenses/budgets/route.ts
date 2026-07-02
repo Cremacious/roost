@@ -13,6 +13,10 @@ export async function GET() {
 
   const { householdId } = membership
 
+  if (membership.role === 'child') {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  }
+
   if (membership.household.subscriptionStatus !== 'premium') {
     return NextResponse.json({ error: 'Premium required', code: 'BUDGET_PREMIUM' }, { status: 403 })
   }

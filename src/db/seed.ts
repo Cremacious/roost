@@ -140,7 +140,7 @@ const GUEST_PERMS = {
   groceryCreateList: false,
   calendarAdd: true,
   calendarEdit: false,
-  tasksAdd: true,
+  tasksAdd: false,
   notesAdd: false,
   mealsPlan: false,
   mealsSuggest: true,

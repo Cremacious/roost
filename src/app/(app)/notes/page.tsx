@@ -3,13 +3,14 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { motion } from 'framer-motion'
-import { Plus, Pencil, Trash2, FileText, Lock } from 'lucide-react'
+import { Plus, FileText, Lock } from 'lucide-react'
 import { toast } from 'sonner'
 import { useSession } from '@/lib/auth/client'
 import { usePermissionGate } from '@/lib/hooks/usePermissionGate'
 import { SECTION_COLORS } from '@/lib/constants/colors'
 import { SlabCard } from '@/components/ui/SlabCard'
 import NoteSheet, { type NoteData } from '@/components/notes/NoteSheet'
+import ViewNoteSheet from '@/components/notes/ViewNoteSheet'
 import PremiumGate from '@/components/shared/PremiumGate'
 
 const COLOR = SECTION_COLORS.notes.base
@@ -41,72 +42,77 @@ function detectHtml(content: string) {
 }
 
 function stripHtml(html: string) {
-  return html.replace(/<[^>]+>/g, '').replace(/&nbsp;/g, ' ').trim()
+  return html
+    // Block-level and line breaks become spaces so text does not run together.
+    .replace(/<\/(p|div|h[1-6]|li|blockquote|pre|tr)>/gi, ' ')
+    .replace(/<br\s*\/?>/gi, ' ')
+    .replace(/<[^>]+>/g, '')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
 }
 
 function NoteCard({
-  note, canModify, onEdit, onDelete,
+  note, onView,
 }: {
-  note: Note; canModify: boolean; onEdit: (note: Note) => void; onDelete: (id: string) => void
+  note: Note; onView: (note: Note) => void
 }) {
   const isHtml = note.isRichText || detectHtml(note.content)
   const preview = isHtml ? stripHtml(note.content).slice(0, 180) : note.content.slice(0, 180)
 
   return (
-    <SlabCard color={COLOR} style={{ breakInside: 'avoid', marginBottom: 12 }}>
-      <div style={{ padding: 16 }}>
-        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8, marginBottom: note.title ? 6 : 0 }}>
-          {note.title && (
-            <p style={{ margin: 0, fontWeight: 800, fontSize: 15, color: 'var(--roost-text-primary)', flex: 1 }}>
-              {note.title}
-            </p>
-          )}
-          {note.isRichText && (
-            <span style={{
-              fontSize: 10,
-              fontWeight: 800,
-              color: COLOR,
-              backgroundColor: `${COLOR}18`,
-              borderRadius: 20,
-              padding: '2px 7px',
-              flexShrink: 0,
-              alignSelf: 'center',
-            }}>
-              Rich
+    <div
+      role="button"
+      tabIndex={0}
+      onClick={() => onView(note)}
+      onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onView(note) } }}
+      style={{ cursor: 'pointer', height: 184 }}
+    >
+      <SlabCard color={COLOR} style={{ height: '100%' }}>
+        <div style={{ padding: 16, height: '100%', display: 'flex', flexDirection: 'column', boxSizing: 'border-box' }}>
+          <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8, marginBottom: note.title ? 6 : 0 }}>
+            {note.title && (
+              <p style={{
+                margin: 0, fontWeight: 800, fontSize: 15, color: 'var(--roost-text-primary)', flex: 1,
+                display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden', wordBreak: 'break-word',
+              }}>
+                {note.title}
+              </p>
+            )}
+            {note.isRichText && (
+              <span style={{
+                fontSize: 10,
+                fontWeight: 800,
+                color: COLOR,
+                backgroundColor: `${COLOR}18`,
+                borderRadius: 20,
+                padding: '2px 7px',
+                flexShrink: 0,
+                alignSelf: 'center',
+              }}>
+                Rich
+              </span>
+            )}
+          </div>
+          <div style={{ flex: 1, minHeight: 0, overflow: 'hidden' }}>
+            {preview && (
+              <p style={{
+                margin: 0, fontSize: 13, fontWeight: 600, color: 'var(--roost-text-secondary)',
+                lineHeight: 1.5, wordBreak: 'break-word',
+                display: '-webkit-box', WebkitLineClamp: note.title ? 3 : 5, WebkitBoxOrient: 'vertical', overflow: 'hidden',
+              }}>
+                {preview}
+              </p>
+            )}
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', marginTop: 10, flexShrink: 0 }}>
+            <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--roost-text-muted)' }}>
+              {note.creatorName?.split(' ')[0] ?? 'Unknown'}
             </span>
-          )}
+          </div>
         </div>
-        {preview && (
-          <p style={{
-            margin: 0, fontSize: 13, fontWeight: 600, color: 'var(--roost-text-secondary)',
-            lineHeight: 1.5, whiteSpace: 'pre-wrap', wordBreak: 'break-word',
-          }}>
-            {preview}{(isHtml ? stripHtml(note.content) : note.content).length > 180 ? '...' : ''}
-          </p>
-        )}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 12 }}>
-          <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--roost-text-muted)' }}>
-            {note.creatorName?.split(' ')[0] ?? 'Unknown'}
-          </span>
-          {canModify && (
-            <div style={{ display: 'flex', gap: 4 }}>
-              <button
-                type="button" onClick={() => onEdit(note)}
-                style={{ width: 30, height: 30, borderRadius: 8, border: 'none', backgroundColor: 'var(--roost-bg)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-              >
-                <Pencil size={13} color="var(--roost-text-secondary)" />
-              </button>
-              <button
-                type="button" onClick={() => onDelete(note.id)}
-                style={{ width: 30, height: 30, borderRadius: 8, border: 'none', backgroundColor: 'var(--roost-bg)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-              >
-                <Trash2 size={13} color="#EF4444" />
-              </button>
-            </div>
-          )}
-        </div>
-      </div>
-    </SlabCard>
+      </SlabCard>
+    </div>
   )
 }
 
@@ -119,6 +125,7 @@ export default function NotesPage() {
 
   const [sheetOpen, setSheetOpen] = useState(false)
   const [editNote, setEditNote] = useState<Note | null>(null)
+  const [viewNote, setViewNote] = useState<Note | null>(null)
   const [quickTitle, setQuickTitle] = useState('')
   const [upgradeCode, setUpgradeCode] = useState<string | null>(null)
 
@@ -184,9 +191,9 @@ export default function NotesPage() {
 
   if (isLoading) {
     return (
-      <div style={{ padding: '20px 16px', display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 12 }}>
+      <div style={{ padding: '20px 16px', display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 12 }}>
         {[1, 2, 3].map(i => (
-          <div key={i} style={{ height: 120, borderRadius: 16, backgroundColor: 'var(--roost-surface)', border: '1.5px solid var(--roost-border)', borderBottom: '4px solid var(--roost-border)' }} />
+          <div key={i} style={{ height: 184, borderRadius: 16, backgroundColor: 'var(--roost-surface)', border: '1.5px solid var(--roost-border)', borderBottom: '4px solid var(--roost-border)' }} />
         ))}
       </div>
     )
@@ -270,25 +277,31 @@ export default function NotesPage() {
             </motion.button>
           </div>
         ) : (
-          <div style={{ columns: '260px', gap: 12 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 12, alignItems: 'start' }}>
             {notes.map((note, i) => (
               <motion.div
                 key={note.id}
                 initial={{ opacity: 0, y: 8 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: Math.min(i * 0.04, 0.2), duration: 0.15 }}
+                whileHover={{ y: -2 }}
+                whileTap={{ y: 1 }}
               >
-                <NoteCard
-                  note={note}
-                  canModify={isAdmin || note.createdBy === currentUserId}
-                  onEdit={n => { setEditNote(n); setSheetOpen(true) }}
-                  onDelete={id => deleteMutation.mutate(id)}
-                />
+                <NoteCard note={note} onView={n => setViewNote(n)} />
               </motion.div>
             ))}
           </div>
         )}
       </motion.div>
+
+      <ViewNoteSheet
+        open={!!viewNote}
+        onClose={() => setViewNote(null)}
+        note={viewNote}
+        canModify={!!viewNote && (isAdmin || viewNote.createdBy === currentUserId)}
+        onEdit={() => { if (viewNote) { setEditNote(viewNote); setViewNote(null); setSheetOpen(true) } }}
+        onDelete={id => deleteMutation.mutate(id)}
+      />
 
       <NoteSheet
         open={sheetOpen}

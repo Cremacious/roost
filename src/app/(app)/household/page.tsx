@@ -45,6 +45,15 @@ interface HouseholdData {
   members: SheetMember[]
 }
 
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+function guestExpiryLabel(expiresAt?: string | null): string | null {
+  if (!expiresAt) return null
+  const days = Math.ceil((new Date(expiresAt).getTime() - Date.now()) / (24 * 60 * 60 * 1000))
+  if (days <= 0) return 'Access expired'
+  return `Expires in ${days} ${days === 1 ? 'day' : 'days'}`
+}
+
 // ─── Small sub-components ─────────────────────────────────────────────────────
 
 function RoleBadge({ role }: { role: string }) {
@@ -141,6 +150,11 @@ function MemberRow({
         <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--roost-text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
           {member.email ?? (member.role === 'child' ? 'No account, child profile' : '')}
         </div>
+        {member.role === 'guest' && guestExpiryLabel(member.expiresAt) && (
+          <div style={{ fontSize: 10, fontWeight: 700, color: '#92400E', marginTop: 1 }}>
+            {guestExpiryLabel(member.expiresAt)}
+          </div>
+        )}
       </div>
 
       {/* Right: badge + actions */}

@@ -1,30 +1,37 @@
 import { NextRequest } from "next/server";
-import { getSession } from "@/lib/auth/helpers";
+import { getSession, getUserHousehold } from "@/lib/auth/helpers";
 import { db } from "@/lib/db";
 import { householdMembers, households, memberPermissions } from "@/db/schema";
-import { and, eq, isNull, desc } from "drizzle-orm";
+import { and, eq, isNull } from "drizzle-orm";
 
-export async function GET(request: NextRequest): Promise<Response> {
+export async function GET(_request: NextRequest): Promise<Response> {
   const session = await getSession();
   if (!session) return Response.json({ error: "Unauthorized" }, { status: 401 });
 
   const userId = session.user.id;
 
-  // Most recently joined household membership
-  const [membership] = await db
-    .select({
-      householdId: householdMembers.householdId,
-      role: householdMembers.role,
-      upgradeAllowed: householdMembers.upgradeAllowed,
-    })
-    .from(householdMembers)
-    .where(and(eq(householdMembers.userId, userId), isNull(householdMembers.deletedAt)))
-    .orderBy(desc(householdMembers.createdAt))
-    .limit(1);
+  // Resolve the user's *active* household (honours users.active_household_id,
+  // falls back to most recently joined). Must match getUserHousehold so the
+  // household switcher actually changes what this endpoint returns.
+  const resolved = await getUserHousehold(userId);
 
-  if (!membership) {
+  if (!resolved) {
     return Response.json({ error: "No household" }, { status: 404 });
   }
+
+  // upgradeAllowed lives on the membership row, which getUserHousehold does not
+  // return — read it for the resolved household.
+  const [membership] = await db
+    .select({ upgradeAllowed: householdMembers.upgradeAllowed })
+    .from(householdMembers)
+    .where(
+      and(
+        eq(householdMembers.userId, userId),
+        eq(householdMembers.householdId, resolved.householdId),
+        isNull(householdMembers.deletedAt),
+      )
+    )
+    .limit(1);
 
   const [household] = await db
     .select({
@@ -40,7 +47,7 @@ export async function GET(request: NextRequest): Promise<Response> {
       join_approval_required: households.join_approval_required,
     })
     .from(households)
-    .where(and(eq(households.id, membership.householdId), isNull(households.deleted_at)))
+    .where(and(eq(households.id, resolved.householdId), isNull(households.deleted_at)))
     .limit(1);
 
   if (!household) {
@@ -54,7 +61,7 @@ export async function GET(request: NextRequest): Promise<Response> {
     .where(
       and(
         eq(memberPermissions.userId, userId),
-        eq(memberPermissions.householdId, membership.householdId),
+        eq(memberPermissions.householdId, resolved.householdId),
       )
     )
     .limit(1);
@@ -75,5 +82,5 @@ export async function GET(request: NextRequest): Promise<Response> {
     if (perms.mealsSuggest) permissions.push("meals.suggest");
   }
 
-  return Response.json({ household, role: membership.role, permissions, upgradeAllowed: membership.upgradeAllowed });
+  return Response.json({ household, role: resolved.role, permissions, upgradeAllowed: membership?.upgradeAllowed ?? false });
 }

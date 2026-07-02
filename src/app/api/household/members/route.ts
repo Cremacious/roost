@@ -1,8 +1,8 @@
 import { NextRequest } from "next/server";
-import { getSession } from "@/lib/auth/helpers";
+import { getSession, getUserHousehold } from "@/lib/auth/helpers";
 import { db } from "@/lib/db";
 import { householdMembers, households, memberPermissions, users } from "@/db/schema";
-import { and, eq, isNull, desc } from "drizzle-orm";
+import { and, eq, isNull } from "drizzle-orm";
 
 const DEFAULT_PERMISSIONS = {
   admin: {
@@ -69,13 +69,10 @@ export async function GET(_req: NextRequest): Promise<Response> {
 
   const userId = session.user.id;
 
-  // Find the user's most recent active household membership
-  const [membership] = await db
-    .select({ householdId: householdMembers.householdId, role: householdMembers.role })
-    .from(householdMembers)
-    .where(and(eq(householdMembers.userId, userId), isNull(householdMembers.deletedAt)))
-    .orderBy(desc(householdMembers.createdAt))
-    .limit(1);
+  // Resolve the user's *active* household (honours users.active_household_id,
+  // falls back to most recently joined). Must match getUserHousehold so the
+  // household switcher actually changes which household this page shows.
+  const membership = await getUserHousehold(userId);
 
   if (!membership) {
     return Response.json({ error: "No household" }, { status: 404 });

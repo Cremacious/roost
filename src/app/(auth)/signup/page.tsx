@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import {
   signUp,
   signInWithGoogle,
@@ -142,6 +142,10 @@ function StrengthBar({ password }: { password: string }) {
 
 export default function SignupPage() {
   const router = useRouter();
+  const params = useSearchParams();
+  // Guests arriving from an invite link carry a callbackUrl so they return to
+  // the invite after signing up instead of being routed into onboarding.
+  const callbackUrl = params.get('callbackUrl');
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -157,12 +161,12 @@ export default function SignupPage() {
   async function handleGoogle() {
     setOauthLoading('google');
     // Proxy onboarding guard routes new users to /onboarding; existing users land on /today.
-    await signInWithGoogle('/today');
+    await signInWithGoogle(callbackUrl ?? '/today');
   }
 
   async function handleApple() {
     setOauthLoading('apple');
-    await signInWithApple('/today');
+    await signInWithApple(callbackUrl ?? '/today');
   }
 
   const confirmMismatch = confirm.length > 0 && confirm !== password;
@@ -186,7 +190,7 @@ export default function SignupPage() {
         name,
         email,
         password,
-        callbackURL: '/onboarding',
+        callbackURL: callbackUrl ?? '/onboarding',
       });
       if (result.error) {
         setError(result.error.message ?? 'Sign up failed');
@@ -194,8 +198,8 @@ export default function SignupPage() {
         return;
       }
       // Email verification is off — better-auth creates a session on signup.
-      // Send the new user straight into onboarding.
-      router.push('/onboarding');
+      // Guests from an invite link return to the invite; everyone else onboards.
+      router.push(callbackUrl ?? '/onboarding');
     } catch {
       setError('Something went wrong. Try again.');
       setLoading(false);

@@ -52,7 +52,12 @@ export async function POST(req: NextRequest) {
   const body = await req.json()
   const { title, content, isRichText = false } = body
 
-  if (!content?.trim() && !title?.trim()) {
+  // Tiptap's empty state serialises to "<p></p>", a non-empty string. Strip tags
+  // before the emptiness check so a blank rich-text editor is treated as empty.
+  const textContent = typeof content === 'string'
+    ? content.replace(/<[^>]+>/g, '').replace(/&nbsp;/g, ' ').trim()
+    : ''
+  if (!textContent && !title?.trim()) {
     return NextResponse.json({ error: 'Note must have a title or content' }, { status: 400 })
   }
 

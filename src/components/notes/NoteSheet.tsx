@@ -134,7 +134,10 @@ export default function NoteSheet({
   })
 
   function handleSave() {
-    if (!title.trim() && !content.trim()) {
+    // Tiptap's empty state serialises to "<p></p>", which is a non-empty string.
+    // Strip tags before checking so a blank editor is treated as empty.
+    const textContent = content.replace(/<[^>]+>/g, '').replace(/&nbsp;/g, ' ').trim()
+    if (!title.trim() && !textContent) {
       toast.error('Empty note', { description: 'Add a title or some content.' })
       return
     }

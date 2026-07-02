@@ -16,7 +16,7 @@ import {
   households,
   users,
 } from "@/db/schema";
-import { and, eq, gte, isNull, isNotNull, lte, lt, sql } from "drizzle-orm";
+import { and, eq, gte, isNull, isNotNull, lte, sql } from "drizzle-orm";
 import { differenceInDays } from "date-fns";
 
 export async function GET(request: NextRequest): Promise<Response> {
@@ -61,7 +61,6 @@ export async function GET(request: NextRequest): Promise<Response> {
     q8_spendingOverTime,
     // Tasks
     q10_tasksSummary,
-    q11_overdueTasks,
     q12_tasksByPriority,
     // Meals
     q13_mealsPlanned,
@@ -249,19 +248,6 @@ export async function GET(request: NextRequest): Promise<Response> {
           isNull(tasks.deletedAt),
           gte(tasks.createdAt, startDate),
           lte(tasks.createdAt, endDate),
-        )
-      ),
-
-    // 11. Overdue tasks (current snapshot)
-    db
-      .select({ count: sql<number>`cast(count(*) as int)` })
-      .from(tasks)
-      .where(
-        and(
-          eq(tasks.householdId, householdId),
-          isNull(tasks.deletedAt),
-          eq(tasks.completed, false),
-          lt(tasks.dueDate, new Date()),
         )
       ),
 
@@ -481,7 +467,6 @@ export async function GET(request: NextRequest): Promise<Response> {
   const totalCreated = taskSummary?.totalCreated ?? 0;
   const totalCompleted = taskSummary?.totalCompleted ?? 0;
   const completionRate = totalCreated > 0 ? Math.round((totalCompleted / totalCreated) * 100) : 0;
-  const overdueCount = q11_overdueTasks[0]?.count ?? 0;
   const byPriority = q12_tasksByPriority.map((r) => ({ priority: r.priority, count: r.count }));
 
   const totalPlanned = q13_mealsPlanned[0]?.count ?? 0;
@@ -538,7 +523,7 @@ export async function GET(request: NextRequest): Promise<Response> {
   return Response.json({
     chores: { totalCompletions, completionsPerMember, mostCompletedChore, completionsOverTime, pointsPerMember },
     expenses: { totalSpent, byCategory, overTime: spendingOverTime },
-    tasks: { totalCreated, totalCompleted, completionRate, overdueCount, byPriority },
+    tasks: { totalCreated, totalCompleted, completionRate, byPriority },
     meals: { totalPlanned, mostPlannedMeal, suggestions },
     grocery: { itemsAdded, itemsChecked, checkRate, mostAddedItem },
     activity: { mostActiveMember, byTypeGroup },

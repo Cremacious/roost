@@ -1460,7 +1460,9 @@ Update this file after every major decision or completed phase.
 - e2e/.auth/*.json files contain session tokens — always in .gitignore, never commit. e2e/.auth/.gitkeep tracks the empty directory.
 - Empty-state tests (chores/grocery) only reliable on first run against a clean DB. Test data accumulates with shared accounts — this is an accepted tradeoff.
 
-Last updated: 2026-05-17 (UI consistency audit completed. Two remaining typography fixes applied:
+Last updated: 2026-07-02 (Stats QA pass, issue #34. Verified free full-page gate + server 403 (STATS_PREMIUM), premium access, all date-range pills + custom range, stat cards, all 6 charts, zero-data empty states, and mobile layout against seeded accounts. Three cleanups: (1) stats page now uses the shared PremiumGate (feature="stats" trigger="page") instead of a local InlinePremiumGate, for gate consistency. (2) Removed the dead overdueCount task query + response field from /api/stats (computed but never rendered); dropped now-unused lt import. tasks response shape is now {totalCreated, totalCompleted, completionRate, byPriority}. (3) Silenced Recharts "width(-1)/height(-1)" console warnings (recharts 3.8.1 hardcodes isDev=true so they fire in production too) by passing initialDimension={CHART_INIT} to all 6 ResponsiveContainers.)
+
+Previous: 2026-05-17 (UI consistency audit completed. Two remaining typography fixes applied:
 1. Calendar page header: fontSize 22 -> 26, letterSpacing -0.3px added, "X active" subtitle added below title.
 2. Stats page: both header instances (gate state + loaded state) replaced Tailwind text-2xl with explicit fontSize 26, letterSpacing -0.3px.
 All 11 issues from the original audit are now resolved.

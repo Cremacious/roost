@@ -5,7 +5,6 @@ import { useQuery } from "@tanstack/react-query";
 import { useHousehold } from "@/lib/hooks/useHousehold";
 import { motion } from "framer-motion";
 import {
-  BarChart2,
   CheckSquare,
   DollarSign,
   ListTodo,
@@ -30,23 +29,7 @@ import {
 } from "recharts";
 import { Skeleton } from "@/components/ui/skeleton";
 import { PageContainer } from "@/components/layout/PageContainer";
-
-function InlinePremiumGate() {
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '60vh', gap: 16, padding: 32, textAlign: 'center' }}>
-      <div style={{ width: 64, height: 64, borderRadius: 18, backgroundColor: '#6366F118', border: '1.5px solid var(--roost-border)', borderBottom: '4px solid #4F46E5', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <BarChart2 size={28} color="#6366F1" />
-      </div>
-      <div>
-        <p style={{ margin: 0, fontWeight: 900, fontSize: 20, color: 'var(--roost-text-primary)' }}>Stats is a Premium feature</p>
-        <p style={{ margin: '6px 0 0', fontSize: 13, fontWeight: 600, color: 'var(--roost-text-secondary)', maxWidth: 280 }}>See chores, spending, tasks, meals, and grocery trends all in one place.</p>
-      </div>
-      <a href="/settings/billing" style={{ display: 'inline-block', padding: '12px 24px', borderRadius: 14, backgroundColor: '#6366F1', color: '#fff', fontWeight: 800, fontSize: 14, textDecoration: 'none', borderBottom: '3px solid #4F46E5' }}>
-        Upgrade to Premium
-      </a>
-    </div>
-  );
-}
+import PremiumGate from "@/components/shared/PremiumGate";
 
 function MemberAvatar({ name, size = 'md' }: { name: string; avatarColor?: string | null; size?: string }) {
   const initials = name.split(' ').map(p => p[0]).filter(Boolean).join('').slice(0, 2).toUpperCase();
@@ -60,6 +43,13 @@ function MemberAvatar({ name, size = 'md' }: { name: string; avatarColor?: strin
 
 const COLOR = "#6366F1";
 const COLOR_DARK = "#4338CA";
+
+// ResponsiveContainer renders at -1 x -1 before its ResizeObserver reports the
+// real size, which makes Recharts log a "width/height should be greater than 0"
+// warning (this build does not strip it in production). Seeding a positive
+// first-paint estimate silences it; the observer corrects to the exact size on
+// the next frame.
+const CHART_INIT = { width: 320, height: 180 };
 
 // ---- Date range helpers -----------------------------------------------------
 
@@ -266,17 +256,7 @@ export default function StatsPage() {
   if (isPremium === false) {
     return (
       <PageContainer>
-        <div className="py-6">
-          <div className="mb-6">
-            <h1 style={{ color: "var(--roost-text-primary)", fontWeight: 900, fontSize: 26, letterSpacing: '-0.3px', margin: 0 }}>
-              Household Stats
-            </h1>
-            <p className="mt-1" style={{ color: "var(--roost-text-muted)", fontWeight: 600, fontSize: 13 }}>
-              Powered by your household data.
-            </p>
-          </div>
-          <InlinePremiumGate />
-        </div>
+        <PremiumGate feature="stats" trigger="page" />
       </PageContainer>
     );
   }
@@ -450,7 +430,7 @@ export default function StatsPage() {
                     <EmptyChart message="No chore data for this period" />
                   ) : (
                     <div style={{ height: 180 }}>
-                      <ResponsiveContainer width="100%" height="100%">
+                      <ResponsiveContainer width="100%" height="100%" initialDimension={CHART_INIT}>
                         <AreaChart
                           data={chores.completionsOverTime}
                           margin={{ top: 4, right: 4, left: -24, bottom: 0 }}
@@ -510,7 +490,7 @@ export default function StatsPage() {
                   <EmptyChart message="No expense data for this period" />
                 ) : (
                   <div style={{ height: 180 }}>
-                    <ResponsiveContainer width="100%" height="100%">
+                    <ResponsiveContainer width="100%" height="100%" initialDimension={CHART_INIT}>
                       <AreaChart
                         data={exp.overTime}
                         margin={{ top: 4, right: 4, left: -16, bottom: 0 }}
@@ -569,7 +549,7 @@ export default function StatsPage() {
                 ) : (
                   <>
                     <div style={{ height: 180 }}>
-                      <ResponsiveContainer width="100%" height="100%">
+                      <ResponsiveContainer width="100%" height="100%" initialDimension={CHART_INIT}>
                         <PieChart>
                           <Pie
                             data={exp.byCategory}
@@ -616,7 +596,7 @@ export default function StatsPage() {
                   <EmptyChart message="No chore completions yet" />
                 ) : (
                   <div style={{ height: Math.max(120, (chores.completionsPerMember?.length ?? 1) * 44) }}>
-                    <ResponsiveContainer width="100%" height="100%">
+                    <ResponsiveContainer width="100%" height="100%" initialDimension={CHART_INIT}>
                       <BarChart
                         layout="vertical"
                         data={chores.completionsPerMember}
@@ -663,7 +643,7 @@ export default function StatsPage() {
                   <EmptyChart message="No activity logged yet" />
                 ) : (
                   <div style={{ height: Math.max(120, activityGroups.length * 44) }}>
-                    <ResponsiveContainer width="100%" height="100%">
+                    <ResponsiveContainer width="100%" height="100%" initialDimension={CHART_INIT}>
                       <BarChart
                         layout="vertical"
                         data={activityGroups}
@@ -708,7 +688,7 @@ export default function StatsPage() {
                 ) : (
                   <>
                     <div style={{ height: 180 }}>
-                      <ResponsiveContainer width="100%" height="100%">
+                      <ResponsiveContainer width="100%" height="100%" initialDimension={CHART_INIT}>
                         <PieChart>
                           <Pie
                             data={taskData.byPriority}

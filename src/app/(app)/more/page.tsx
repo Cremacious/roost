@@ -6,7 +6,6 @@ import { useQuery } from '@tanstack/react-query'
 import Link from 'next/link'
 import { Settings, LogOut, ChevronRight } from 'lucide-react'
 import { useSession, signOut } from '@/lib/auth/client'
-import { applyTheme } from '@/components/providers/ThemeProvider'
 import {
   AlertDialog,
   AlertDialogContent,
@@ -46,7 +45,6 @@ export default function MorePage() {
     .toUpperCase()
 
   async function handleSignOut() {
-    applyTheme('default')
     await signOut()
     router.push('/login')
   }

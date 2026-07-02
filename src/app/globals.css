@@ -37,29 +37,6 @@
   --radius: 0.75rem;
 }
 
-[data-theme="midnight"] {
-  --roost-bg: #111827;
-  --roost-surface: #1f2937;
-  --roost-border: #374151;
-  --roost-border-bottom: #4b5563;
-  --roost-text-primary: #f9fafb;
-  --roost-text-secondary: #e5e7eb;
-  --roost-text-muted: #9ca3af;
-  --roost-topbar-bg: #1f2937;
-  --roost-topbar-border: #374151;
-  --roost-weather-bg: rgba(255,255,255,0.1);
-  --roost-weather-color: #e5e7eb;
-
-  --background: var(--roost-bg);
-  --foreground: var(--roost-text-primary);
-  --card: var(--roost-surface);
-  --card-foreground: var(--roost-text-primary);
-  --border: var(--roost-border);
-  --input: var(--roost-border);
-  --primary: #f9fafb;
-  --primary-foreground: #111827;
-}
-
 * {
   box-sizing: border-box;
 }

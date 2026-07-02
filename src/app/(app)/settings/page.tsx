@@ -255,10 +255,7 @@ function CategoriesSettingsSection() {
   const [editColor, setEditColor] = useState('#6B7280');
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
 
-  const { data } = useQuery<{
-    categories: Category[];
-    pendingSuggestions?: Category[];
-  }>({
+  const { data } = useQuery<Category[]>({
     queryKey: ['expenseCategories'],
     queryFn: async () => {
       const r = await fetch('/api/expenses/categories');
@@ -268,8 +265,15 @@ function CategoriesSettingsSection() {
     staleTime: 30_000,
   });
 
-  const customCategories = (data?.categories ?? []).filter((c) => c.is_custom);
-  const pendingSuggestions = data?.pendingSuggestions ?? [];
+  // The endpoint returns a flat array of active + (for admins) pending
+  // categories. Active custom ones are editable/deletable here; pending ones
+  // are member suggestions awaiting approve/reject.
+  const customCategories = (data ?? []).filter(
+    (c) => c.is_custom && c.status === 'active'
+  );
+  const pendingSuggestions = (data ?? []).filter(
+    (c) => c.status === 'pending'
+  );
 
   const patchMutation = useMutation({
     mutationFn: async ({
@@ -1788,31 +1792,52 @@ export default function SettingsPage() {
                   Language
                 </p>
                 <div className="flex gap-2">
-                  {['English', 'Español'].map((lang) => {
-                    const active = lang === 'English';
-                    return (
-                      <motion.button
-                        key={lang}
-                        type="button"
-                        whileTap={{ y: 1 }}
-                        onClick={() => {
-                          if (lang === 'Español')
-                            toast.info('Spanish translation coming soon.');
-                        }}
-                        className="flex h-10 flex-1 items-center justify-center rounded-xl text-sm"
-                        style={{
-                          backgroundColor: active ? '#E24B4A' : 'var(--roost-bg)',
-                          border: '1.5px solid var(--roost-border)',
-                          borderBottom: '3px solid var(--roost-border-bottom)',
-                          color: active ? '#fff' : 'var(--roost-text-secondary)',
-                          fontWeight: 700,
-                        }}
-                      >
-                        {lang}
-                      </motion.button>
-                    );
-                  })}
+                  {/* English is the only language today. */}
+                  <div
+                    className="flex h-10 flex-1 items-center justify-center rounded-xl text-sm"
+                    style={{
+                      backgroundColor: '#E24B4A',
+                      border: '1.5px solid var(--roost-border)',
+                      borderBottom: '3px solid var(--roost-border-bottom)',
+                      color: '#fff',
+                      fontWeight: 700,
+                    }}
+                  >
+                    English
+                  </div>
+                  {/* Spanish is planned but not built yet: show it as disabled. */}
+                  <div
+                    aria-disabled="true"
+                    className="flex h-10 flex-1 items-center justify-center gap-2 rounded-xl text-sm"
+                    style={{
+                      backgroundColor: 'var(--roost-bg)',
+                      border: '1.5px solid var(--roost-border)',
+                      borderBottom: '3px solid var(--roost-border-bottom)',
+                      color: 'var(--roost-text-muted)',
+                      fontWeight: 700,
+                      opacity: 0.55,
+                      cursor: 'not-allowed',
+                    }}
+                  >
+                    Español
+                    <span
+                      className="text-xs px-2 py-0.5 rounded-full"
+                      style={{
+                        backgroundColor: 'var(--roost-border)',
+                        color: 'var(--roost-text-muted)',
+                        fontWeight: 700,
+                      }}
+                    >
+                      Coming soon
+                    </span>
+                  </div>
                 </div>
+                <p
+                  className="text-xs"
+                  style={{ color: 'var(--roost-text-muted)', fontWeight: 600 }}
+                >
+                  Roost is English only for now. More languages are on the way.
+                </p>
               </div>
             </SlabCard>
           </SettingsSection>

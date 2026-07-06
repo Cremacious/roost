@@ -3,6 +3,9 @@
 import { useEffect, useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { Search, ChevronLeft, ChevronRight, Crown } from 'lucide-react'
+import { useHideTest } from '@/lib/admin/useHideTest'
+import { HideTestToggle } from '@/components/admin/HideTestToggle'
+import { InfoField } from '@/components/admin/InfoField'
 
 interface AdminHousehold {
   id: string
@@ -18,6 +21,7 @@ interface AdminHousehold {
 
 export default function AdminHouseholdsPage() {
   const router = useRouter()
+  const { hideTest, setHideTest } = useHideTest()
   const [households, setHouseholds] = useState<AdminHousehold[]>([])
   const [total, setTotal] = useState(0)
   const [totalPages, setTotalPages] = useState(1)
@@ -34,6 +38,7 @@ export default function AdminHouseholdsPage() {
     try {
       const params = new URLSearchParams({ page: String(page), filter })
       if (search) params.set('search', search)
+      if (hideTest) params.set('hideTest', 'true')
       const res = await fetch(`/api/admin/households?${params}`)
       if (res.status === 401) { router.push('/admin/login'); return }
       const data = await res.json()
@@ -43,10 +48,10 @@ export default function AdminHouseholdsPage() {
     } finally {
       setLoading(false)
     }
-  }, [page, search, filter, router])
+  }, [page, search, filter, hideTest, router])
 
   useEffect(() => { fetchHouseholds() }, [fetchHouseholds])
-  useEffect(() => { setPage(1) }, [search, filter])
+  useEffect(() => { setPage(1) }, [search, filter, hideTest])
 
   async function handleSetStatus(id: string, status: 'premium' | 'free') {
     setUpdating(id)
@@ -121,6 +126,9 @@ export default function AdminHouseholdsPage() {
               {f.label}
             </button>
           ))}
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', marginLeft: 'auto' }}>
+          <HideTestToggle checked={hideTest} onChange={setHideTest} />
         </div>
       </div>
 
@@ -295,15 +303,6 @@ export default function AdminHouseholdsPage() {
           </div>
         </div>
       )}
-    </div>
-  )
-}
-
-function InfoField({ label, value, mono }: { label: string; value: string; mono?: boolean }) {
-  return (
-    <div>
-      <p style={{ fontSize: 11, fontWeight: 700, color: '#475569', margin: '0 0 3px', textTransform: 'uppercase', letterSpacing: '0.07em' }}>{label}</p>
-      <p style={{ fontSize: 12, fontWeight: 600, color: '#94A3B8', margin: 0, fontFamily: mono ? 'monospace' : 'inherit' }}>{value}</p>
     </div>
   )
 }

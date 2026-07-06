@@ -2,6 +2,7 @@ import { NextRequest } from 'next/server'
 import { requireAdminSession } from '@/lib/admin/requireAdmin'
 import { db } from '@/lib/db'
 import { sql } from 'drizzle-orm'
+import { isTestHouseholdSql } from '@/lib/admin/testFilters'
 
 export async function GET(request: NextRequest): Promise<Response> {
   const unauth = await requireAdminSession(request)
@@ -10,6 +11,7 @@ export async function GET(request: NextRequest): Promise<Response> {
   const { searchParams } = new URL(request.url)
   const search = searchParams.get('search')?.trim() ?? ''
   const filter = searchParams.get('filter') ?? 'all' // all | premium | free
+  const hideTest = searchParams.get('hideTest') === 'true'
   const page = Math.max(1, parseInt(searchParams.get('page') ?? '1', 10))
   const limit = 25
   const offset = (page - 1) * limit
@@ -22,6 +24,7 @@ export async function GET(request: NextRequest): Promise<Response> {
   }
   if (filter === 'premium') conditions.push(`h.subscription_status = 'premium'`)
   if (filter === 'free') conditions.push(`h.subscription_status = 'free'`)
+  if (hideTest) conditions.push(`NOT ${isTestHouseholdSql('h')}`)
 
   const where = `WHERE ${conditions.join(' AND ')}`
 

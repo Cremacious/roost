@@ -3,6 +3,8 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts'
+import { useHideTest } from '@/lib/admin/useHideTest'
+import { HideTestToggle } from '@/components/admin/HideTestToggle'
 
 interface Stats {
   totalUsers: number
@@ -29,35 +31,40 @@ function StatCard({ label, value, color = '#6366F1' }: { label: string; value: n
 
 export default function AdminOverviewPage() {
   const router = useRouter()
+  const { hideTest, setHideTest } = useHideTest()
   const [stats, setStats] = useState<Stats | null>(null)
   const [error, setError] = useState('')
 
   useEffect(() => {
-    fetch('/api/admin/stats')
+    let cancelled = false
+    fetch(`/api/admin/stats?hideTest=${hideTest}`)
       .then(r => {
         if (r.status === 401) { router.push('/admin/login'); return null }
         if (!r.ok) throw new Error('Failed to load stats')
         return r.json()
       })
-      .then(data => data && setStats(data))
-      .catch(() => setError('Failed to load stats'))
-  }, [router])
+      .then(data => { if (!cancelled && data) { setStats(data); setError('') } })
+      .catch(() => { if (!cancelled) setError('Failed to load stats') })
+    return () => { cancelled = true }
+  }, [router, hideTest])
 
-  if (error) {
-    return <p style={{ color: '#F87171', fontWeight: 700 }}>{error}</p>
-  }
-  if (!stats) {
-    return <p style={{ color: '#64748B', fontWeight: 700 }}>Loading...</p>
-  }
-
-  const conversionRate = stats.totalHouseholds > 0
+  const conversionRate = stats && stats.totalHouseholds > 0
     ? ((stats.premiumHouseholds / stats.totalHouseholds) * 100).toFixed(1)
     : '0.0'
 
   return (
     <div>
-      <h1 style={{ fontSize: 22, fontWeight: 900, color: '#F1F5F9', margin: '0 0 24px' }}>Overview</h1>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', margin: '0 0 24px' }}>
+        <h1 style={{ fontSize: 22, fontWeight: 900, color: '#F1F5F9', margin: 0 }}>Overview</h1>
+        <HideTestToggle checked={hideTest} onChange={setHideTest} />
+      </div>
 
+      {error ? (
+        <p style={{ color: '#F87171', fontWeight: 700 }}>{error}</p>
+      ) : !stats ? (
+        <p style={{ color: '#64748B', fontWeight: 700 }}>Loading...</p>
+      ) : (
+      <>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16, marginBottom: 32 }}>
         <StatCard label="Total Users" value={stats.totalUsers} />
         <StatCard label="Households" value={stats.totalHouseholds} />
@@ -69,6 +76,8 @@ export default function AdminOverviewPage() {
         <ChartCard title="Signups (90 days)" data={stats.signupsOverTime} color="#6366F1" />
         <ChartCard title="Premium conversions (90 days)" data={stats.conversionsOverTime} color="#22C55E" />
       </div>
+      </>
+      )}
     </div>
   )
 }

@@ -3,6 +3,9 @@
 import { useEffect, useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { Search, ChevronLeft, ChevronRight, Trash2, AlertTriangle } from 'lucide-react'
+import { useHideTest } from '@/lib/admin/useHideTest'
+import { HideTestToggle } from '@/components/admin/HideTestToggle'
+import { InfoField } from '@/components/admin/InfoField'
 
 interface AdminUser {
   id: string
@@ -25,6 +28,7 @@ interface DeleteInfo {
 
 export default function AdminUsersPage() {
   const router = useRouter()
+  const { hideTest, setHideTest } = useHideTest()
   const [users, setUsers] = useState<AdminUser[]>([])
   const [total, setTotal] = useState(0)
   const [totalPages, setTotalPages] = useState(1)
@@ -42,6 +46,7 @@ export default function AdminUsersPage() {
     try {
       const params = new URLSearchParams({ page: String(page), filter })
       if (search) params.set('search', search)
+      if (hideTest) params.set('hideTest', 'true')
       const res = await fetch(`/api/admin/users?${params}`)
       if (res.status === 401) { router.push('/admin/login'); return }
       const data = await res.json()
@@ -51,12 +56,12 @@ export default function AdminUsersPage() {
     } finally {
       setLoading(false)
     }
-  }, [page, search, filter, router])
+  }, [page, search, filter, hideTest, router])
 
   useEffect(() => { fetchUsers() }, [fetchUsers])
 
   // Reset page on search/filter change
-  useEffect(() => { setPage(1) }, [search, filter])
+  useEffect(() => { setPage(1) }, [search, filter, hideTest])
 
   function openDeleteDialog(u: AdminUser) {
     const isAdmin = u.role === 'admin'
@@ -141,6 +146,9 @@ export default function AdminUsersPage() {
               {f.label}
             </button>
           ))}
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', marginLeft: 'auto' }}>
+          <HideTestToggle checked={hideTest} onChange={setHideTest} />
         </div>
       </div>
 
@@ -348,15 +356,6 @@ function Badge({ label, color }: { label: string; color: string }) {
     }}>
       {label}
     </span>
-  )
-}
-
-function InfoField({ label, value, mono }: { label: string; value: string; mono?: boolean }) {
-  return (
-    <div>
-      <p style={{ fontSize: 11, fontWeight: 700, color: '#475569', margin: '0 0 3px', textTransform: 'uppercase', letterSpacing: '0.07em' }}>{label}</p>
-      <p style={{ fontSize: 12, fontWeight: 600, color: '#94A3B8', margin: 0, fontFamily: mono ? 'monospace' : 'inherit' }}>{value}</p>
-    </div>
   )
 }
 

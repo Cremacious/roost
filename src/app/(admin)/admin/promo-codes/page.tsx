@@ -335,7 +335,7 @@ export default function AdminPromoCodesPage() {
                       </p>
                       {c.redemptions.slice(0, 5).map((r, idx) => (
                         <p key={idx} style={{ fontSize: 12, fontWeight: 600, color: '#64748B', margin: '0 0 2px', fontFamily: 'monospace' }}>
-                          {r.householdId} — {new Date(r.redeemedAt).toLocaleDateString()}
+                          {r.householdId} · {new Date(r.redeemedAt).toLocaleDateString()}
                         </p>
                       ))}
                     </div>

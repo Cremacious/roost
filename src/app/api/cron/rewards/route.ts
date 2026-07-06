@@ -106,7 +106,7 @@ export async function GET(req: NextRequest) {
       if (existing.length > 0) continue
 
       // Compute completion rate for the member in the completed period
-      const { completionRate, completed, total } = await computeProgress(
+      const { completionRate } = await computeProgress(
         rule.householdId,
         rule.userId,
         periodStart,
@@ -115,54 +115,64 @@ export async function GET(req: NextRequest) {
 
       const earned = completionRate >= rule.thresholdPercent
 
+      // Decide whether an earned money reward also needs an expense entry. Resolve
+      // the amount + admin (a read) before opening the transaction, and pre-generate
+      // the expense id so the payout can reference it without a mid-tx read.
       let expenseId: string | null = null
-
-      // For earned money rewards, create an expense entry so it appears in settle-up
+      let rewardAmount = 0
+      let adminId: string | null = null
       if (earned && rule.rewardType === 'money') {
-        const rewardAmount = parseFloat(rule.rewardDetail.replace(/[^0-9.]/g, ''))
-        if (!isNaN(rewardAmount) && rewardAmount > 0) {
-          const adminId = await getHouseholdAdmin(rule.householdId)
+        const parsed = parseFloat(rule.rewardDetail.replace(/[^0-9.]/g, ''))
+        if (!isNaN(parsed) && parsed > 0) {
+          adminId = await getHouseholdAdmin(rule.householdId)
           if (adminId) {
-            // Expense: member earned money, admin owes member
-            // paid_by = member (the one owed), split = admin owes member the full amount
-            const [expense] = await db
-              .insert(expenses)
-              .values({
-                householdId: rule.householdId,
-                title: `Reward: ${rule.title}`,
-                amount: String(rewardAmount),
-                paidBy: rule.userId,
-                notes: `Earned reward for completing ${completionRate}% of assigned chores`,
-              })
-              .returning({ id: expenses.id })
-
-            await db.insert(expenseSplits).values({
-              expenseId: expense.id,
-              householdId: rule.householdId,
-              userId: adminId,
-              amount: String(rewardAmount),
-              settled: false,
-            })
-
-            expenseId = expense.id
-            expensesCreated++
+            rewardAmount = parsed
+            expenseId = crypto.randomUUID()
           }
         }
       }
 
-      // Record the payout
-      await db.insert(rewardPayouts).values({
-        householdId: rule.householdId,
-        userId: rule.userId,
-        ruleId: rule.id,
-        periodStart,
-        periodEnd,
-        earned,
-        completionRate,
-        rewardDetail: rule.rewardDetail,
-        expenseId,
-        acknowledged: false,
+      // Create the expense (if any) and the payout atomically. The payout is the
+      // idempotency guard for the whole rule/period, so it must commit together with
+      // the expense it references. Otherwise a partial failure could leave an expense
+      // with no payout, and the next run would recompute and create a duplicate expense.
+      await db.transaction(async tx => {
+        if (expenseId && adminId) {
+          // Expense: member earned money, admin owes member.
+          // paid_by = member (the one owed), split = admin owes member the full amount.
+          await tx.insert(expenses).values({
+            id: expenseId,
+            householdId: rule.householdId,
+            title: `Reward: ${rule.title}`,
+            amount: String(rewardAmount),
+            paidBy: rule.userId,
+            notes: `Earned reward for completing ${completionRate}% of assigned chores`,
+          })
+
+          await tx.insert(expenseSplits).values({
+            expenseId,
+            householdId: rule.householdId,
+            userId: adminId,
+            amount: String(rewardAmount),
+            settled: false,
+          })
+        }
+
+        await tx.insert(rewardPayouts).values({
+          householdId: rule.householdId,
+          userId: rule.userId,
+          ruleId: rule.id,
+          periodStart,
+          periodEnd,
+          earned,
+          completionRate,
+          rewardDetail: rule.rewardDetail,
+          expenseId,
+          acknowledged: false,
+        })
       })
+
+      if (expenseId) expensesCreated++
 
       // Log only when the reward was actually earned this period.
       if (earned) {

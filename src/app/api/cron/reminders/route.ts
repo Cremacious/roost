@@ -48,24 +48,13 @@ export async function GET(req: NextRequest) {
         userIds = members.map(m => m.userId)
       }
 
-      // Create a receipt for each notified user
-      for (const userId of userIds) {
-        await db.insert(reminderReceipts).values({
-          reminderId: reminder.id,
-          userId,
-          seen: false,
-        })
-      }
-
-      // Advance or complete the reminder
-      if (!reminder.frequency || reminder.frequency === 'once') {
-        await db
-          .update(reminders)
-          .set({ completed: true })
-          .where(eq(reminders.id, reminder.id))
-      } else {
+      // Compute the advance target before opening the transaction (no reads inside
+      // the tx, which the Neon HTTP driver runs as a single batched request).
+      const isOnce = !reminder.frequency || reminder.frequency === 'once'
+      let nextDate: Date | null = null
+      if (!isOnce) {
         // Advance next_remind_at past now to avoid re-firing in the same run
-        let nextDate = calcNextRemindAt(
+        nextDate = calcNextRemindAt(
           new Date(reminder.nextRemindAt),
           reminder.frequency,
           reminder.customDays
@@ -73,11 +62,36 @@ export async function GET(req: NextRequest) {
         while (nextDate <= now) {
           nextDate = calcNextRemindAt(nextDate, reminder.frequency, reminder.customDays)
         }
-        await db
-          .update(reminders)
-          .set({ nextRemindAt: nextDate, snoozedUntil: null })
-          .where(eq(reminders.id, reminder.id))
       }
+
+      // Insert every receipt and advance/complete the reminder atomically. If the
+      // run dies mid-write nothing commits, so the reminder is still due next run
+      // and is reprocessed cleanly (no duplicate receipts). There is intentionally
+      // no unique constraint on (reminder_id, user_id) because a recurring reminder
+      // legitimately re-notifies the same user on each occurrence.
+      await db.transaction(async tx => {
+        if (userIds.length > 0) {
+          await tx.insert(reminderReceipts).values(
+            userIds.map(userId => ({
+              reminderId: reminder.id,
+              userId,
+              seen: false,
+            }))
+          )
+        }
+
+        if (isOnce) {
+          await tx
+            .update(reminders)
+            .set({ completed: true })
+            .where(eq(reminders.id, reminder.id))
+        } else {
+          await tx
+            .update(reminders)
+            .set({ nextRemindAt: nextDate as Date, snoozedUntil: null })
+            .where(eq(reminders.id, reminder.id))
+        }
+      })
 
       processed++
     } catch (err) {

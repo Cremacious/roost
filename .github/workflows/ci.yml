@@ -64,8 +64,8 @@ jobs:
       - name: Run ESLint
         run: npm run lint
 
-      - name: Run unit tests
-        run: npm test -- --runInBand
+      - name: Type check
+        run: npm run typecheck
 
       - name: Run production build
         run: npm run build

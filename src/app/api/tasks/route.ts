@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getSession, getUserHousehold, checkMemberPermission } from '@/lib/auth/helpers'
+import { getSession, getUserHousehold, checkMemberPermission, isHouseholdPremium } from '@/lib/auth/helpers'
 import { db } from '@/lib/db'
 import { tasks, projects, taskComments, taskDelegations, users } from '@/db/schema'
 import { eq, and, isNull, asc, desc, count, sql } from 'drizzle-orm'
@@ -165,7 +165,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Title is required' }, { status: 400 })
   }
 
-  const isPremium = membership.household.subscriptionStatus === 'premium'
+  const isPremium = await isHouseholdPremium(householdId)
 
   // Recurring tasks are a premium feature.
   if (recurring && !isPremium) {

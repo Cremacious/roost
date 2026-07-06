@@ -3,6 +3,7 @@ import { requireSession } from '@/lib/auth/helpers'
 import { db } from '@/lib/db'
 import { households, householdMembers, memberPermissions, user, joinRequests } from '@/db/schema'
 import { eq, and, isNull } from 'drizzle-orm'
+import { checkMemberLimit } from '@/lib/utils/memberLimits'
 
 async function checkMultiHouseholdLimit(userId: string): Promise<Response | null> {
   const existingMemberships = await db
@@ -111,6 +112,11 @@ export async function POST(request: Request) {
   }
 
   // --- Immediate join (approval not required) ---
+  // Enforce the free-tier member cap here too — the approval path already checks
+  // it, but an admin can disable approval and this branch must not be a bypass.
+  const memberLimitError = await checkMemberLimit(household.id)
+  if (memberLimitError) return NextResponse.json(memberLimitError, { status: 403 })
+
   await db.insert(householdMembers).values({
     householdId: household.id,
     userId: session.user.id,

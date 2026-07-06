@@ -59,7 +59,7 @@ export const FEATURE_ACCESS = {
   // Chores
   recurringChores: { free: false, premium: true }, // non-daily frequency (weekly/biweekly/monthly)
   choreLeaderboard: { free: false, premium: true },
-  choreHistory: { free: false, premium: true }, // NOTE: feature not built yet — see GitHub issue
+  choreHistory: { free: false, premium: true }, // page: /chores/history, api: /api/chores/history
   rewards: { free: false, premium: true },
   customChoreCategories: { free: false, premium: true },
   // Tasks

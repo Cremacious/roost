@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getSession, getUserHousehold } from '@/lib/auth/helpers'
+import { getSession, getUserHousehold, isHouseholdPremium } from '@/lib/auth/helpers'
 import { db } from '@/lib/db'
 import { projects, tasks } from '@/db/schema'
 import { eq, and, isNull, count } from 'drizzle-orm'
@@ -55,7 +55,7 @@ export async function POST(req: NextRequest) {
   }
 
   const { householdId } = membership
-  const isPremium = membership.household.subscriptionStatus === 'premium'
+  const isPremium = await isHouseholdPremium(householdId)
   const body = await req.json()
   const { name, color } = body
 

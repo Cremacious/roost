@@ -35,16 +35,16 @@ export async function POST(request: NextRequest): Promise<Response> {
     .limit(1)
 
   if (!promo) {
-    return Response.json({ error: 'Invalid promo code' }, { status: 404 })
+    return Response.json({ error: 'Invalid promo code', code: 'PROMO_INVALID' }, { status: 404 })
   }
   if (promo.status !== 'active') {
-    return Response.json({ error: 'This promo code is no longer active' }, { status: 400 })
+    return Response.json({ error: 'This promo code is no longer active', code: 'PROMO_INACTIVE' }, { status: 400 })
   }
   if (promo.expiresAt && promo.expiresAt < new Date()) {
-    return Response.json({ error: 'This promo code has expired' }, { status: 400 })
+    return Response.json({ error: 'This promo code has expired', code: 'PROMO_EXPIRED' }, { status: 400 })
   }
   if (promo.maxRedemptions !== null && promo.redemptionCount >= promo.maxRedemptions) {
-    return Response.json({ error: 'This promo code has reached its redemption limit' }, { status: 400 })
+    return Response.json({ error: 'This promo code has reached its redemption limit', code: 'PROMO_EXHAUSTED' }, { status: 400 })
   }
 
   // Per-account redemption block: check if this household has EVER redeemed this code
@@ -60,7 +60,7 @@ export async function POST(request: NextRequest): Promise<Response> {
     .limit(1)
 
   if (existingRedemption) {
-    return Response.json({ error: 'Your household has already redeemed this code' }, { status: 400 })
+    return Response.json({ error: 'Your household has already redeemed this code', code: 'PROMO_ALREADY_REDEEMED' }, { status: 400 })
   }
 
   // Determine new premium expiry

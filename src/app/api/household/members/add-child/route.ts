@@ -1,5 +1,5 @@
 import { type NextRequest } from 'next/server'
-import { requireSession, getUserHousehold } from '@/lib/auth/helpers'
+import { requireSession, getUserHousehold, isHouseholdPremium } from '@/lib/auth/helpers'
 import { db } from '@/lib/db'
 import { user as authUser } from '@/db/schema/auth'
 import { users, householdMembers, memberPermissions } from '@/db/schema'
@@ -17,7 +17,7 @@ export async function POST(_request: NextRequest): Promise<Response> {
     return Response.json({ error: 'Admin only' }, { status: 403 })
   }
 
-  const { householdId, household } = householdData
+  const { householdId } = householdData
 
   const body = await _request.json()
   const { name, pin } = body
@@ -29,8 +29,8 @@ export async function POST(_request: NextRequest): Promise<Response> {
     return Response.json({ error: 'PIN must be exactly 4 digits' }, { status: 400 })
   }
 
-  // Free tier: max 1 child
-  if (household.subscriptionStatus === 'free') {
+  // Free tier: max 1 child (expiry-aware premium check)
+  if (!(await isHouseholdPremium(householdId))) {
     const existingChildren = await db
       .select({ id: householdMembers.id })
       .from(householdMembers)

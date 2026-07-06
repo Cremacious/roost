@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { getSession, getUserHousehold } from '@/lib/auth/helpers'
+import { getSession, getUserHousehold, isHouseholdPremium } from '@/lib/auth/helpers'
 import { db } from '@/lib/db'
 import { chores, choreCompletions, users, memberPermissions } from '@/db/schema'
 import { eq, and, isNull, gte, lt, count } from 'drizzle-orm'
@@ -196,7 +196,7 @@ export async function POST(request: Request) {
   if (!membership) return NextResponse.json({ error: 'No household' }, { status: 403 })
 
   const { householdId, role } = membership
-  const isPremium = membership.household.subscriptionStatus === 'premium'
+  const isPremium = await isHouseholdPremium(householdId)
 
   if (role !== 'admin') {
     const [perms] = await db

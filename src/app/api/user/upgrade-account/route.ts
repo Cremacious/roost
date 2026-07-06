@@ -1,13 +1,10 @@
 import { NextResponse } from 'next/server'
 import { getSession } from '@/lib/auth/helpers'
 import { db } from '@/lib/db'
-import { user as authUser, account, users, households, householdMembers, memberPermissions } from '@/db/schema'
+import { user as authUser, account, users, householdMembers, memberPermissions } from '@/db/schema'
 import { and, eq, isNull, ne } from 'drizzle-orm'
 import { hashPassword } from 'better-auth/crypto'
-
-// Free households allow at most this many non-child members. Kept in sync with
-// the member limit enforced across the membership routes.
-const FREE_MEMBER_LIMIT = 5
+import { checkMemberLimit } from '@/lib/utils/memberLimits'
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
@@ -75,29 +72,11 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'That email is already in use' }, { status: 409 })
   }
 
-  // Free-tier member limit: count current non-child members in the household.
-  const nonChildMembers = await db
-    .select({ role: householdMembers.role })
-    .from(householdMembers)
-    .where(
-      and(
-        eq(householdMembers.householdId, membership.householdId),
-        isNull(householdMembers.deletedAt),
-        ne(householdMembers.role, 'child'),
-      )
-    )
-  const [hh] = await db
-    .select({ status: households.subscription_status })
-    .from(households)
-    .where(eq(households.id, membership.householdId))
-    .limit(1)
-  const isFree = hh?.status !== 'premium'
-  if (isFree && nonChildMembers.length >= FREE_MEMBER_LIMIT) {
-    return NextResponse.json(
-      { error: 'Your household is full. Upgrade to premium or remove a member to free a spot.', code: 'MEMBERS_LIMIT' },
-      { status: 403 },
-    )
-  }
+  // Free-tier member cap. The upgrading child is still role 'child' at this point,
+  // so the shared helper (which counts non-child members) blocks the conversion
+  // only when the household's member seats are already full.
+  const memberLimitError = await checkMemberLimit(membership.householdId)
+  if (memberLimitError) return NextResponse.json(memberLimitError, { status: 403 })
 
   // --- Conversion (no interactive tx on Neon HTTP). Every write below is
   // idempotent and safe to re-run; `upgradeAllowed` is cleared LAST as the single

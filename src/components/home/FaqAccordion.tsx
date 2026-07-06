@@ -5,15 +5,15 @@ import { useState } from 'react'
 const ITEMS = [
   {
     q: 'Is Roost actually free?',
-    a: "Yep. Most features are completely free, forever. Premium is $4/month and unlocks receipt scanning, spending insights, rich text notes, and more. One subscription covers every member of your household. Think of it as buying the solo dev behind this a coffee — except the coffee comes with perks.",
+    a: "Yep. Most features are completely free, forever. Premium is $4/month and unlocks receipt scanning, spending insights, rich text notes, and more. One subscription covers every member of your household. Think of it as buying the solo dev behind this a coffee, except the coffee comes with perks.",
   },
   {
     q: 'How do child accounts work?',
-    a: "Kids can log in with a simple custom PIN from the household code screen — no email required. During onboarding you create your household and invite members. Kids get their own experience: chores, rewards, and the stuff they need. Admins control exactly what each member can see and do.",
+    a: "Kids can log in with a simple custom PIN from the household code screen, no email required. During onboarding you create your household and invite members. Kids get their own experience: chores, rewards, and the stuff they need. Admins control exactly what each member can see and do.",
   },
   {
     q: "What's the deal with ads?",
-    a: "Roost is a free app built by a solo developer. Ads on the free tier help keep the lights on. They're not aggressive — no pop-ups, no video ads, nothing sketchy. Premium ($4/month) removes them entirely. As a bonus you also get receipt scanning and extra features.",
+    a: "Roost is a free app built by a solo developer. Ads on the free tier help keep the lights on. They're not aggressive: no pop-ups, no video ads, nothing sketchy. Premium ($4/month) removes them entirely. As a bonus you also get receipt scanning and extra features.",
   },
   {
     q: 'Can I control what my kids see?',
@@ -25,11 +25,11 @@ const ITEMS = [
   },
   {
     q: 'How does receipt scanning work?',
-    a: "Snap a photo of any receipt. Roost reads the line items automatically and lets you split them however you want — equally, by item, or custom amounts. It's a Premium feature.",
+    a: "Snap a photo of any receipt. Roost reads the line items automatically and lets you split them however you want: equally, by item, or custom amounts. It's a Premium feature.",
   },
   {
     q: 'Is this just for families?',
-    a: "Nope. Roost works for roommates, couples, families — anyone sharing a home. If you split bills, share groceries, or argue about whose turn it is to clean the bathroom, Roost is for you.",
+    a: "Nope. Roost works for roommates, couples, and families: anyone sharing a home. If you split bills, share groceries, or argue about whose turn it is to clean the bathroom, Roost is for you.",
   },
 ]
 

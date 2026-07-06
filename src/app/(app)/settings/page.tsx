@@ -2698,7 +2698,7 @@ export default function SettingsPage() {
                           fontWeight: 600,
                         }}
                       >
-                        Upgrade to Premium for $4/month — unlock the full Roost
+                        Upgrade to Premium for $4/month to unlock the full Roost
                         experience for your whole household.
                       </p>
                     </div>

@@ -1413,7 +1413,7 @@ export default function MealsPage() {
                 }}>
                   <div style={{ position: 'absolute', top: -30, right: -30, width: 120, height: 120, borderRadius: '50%', background: 'rgba(255,255,255,0.08)' }} />
                   <div style={{ fontSize: 11, fontWeight: 800, color: 'rgba(255,255,255,0.7)', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 6 }}>
-                    Today — {todayDate.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
+                    Today, {todayDate.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
                   </div>
                   <div style={{ fontSize: 20, fontWeight: 900, color: '#fff', marginBottom: 12 }}>
                     {todayFilled} of 4 meals planned

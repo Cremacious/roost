@@ -508,9 +508,9 @@ Tasks: one-off to-dos
 - PageContainer component (src/components/layout/PageContainer.tsx): max-w-4xl (896px) centered
   on desktop, full width on mobile. All pages wrap their content in PageContainer.
   Exception: Calendar uses an inline div with max-w-5xl (1024px) for the 7-column grid.
-  Dashboard: tiles grid (grid-cols-2 mobile, md:grid-cols-4 desktop, gap-3) + activity feed stacked vertically.
-  Activity feed on dashboard: max 5 items, "See all" links to /activity.
-  Activity page (/activity): full feed with "Load more" pagination, 20 items per page.
+  Dashboard: tiles grid (grid-cols-2 mobile, md:grid-cols-4 desktop, gap-3). There is no
+  dashboard activity feed and no /activity page in v2 (household_activity is consumed only by
+  Stats, the admin panel, and user data export).
   Notes: masonry grid columns-1 sm:columns-2 lg:columns-3 inside PageContainer.
 - CarPlay-inspired large tile grid on tablet + desktop
 - Bottom tab bar on mobile (Home, Chores, Grocery, Calendar, More)
@@ -650,7 +650,6 @@ src/app/api/grocery/lists/[id]/route.ts        PATCH: rename (non-default, non-c
 src/app/api/grocery/lists/[id]/items/route.ts  GET: all items with user data; POST: add item + log activity
 src/app/api/grocery/lists/[id]/clear/route.ts  POST: soft delete all checked items in list
 src/app/api/grocery/items/[id]/route.ts        PATCH: check/uncheck + edit name/qty + log check activity; DELETE: soft delete
-src/app/api/household/activity/route.ts        GET: activity items with pagination (limit/offset params), returns { activity, total, hasMore }
 src/components/layout/TopBar.tsx               Household name, weather, clock, avatars -- all CSS variable colors
 src/components/layout/BottomNav.tsx            Mobile 4-tab nav + More sheet (Profile, Settings, Sign out with AlertDialog confirm)
 src/components/layout/Sidebar.tsx              Desktop 220px sidebar with icon+label for all 9 nav items; sign out button at bottom with AlertDialog confirm
@@ -774,7 +773,6 @@ src/app/(app)/reminders/page.tsx              Full reminders module: grouped sec
 src/components/reminders/ReminderSheet.tsx    Create/edit: title, note, date+time picker, frequency + notify type + member list; isPremium + onUpgradeRequired props; Lock icons on recurring freqs + notify-others for free users
 vercel.json                                   Cron schedule: /api/cron/reminders every 15 minutes
 src/components/layout/PageContainer.tsx        Content width constraint: max-w-4xl (896px) centered, full width mobile
-src/app/(app)/activity/page.tsx               Full activity feed: paginated list, 20 per page, Load more button
 src/app/api/rewards/route.ts                  GET (admin: all rules with progress per child; child: own rules) + POST (create rule); exports getPeriodBounds()
 src/app/api/rewards/[id]/route.ts             PATCH (update rule fields) + DELETE (hard delete if no payouts, else soft disable)
 src/app/api/rewards/child/route.ts            GET: rules with current period progress + last 12 payouts for current user
@@ -782,7 +780,7 @@ src/app/api/rewards/payouts/[id]/route.ts     PATCH: acknowledge payout (child s
 src/app/api/cron/rewards/route.ts             Vercel cron GET (nightly 11pm UTC): evaluate completed periods, create payouts, create expense entries for money rewards
 src/components/chores/RewardRuleSheet.tsx     Create/edit reward rule sheet: child selector, name, period, threshold slider, reward type + detail; exports RewardRule + RewardMember types
 src/components/shared/RewardsWidget.tsx       Child-only dashboard widget: unacknowledged claim cards, active rule progress bars, payout history; query key ["rewards-child"]
-src/app/(app)/chores/allowances/page.tsx      Rewards management page (admin + premium): how-it-works explainer, per-rule cards with period/reward/threshold badges, progress bars, enable/disable toggle, empty states for no-children and no-rules; opens RewardRuleSheet
+src/app/(app)/chores/rewards/page.tsx         Rewards management page (admin + premium): how-it-works explainer, per-rule cards with period/reward/threshold badges, progress bars, enable/disable toggle, empty states for no-children and no-rules; opens RewardRuleSheet
 src/components/shared/WelcomeModal.tsx        First-visit welcome dialog: shadcn Dialog, 3 tip rows (household/child/chores), red CTA dismisses + POSTs /api/user/dismiss-welcome; shown when has_seen_welcome=false
 src/lib/hooks/use-paginated-list.ts           usePaginatedList<T>(items, { pageSize }) — client-side slice pagination; auto-resets when items identity changes; returns visibleItems, hasMore, loadMore, reset, visibleCount, totalCount
 src/components/ui/show-more-button.tsx        ShowMoreButton — renders "Showing X of Y" + "+ Show N more" slab button; returns null when all items visible; accepts color prop for section tinting
@@ -1046,15 +1044,19 @@ src/lib/constants/colors.ts                   Added "stats": "#6366F1" (indigo) 
   (grocery check, task complete) log only on the positive transition into checked/completed.
   Activity types live (emitted by the app, issue #91):
     chore_completed, chore_added, item_added, item_checked, task_added, task_completed,
-    expense_added, expense_settled, event_added, meal_added, meal_planned, meal_suggested,
-    allowance_earned (rewards cron), allowance_claimed, member_joined (guest/invite accept)
+    task_delegated, expense_added, expense_settled, event_added, meal_added, meal_planned,
+    meal_suggested, allowance_earned (rewards cron), allowance_claimed, note_added,
+    reminder_added, member_joined (guest/invite accept), admin_transferred, guest_expired
   Stats byTypeGroup mapping (src/app/api/stats/route.ts): chores = chore_completed/chore_added;
     tasks = task_completed/task_added; expenses = expense_added/expense_settled/settlement_*/
     recurring_expense_posted/allowance_earned/allowance_claimed; meals = meal_planned/
     meal_suggested/meal_added; grocery = item_added/item_checked. Add new types here so they
     are not silently bucketed into "other".
-  Activity types reserved (not yet emitted): note_added
-- Dashboard activity feed queries /api/household/activity (last 20, real-time via 10s refetch)
+  Activity types reserved (not yet emitted): none. Every logged type above is live.
+- household_activity is written by logActivity and is consumed ONLY by Stats (most-active-member
+  + activity-by-type breakdown), the admin panel, and user data export. There is no /activity page
+  and no /api/household/activity route. /today is a COMPUTED snapshot (GET /api/today), not an
+  activity feed, and does not read household_activity.
 - Grocery lists: GET /api/grocery/lists returns isPremium + isAdmin for conditional UI
 - Free tier: max 1 grocery list enforced server-side; GroceryListSheet shows upgrade prompt
 - Grocery items: every row shows added_by (avatar + "Added by [first name] · Xh ago").
@@ -1393,9 +1395,9 @@ Update this file after every major decision or completed phase.
 - vercel.json cron: /api/cron/rewards runs "0 23 * * *" (nightly, not just Sunday)
 - Admin manages rewards from two surfaces:
   1. Inline Rewards section at the bottom of the Chores page (quick overview + add/edit)
-  2. Dedicated Rewards page at /chores/allowances (full-page management with explainer, per-rule progress, enable/disable toggle)
+  2. Dedicated Rewards page at /chores/rewards (full-page management with explainer, per-rule progress, enable/disable toggle)
   Both surfaces open RewardRuleSheet for create/edit.
-  "Rewards" button in the chores header navigates to /chores/allowances (or shows upgrade gate for free users)
+  "Rewards" button in the chores header navigates to /chores/rewards (or shows upgrade gate for free users)
 - RewardRuleSheet (src/components/chores/RewardRuleSheet.tsx): create/edit sheet; props: open, onClose, rule, members (child array)
 - RewardsWidget (src/components/shared/RewardsWidget.tsx): child-facing dashboard widget
   - Query key: ["rewards-child"], fetches /api/rewards/child
@@ -1766,14 +1768,14 @@ Option B: Render
 | 50,000+ users | Railway API (larger) + Vercel web + Neon Scale | $150–300 |
 
 ### Storage Optimization (do before costs matter)
-The household_activity table is the fastest-growing table in the DB and has no purge cron.
+The household_activity table is the fastest-growing table in the DB.
 Every chore completion, grocery check, expense, note, etc. writes a row. At 50,000 users
 this table alone is ~28 GB without trimming.
 
-TODO: Add a Vercel cron at /api/cron/activity-trim that runs weekly and deletes
-household_activity rows older than 90 days. The dashboard only shows 20 items and the
-activity page paginates 20 per page — there is zero user-visible value in keeping rows
-older than 90 days.
+DONE: /api/cron/activity-trim is built and scheduled weekly ("0 3 * * 0" in vercel.json). It
+deletes household_activity rows older than 90 days. household_activity is only consumed by Stats,
+the admin panel, and user data export, so there is zero user-visible value in keeping rows older
+than 90 days.
 
 ## Ad Revenue Strategy
 
@@ -1801,7 +1803,6 @@ DO show ads:
   Between dashboard tiles for free users (native card format, not banner)
   Bottom of grocery list after the checked items section
   Below the leaderboard on the chores page
-  Between activity feed items on the /activity page
   Interstitial on app open (mobile, max once per day, skippable after 5s)
 
 NEVER show ads:
@@ -1843,7 +1844,7 @@ Combined: ~$38,000 MRR with infrastructure at under 1% of revenue.
 
 Items to implement before scale becomes a concern:
 
-- [ ] Add /api/cron/activity-trim: delete household_activity rows older than 90 days (weekly)
+- [x] Add /api/cron/activity-trim: delete household_activity rows older than 90 days. Built and scheduled weekly ("0 3 * * 0" in vercel.json).
 - [ ] Verify all Neon queries use the pooled connection string (-pooler hostname)
 - [ ] Audit TanStack Query polling intervals: 10s is aggressive for low-change data.
       Chores/members/household data can be 30–60s. Only dashboard activity needs 10s.

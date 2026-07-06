@@ -32,7 +32,7 @@ test.describe("Invite — invalid token", () => {
     // The invite page renders one of: not_found, expired, error states
     // All three show some message — verify the app at least rendered
     await expect(page).not.toHaveURL(/\/login/); // not a redirect, it renders inline
-    await expect(page).not.toHaveURL(/\/dashboard/);
+    await expect(page).not.toHaveURL(/\/today/);
   });
 });
 

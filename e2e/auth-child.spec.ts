@@ -3,7 +3,7 @@
  *
  * Prerequisites:
  * - Seed must have run: npm run db:seed
- * - Seed creates "Test Child" (PIN 1234) in "Roost Free House" (code RSTFRE)
+ * - Seed creates "Test Child" (PIN 1234) in "Roost Free House" (code FREEHS)
  * - The seed now inserts the child into BOTH the better-auth "user" table AND
  *   the app "users" table — required for internalAdapter.createSession() FK constraint.
  *
@@ -47,9 +47,9 @@ test.describe("Child PIN login", () => {
     await page.waitForTimeout(500); // allow state transition animation
     await enterPin(page, "1234");
 
-    // Should reach dashboard
-    await page.waitForURL("**/dashboard", { timeout: 20000 });
-    await expect(page).toHaveURL(/\/dashboard/);
+    // Should reach the app home
+    await page.waitForURL("**/today", { timeout: 20000 });
+    await expect(page).toHaveURL(/\/today/);
   });
 
   test("wrong PIN shows error and stays on PIN step", async ({ page }) => {

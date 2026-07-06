@@ -363,6 +363,7 @@ export default function ChoreSheet({ open, onClose, chore, members, isAdmin, isP
           {/* Save */}
           <motion.button
             type="button"
+            data-testid="chore-save-btn"
             whileTap={{ y: 2 }}
             onClick={handleSave}
             disabled={saveMutation.isPending}

@@ -29,8 +29,8 @@ export const TEST_CHILD = {
 };
 
 export const HOUSEHOLD_NAME = "Roost Free House";
-export const FREE_HOUSEHOLD_CODE = "RSTFRE";
-export const PREMIUM_HOUSEHOLD_CODE = "RSTPRM";
+export const FREE_HOUSEHOLD_CODE = "FREEHS";
+export const PREMIUM_HOUSEHOLD_CODE = "PREMHS";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -56,10 +56,10 @@ export async function signUp(
   await passwordInputs[1].fill(user.password);
   await page.click('[data-testid="signup-submit"]');
   await page.waitForLoadState("networkidle", { timeout: 30000 }).catch(() => {});
-  // Accept either /onboarding (new account) or /dashboard (account with household)
+  // Accept either /onboarding (new account) or /today (account with household)
   await page.waitForURL(
     (url) =>
-      url.pathname.includes("/onboarding") || url.pathname.includes("/dashboard"),
+      url.pathname.includes("/onboarding") || url.pathname.includes("/today"),
     { timeout: 45000 }
   );
 }
@@ -83,7 +83,7 @@ export async function signIn(
   await passwordInput.pressSequentially(user.password, { delay: 20 });
   await page.getByRole("button", { name: /^Sign in$/ }).click();
   await page.waitForLoadState("networkidle", { timeout: 30000 }).catch(() => {});
-  await page.waitForURL("**/dashboard", { timeout: 30000 });
+  await page.waitForURL("**/today", { timeout: 30000 });
 }
 
 /**
@@ -91,7 +91,7 @@ export async function signIn(
  * Only needed after a fresh signUp() that lands on /onboarding.
  */
 export async function createHousehold(page: Page, name = HOUSEHOLD_NAME) {
-  if (page.url().includes("/dashboard")) return;
+  if (page.url().includes("/today")) return;
 
   await page.waitForURL("**/onboarding", { timeout: 10000 });
 
@@ -101,7 +101,7 @@ export async function createHousehold(page: Page, name = HOUSEHOLD_NAME) {
   await page.click("text=Create household");
   await page.click("text=Go to dashboard");
   await page.waitForLoadState("networkidle", { timeout: 15000 }).catch(() => {});
-  await page.waitForURL("**/dashboard", { timeout: 15000 });
+  await page.waitForURL("**/today", { timeout: 15000 });
 }
 
 export async function signOut(page: Page) {

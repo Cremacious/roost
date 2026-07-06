@@ -53,7 +53,7 @@ test.describe("Household API — auth contracts", () => {
 
   test("POST /api/household/join without session → 401", async ({ page }) => {
     const res = await page.request.post("/api/household/join", {
-      data: { code: "RSTFRE" },
+      data: { code: "FREEHS" },
     });
     expect(res.status()).toBe(401);
   });

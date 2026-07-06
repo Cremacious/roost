@@ -26,6 +26,6 @@ test.describe("Onboarding", () => {
     await page.click("text=Create household");
     // Step 3 is a confirmation screen — click "Go to dashboard" to navigate
     await page.click("text=Go to dashboard");
-    await expect(page).toHaveURL(/\/dashboard/);
+    await expect(page).toHaveURL(/\/today/);
   });
 });

@@ -648,6 +648,7 @@ export default function SignupPage() {
 
             <Button
               type="submit"
+              data-testid="signup-submit"
               loading={loading}
               color="#B91C1C"
               darkColor="#991B1B"

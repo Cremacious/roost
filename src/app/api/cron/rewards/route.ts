@@ -116,8 +116,8 @@ export async function GET(req: NextRequest) {
       const earned = completionRate >= rule.thresholdPercent
 
       // Decide whether an earned money reward also needs an expense entry. Resolve
-      // the amount + admin (a read) before opening the transaction, and pre-generate
-      // the expense id so the payout can reference it without a mid-tx read.
+      // the amount + admin (a read) before building the batch, and pre-generate the
+      // expense id so the payout can reference it without a mid-batch read.
       let expenseId: string | null = null
       let rewardAmount = 0
       let adminId: string | null = null
@@ -136,43 +136,46 @@ export async function GET(req: NextRequest) {
       // idempotency guard for the whole rule/period, so it must commit together with
       // the expense it references. Otherwise a partial failure could leave an expense
       // with no payout, and the next run would recompute and create a duplicate expense.
-      await db.transaction(async tx => {
-        if (expenseId && adminId) {
-          // Expense: member earned money, admin owes member.
-          // paid_by = member (the one owed), split = admin owes member the full amount.
-          await tx.insert(expenses).values({
+      // neon-http has no interactive transactions; db.batch runs all statements as a
+      // single server-side transaction.
+      const payoutInsert = db.insert(rewardPayouts).values({
+        householdId: rule.householdId,
+        userId: rule.userId,
+        ruleId: rule.id,
+        periodStart,
+        periodEnd,
+        earned,
+        completionRate,
+        rewardDetail: rule.rewardDetail,
+        expenseId,
+        acknowledged: false,
+      })
+
+      if (expenseId && adminId) {
+        // Expense: member earned money, admin owes member.
+        // paid_by = member (the one owed), split = admin owes member the full amount.
+        await db.batch([
+          db.insert(expenses).values({
             id: expenseId,
             householdId: rule.householdId,
             title: `Reward: ${rule.title}`,
             amount: String(rewardAmount),
             paidBy: rule.userId,
             notes: `Earned reward for completing ${completionRate}% of assigned chores`,
-          })
-
-          await tx.insert(expenseSplits).values({
+          }),
+          db.insert(expenseSplits).values({
             expenseId,
             householdId: rule.householdId,
             userId: adminId,
             amount: String(rewardAmount),
             settled: false,
-          })
-        }
-
-        await tx.insert(rewardPayouts).values({
-          householdId: rule.householdId,
-          userId: rule.userId,
-          ruleId: rule.id,
-          periodStart,
-          periodEnd,
-          earned,
-          completionRate,
-          rewardDetail: rule.rewardDetail,
-          expenseId,
-          acknowledged: false,
-        })
-      })
-
-      if (expenseId) expensesCreated++
+          }),
+          payoutInsert,
+        ])
+        expensesCreated++
+      } else {
+        await db.batch([payoutInsert])
+      }
 
       // Log only when the reward was actually earned this period.
       if (earned) {

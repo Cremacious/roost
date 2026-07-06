@@ -55,21 +55,24 @@ export async function GET(req: NextRequest) {
     const expenseId = crypto.randomUUID()
     const splits: Array<{ userId: string; amount: string }> = JSON.parse(template.splits ?? '[]')
 
-    await db.transaction(async tx => {
-      await tx.insert(expenses).values({
-        id: expenseId,
-        householdId: template.householdId,
-        title: template.title,
-        amount: template.totalAmount,
-        categoryId: template.categoryId,
-        notes: template.notes,
-        paidBy: template.createdBy,
-        isRecurringDraft: true,
-        recurringTemplateId: template.id,
-      })
+    // neon-http has no interactive transactions; db.batch runs all statements as a
+    // single server-side transaction so the draft and its splits commit together.
+    const draftInsert = db.insert(expenses).values({
+      id: expenseId,
+      householdId: template.householdId,
+      title: template.title,
+      amount: template.totalAmount,
+      categoryId: template.categoryId,
+      notes: template.notes,
+      paidBy: template.createdBy,
+      isRecurringDraft: true,
+      recurringTemplateId: template.id,
+    })
 
-      if (splits.length > 0) {
-        await tx.insert(expenseSplits).values(
+    if (splits.length > 0) {
+      await db.batch([
+        draftInsert,
+        db.insert(expenseSplits).values(
           splits.map(s => ({
             id: crypto.randomUUID(),
             expenseId,
@@ -77,9 +80,11 @@ export async function GET(req: NextRequest) {
             userId: s.userId,
             amount: s.amount,
           }))
-        )
-      }
-    })
+        ),
+      ])
+    } else {
+      await draftInsert
+    }
 
     created++
   }

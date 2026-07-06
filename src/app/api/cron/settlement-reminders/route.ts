@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { expenseSplits, expenses } from '@/db/schema'
-import { eq, and, isNull, lte } from 'drizzle-orm'
+import { eq, and, lte } from 'drizzle-orm'
 
 export async function GET(req: NextRequest) {
   const authHeader = req.headers.get('authorization')
@@ -17,10 +17,9 @@ export async function GET(req: NextRequest) {
   // still has a pending claim, it's stale enough to warrant a reminder.
   const staleClaims = await db
     .select({
-      splitId: expenseSplits.id,
-      expenseId: expenseSplits.expenseId,
       debtorId: expenseSplits.userId,
-      lastReminded: expenseSplits.settlementLastRemindedAt,
+      creditorId: expenses.paidBy,
+      title: expenses.title,
     })
     .from(expenseSplits)
     .innerJoin(expenses, eq(expenseSplits.expenseId, expenses.id))
@@ -35,20 +34,11 @@ export async function GET(req: NextRequest) {
   let notified = 0
 
   for (const claim of staleClaims) {
-    // Find the expense to get the creditor (paidBy)
-    const expense = await db
-      .select({ paidBy: expenses.paidBy, title: expenses.title })
-      .from(expenses)
-      .where(eq(expenses.id, claim.expenseId ?? ''))
-      .then(r => r[0] ?? null)
-
-    if (!expense) continue
-
     // TODO: send push notification to creditor when Expo app is ready
     // For now just log — web has no push capability
     console.log(
-      `settlement-reminders: stale claim on expense "${expense.title}", ` +
-      `debtor ${claim.debtorId} → creditor ${expense.paidBy}`
+      `settlement-reminders: stale claim on expense "${claim.title}", ` +
+      `debtor ${claim.debtorId} → creditor ${claim.creditorId}`
     )
 
     notified++

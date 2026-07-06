@@ -4,7 +4,10 @@ import { Resend } from 'resend'
 import { db } from '@/lib/db'
 import * as schema from '@/db/schema'
 
-const resend = new Resend(process.env.RESEND_API_KEY)
+// Construct lazily: `new Resend(undefined)` throws "Missing API key", which
+// would crash `next build` (and any cold import) when RESEND_API_KEY is unset.
+// Email is optional (see the guard in sendResetPassword), so stay null without it.
+const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null
 
 // Apple is only registered when all four env vars are present.
 // Add APPLE_CLIENT_ID, APPLE_TEAM_ID, APPLE_KEY_ID, APPLE_PRIVATE_KEY to .env.local to enable.
@@ -45,7 +48,7 @@ export const auth = betterAuth({
   emailAndPassword: {
     enabled: true,
     sendResetPassword: async ({ user, url }) => {
-      if (!process.env.RESEND_API_KEY) {
+      if (!resend) {
         console.warn('[auth] RESEND_API_KEY not set — password reset email skipped')
         return
       }

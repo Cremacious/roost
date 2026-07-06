@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { recurringExpenses, expenses, expenseSplits, householdMembers } from '@/db/schema'
 import { eq, and, isNull, lte } from 'drizzle-orm'
-import { advanceRecurringDate } from '@/app/api/expenses/recurring/route'
 
 export async function GET(req: NextRequest) {
   const authHeader = req.headers.get('authorization')

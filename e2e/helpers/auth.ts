@@ -47,7 +47,7 @@ export async function signUp(
 ) {
   await page.goto("/signup");
   await page.waitForLoadState("domcontentloaded");
-  const nameInput = page.locator('input[placeholder="What should we call you?"]');
+  const nameInput = page.locator('input[placeholder="Your name"]');
   await nameInput.click();
   await nameInput.pressSequentially(user.name, { delay: 30 });
   await page.fill('input[type="email"]', user.email);

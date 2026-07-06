@@ -8,7 +8,7 @@
  *   the app "users" table — required for internalAdapter.createSession() FK constraint.
  *
  * Flow:
- *   Step 1 — enter 6-char household code → "Let me in"
+ *   Step 1 — enter 6-char household code → "Find my household"
  *   Step 2 — child picker (skipped automatically when only 1 child)
  *   Step 3 — PIN pad (auto-submits on 4th digit)
  */
@@ -38,7 +38,7 @@ test.describe("Child PIN login", () => {
     // Step 1: enter household code
     const codeInput = page.locator('input[placeholder="XXXXXX"]');
     await codeInput.fill(FREE_HOUSEHOLD_CODE);
-    await page.getByRole("button", { name: "Let me in" }).click();
+    await page.getByRole("button", { name: "Find my household" }).click();
 
     // Step 2 is skipped automatically (only 1 child in the free household)
     // — page advances directly to the PIN pad (step 3)
@@ -58,7 +58,7 @@ test.describe("Child PIN login", () => {
 
     const codeInput = page.locator('input[placeholder="XXXXXX"]');
     await codeInput.fill(FREE_HOUSEHOLD_CODE);
-    await page.getByRole("button", { name: "Let me in" }).click();
+    await page.getByRole("button", { name: "Find my household" }).click();
 
     await page.waitForTimeout(500);
 
@@ -84,7 +84,7 @@ test.describe("Child PIN login", () => {
 
     const codeInput = page.locator('input[placeholder="XXXXXX"]');
     await codeInput.fill("ZZZBAD");
-    await page.getByRole("button", { name: "Let me in" }).click();
+    await page.getByRole("button", { name: "Find my household" }).click();
 
     // Should remain on the code-entry step
     await page.waitForTimeout(1500);

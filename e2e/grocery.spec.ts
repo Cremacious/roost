@@ -11,7 +11,7 @@ test.describe("Grocery", () => {
   test("can quick add an item", async ({ page }) => {
     const itemName = `Milk ${Date.now()}`;
 
-    await page.goto("/grocery");
+    await page.goto("/lists");
     const quickAddInput = page.locator('[data-testid="grocery-quick-add"]');
     await quickAddInput.fill(itemName);
     await quickAddInput.press("Enter");
@@ -21,7 +21,7 @@ test.describe("Grocery", () => {
   test("can check off an item", async ({ page }) => {
     const itemName = `Eggs ${Date.now()}`;
 
-    await page.goto("/grocery");
+    await page.goto("/lists");
     const quickAddInput = page.locator('[data-testid="grocery-quick-add"]');
     await quickAddInput.fill(itemName);
     await quickAddInput.press("Enter");

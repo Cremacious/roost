@@ -18,12 +18,12 @@ test.describe("Premium — free tier gates", () => {
     await signIn(page, FREE_ADMIN);
   });
 
-  test("expenses recurring tab shows upgrade prompt for free users", async ({ page }) => {
+  test("premium money tab shows upgrade prompt for free users", async ({ page }) => {
+    // v2 money module: "Bills" (recurring) is premium-gated. A free user tapping
+    // it should see the shared upgrade CTA.
     await page.goto("/money");
-    await page.getByRole("button", { name: /^Recurring$/ }).first().click();
-    const premiumGate = page.getByRole("dialog");
-    await expect(premiumGate.getByRole("button", { name: "Upgrade for $4/month" })).toBeVisible();
-    await expect(premiumGate).toContainText("Unlock expense tracking");
+    await page.getByRole("button", { name: /^Bills$/ }).first().click();
+    await expect(page.getByRole("button", { name: "Upgrade for $4/month" })).toBeVisible();
   });
 
   test("core feature pages are reachable on free tier", async ({ page }) => {

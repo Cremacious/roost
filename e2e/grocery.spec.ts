@@ -24,14 +24,29 @@ test.describe("Grocery", () => {
     await page.goto("/lists");
     const quickAddInput = page.locator('[data-testid="grocery-quick-add"]');
     await quickAddInput.fill(itemName);
+    // Wait for the create POST so the optimistic temp id is replaced by the real
+    // one before we toggle it (otherwise the check PATCH targets a stale id).
+    const addResp = page.waitForResponse(
+      (r) => /\/api\/grocery\/lists\/.+\/items/.test(r.url()) && r.request().method() === "POST"
+    );
     await quickAddInput.press("Enter");
-    const itemLabel = page.getByRole("button", { name: new RegExp(`^${itemName} `) });
+    await addResp;
+    await page.waitForLoadState("networkidle").catch(() => {});
 
+    const itemLabel = page.getByRole("button", { name: new RegExp(`^${itemName} `) });
     await expect(itemLabel).toBeVisible();
-    const itemRow = itemLabel.locator('xpath=ancestor::div[contains(@class, "group flex min-h-16")][1]');
-    const checkbox = itemRow.getByRole("button", { name: "Check item" });
-    await checkbox.click();
-    await expect(page.getByRole("button", { name: /In the cart \(\d+\)/ })).toBeVisible();
-    await expect(page.getByText(itemName, { exact: true })).toBeVisible();
+
+    // Toggle checked and wait for the PATCH to persist.
+    const checkResp = page.waitForResponse(
+      (r) => /\/api\/grocery\/items\//.test(r.url()) && r.request().method() === "PATCH"
+    );
+    await itemLabel.locator("xpath=..").getByRole("button", { name: "Check item" }).click();
+    await checkResp;
+
+    // v2 moves checked items into a cart section that is collapsed by default
+    // (items unmounted), so a checked item leaves the visible unchecked list.
+    await expect(
+      page.getByRole("button", { name: new RegExp(`^${itemName} `) })
+    ).toHaveCount(0, { timeout: 10000 });
   });
 });

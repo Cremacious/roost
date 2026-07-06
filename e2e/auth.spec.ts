@@ -140,8 +140,8 @@ test.describe("Password change — happy path", () => {
       data: { currentPassword: user.password, newPassword },
     });
     expect(changeRes.ok()).toBeTruthy();
-    const body = (await changeRes.json()) as { success: boolean };
-    expect(body.success).toBe(true);
+    const body = (await changeRes.json()) as { ok: boolean };
+    expect(body.ok).toBe(true);
 
     // Sign out and sign in with the new password
     await signOut(page);

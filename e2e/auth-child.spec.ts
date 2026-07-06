@@ -40,8 +40,8 @@ test.describe("Child PIN login", () => {
     await codeInput.fill(FREE_HOUSEHOLD_CODE);
     await page.getByRole("button", { name: "Find my household" }).click();
 
-    // Step 2 is skipped automatically (only 1 child in the free household)
-    // — page advances directly to the PIN pad (step 3)
+    // Step 2: pick the child (v2 shows the picker even for a single child)
+    await page.getByRole("button", { name: /Test Child/ }).click();
 
     // Step 3: enter correct PIN (4 digits auto-submit)
     await page.waitForTimeout(500); // allow state transition animation
@@ -60,6 +60,8 @@ test.describe("Child PIN login", () => {
     await codeInput.fill(FREE_HOUSEHOLD_CODE);
     await page.getByRole("button", { name: "Find my household" }).click();
 
+    // Pick the child, then enter a wrong PIN
+    await page.getByRole("button", { name: /Test Child/ }).click();
     await page.waitForTimeout(500);
 
     // Enter wrong PIN

@@ -47,13 +47,19 @@ export async function signUp(
 ) {
   await page.goto("/signup");
   await page.waitForLoadState("domcontentloaded");
+  // pressSequentially throughout: mobile WebKit's fill/insertText does not fire
+  // React onChange, so the controlled inputs stay empty and submit no-ops.
   const nameInput = page.locator('input[placeholder="Your name"]');
   await nameInput.click();
   await nameInput.pressSequentially(user.name, { delay: 30 });
-  await page.fill('input[type="email"]', user.email);
+  const emailInput = page.locator('input[type="email"]');
+  await emailInput.click();
+  await emailInput.pressSequentially(user.email, { delay: 20 });
   const passwordInputs = await page.locator('input[type="password"]').all();
-  await passwordInputs[0].fill(user.password);
-  await passwordInputs[1].fill(user.password);
+  await passwordInputs[0].click();
+  await passwordInputs[0].pressSequentially(user.password, { delay: 20 });
+  await passwordInputs[1].click();
+  await passwordInputs[1].pressSequentially(user.password, { delay: 20 });
   await page.click('[data-testid="signup-submit"]');
   await page.waitForLoadState("networkidle", { timeout: 30000 }).catch(() => {});
   // Accept either /onboarding (new account) or /today (account with household)

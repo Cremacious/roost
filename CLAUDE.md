@@ -1295,12 +1295,15 @@ AZURE_DOCUMENT_INTELLIGENCE_ENDPOINT
 EXPO_ACCESS_TOKEN
 CRON_SECRET
 
-## OG Image (needs manual creation)
-- Path: public/og-image.png
-- Size: 1200x630px
-- Design: red background #EF4444, Roost logo centered (~200px tall), "Home, sorted." tagline below in white Nunito 900
-- Used by: OpenGraph (social shares) and Twitter card meta tags in root layout
-- No image generation pipeline exists — create manually in Figma or similar and drop into public/
+## OG Image (removed, no social share image)
+- There is NO og-image.png. The file never existed, so the root layout metadata no longer
+  references one. openGraph has no images array and the Twitter card is 'summary' (text only),
+  not 'summary_large_image'. Shared links render a text-only preview card (title + description).
+- If a social share image is wanted later: create a 1200x630 public/og-image.png (red background
+  #EF4444, Roost logo centered ~200px tall, "Home, sorted." tagline below in white Nunito 900),
+  then in src/app/layout.tsx add it back to openGraph.images and twitter.images and switch the
+  Twitter card back to 'summary_large_image'. No image generation pipeline exists, so it must be
+  created manually (Figma or similar) and dropped into public/.
 
 ## Logo Swap Checklist (when final logo arrives)
 

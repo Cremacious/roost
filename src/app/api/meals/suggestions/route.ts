@@ -3,6 +3,7 @@ import { getSession, getUserHousehold, checkMemberPermission } from '@/lib/auth/
 import { db } from '@/lib/db'
 import { mealSuggestions, mealSuggestionVotes, users, households } from '@/db/schema'
 import { eq, and, inArray, sql } from 'drizzle-orm'
+import { logActivity } from '@/lib/utils/activity'
 
 export async function GET() {
   const session = await getSession()
@@ -95,6 +96,15 @@ export async function POST(req: NextRequest) {
       suggestedBy: session.user.id,
     })
     .returning()
+
+  await logActivity({
+    householdId,
+    userId: session.user.id,
+    type: 'meal_suggested',
+    entityId: suggestion.id,
+    entityType: 'meal',
+    description: `suggested "${suggestion.name}"`,
+  })
 
   return NextResponse.json({ suggestion }, { status: 201 })
 }

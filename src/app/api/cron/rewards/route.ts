@@ -3,6 +3,7 @@ import { db } from '@/lib/db'
 import { rewardRules, rewardPayouts, chores, choreCompletions, expenses, expenseSplits, householdMembers } from '@/db/schema'
 import { eq, and, isNull, gte, lt } from 'drizzle-orm'
 import { getPeriodBounds } from '@/app/api/rewards/route'
+import { logActivity } from '@/lib/utils/activity'
 
 // Returns the period that just completed before the current one
 function getCompletedPeriodBounds(
@@ -162,6 +163,18 @@ export async function GET(req: NextRequest) {
         expenseId,
         acknowledged: false,
       })
+
+      // Log only when the reward was actually earned this period.
+      if (earned) {
+        await logActivity({
+          householdId: rule.householdId,
+          userId: rule.userId,
+          type: 'allowance_earned',
+          entityId: rule.id,
+          entityType: 'reward',
+          description: `earned the "${rule.title}" reward`,
+        })
+      }
 
       payoutsCreated++
     } catch (err) {

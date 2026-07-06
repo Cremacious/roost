@@ -3,6 +3,7 @@ import { getSession, getUserHousehold, checkMemberPermission } from '@/lib/auth/
 import { db } from '@/lib/db'
 import { groceryLists, groceryItems, users } from '@/db/schema'
 import { eq, and, isNull, asc } from 'drizzle-orm'
+import { logActivity } from '@/lib/utils/activity'
 
 export async function GET(
   _request: Request,
@@ -81,7 +82,7 @@ export async function POST(
   const { id: listId } = await params
 
   const [list] = await db
-    .select({ id: groceryLists.id })
+    .select({ id: groceryLists.id, name: groceryLists.name })
     .from(groceryLists)
     .where(
       and(
@@ -110,6 +111,15 @@ export async function POST(
       addedBy: session.user.id,
     })
     .returning()
+
+  await logActivity({
+    householdId: membership.householdId,
+    userId: session.user.id,
+    type: 'item_added',
+    entityId: item.id,
+    entityType: 'grocery_item',
+    description: `added "${item.name}" to ${list.name}`,
+  })
 
   return NextResponse.json({
     id: item.id,

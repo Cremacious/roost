@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSession, getUserHousehold } from '@/lib/auth/helpers'
 import { db } from '@/lib/db'
-import { expenses, expenseSplits } from '@/db/schema'
+import { expenses, expenseSplits, users } from '@/db/schema'
 import { eq, and, inArray } from 'drizzle-orm'
+import { logActivity } from '@/lib/utils/activity'
 
 // Creditor confirms receipt of payment
 export async function POST(req: NextRequest) {
@@ -26,6 +27,7 @@ export async function POST(req: NextRequest) {
       id: expenseSplits.id,
       userId: expenseSplits.userId,
       expenseId: expenseSplits.expenseId,
+      amount: expenseSplits.amount,
       settledByPayer: expenseSplits.settledByPayer,
     })
     .from(expenseSplits)
@@ -49,6 +51,21 @@ export async function POST(req: NextRequest) {
     .update(expenseSplits)
     .set({ settled: true, settledByPayee: true, settledAt: new Date(), settlementDisputed: false })
     .where(inArray(expenseSplits.id, splitIds))
+
+  const [debtor] = await db
+    .select({ name: users.name })
+    .from(users)
+    .where(eq(users.id, debtorId))
+    .limit(1)
+  const total = splitRows.reduce((sum, s) => sum + parseFloat(s.amount), 0)
+
+  await logActivity({
+    householdId,
+    userId: session.user.id,
+    type: 'expense_settled',
+    entityType: 'expense',
+    description: `settled up with ${debtor?.name ?? 'a housemate'} ($${total.toFixed(2)})`,
+  })
 
   return NextResponse.json({ ok: true })
 }

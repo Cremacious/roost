@@ -1042,8 +1042,18 @@ src/lib/constants/colors.ts                   Added "stats": "#6366F1" (indigo) 
 - Completing a chore: insert chore_completions, update next_due_at, upsert chore_streaks (+10 pts)
 - Unchecking a chore: delete today's completion, restore last_completed_at, subtract 10 pts (min 0)
 - Activity logging: call logActivity() from src/lib/utils/activity.ts after successful writes
-  Activity types live: chore_completed, item_added, item_checked
-  Activity types reserved: task_completed, event_added, note_added, expense_added, member_joined
+  Log exactly one row on the SUCCESS path only (never on a blocked/failed write). For toggles
+  (grocery check, task complete) log only on the positive transition into checked/completed.
+  Activity types live (emitted by the app, issue #91):
+    chore_completed, chore_added, item_added, item_checked, task_added, task_completed,
+    expense_added, expense_settled, event_added, meal_added, meal_planned, meal_suggested,
+    allowance_earned (rewards cron), allowance_claimed, member_joined (guest/invite accept)
+  Stats byTypeGroup mapping (src/app/api/stats/route.ts): chores = chore_completed/chore_added;
+    tasks = task_completed/task_added; expenses = expense_added/expense_settled/settlement_*/
+    recurring_expense_posted/allowance_earned/allowance_claimed; meals = meal_planned/
+    meal_suggested/meal_added; grocery = item_added/item_checked. Add new types here so they
+    are not silently bucketed into "other".
+  Activity types reserved (not yet emitted): note_added
 - Dashboard activity feed queries /api/household/activity (last 20, real-time via 10s refetch)
 - Grocery lists: GET /api/grocery/lists returns isPremium + isAdmin for conditional UI
 - Free tier: max 1 grocery list enforced server-side; GroceryListSheet shows upgrade prompt

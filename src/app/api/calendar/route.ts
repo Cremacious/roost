@@ -5,6 +5,7 @@ import { calendarEvents, eventAttendees, householdMembers, users } from '@/db/sc
 import { eq, and, isNull, gte, lt, count, inArray } from 'drizzle-orm'
 import { expandRecurring } from '@/lib/utils/recurrence'
 import { PLAN_LIMITS } from '@/lib/constants/planLimits'
+import { logActivity } from '@/lib/utils/activity'
 
 // ─── GET ───────────────────────────────────────────────────────────────────────
 
@@ -285,6 +286,15 @@ export async function POST(req: NextRequest) {
       }))
     )
   }
+
+  await logActivity({
+    householdId,
+    userId,
+    type: 'event_added',
+    entityId: newEvent.id,
+    entityType: 'event',
+    description: `added "${newEvent.title}"`,
+  })
 
   // Fire-and-forget push notifications
   if (body.notifyMemberIds) {

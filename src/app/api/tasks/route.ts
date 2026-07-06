@@ -4,6 +4,7 @@ import { db } from '@/lib/db'
 import { tasks, projects, taskComments, taskDelegations, users } from '@/db/schema'
 import { eq, and, isNull, asc, desc, count, sql } from 'drizzle-orm'
 import { PLAN_LIMITS } from '@/lib/constants/planLimits'
+import { logActivity } from '@/lib/utils/activity'
 
 export async function GET(req: NextRequest) {
   const session = await getSession()
@@ -224,6 +225,15 @@ export async function POST(req: NextRequest) {
       createdBy: session.user.id,
     })
     .returning()
+
+  await logActivity({
+    householdId,
+    userId: session.user.id,
+    type: 'task_added',
+    entityId: task.id,
+    entityType: 'task',
+    description: `added "${task.title}"`,
+  })
 
   return NextResponse.json({ task }, { status: 201 })
 }

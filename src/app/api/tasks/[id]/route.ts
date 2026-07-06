@@ -3,6 +3,7 @@ import { getSession, getUserHousehold } from '@/lib/auth/helpers'
 import { db } from '@/lib/db'
 import { tasks } from '@/db/schema'
 import { eq, and } from 'drizzle-orm'
+import { logActivity } from '@/lib/utils/activity'
 
 export async function PATCH(
   req: NextRequest,
@@ -85,6 +86,18 @@ export async function PATCH(
     .set(updates)
     .where(eq(tasks.id, id))
     .returning()
+
+  // Log only on the unchecked -> completed transition, not on uncheck.
+  if (completed === true && !existing.completed) {
+    await logActivity({
+      householdId,
+      userId: session.user.id,
+      type: 'task_completed',
+      entityId: id,
+      entityType: 'task',
+      description: `completed "${updated.title}"`,
+    })
+  }
 
   return NextResponse.json({ task: updated })
 }

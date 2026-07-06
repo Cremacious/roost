@@ -10,6 +10,7 @@ import {
 } from '@/db/schema'
 import { eq, and, isNull, desc, inArray } from 'drizzle-orm'
 import { simplifyDebts, type RawSplit } from '@/lib/utils/debtSimplification'
+import { logActivity } from '@/lib/utils/activity'
 
 export async function GET(req: NextRequest) {
   const session = await getSession()
@@ -229,6 +230,15 @@ export async function POST(req: NextRequest) {
       }))
     )
   }
+
+  await logActivity({
+    householdId,
+    userId: session.user.id,
+    type: 'expense_added',
+    entityId: expenseId,
+    entityType: 'expense',
+    description: `added "${title.trim()}" ($${parseFloat(amount).toFixed(2)})`,
+  })
 
   return NextResponse.json({ id: expenseId }, { status: 201 })
 }

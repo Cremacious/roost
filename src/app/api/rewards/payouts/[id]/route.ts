@@ -1,8 +1,9 @@
 import { NextResponse } from 'next/server'
 import { getSession, getUserHousehold } from '@/lib/auth/helpers'
 import { db } from '@/lib/db'
-import { rewardPayouts } from '@/db/schema'
+import { rewardPayouts, rewardRules } from '@/db/schema'
 import { eq, and } from 'drizzle-orm'
+import { logActivity } from '@/lib/utils/activity'
 
 export async function PATCH(
   _request: Request,
@@ -36,6 +37,21 @@ export async function PATCH(
     .update(rewardPayouts)
     .set({ acknowledged: true })
     .where(eq(rewardPayouts.id, id))
+
+  const [rule] = await db
+    .select({ title: rewardRules.title })
+    .from(rewardRules)
+    .where(eq(rewardRules.id, payout.ruleId))
+    .limit(1)
+
+  await logActivity({
+    householdId: membership.householdId,
+    userId: session.user.id,
+    type: 'allowance_claimed',
+    entityId: payout.id,
+    entityType: 'reward',
+    description: `claimed the "${rule?.title ?? 'reward'}" reward`,
+  })
 
   return NextResponse.json({ ok: true })
 }

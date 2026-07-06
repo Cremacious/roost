@@ -493,10 +493,12 @@ export async function GET(request: NextRequest): Promise<Response> {
       }
     : null;
 
-  const CHORE_TYPES = new Set(["chore_completed"]);
+  const CHORE_TYPES = new Set(["chore_completed", "chore_added"]);
   const TASK_TYPES = new Set(["task_completed", "task_added"]);
-  const EXPENSE_TYPES = new Set(["expense_added", "expense_settled", "settlement_confirmed", "settlement_claimed", "settlement_disputed", "recurring_expense_posted"]);
-  const MEAL_TYPES = new Set(["meal_planned", "meal_suggested"]);
+  // Reward payouts map to the money/expenses section (earned money rewards create
+  // real expense entries and render with the expenses color).
+  const EXPENSE_TYPES = new Set(["expense_added", "expense_settled", "settlement_confirmed", "settlement_claimed", "settlement_disputed", "recurring_expense_posted", "allowance_earned", "allowance_claimed"]);
+  const MEAL_TYPES = new Set(["meal_planned", "meal_suggested", "meal_added"]);
   const GROCERY_TYPES = new Set(["item_checked", "item_added"]);
 
   const byTypeGroup = { chores: 0, tasks: 0, expenses: 0, meals: 0, grocery: 0, other: 0 };

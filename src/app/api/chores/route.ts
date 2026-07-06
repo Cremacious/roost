@@ -4,6 +4,7 @@ import { db } from '@/lib/db'
 import { chores, choreCompletions, users, memberPermissions } from '@/db/schema'
 import { eq, and, isNull, gte, lt, count } from 'drizzle-orm'
 import { PLAN_LIMITS } from '@/lib/constants/planLimits'
+import { logActivity } from '@/lib/utils/activity'
 
 function startOfToday() {
   const d = new Date()
@@ -260,6 +261,15 @@ export async function POST(request: Request) {
       createdBy: session.user.id,
     })
     .returning()
+
+  await logActivity({
+    householdId,
+    userId: session.user.id,
+    type: 'chore_added',
+    entityId: chore.id,
+    entityType: 'chore',
+    description: `added "${chore.title}"`,
+  })
 
   return NextResponse.json({ chore })
 }

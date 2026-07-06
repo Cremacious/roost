@@ -3,6 +3,7 @@ import { getSession, getUserHousehold } from '@/lib/auth/helpers'
 import { db } from '@/lib/db'
 import { groceryItems } from '@/db/schema'
 import { eq, and } from 'drizzle-orm'
+import { logActivity } from '@/lib/utils/activity'
 
 export async function PATCH(
   request: Request,
@@ -16,6 +17,13 @@ export async function PATCH(
 
   const { id } = await params
   const body = await request.json()
+
+  // Read the current row so we can detect a genuine unchecked -> checked
+  // transition (activity is logged only on that positive transition).
+  const [current] = await db
+    .select({ isChecked: groceryItems.isChecked, name: groceryItems.name })
+    .from(groceryItems)
+    .where(and(eq(groceryItems.id, id), eq(groceryItems.householdId, membership.householdId)))
 
   const updates: Partial<typeof groceryItems.$inferInsert> = {}
 
@@ -50,6 +58,18 @@ export async function PATCH(
     .returning()
 
   if (!updated) return NextResponse.json({ error: 'Not found' }, { status: 404 })
+
+  // Log only when an item goes from unchecked to checked, not on uncheck.
+  if (body.isChecked === true && current && !current.isChecked) {
+    await logActivity({
+      householdId: membership.householdId,
+      userId: session.user.id,
+      type: 'item_checked',
+      entityId: id,
+      entityType: 'grocery_item',
+      description: `checked off "${updated.name}"`,
+    })
+  }
 
   return NextResponse.json({ ok: true })
 }

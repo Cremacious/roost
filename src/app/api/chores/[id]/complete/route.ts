@@ -4,6 +4,7 @@ import { db } from '@/lib/db'
 import { chores, choreCompletions } from '@/db/schema'
 import { eq, and, isNull, gte, lt } from 'drizzle-orm'
 import { advanceNextDueAt } from '../../route'
+import { logActivity } from '@/lib/utils/activity'
 
 function startOfToday() {
   const d = new Date()
@@ -110,6 +111,15 @@ export async function POST(
       updatedAt: now,
     })
     .where(eq(chores.id, choreId))
+
+  await logActivity({
+    householdId,
+    userId: session.user.id,
+    type: 'chore_completed',
+    entityId: choreId,
+    entityType: 'chore',
+    description: `completed "${chore.title}"`,
+  })
 
   return NextResponse.json({ ok: true, nextDueAt: nextDueAt.toISOString() })
 }

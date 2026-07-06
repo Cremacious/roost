@@ -3,6 +3,7 @@ import { getSession, getUserHousehold, checkMemberPermission } from '@/lib/auth/
 import { db } from '@/lib/db'
 import { mealPlanSlots, meals, users } from '@/db/schema'
 import { eq, and, gte, lt } from 'drizzle-orm'
+import { logActivity } from '@/lib/utils/activity'
 
 export async function GET(req: NextRequest) {
   const session = await getSession()
@@ -94,6 +95,21 @@ export async function POST(req: NextRequest) {
       createdBy: session.user.id,
     })
     .returning()
+
+  const [meal] = await db
+    .select({ name: meals.name })
+    .from(meals)
+    .where(eq(meals.id, mealId))
+    .limit(1)
+
+  await logActivity({
+    householdId,
+    userId: session.user.id,
+    type: 'meal_planned',
+    entityId: slot.id,
+    entityType: 'meal_slot',
+    description: `planned "${meal?.name ?? 'a meal'}" for ${slotType}`,
+  })
 
   return NextResponse.json({ slot }, { status: 201 })
 }

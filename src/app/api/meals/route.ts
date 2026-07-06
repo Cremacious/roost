@@ -3,6 +3,7 @@ import { getSession, getUserHousehold, isHouseholdPremium, checkMemberPermission
 import { db } from '@/lib/db'
 import { meals } from '@/db/schema'
 import { eq, and, isNull, asc, count } from 'drizzle-orm'
+import { logActivity } from '@/lib/utils/activity'
 
 const FREE_MEAL_BANK_LIMIT = 5
 
@@ -81,6 +82,19 @@ export async function POST(req: NextRequest) {
       inBank: inBank !== false, // default true unless explicitly false
     })
     .returning()
+
+  // Only bank meals are real library entries worth surfacing; quick-add-to-planner
+  // scratch meals (inBank: false) are not logged.
+  if (meal.inBank) {
+    await logActivity({
+      householdId,
+      userId: session.user.id,
+      type: 'meal_added',
+      entityId: meal.id,
+      entityType: 'meal',
+      description: `added "${meal.name}" to the meal bank`,
+    })
+  }
 
   return NextResponse.json({ meal }, { status: 201 })
 }

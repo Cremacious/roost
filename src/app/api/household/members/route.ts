@@ -3,6 +3,7 @@ import { getSession, getUserHousehold } from "@/lib/auth/helpers";
 import { db } from "@/lib/db";
 import { householdMembers, households, memberPermissions, users } from "@/db/schema";
 import { and, eq, isNull } from "drizzle-orm";
+import { GUEST_PERMISSIONS } from "@/lib/constants/memberPermissions";
 
 const DEFAULT_PERMISSIONS = {
   admin: {
@@ -33,20 +34,7 @@ const DEFAULT_PERMISSIONS = {
     mealsPlan: true,
     mealsSuggest: true,
   },
-  guest: {
-    expensesView: true,
-    expensesAdd: true,
-    choresAdd: false,
-    choresEdit: false,
-    groceryAdd: true,
-    groceryCreateList: false,
-    calendarAdd: true,
-    calendarEdit: false,
-    tasksAdd: false,
-    notesAdd: false,
-    mealsPlan: false,
-    mealsSuggest: true,
-  },
+  guest: GUEST_PERMISSIONS,
   child: {
     expensesView: false,
     expensesAdd: false,

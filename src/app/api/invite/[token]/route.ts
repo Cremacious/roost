@@ -4,24 +4,7 @@ import { db } from "@/lib/db";
 import { households, householdMembers, memberPermissions, householdInvites, user } from "@/db/schema";
 import { and, eq, isNull } from "drizzle-orm";
 import { logActivity } from "@/lib/utils/activity";
-
-// Guest permission set (documented reduced access): can view/add expenses,
-// add grocery items, add calendar events, add tasks, and suggest meals.
-// Everything else is off.
-const GUEST_PERMISSIONS = {
-  expensesView: true,
-  expensesAdd: true,
-  choresAdd: false,
-  choresEdit: false,
-  groceryAdd: true,
-  groceryCreateList: false,
-  calendarAdd: true,
-  calendarEdit: false,
-  tasksAdd: false,
-  notesAdd: false,
-  mealsPlan: false,
-  mealsSuggest: true,
-} as const;
+import { GUEST_PERMISSIONS } from "@/lib/constants/memberPermissions";
 
 async function loadInvite(token: string) {
   const [invite] = await db

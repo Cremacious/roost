@@ -2,7 +2,7 @@ import { NextRequest } from 'next/server'
 import { requireAdminSession } from '@/lib/admin/requireAdmin'
 import { db } from '@/lib/db'
 import { promoCodes, promoRedemptions } from '@/db/schema'
-import { desc, sql } from 'drizzle-orm'
+import { desc } from 'drizzle-orm'
 
 const CODE_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
 
@@ -98,18 +98,30 @@ export async function POST(request: NextRequest): Promise<Response> {
   const expiresAt = body.expiresAt ? new Date(body.expiresAt) : null
   const maxRedemptions = body.maxRedemptions ?? null
 
-  const [created] = await db
-    .insert(promoCodes)
-    .values({
-      code,
-      durationDays,
-      isLifetime,
-      status: 'active',
-      maxRedemptions,
-      redemptionCount: 0,
-      expiresAt,
-    })
-    .returning()
+  try {
+    const [created] = await db
+      .insert(promoCodes)
+      .values({
+        code,
+        durationDays,
+        isLifetime,
+        status: 'active',
+        maxRedemptions,
+        redemptionCount: 0,
+        expiresAt,
+      })
+      .returning()
 
-  return Response.json({ promoCode: created }, { status: 201 })
+    return Response.json({ promoCode: created }, { status: 201 })
+  } catch (err) {
+    // promo_codes.code is UNIQUE — a duplicate custom code hits a 23505 violation.
+    const message = err instanceof Error ? err.message : ''
+    if (/duplicate key|unique constraint|23505/i.test(message)) {
+      return Response.json(
+        { error: 'That code already exists. Choose a different one.', code: 'DUPLICATE_CODE' },
+        { status: 409 },
+      )
+    }
+    throw err
+  }
 }

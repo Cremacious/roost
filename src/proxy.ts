@@ -15,7 +15,7 @@ const RATE_LIMIT_MAX = 10 // requests per window per IP
 const RATE_LIMITED_PATHS = [
   '/api/auth/sign-in/email',
   '/api/auth/sign-up/email',
-  '/api/auth/forget-password',
+  '/api/auth/request-password-reset',
   '/api/auth/child-login',
 ]
 

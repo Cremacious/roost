@@ -64,7 +64,7 @@ export default function Error({
             display: 'inline-block',
           }}
         >
-          Go to dashboard
+          Go to Roost
         </Link>
       </div>
     </div>

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
-import { recurringExpenses, expenses, expenseSplits, householdMembers } from '@/db/schema'
+import { recurringExpenses, expenses, expenseSplits } from '@/db/schema'
 import { eq, and, isNull, lte } from 'drizzle-orm'
 
 export async function GET(req: NextRequest) {

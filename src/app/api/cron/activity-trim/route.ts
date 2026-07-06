@@ -1,12 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { householdActivity } from '@/db/schema'
-import { lt, sql } from 'drizzle-orm'
+import { lt } from 'drizzle-orm'
 
 // Runs weekly. Deletes household_activity rows older than 90 days.
-// The activity feed only shows the last 20 rows on the dashboard and paginates
-// 20 per page on /activity — rows older than 90 days have zero user-visible value
-// but accumulate fast at scale (every chore, grocery check, expense, etc. writes a row).
+// household_activity is consumed only by Stats, the admin panel, and user data
+// export (there is no /activity page in v2), so rows older than 90 days have zero
+// user-visible value but accumulate fast at scale (every chore, grocery check,
+// expense, etc. writes a row).
 export async function GET(req: NextRequest) {
   const authHeader = req.headers.get('authorization')
   if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {

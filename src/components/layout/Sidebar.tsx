@@ -274,6 +274,7 @@ function HouseholdSwitcherInline() {
 
   const households = data?.households ?? []
   const active = households.find(h => h.isActive)
+  const hasMultiple = households.length >= 2
 
   async function handleSwitch(householdId: string) {
     if (households.find(h => h.id === householdId)?.isActive) { setOpen(false); return }
@@ -289,9 +290,10 @@ function HouseholdSwitcherInline() {
 
   return (
     <div style={{ padding: '0 10px 8px' }}>
-      {/* Switcher button — inset dark panel */}
+      {/* Switcher button — inset dark panel. Static label when the user has only
+          one household (matches the mobile TopBar hasMultiple gate). */}
       <button
-        onClick={() => setOpen(o => !o)}
+        onClick={() => hasMultiple && setOpen(o => !o)}
         style={{
           display: 'flex',
           alignItems: 'center',
@@ -301,7 +303,7 @@ function HouseholdSwitcherInline() {
           border: '1px solid rgba(255,255,255,0.08)',
           borderRadius: 11,
           padding: '9px 11px',
-          cursor: 'pointer',
+          cursor: hasMultiple ? 'pointer' : 'default',
           textAlign: 'left',
         }}
       >
@@ -333,15 +335,17 @@ function HouseholdSwitcherInline() {
           {active?.name ?? '...'}
         </span>
 
-        <ChevronDown
-          size={11}
-          color="rgba(255,255,255,0.4)"
-          style={{ flexShrink: 0, transform: open ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s' }}
-        />
+        {hasMultiple && (
+          <ChevronDown
+            size={11}
+            color="rgba(255,255,255,0.4)"
+            style={{ flexShrink: 0, transform: open ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s' }}
+          />
+        )}
       </button>
 
       {/* Dropdown */}
-      {open && (
+      {open && hasMultiple && (
         <div style={{
           marginTop: 6,
           background: 'rgba(0,0,0,0.25)',

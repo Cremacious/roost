@@ -4,41 +4,7 @@ import { db } from '@/lib/db'
 import { households, householdMembers, memberPermissions, user, joinRequests } from '@/db/schema'
 import { eq, and, isNull } from 'drizzle-orm'
 import { checkMemberLimit } from '@/lib/utils/memberLimits'
-
-async function checkMultiHouseholdLimit(userId: string): Promise<Response | null> {
-  const existingMemberships = await db
-    .select({ id: householdMembers.id })
-    .from(householdMembers)
-    .where(
-      and(
-        eq(householdMembers.userId, userId),
-        isNull(householdMembers.deletedAt),
-      )
-    )
-
-  if (existingMemberships.length >= 1) {
-    const currentMembership = await db
-      .select({ subscriptionStatus: households.subscription_status })
-      .from(householdMembers)
-      .innerJoin(households, eq(householdMembers.householdId, households.id))
-      .where(
-        and(
-          eq(householdMembers.userId, userId),
-          isNull(householdMembers.deletedAt),
-        )
-      )
-      .limit(1)
-      .then(r => r[0])
-
-    if (!currentMembership || currentMembership.subscriptionStatus !== 'premium') {
-      return NextResponse.json(
-        { error: 'Multiple households require a premium subscription', code: 'MULTIPLE_HOUSEHOLDS_PREMIUM' },
-        { status: 403 }
-      )
-    }
-  }
-  return null
-}
+import { checkMultiHouseholdLimit } from '@/lib/utils/multiHousehold'
 
 export async function POST(request: Request) {
   const session = await requireSession()

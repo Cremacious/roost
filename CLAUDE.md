@@ -52,10 +52,12 @@ Priority order:
    - Status: DONE
 
 7. Custom chore categories and icons
-   - Admins create custom categories
-   - Members can suggest categories
-   - Premium feature
-   - Status: DONE
+   - REMOVED in v2. The schema, constants, seed helper, and a premium perk
+     claim existed, but there was no seed helper wired into household create,
+     no /api/chore-categories route, and no picker, so chores.category_id was
+     always null. The dead chore_categories table + chores.category_id column
+     were dropped (issue #104). Do not reintroduce without a full build.
+   - Status: REMOVED
 
 8. Superadmin panel (/admin — separate from app)
    - Internal tool, not user-facing
@@ -373,7 +375,7 @@ Tasks: one-off to-dos
   /api/user/theme, no users.theme column read/write, and no data-theme/data-dark attributes.
   Removed files: src/components/providers/ThemeProvider.tsx, src/lib/constants/themes.ts,
   src/lib/store/themeStore.ts, src/app/api/user/theme/route.ts.
-  (The users.theme DB column is left in place, dormant; a db:push would drop it. Not urgent.)
+  (The users.theme DB column has been dropped from Neon; the schema no longer declares it and nothing reads it.)
 - Because there is one light theme, sign-out no longer needs a theme reset (the old
   applyTheme(DEFAULT_THEME)-before-signOut convention is gone from Sidebar and /more).
 - Red appears ONLY in: chores feature, brand/logo, destructive actions (delete, sign out),
@@ -656,13 +658,6 @@ src/components/layout/Sidebar.tsx              Desktop 220px sidebar with icon+l
 src/components/shared/QueryProvider.tsx        TanStack Query client provider
 src/lib/utils/activity.ts                      logActivity(params) helper -- wraps insert, never throws, safe to call from any route
 src/lib/utils/grocerySort.ts                   STORE_SECTIONS, StoreSection, classifyItem(name), groupItemsBySection(items) -- pure client-side keyword classifier for grocery smart sort
-src/lib/utils/seedChoreCategories.ts           seedChoreCategories(householdId): idempotent, inserts 8 defaults if none exist
-src/db/schema/choreCategories.ts               chore_categories table: id, household_id, name, icon, color, is_default, is_custom, suggested_by, status
-src/app/api/chore-categories/route.ts          GET (free, auto-seed, active+pending for admin) + POST (admin+premium, create)
-src/app/api/chore-categories/suggest/route.ts  POST (member+premium): suggest category with status=pending
-src/app/api/chore-categories/[id]/route.ts     PATCH (admin: approve/reject/edit) + DELETE (unassign chores, then delete)
-src/components/chores/choreIconMap.ts          CHORE_ICON_MAP (29 Lucide icons) + CHORE_ICON_OPTIONS
-src/components/chores/ChoreCategoryPicker.tsx  Category picker: None tile, defaults grid, custom grid, inline create/suggest form (premium-gated); exports ChoreIcon + ChoreCategory type
 src/lib/admin/auth.ts                          createAdminSession (jose SignJWT HS256 8h), verifyAdminSession, checkAdminCredentials (env vars)
 src/lib/admin/testFilters.ts                   Single source of truth for admin test-account detection. Exports isTestUserSql(alias)/isTestHouseholdSql(alias) (build a SQL boolean) + EXCLUDE_TEST_USERS_SQL/EXCLUDE_TEST_HOUSEHOLDS_SQL (ready-to-append " AND NOT ..." fragments for sql.raw). Email patterns: %@example.com, %@roost.test, %test% (wrapped in COALESCE(email,'') so PIN-only children with null email are NOT falsely hidden). Name lists cover current seed accounts (Free/Premium Admin, Test Member, Test Child, Premium Kid, Jordan Lee, Taylor Kim, Riley Guest) + legacy Playwright names; household names (Roost Free/Premium/Second House).
 src/lib/admin/useHideTest.ts                   Client hook: shared "hide test accounts" toggle, useSyncExternalStore over localStorage key roost-admin-hide-test (hydration-safe, cross-tab, no mounted guard). Returns { hideTest, setHideTest }.
@@ -709,7 +704,7 @@ src/components/shared/SectionColorBadge.tsx    Inline color badge pill: bg color
 src/components/shared/MemberAvatar.tsx         Initials avatar, sizes sm/md/lg, color prop
 src/components/shared/DraggableSheet.tsx        shadcn Sheet (side="bottom") wrapper with colored handle pill + centered desktop layout; props: open, onOpenChange, children, featureColor?, desktopMaxWidth? (default 680); used for all content bottom sheets
 src/components/shared/PremiumGate.tsx          Unified premium gate: 3 trigger variants (sheet/inline/page), driven by PREMIUM_GATE_CONFIG keyed by feature slug
-src/lib/constants/premiumGateConfig.ts         PREMIUM_GATE_CONFIG: 13 feature entries (chores/grocery/expenses/calendar/tasks/notes/reminders/meals/allowances/guests/themes/stats/chore-categories), each with featureColor, featureHex, featureDarkHex, icon, title, subtitle, perks[], valueProp. "allowances" key used for the Rewards feature gate (key name kept stable, copy updated to reflect flexible rewards system).
+src/lib/constants/premiumGateConfig.ts         PREMIUM_GATE_CONFIG: feature entries (chores/grocery/expenses/calendar/tasks/notes/reminders/meals/allowances/guests/stats/export/members/households), each with featureColor, featureHex, featureDarkHex, icon, title, subtitle, perks[], valueProp. "allowances" key used for the Rewards feature gate (key name kept stable, copy updated to reflect flexible rewards system). (The "chore-categories" entry was removed in v2, issue #104.)
 src/components/settings/MemberSheet.tsx        Admin member management: role picker, 12 permission toggles, child PIN change, rewards info callout (pointing to Chores page), remove member
 src/components/dev/DevTools.tsx                Dev-only floating toolbar: premium toggle switch, user info, household info
 src/lib/constants/planLimits.ts               Single source of truth for plan limits. PLAN_LIMITS (free/premium countable caps, Infinity = unlimited: chores, notes, members, children, householdsPerUser, groceryLists, receiptScansPerMonth, calendarEventsPerMonth), FEATURE_ACCESS (premium feature matrix), helpers tierFor(), planLimit(), hasFeature()
@@ -1527,7 +1522,7 @@ Previous: 2026-04-09 (Admin panel fixes: 1) /admin overview navbar was missing �
 
 Previous: 2026-04-09 (Admin panel built at /admin. Separate from better-auth — uses jose JWT in HttpOnly cookie (8h, HS256). Env vars: ADMIN_EMAIL + ADMIN_PASSWORD. Files: src/lib/admin/auth.ts (createAdminSession, verifyAdminSession, checkAdminCredentials), src/lib/admin/requireAdmin.ts (requireAdminSession returns Response|null), src/app/api/admin/login/route.ts (POST, sets cookie), src/app/api/admin/logout/route.ts (POST, clears cookie, redirects), src/app/api/admin/stats/route.ts (GET: overview stats + signupsOverTime + conversionsOverTime via 5 parallel sql queries; queries "user" table quoted), src/app/api/admin/users/route.ts (GET: paginated, search, filter, returns camelCase), src/app/api/admin/households/route.ts (GET: paginated, search, filter, ARRAY_AGG member emails, returns camelCase), src/app/api/admin/households/[id]/route.ts (PATCH: set premium/free, COALESCE subscription_upgraded_at, logActivity). proxy.ts: /admin added to SKIP_PREFIXES. src/app/(admin)/layout.tsx: server component, reads x-pathname header, skips auth for /admin/login, dark #0F172A theme, sticky nav. src/app/(admin)/admin/login/page.tsx: centered dark card, #6366F1 branding. src/app/(admin)/admin/page.tsx: overview with 6 stat cards + 2 Recharts AreaCharts. src/app/(admin)/admin/users/page.tsx: table with search/filter/pagination/expandable rows + CopyField. src/app/(admin)/admin/households/page.tsx: table with Set Premium/Set Free action + ConfirmDialog + optimistic update + expandable rows. Schema: households.subscription_upgraded_at added. Roadmap item 8 marked DONE.)
 
-Previous: 2026-04-09 (Custom chore categories built. Schema: chore_categories table (id, household_id, name, icon, color, is_default, is_custom, suggested_by, status). chores.category_id FK added. db:push applied. seedChoreCategories.ts: 8 defaults seeded idempotently (Kitchen/Bathroom/Bedroom/Outdoor/Laundry/Pet Care/Errands/Other). household/create/route.ts: calls seedChoreCategories on household creation. API: GET /api/chore-categories (free, auto-seed, returns active+pending for admins); POST /api/chore-categories (admin+premium, create); POST /api/chore-categories/suggest (member+premium, status=pending); PATCH/DELETE /api/chore-categories/[id] (admin only, approve/reject/edit/delete). chores GET: leftJoin chore_categories, returns category:{id,name,icon,color}|null. chores POST/PATCH: accept category_id. choreIconMap.ts: CHORE_ICON_MAP with 29 verified Lucide icons + CHORE_ICON_OPTIONS. ChoreCategoryPicker.tsx: None tile + defaults grid + custom grid + inline create/suggest form; premium-gated form calls onUpgradeRequired. ChoreSheet: category_id in ChoreData, ChoreCategoryPicker field between description and assign-to. chores/page.tsx: choreCategories query, category filter pills, category badge on ChoreItem rows. settings/page.tsx: ChoreCategoriesSettingsSection (edit/delete custom, approve/reject suggestions); Chore Categories nav item. UpgradePrompt: CHORE_CATEGORIES_PREMIUM entry added. Roadmap item 7 marked DONE.)
+Previous: 2026-04-09 (SUPERSEDED: the chore-categories feature was removed in v2, issue #104. The files below no longer exist and the chore_categories table + chores.category_id column were dropped. Historical record only. Custom chore categories built. Schema: chore_categories table (id, household_id, name, icon, color, is_default, is_custom, suggested_by, status). chores.category_id FK added. db:push applied. seedChoreCategories.ts: 8 defaults seeded idempotently (Kitchen/Bathroom/Bedroom/Outdoor/Laundry/Pet Care/Errands/Other). household/create/route.ts: calls seedChoreCategories on household creation. API: GET /api/chore-categories (free, auto-seed, returns active+pending for admins); POST /api/chore-categories (admin+premium, create); POST /api/chore-categories/suggest (member+premium, status=pending); PATCH/DELETE /api/chore-categories/[id] (admin only, approve/reject/edit/delete). chores GET: leftJoin chore_categories, returns category:{id,name,icon,color}|null. chores POST/PATCH: accept category_id. choreIconMap.ts: CHORE_ICON_MAP with 29 verified Lucide icons + CHORE_ICON_OPTIONS. ChoreCategoryPicker.tsx: None tile + defaults grid + custom grid + inline create/suggest form; premium-gated form calls onUpgradeRequired. ChoreSheet: category_id in ChoreData, ChoreCategoryPicker field between description and assign-to. chores/page.tsx: choreCategories query, category filter pills, category badge on ChoreItem rows. settings/page.tsx: ChoreCategoriesSettingsSection (edit/delete custom, approve/reject suggestions); Chore Categories nav item. UpgradePrompt: CHORE_CATEGORIES_PREMIUM entry added. Roadmap item 7 marked DONE.)
 
 Previous: 2026-04-10 (Suggested Meals flow updated. Existing meal suggestions were converted from pending/approved into suggested/accepted/rejected. meal_suggestions now stores target_slot_date + target_slot_type so each suggestion can aim at a specific planner day, plus responded_by/responded_at and accepted_meal_id/accepted_slot_id for auditability. New routes: POST /api/meals/suggest alias, PUT /api/meals/[id]/accept, DELETE /api/meals/[id]/reject. GET /api/meals/suggestions now returns target day/slot and only active suggested items. Accepting a suggestion creates a real meals row, upserts the planner slot, marks the suggestion accepted, and invalidates suggestions/meals/planner queries. SuggestionSheet now collects meal name, ingredients, target day, target slot, note, and prep time. Suggestions tab cards show the target day/slot and ingredient chips, and admins can Add to day or Reject directly from the list.)
 
@@ -1860,7 +1855,7 @@ Items to implement before scale becomes a concern:
 - [ ] Verify all Neon queries use the pooled connection string (-pooler hostname)
 - [ ] Audit TanStack Query polling intervals: 10s is aggressive for low-change data.
       Chores/members/household data can be 30–60s. Only dashboard activity needs 10s.
-- [ ] Add HTTP caching headers to stable API routes (GET /api/chore-categories, etc.)
+- [ ] Add HTTP caching headers to stable API routes (GET /api/expenses/categories, etc.)
 - [ ] Implement stale-while-revalidate for meal bank (changes rarely)
 - [ ] Consider Vercel Edge Config for feature flags instead of DB queries
 - [ ] Add DB indexes audit before Railway migration (EXPLAIN ANALYZE on slow queries)

@@ -155,14 +155,6 @@
   - Full log of every chore completed by anyone in the household
   - Filter by member and date range
   - Stats: total completions, most active member, streak leader
-- Custom chore categories with icons and colors
-  - 8 seeded defaults: Kitchen, Bathroom, Bedroom, Outdoor, Laundry, Pet Care, Errands, Other
-  - Admins create custom categories inline in the chore form
-  - Members can suggest categories (admin approves or rejects)
-  - Category filter pills on the chores list page
-  - Category badge on each chore row
-  - Admin management in Settings > Chore Categories
-  - Premium gate: CHORE_CATEGORIES_PREMIUM error code
 
 #### Grocery (Premium)
 - Multiple named grocery lists (Costco run, Target, weekly shop, etc.)
@@ -250,7 +242,7 @@ Premium feature.
 
 ~~**Grocery Smart Sort**~~ — BUILT (see above)
 
-~~**Custom Chore Categories and Icons**~~ — BUILT (see above)
+**Custom Chore Categories and Icons** — REMOVED in v2 (issue #104). The schema and a premium perk claim existed but nothing was wired up (no route, no picker), so it was dropped.
 
 ~~**Admin Panel**~~ — BUILT (see Internal Tools below)
 
@@ -345,10 +337,6 @@ Admin-created promo codes that grant time-limited or lifetime premium access to 
 ### Guest member gate
 **Title:** "Invite a temporary member."
 **Body:** "Add someone to your household for a set period — perfect for splitting Airbnb costs, hosting family, or short-term roommates. Auto-expires so you never have to remember to remove them."
-
-### Custom categories gate
-**Title:** "Organize chores your way."
-**Body:** "Create custom categories and icons that match how your household actually works. Your home, your system."
 
 ### Rich text notes gate
 **Title:** "Notes worth keeping."

@@ -41,7 +41,6 @@ import {
   households,
   householdMembers,
   memberPermissions,
-  choreCategories,
   chores,
   choreCompletions,
   expenseCategories,
@@ -320,41 +319,6 @@ async function ensureMembership(
 }
 
 // ── default category seeders ─────────────────────────────────────────────────
-const CHORE_CATEGORY_DEFAULTS = [
-  { name: 'Kitchen', icon: 'Utensils' },
-  { name: 'Bathroom', icon: 'ShowerHead' },
-  { name: 'Bedroom', icon: 'BedDouble' },
-  { name: 'Outdoor', icon: 'Trees' },
-  { name: 'Laundry', icon: 'Shirt' },
-  { name: 'Pet Care', icon: 'PawPrint' },
-  { name: 'Errands', icon: 'ShoppingBag' },
-  { name: 'Other', icon: 'Home' },
-]
-
-async function seedChoreCategories(householdId: string): Promise<Record<string, string>> {
-  const existing = await db
-    .select({ id: choreCategories.id, name: choreCategories.name })
-    .from(choreCategories)
-    .where(eq(choreCategories.householdId, householdId))
-  const byName: Record<string, string> = {}
-  for (const c of existing) byName[c.name] = c.id
-  for (const def of CHORE_CATEGORY_DEFAULTS) {
-    if (byName[def.name]) continue
-    const id = crypto.randomUUID()
-    await db.insert(choreCategories).values({
-      id,
-      householdId,
-      name: def.name,
-      icon: def.icon,
-      isDefault: 'true',
-      isCustom: 'false',
-      status: 'active',
-    })
-    byName[def.name] = id
-  }
-  return byName
-}
-
 async function getExpenseCategoryMap(householdId: string): Promise<Record<string, string>> {
   const rows = await db
     .select({ id: expenseCategories.id, name: expenseCategories.name })
@@ -392,7 +356,6 @@ type Members = {
 }
 
 async function seedPremiumContent(householdId: string, m: Members): Promise<void> {
-  const choreCats = await seedChoreCategories(householdId)
   await seedExpenseCategories(householdId)
   await seedCommonItems(householdId)
   const expCats = await getExpenseCategoryMap(householdId)
@@ -402,12 +365,12 @@ async function seedPremiumContent(householdId: string, m: Members): Promise<void
   // ── Chores (assigned to specific members → exercises #60) ──
   if (await isEmpty(chores, householdId)) {
     const choreRows = [
-      { title: 'Take out the trash', assignedTo: m.jordan, frequency: 'daily', cat: 'Kitchen', nextDueAt: days(-1) },
-      { title: 'Vacuum living room', assignedTo: m.taylor, frequency: 'weekly', cat: 'Bedroom', nextDueAt: days(0) },
-      { title: 'Wash the dishes', assignedTo: m.admin, frequency: 'daily', cat: 'Kitchen', nextDueAt: days(1) },
-      { title: 'Mow the lawn', assignedTo: m.jordan, frequency: 'weekly', cat: 'Outdoor', nextDueAt: days(0) },
-      { title: 'Clean the bathroom', assignedTo: null, frequency: 'weekly', cat: 'Bathroom', nextDueAt: days(2) },
-      { title: 'Feed the dog', assignedTo: m.kid, frequency: 'daily', cat: 'Pet Care', nextDueAt: days(0) },
+      { title: 'Take out the trash', assignedTo: m.jordan, frequency: 'daily', nextDueAt: days(-1) },
+      { title: 'Vacuum living room', assignedTo: m.taylor, frequency: 'weekly', nextDueAt: days(0) },
+      { title: 'Wash the dishes', assignedTo: m.admin, frequency: 'daily', nextDueAt: days(1) },
+      { title: 'Mow the lawn', assignedTo: m.jordan, frequency: 'weekly', nextDueAt: days(0) },
+      { title: 'Clean the bathroom', assignedTo: null, frequency: 'weekly', nextDueAt: days(2) },
+      { title: 'Feed the dog', assignedTo: m.kid, frequency: 'daily', nextDueAt: days(0) },
     ]
     const choreIds: Record<string, string> = {}
     for (const c of choreRows) {
@@ -418,7 +381,6 @@ async function seedPremiumContent(householdId: string, m: Members): Promise<void
         householdId,
         title: c.title,
         assignedTo: c.assignedTo,
-        categoryId: choreCats[c.cat] ?? null,
         frequency: c.frequency as 'daily' | 'weekly',
         nextDueAt: c.nextDueAt,
         createdBy: m.admin,
@@ -699,15 +661,14 @@ async function seedPremiumContent(householdId: string, m: Members): Promise<void
 
 // ── free-house light content (kept under free-tier limits) ───────────────────
 async function seedFreeContent(householdId: string, adminId: string, memberId: string, kidId: string): Promise<void> {
-  const cats = await seedChoreCategories(householdId)
   await seedExpenseCategories(householdId)
   await seedCommonItems(householdId)
 
   if (await isEmpty(chores, householdId)) {
     await db.insert(chores).values([
-      { householdId, title: 'Take out the trash', assignedTo: memberId, categoryId: cats['Kitchen'] ?? null, frequency: 'daily', nextDueAt: days(0), createdBy: adminId },
-      { householdId, title: 'Vacuum the house', assignedTo: memberId, categoryId: cats['Bedroom'] ?? null, frequency: 'weekly', nextDueAt: days(1), createdBy: adminId },
-      { householdId, title: 'Feed the cat', assignedTo: kidId, categoryId: cats['Pet Care'] ?? null, frequency: 'daily', nextDueAt: days(0), createdBy: adminId },
+      { householdId, title: 'Take out the trash', assignedTo: memberId, frequency: 'daily', nextDueAt: days(0), createdBy: adminId },
+      { householdId, title: 'Vacuum the house', assignedTo: memberId, frequency: 'weekly', nextDueAt: days(1), createdBy: adminId },
+      { householdId, title: 'Feed the cat', assignedTo: kidId, frequency: 'daily', nextDueAt: days(0), createdBy: adminId },
     ])
   }
   if (await isEmpty(groceryLists, householdId)) {

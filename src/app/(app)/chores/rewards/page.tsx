@@ -290,7 +290,7 @@ export default function RewardsPage() {
   // premium non-admin never briefly sees the upsell.
   if (householdLoading || (isAdmin && isLoading)) {
     return (
-      <div style={{ maxWidth: 768, margin: '0 auto', padding: '24px 16px 80px' }}>
+      <div className="roost-page" style={{ padding: '24px 16px 80px' }}>
         <div style={{ height: 32, width: 160, borderRadius: 8, backgroundColor: 'var(--roost-border)', marginBottom: 24 }} />
         {[1, 2].map(i => (
           <div key={i} style={{ height: 140, borderRadius: 16, backgroundColor: 'var(--roost-border)', marginBottom: 12 }} />
@@ -305,7 +305,8 @@ export default function RewardsPage() {
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.18 }}
-        style={{ maxWidth: 768, margin: '0 auto', padding: '24px 16px 80px' }}
+        className="roost-page"
+        style={{ padding: '24px 16px 80px' }}
       >
         <button
           type="button"
@@ -374,7 +375,8 @@ export default function RewardsPage() {
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.18 }}
-        style={{ maxWidth: 768, margin: '0 auto', padding: '24px 16px 80px' }}
+        className="roost-page"
+        style={{ padding: '24px 16px 80px' }}
       >
         <button
           type="button"
@@ -391,7 +393,7 @@ export default function RewardsPage() {
         </button>
 
         <div style={{ marginBottom: 20 }}>
-          <h1 style={{ fontSize: 26, fontWeight: 900, color: 'var(--roost-text-primary)', marginBottom: 4 }}>
+          <h1 className="roost-page-title" style={{ fontWeight: 900, color: 'var(--roost-text-primary)', marginBottom: 4 }}>
             Rewards
           </h1>
           <p style={{ fontSize: 14, color: 'var(--roost-text-muted)', fontWeight: 600 }}>
@@ -429,7 +431,7 @@ export default function RewardsPage() {
       {/* Page header */}
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 20 }}>
         <div>
-          <h1 style={{ fontSize: 26, fontWeight: 900, color: 'var(--roost-text-primary)', marginBottom: 4 }}>
+          <h1 className="roost-page-title" style={{ fontWeight: 900, color: 'var(--roost-text-primary)', marginBottom: 4 }}>
             Rewards
           </h1>
           <p style={{ fontSize: 14, color: 'var(--roost-text-muted)', fontWeight: 600 }}>

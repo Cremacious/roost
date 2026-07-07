@@ -308,7 +308,7 @@ export default function ChoreHistoryPage() {
 
         {/* Header */}
         <div style={{ marginBottom: 16 }}>
-          <h1 style={{ margin: 0, fontSize: 26, fontWeight: 900, color: 'var(--roost-text-primary)', letterSpacing: '-0.3px' }}>
+          <h1 className="roost-page-title" style={{ margin: 0, fontWeight: 900, color: 'var(--roost-text-primary)', letterSpacing: '-0.3px' }}>
             Chore history
           </h1>
           <p style={{ margin: '2px 0 0', fontSize: 13, fontWeight: 600, color: 'var(--roost-text-muted)' }}>

@@ -307,7 +307,7 @@ export default function StatsPage() {
       >
         {/* Header */}
         <div>
-          <h1 style={{ color: "var(--roost-text-primary)", fontWeight: 900, fontSize: 26, letterSpacing: '-0.3px', margin: 0 }}>
+          <h1 className="roost-page-title" style={{ color: "var(--roost-text-primary)", fontWeight: 900, letterSpacing: '-0.3px', margin: 0 }}>
             Household Stats
           </h1>
           <p className="mt-1" style={{ color: "var(--roost-text-muted)", fontWeight: 600, fontSize: 13 }}>

@@ -158,7 +158,7 @@ export default function TodayPage() {
     return (
       <>
         {welcomeModal}
-        <div style={{ padding: 16, maxWidth: 768, margin: '0 auto', width: '100%', display: 'flex', flexDirection: 'column', gap: 12 }}>
+        <div className="roost-page" style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 12 }}>
           <Skeleton style={{ height: 16, width: 160 }} />
           <SkeletonCard />
           <Skeleton style={{ height: 12, width: 128 }} />
@@ -241,7 +241,8 @@ export default function TodayPage() {
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.18 }}
-        style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 12, maxWidth: 768, margin: '0 auto', width: '100%' }}
+        className="roost-page"
+        style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 12 }}
       >
         <p style={{ fontSize: 11, fontWeight: 800, color: '#9B9590', letterSpacing: '0.08em', margin: 0 }}>
           {dateLabel}

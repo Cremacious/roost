@@ -211,7 +211,7 @@ export default function CalendarPage() {
 
   // ─── Render ────────────────────────────────────────────────────────────────
   return (
-    <div style={{ padding: '16px 0' }}>
+    <div className="roost-page-wide" style={{ padding: '16px 0' }}>
       {/* Header */}
       <div
         className="px-4"
@@ -224,7 +224,7 @@ export default function CalendarPage() {
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <div>
-            <p style={{ color: 'var(--roost-text-primary)', fontWeight: 900, fontSize: 26, letterSpacing: '-0.3px' }}>
+            <p className="roost-page-title" style={{ color: 'var(--roost-text-primary)', fontWeight: 900, letterSpacing: '-0.3px' }}>
               Calendar
             </p>
             <p style={{ color: 'var(--roost-text-muted)', fontWeight: 600, fontSize: 13, marginTop: 2 }}>

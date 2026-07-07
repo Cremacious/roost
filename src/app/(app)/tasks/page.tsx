@@ -609,13 +609,14 @@ export default function TasksPage() {
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.18 }}
-        style={{ padding: '20px 16px 100px', maxWidth: 768, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 16 }}
+        className="roost-page"
+        style={{ padding: '20px 16px 100px', display: 'flex', flexDirection: 'column', gap: 16 }}
       >
         {/* Header */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <div>
-              <h1 style={{ margin: 0, fontWeight: 900, fontSize: 26, color: 'var(--roost-text-primary)', letterSpacing: '-0.3px' }}>
+              <h1 className="roost-page-title" style={{ margin: 0, fontWeight: 900, color: 'var(--roost-text-primary)', letterSpacing: '-0.3px' }}>
                 Tasks
               </h1>
               <p style={{ margin: '2px 0 0', fontSize: 13, fontWeight: 600, color: 'var(--roost-text-muted)' }}>

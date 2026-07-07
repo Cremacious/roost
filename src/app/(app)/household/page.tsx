@@ -291,7 +291,7 @@ export default function HouseholdPage() {
   // ── Loading state ──────────────────────────────────────────────────────────
   if (isLoading) {
     return (
-      <div style={{ padding: 16, maxWidth: 768, margin: '0 auto', width: '100%' }}>
+      <div className="roost-page" style={{ padding: 16 }}>
         <div style={{ height: 120, background: 'var(--roost-surface)', border: '1.5px solid var(--roost-border)', borderBottom: `4px solid ${HERO_DARK}`, borderRadius: 16, marginBottom: 14, opacity: 0.5 }} />
         <div style={{ height: 200, background: 'var(--roost-surface)', border: '1.5px solid var(--roost-border)', borderBottom: `4px solid ${SLAB_BOTTOM}`, borderRadius: 16, opacity: 0.4 }} />
       </div>

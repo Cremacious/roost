@@ -136,7 +136,7 @@ export function SnapshotStrip({ data }: { data: SnapshotData }) {
   }
 
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+    <div className="grid grid-cols-2 lg:grid-cols-4" style={{ gap: 10 }}>
       {/* Meal */}
       <SnapTile
         href="/meals"

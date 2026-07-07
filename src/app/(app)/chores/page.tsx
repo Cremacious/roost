@@ -975,7 +975,8 @@ export default function ChoresPage() {
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.18 }}
-      style={{ maxWidth: 768, margin: '0 auto', padding: '0 0 80px' }}
+      className="roost-page"
+      style={{ padding: '0 0 80px' }}
     >
       {/* ── Header ── */}
       <div
@@ -987,7 +988,7 @@ export default function ChoresPage() {
         }}
       >
         <div style={{ flex: 1 }}>
-          <h1 style={{ margin: 0, fontSize: 26, fontWeight: 900, color: 'var(--roost-text-primary)', letterSpacing: '-0.3px', lineHeight: 1 }}>
+          <h1 className="roost-page-title" style={{ margin: 0, fontWeight: 900, color: 'var(--roost-text-primary)', letterSpacing: '-0.3px' }}>
             Chores
           </h1>
           <p style={{ margin: '2px 0 0', fontSize: 13, fontWeight: 600, color: 'var(--roost-text-muted)' }}>
@@ -1299,7 +1300,7 @@ export default function ChoresPage() {
       {/* ── Main content: two-column on desktop ── */}
       {!isLoading && !isError && filtered.length > 0 && (
         <div
-          className="md:grid md:grid-cols-[1fr_210px]"
+          className="lg:grid lg:grid-cols-[1fr_210px]"
           style={{
             padding: '0 16px',
             gap: 16,
@@ -1311,8 +1312,8 @@ export default function ChoresPage() {
             {choreListContent}
           </div>
 
-          {/* Right: sidebar (desktop only) */}
-          <div className="hidden md:flex" style={{ flexDirection: 'column', gap: 12 }}>
+          {/* Right: sidebar (desktop only, lg+ so it never squeezes the list) */}
+          <div className="hidden lg:flex" style={{ flexDirection: 'column', gap: 12 }}>
             <ThisWeekCard
               done={groups.done.length}
               overdue={groups.overdue.length}

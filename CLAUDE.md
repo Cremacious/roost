@@ -507,13 +507,32 @@ Tasks: one-off to-dos
 - Slab design = bottom border only for the 3D effect. No left/right/top border as color accents.
   Section colors appear in: buttons, toggles, input focus, badges, completion states,
   FABs, drag handles, empty state icon box border-bottom. Never as a left/right/top accent.
-- PageContainer component (src/components/layout/PageContainer.tsx): max-w-4xl (896px) centered
-  on desktop, full width on mobile. All pages wrap their content in PageContainer.
-  Exception: Calendar uses an inline div with max-w-5xl (1024px) for the 7-column grid.
-  Dashboard: tiles grid (grid-cols-2 mobile, md:grid-cols-4 desktop, gap-3). There is no
-  dashboard activity feed and no /activity page in v2 (household_activity is consumed only by
-  Stats, the admin panel, and user data export).
-  Notes: masonry grid columns-1 sm:columns-2 lg:columns-3 inside PageContainer.
+- Responsive content-width scale (issue #106). ONE shared, tiered, centered max-width system,
+  defined in globals.css and consumed via PageContainer or the `.roost-page` / `.roost-page-wide`
+  CSS classes. Do NOT hardcode ad hoc max-widths (the old 768/900/1024 values are gone). Content
+  stays centered in the flex-1 region (to the right of the 200px sidebar) and grows a notch at each
+  large breakpoint instead of stranding a narrow column on big monitors.
+  - Two extra breakpoints above Tailwind 2xl (1536), declared in @theme in globals.css so `3xl:`
+    and `4xl:` variants also work in markup: 3xl = 1920px, 4xl = 2560px.
+  - Standard tier `.roost-page` (content pages: today, chores + history + rewards, lists, tasks,
+    notes, reminders, stats, household, settings, ...): full width < xl, then max-width
+    920 (xl 1280) / 1040 (2xl 1536) / 1180 (3xl 1920) / 1320 (4xl 2560).
+  - Wide tier `.roost-page-wide` (calendar month grid, meals 7-day planner, money two-column):
+    full width < xl, then 1080 (xl) / 1280 (2xl) / 1440 (3xl) / 1600 (4xl).
+  - PageContainer (src/components/layout/PageContainer.tsx): `<PageContainer wide?>`. Applies the
+    tier class + responsive horizontal padding `px-4 sm:px-6 xl:px-8 2xl:px-10`. Prefer PageContainer
+    for new pages. Pages built with inline-style wrappers add `className="roost-page"` (or
+    `roost-page-wide`) and keep their own vertical padding; the class owns width + centering only.
+  - Type notch: page titles use `.roost-page-title` (26px base, 30px at 3xl, 33px at 4xl) instead of
+    a hardcoded fontSize: 26; keep fontWeight/color/letterSpacing inline. Inherited/rem text inside a
+    content column also bumps to 17px at 4xl. Inline px sizes are otherwise unchanged by design.
+  - Grid reflow: today snapshot tiles are grid-cols-2 lg:grid-cols-4; notes masonry uses
+    `auto-fill minmax(240px, 1fr)` so it adds columns as the column widens; calendar/meals fill the
+    wide tier. There is no dashboard activity feed and no /activity page in v2 (household_activity is
+    consumed only by Stats, the admin panel, and user data export).
+  - Intentionally narrow (left as fixed small widths, not part of the scale): /more menu (480),
+    billing sub-cards (560/400), centered upgrade/empty states. Onboarding keeps its own full-screen
+    layout (HIDE_NAV_ROUTES).
 - CarPlay-inspired large tile grid on tablet + desktop
 - Bottom tab bar on mobile (Home, Chores, Grocery, Calendar, More)
   More opens a sheet with Profile and Settings links
@@ -771,7 +790,7 @@ src/app/api/cron/reminders/route.ts           Vercel cron GET (every 15min): pro
 src/app/(app)/reminders/page.tsx              Full reminders module: grouped sections (overdue/today/upcoming/snoozed/completed), premium gating, stats (exclude snoozed), snoozed-row Undo
 src/components/reminders/ReminderSheet.tsx    Create/edit: title, note, date+time picker, frequency + notify type + member list; isPremium + onUpgradeRequired props; Lock icons on recurring freqs + notify-others for free users
 vercel.json                                   Cron schedule: /api/cron/reminders every 15 minutes
-src/components/layout/PageContainer.tsx        Content width constraint: max-w-4xl (896px) centered, full width mobile
+src/components/layout/PageContainer.tsx        Shared tiered content-width wrapper (issue #106): `<PageContainer wide?>` applies .roost-page / .roost-page-wide (responsive centered max-width) + px-4 sm:px-6 xl:px-8 2xl:px-10. Widths defined in globals.css.
 src/app/api/rewards/route.ts                  GET (admin: all rules with progress per child; child: own rules) + POST (create rule); exports getPeriodBounds()
 src/app/api/rewards/[id]/route.ts             PATCH (update rule fields) + DELETE (hard delete if no payouts, else soft disable)
 src/app/api/rewards/child/route.ts            GET: rules with current period progress + last 12 payouts for current user

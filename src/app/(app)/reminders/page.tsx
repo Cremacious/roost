@@ -252,7 +252,7 @@ export default function RemindersPage() {
   }
 
   if (isLoading) return (
-    <div style={{ padding: '20px 16px', maxWidth: 768, margin: '0 auto', width: '100%', display: 'flex', flexDirection: 'column', gap: 10 }}>
+    <div className="roost-page" style={{ padding: '20px 16px', display: 'flex', flexDirection: 'column', gap: 10 }}>
       {[1, 2, 3].map(i => <div key={i} style={{ height: 64, borderRadius: 16, backgroundColor: 'var(--roost-surface)', border: '1.5px solid var(--roost-border)', borderBottom: '4px solid var(--roost-border)' }} />)}
     </div>
   )
@@ -269,11 +269,12 @@ export default function RemindersPage() {
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.18 }}
-        style={{ padding: '20px 16px 100px', maxWidth: 768, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 20 }}
+        className="roost-page"
+        style={{ padding: '20px 16px 100px', display: 'flex', flexDirection: 'column', gap: 20 }}
       >
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div>
-            <h1 style={{ margin: 0, fontWeight: 900, fontSize: 26, color: 'var(--roost-text-primary)', letterSpacing: '-0.3px' }}>Reminders</h1>
+            <h1 className="roost-page-title" style={{ margin: 0, fontWeight: 900, color: 'var(--roost-text-primary)', letterSpacing: '-0.3px' }}>Reminders</h1>
             <p style={{ margin: '2px 0 0', fontSize: 13, fontWeight: 600, color: 'var(--roost-text-muted)' }}>{active.length - snoozed.length} active</p>
           </div>
           <motion.button whileTap={{ y: 2 }} type="button" aria-disabled={atLimit} onClick={handleAdd}

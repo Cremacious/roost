@@ -3,6 +3,54 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/* ── Responsive scale (issue #106) ──────────────────────────────────────────
+   Two extra breakpoints above Tailwind's 2xl (1536) so 27 inch (2560) and
+   32 inch (3840) monitors get a deliberate, wider centered column instead of a
+   768px strip stranded in empty margin. Tailwind v4 reads --breakpoint-* from
+   @theme, so `3xl:` and `4xl:` variants are available in markup as well. */
+@theme {
+  --breakpoint-3xl: 1920px;
+  --breakpoint-4xl: 2560px;
+}
+
+/* One shared content-width system. Every page wraps its content in one of these
+   two tiers instead of hardcoding maxWidth 768/900/1024. The column stays
+   centered (margin-inline auto) and grows a notch at each large breakpoint.
+   Horizontal padding stays owned by each page (they already set their own), so
+   these classes control width only. */
+.roost-page,
+.roost-page-wide {
+  width: 100%;
+  margin-inline: auto;
+}
+/* Standard content pages (today, chores, lists, tasks, notes, reminders,
+   settings, household, stats, ...). */
+@media (min-width: 1280px) { .roost-page { max-width: 920px; } }
+@media (min-width: 1536px) { .roost-page { max-width: 1040px; } }
+@media (min-width: 1920px) { .roost-page { max-width: 1180px; } }
+@media (min-width: 2560px) { .roost-page { max-width: 1320px; } }
+/* Wide pages (calendar month grid, meals 7-day planner, money two-column). */
+@media (min-width: 1280px) { .roost-page-wide { max-width: 1080px; } }
+@media (min-width: 1536px) { .roost-page-wide { max-width: 1280px; } }
+@media (min-width: 1920px) { .roost-page-wide { max-width: 1440px; } }
+@media (min-width: 2560px) { .roost-page-wide { max-width: 1600px; } }
+
+/* Gentle type notch on very large screens: inherited/rem text inside the
+   content column grows slightly so a 27/32 inch display is not tiny text.
+   Inline px sizes are unaffected by design (they keep the slab look); the page
+   title uses .roost-page-title below for an explicit responsive bump. */
+@media (min-width: 2560px) {
+  .roost-page,
+  .roost-page-wide { font-size: 17px; }
+}
+
+/* Shared page-title size. Replaces the per-page inline fontSize: 26 so titles
+   scale up a notch at the large breakpoints. Weight/color/spacing stay inline
+   per page. */
+.roost-page-title { font-size: 26px; line-height: 1; }
+@media (min-width: 1920px) { .roost-page-title { font-size: 30px; } }
+@media (min-width: 2560px) { .roost-page-title { font-size: 33px; } }
+
 @keyframes spin {
   to { transform: rotate(360deg); }
 }

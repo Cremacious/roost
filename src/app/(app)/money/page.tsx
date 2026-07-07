@@ -261,7 +261,7 @@ function DashboardTab({ currentUserId, members, isPremium, onOpenExpense, onOpen
         <div style={{ position: 'absolute', bottom: -40, left: -30, width: 140, height: 140, borderRadius: '50%', background: 'rgba(255,255,255,0.05)', pointerEvents: 'none' }} />
 
         {/* Three-column desktop / stacked mobile */}
-        <div className="relative z-10 flex flex-col gap-5 md:grid md:items-center md:gap-x-10" style={{ gridTemplateColumns: 'auto 1fr auto' }}>
+        <div className="relative z-10 flex flex-col gap-5 lg:grid lg:items-center lg:gap-x-10" style={{ gridTemplateColumns: 'auto 1fr auto' }}>
           {/* Net balance */}
           <div>
             <div style={{ fontSize: 11, fontWeight: 800, color: 'rgba(255,255,255,0.7)', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 6 }}>Net balance</div>
@@ -271,7 +271,7 @@ function DashboardTab({ currentUserId, members, isPremium, onOpenExpense, onOpen
           </div>
 
           {/* Stat chips */}
-          <div className="grid grid-cols-2 gap-3 md:flex md:flex-wrap md:gap-3">
+          <div className="grid grid-cols-2 gap-3 lg:flex lg:flex-wrap lg:gap-3">
             <div style={{ background: 'rgba(255,255,255,0.15)', backdropFilter: 'blur(8px)', borderRadius: 14, padding: '14px 18px' }}>
               <div style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.7)', marginBottom: 4 }}>You&apos;re owed</div>
               <div style={{ fontSize: 20, fontWeight: 900, color: '#BBF7D0' }}>${(balances?.totalOwed ?? 0).toFixed(2)}</div>
@@ -293,7 +293,7 @@ function DashboardTab({ currentUserId, members, isPremium, onOpenExpense, onOpen
           </div>
 
           {/* Action buttons */}
-          <div className="flex flex-row gap-2 md:flex-col md:gap-2">
+          <div className="flex flex-row gap-2 lg:flex-col lg:gap-2">
             {myDebts.length > 0 && (
               <button
                 onClick={() => onOpenSettlePicker()}
@@ -323,7 +323,7 @@ function DashboardTab({ currentUserId, members, isPremium, onOpenExpense, onOpen
       </div>
 
       {/* ── Two-column grid ── */}
-      <div className="grid gap-4 md:grid-cols-[1fr_360px] items-start">
+      <div className="grid gap-4 lg:grid-cols-[1fr_360px] items-start">
 
         {/* ── Main column ── */}
         <div>
@@ -1858,14 +1858,14 @@ export default function MoneyPage() {
   }
 
   return (
-    <div style={{ maxWidth: 900, margin: '0 auto' }}>
+    <div className="roost-page-wide">
       {/* ── Page title (non-sticky, flows naturally below TopBar) ── */}
       <div
         className="px-6 md:px-7"
         style={{ backgroundColor: '#F9FAFB', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 24px 10px' }}
       >
         <div>
-          <h1 style={{ margin: 0, fontWeight: 900, fontSize: 26, color: 'var(--roost-text-primary)', letterSpacing: '-0.3px', lineHeight: 1 }}>Money</h1>
+          <h1 className="roost-page-title" style={{ margin: 0, fontWeight: 900, color: 'var(--roost-text-primary)', letterSpacing: '-0.3px' }}>Money</h1>
           <p style={{ margin: '3px 0 0', fontSize: 13, fontWeight: 600, color: 'var(--roost-text-secondary)' }}>Expenses, bills and goals</p>
         </div>
         <button

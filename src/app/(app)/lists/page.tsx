@@ -1380,11 +1380,9 @@ export default function FoodPage() {
   if (isLoading) {
     return (
       <div
+        className="roost-page"
         style={{
           padding: 16,
-          maxWidth: 768,
-          margin: '0 auto',
-          width: '100%',
           display: 'flex',
           flexDirection: 'column',
           gap: 10,
@@ -1422,19 +1420,17 @@ export default function FoodPage() {
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.18 }}
+      className="roost-page"
       style={{
         display: 'flex',
         flexDirection: 'column',
         backgroundColor: '#F9FAFB',
-        maxWidth: 768,
-        margin: '0 auto',
-        width: '100%',
       }}
     >
       {/* ── Page header ── */}
       <div style={{ backgroundColor: '#F9FAFB', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 16px 12px' }}>
         <div>
-          <h1 style={{ margin: 0, fontWeight: 900, fontSize: 26, color: 'var(--roost-text-primary)', letterSpacing: '-0.3px' }}>
+          <h1 className="roost-page-title" style={{ margin: 0, fontWeight: 900, color: 'var(--roost-text-primary)', letterSpacing: '-0.3px' }}>
             Lists
           </h1>
           <p style={{ margin: '2px 0 0', fontSize: 13, fontWeight: 600, color: 'var(--roost-text-muted)' }}>

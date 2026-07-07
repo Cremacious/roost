@@ -135,7 +135,6 @@ export default async function HomePage() {
           margin-bottom: 20px;
           border-radius: 28px;
           filter: drop-shadow(0 4px 24px rgba(0,0,0,0.15));
-          animation: logoFloat 3s ease-in-out infinite;
         }
         .hero-brand {
           font-size: clamp(48px, 8vw, 80px);
@@ -145,10 +144,6 @@ export default async function HomePage() {
           line-height: 1;
           margin-bottom: 12px;
           text-shadow: 0 2px 20px rgba(0,0,0,0.1);
-        }
-        @keyframes logoFloat {
-          0%, 100% { transform: translateY(0); }
-          50% { transform: translateY(-8px); }
         }
         .hero h1 {
           font-size: clamp(20px, 3.5vw, 32px);

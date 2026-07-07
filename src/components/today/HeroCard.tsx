@@ -34,7 +34,7 @@ const BG: Record<string, string> = {
   overdue_chore: '#EF4444',
   due_chore:     '#F59E0B',
   reminder:      '#3B82F6',
-  all_clear:     '#22C55E',
+  all_clear:     '#CE1E1E',
 }
 
 export function HeroCard({ type, item, onCompleteChore, onReminderDone, onReminderSnooze, actionDisabled = false, moreCount = 0 }: HeroCardProps) {

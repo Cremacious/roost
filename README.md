@@ -1,9 +1,102 @@
 # Roost
 
-Household management for families and roommates. Chores, grocery lists, meal planning,
-bill splitting, calendar, notes, and reminders — in one app.
+**Home, sorted.**
 
-Web-first (Next.js), then iOS and Android via Expo.
+![version](https://img.shields.io/badge/version-1.0.0--beta.1-orange)
+![status](https://img.shields.io/badge/status-beta-yellow)
+![license](https://img.shields.io/badge/license-private-lightgrey)
+![Next.js](https://img.shields.io/badge/Next.js-16-black)
+![TypeScript](https://img.shields.io/badge/TypeScript-5-blue)
+
+Roost is the household operating system for families, roommates, and college students. It
+brings chores, grocery lists, meal planning, bill splitting, a shared calendar, notes,
+reminders, and tasks into one app, so a whole household can stay coordinated from a single
+place.
+
+It is built web first with Next.js, with iOS and Android planned via Expo. Pricing is per
+household ($4/month for premium), not per user, so one person can pay and everyone in the
+home benefits.
+
+> Status: this is a beta release (`1.0.0-beta.1`). Expect small rough edges. Issues are
+> tracked on GitHub and land between releases.
+
+---
+
+## Screenshots
+
+> Placeholder. Product screenshots have not been added to the repository yet. This section
+> will be updated with real captures of the dashboard, chores, money, and calendar views
+> before the stable release.
+
+<!--
+When screenshots are ready, drop them in public/screenshots/ and reference them here, e.g.:
+
+![Today dashboard](public/screenshots/today.png)
+![Chores](public/screenshots/chores.png)
+-->
+
+---
+
+## Features
+
+Roost has a free tier and a per-household premium tier. Items marked **(Premium)** require
+an active premium subscription; everything else is free.
+
+### Chores and rewards
+- Recurring household chores with per-person assignment and scheduling, plus streaks and
+  points per member.
+- Daily chores are free; weekly, monthly, and custom frequencies are **(Premium)**.
+- Weekly points leaderboard **(Premium)**.
+- Chore completion history **(Premium)**.
+- Reward rules that pay out to children when they hit a chore completion threshold, with
+  money rewards flowing into the settle-up ledger **(Premium)**.
+
+### Grocery lists
+- A shared default list per household with optimistic check and uncheck.
+- Smart sort that groups items by store section, plus editable quick-add "common items".
+- Multiple named lists **(Premium)**.
+
+### Calendar
+- Month grid and agenda views with attendees and RSVP.
+- Recurring events (daily, weekly, biweekly, monthly, yearly) with flexible end conditions
+  **(Premium)**.
+
+### Money and bill splitting
+- Expense tracking and bill splitting with debt simplification and a two-sided settle-up
+  flow. Creating and splitting expenses is free.
+- Budgets, savings goals, recurring expenses and bills, spending insights, receipt scanning,
+  and CSV/PDF export **(Premium)**.
+
+### Meals
+- Weekly meal planner, a searchable meal bank, and household meal suggestions with voting.
+- Push meal ingredients straight to the grocery list.
+- The meal bank is capped on the free tier; unlimited meals are **(Premium)**.
+
+### Notes
+- Quick add plus a masonry board of notes.
+- Rich text editing (headings, checklists, links) **(Premium)**; plain text is free.
+
+### Reminders
+- One-time and recurring reminders with self, specific-member, or household notify types.
+- Due reminders surface in-app on the Today page.
+- Free tier is limited to one-time, self-notify reminders with up to five active at once;
+  recurring and notify-others are **(Premium)**.
+
+### Tasks
+- One-off to-dos with assignee, due date, and priority, plus subtasks, comments,
+  delegations, and projects.
+
+### Household management
+- Email/password accounts and PIN-only child accounts (with in-place upgrade to a full
+  account).
+- Roles (child, member, admin) with a per-user permission checklist.
+- Guest and temporary members via invite link or code **(Premium)**.
+- Belonging to multiple households **(Premium)**.
+
+### Insights and admin
+- A premium household stats page with charts across every feature **(Premium)**.
+- A separate internal admin panel at `/admin` (own credentials) for user and household
+  management, manual premium overrides, promo codes, and signup and conversion charts.
 
 ---
 
@@ -11,35 +104,44 @@ Web-first (Next.js), then iOS and Android via Expo.
 
 | Layer | Choice |
 |---|---|
-| Framework | Next.js 16 (App Router) |
+| Framework | Next.js 16 (App Router), React 19 |
 | Language | TypeScript |
-| Styling | Tailwind v4, shadcn/ui |
-| Database | Neon (serverless Postgres) via Drizzle ORM |
-| Auth | better-auth (email/password + child PIN) |
-| Payments | Stripe Checkout + webhooks |
-| OCR | Azure Document Intelligence (receipt scanning) |
-| Scheduling | Vercel Cron (7 jobs) |
-| Email | Resend (deferred, not yet active) |
-| State | TanStack Query + Zustand |
-| Testing | Jest (unit), Playwright (e2e) |
+| Styling | Tailwind CSS v4, shadcn/ui, Lucide icons |
+| Animation | framer-motion |
+| Database | Neon (serverless PostgreSQL) via Drizzle ORM |
+| Auth | better-auth (email/password, PIN child login, optional Google and Apple) |
+| Data fetching | TanStack Query |
+| Client state | Zustand |
+| Rich text | Tiptap |
+| Charts | Recharts |
+| Payments | Stripe (Checkout, webhooks, Customer Portal) |
+| Receipt OCR | Azure Document Intelligence (prebuilt-receipt) |
+| PDF export | pdfkit |
+| Email | Resend (transactional: invites, password reset) |
+| Weather | Open-Meteo (free, no API key) |
+| Scheduling | Vercel Cron (8 jobs) |
 | Hosting | Vercel |
+| Testing | Playwright (end-to-end) |
+
+The repository is an npm workspace. The web app lives at the root (`src/`); `apps/mobile`
+holds the future Expo app and `packages/*` holds shared code (`api-types`, `constants`,
+`utils`).
 
 ---
 
-## Prerequisites
+## Getting started
 
-- Node.js 20+
-- A [Neon](https://neon.tech) database (free tier works)
-- npm (no yarn/pnpm — lockfile is npm)
+### Prerequisites
 
----
+- Node.js 20 or newer (required by Next.js 16).
+- npm (the repo uses `package-lock.json`).
+- A [Neon](https://neon.tech) PostgreSQL database (the free tier is enough). Use the pooled
+  connection string (hostname contains `-pooler`).
 
-## Local development setup
-
-### 1. Clone and install
+### 1. Install
 
 ```bash
-git clone <repo-url>
+git clone https://github.com/Cremacious/roost.git
 cd roost
 npm install
 ```
@@ -50,50 +152,76 @@ npm install
 cp .env.example .env.local
 ```
 
-Open `.env.local` and fill in at minimum:
+Fill in the values in `.env.local`. See [Environment variables](#environment-variables)
+below and the annotated [`.env.example`](.env.example) for details. `validateEnv()` runs at
+server boot and throws if a required variable is missing, so the app will not start until
+every required value is set.
 
-```
-DATABASE_URL=           # Neon connection string
-BETTER_AUTH_SECRET=     # openssl rand -base64 32
-BETTER_AUTH_URL=        # http://localhost:3000 for local dev
-NEXT_PUBLIC_APP_URL=    # http://localhost:3000 for local dev
-CRON_SECRET=            # openssl rand -base64 32 (any value works locally)
-ADMIN_EMAIL=            # any email, e.g. admin@localhost
-ADMIN_PASSWORD=         # any strong password
-ADMIN_SESSION_SECRET=   # openssl rand -base64 32
-```
-
-Stripe and Azure keys are only needed if you are testing billing or receipt scanning.
-All other features work without them.
-
-### 3. Push schema to the database
+### 3. Push the schema to your database
 
 ```bash
 npm run db:push
 ```
 
-This creates all tables in your Neon database. Run this again any time the schema changes.
+This syncs the Drizzle schema to your Neon database. Run it again whenever the schema
+changes. There is no migration journal; `db:push` is the schema sync path.
 
-> **Warning:** Do not run `npm run db:migrate`. There is no migration journal in this repo.
-> `db:push` is the only supported schema migration path.
-
-### 4. (Optional) Seed test accounts
+### 4. (Optional) Seed test data
 
 ```bash
 npm run db:seed
 ```
 
-Creates fixed E2E test accounts. Only needed if you are running Playwright tests.
-Never run this against the production database.
+Creates the fixed QA accounts and sample content used by the end-to-end tests. Only needed
+for testing or a populated local playground. Never run this against production.
 
-### 5. Start the dev server
+### 5. Run the dev server
 
 ```bash
 npm run dev
 ```
 
-App runs at [http://localhost:3000](http://localhost:3000).
-Admin panel runs at [http://localhost:3000/admin](http://localhost:3000/admin).
+The app runs at [http://localhost:3000](http://localhost:3000) and the admin panel at
+[http://localhost:3000/admin](http://localhost:3000/admin).
+
+---
+
+## Environment variables
+
+Copy [`.env.example`](.env.example) to `.env.local`. The file is annotated with where each
+value comes from.
+
+### Required (the app will not boot without these)
+
+| Variable | Description |
+|---|---|
+| `DATABASE_URL` | Neon pooled PostgreSQL connection string. |
+| `BETTER_AUTH_SECRET` | Secret used to sign auth sessions (32+ chars). |
+| `BETTER_AUTH_URL` | Canonical deployed base URL (no trailing slash). |
+| `NEXT_PUBLIC_APP_URL` | Public base URL for invite links and redirects. |
+| `STRIPE_SECRET_KEY` | Stripe secret key (test mode until you go live). |
+| `STRIPE_WEBHOOK_SECRET` | Signing secret for the Stripe webhook endpoint. |
+| `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` | Stripe publishable key (client-side). |
+| `STRIPE_PRICE_ID` | Price ID for the $4/month subscription. |
+| `CRON_SECRET` | Bearer token that authenticates `/api/cron/*` routes. |
+
+### Optional (each feature stays disabled until its variables are set)
+
+| Variable | Description |
+|---|---|
+| `RESEND_API_KEY` | Resend key for transactional email. Missing means those emails are skipped. |
+| `AZURE_DOCUMENT_INTELLIGENCE_KEY` | Azure key for receipt scanning. |
+| `AZURE_DOCUMENT_INTELLIGENCE_ENDPOINT` | Azure Document Intelligence endpoint. |
+| `EXPO_ACCESS_TOKEN` | Expo push token for the future mobile app. |
+| `ADMIN_EMAIL` | Login email for the `/admin` panel. |
+| `ADMIN_PASSWORD` | Login password for the `/admin` panel. |
+| `ADMIN_JWT_SECRET` | Optional signing secret for admin JWTs; falls back to `BETTER_AUTH_SECRET`. |
+| `GOOGLE_AUTH_CLIENT_ID` | Enables "Continue with Google" (both Google vars required). |
+| `GOOGLE_AUTH_CLIENT_SECRET` | Google OAuth client secret. |
+| `APPLE_CLIENT_ID` | Enables Apple sign-in (all four Apple vars required). |
+| `APPLE_TEAM_ID` | Apple team ID. |
+| `APPLE_KEY_ID` | Apple key ID. |
+| `APPLE_PRIVATE_KEY` | Apple private key. |
 
 ---
 
@@ -101,50 +229,55 @@ Admin panel runs at [http://localhost:3000/admin](http://localhost:3000/admin).
 
 | Script | What it does |
 |---|---|
-| `npm run dev` | Start dev server (Turbopack) |
-| `npm run build` | Production build |
-| `npm run start` | Start production server locally |
-| `npm run lint` | Run ESLint |
-| `npm run db:push` | Sync Drizzle schema to the database |
-| `npm run db:seed` | Seed E2E test accounts (dev/staging only) |
-| `npm run db:studio` | Open Drizzle Studio (local DB browser) |
-| `npm test` | Run Jest unit tests |
-| `npm run test:coverage` | Jest with coverage report |
-| `npm run test:e2e` | Run Playwright e2e tests |
-| `npm run test:e2e:ui` | Playwright with interactive UI |
+| `npm run dev` | Start the Next.js dev server. |
+| `npm run build` | Production build. |
+| `npm run start` | Start the production server locally. |
+| `npm run lint` | Run ESLint. |
+| `npm run typecheck` | Type-check with `tsc --noEmit`. |
+| `npm run db:push` | Sync the Drizzle schema to the database. |
+| `npm run db:generate` | Generate Drizzle artifacts from the schema. |
+| `npm run db:migrate` | Run the SQL migration scripts in `scripts/migrate.ts`. |
+| `npm run db:studio` | Open Drizzle Studio to browse the database. |
+| `npm run db:seed` | Seed the QA test accounts and sample data. |
+| `npm run test:e2e` | Run the Playwright end-to-end suite. |
+| `npm run test:e2e:ui` | Run Playwright with the interactive UI. |
+| `npm run test:e2e:headed` | Run Playwright in headed mode. |
 
 ---
 
-## Running tests
+## Testing
 
-### Unit tests
-
-```bash
-npm test
-```
-
-No database connection required. Tests use mocks for all external dependencies.
-
-### E2E tests
-
-E2E tests require a running dev server and seeded test accounts.
+End-to-end tests use [Playwright](https://playwright.dev). They require seeded test accounts;
+global setup seeds the database and signs in the fixture accounts before the suite runs.
 
 ```bash
-# 1. Seed test accounts (first time only, or after DB reset)
+# Seed test data (first run, or after a database reset)
 npm run db:seed
 
-# 2. Run tests (dev server starts automatically via webServer config)
+# Run the suite (the dev server starts automatically via the webServer config)
 npm run test:e2e
 ```
 
-Playwright projects:
-- `free` — chores, grocery, navigation (authenticated as free admin)
-- `premium` — premium-gated features (authenticated as premium admin)
-- `unauthenticated` — signup, login, onboarding flows
-- `mobile` / `mobile-premium` — same flows on iPhone 14 viewport
+Playwright projects include `free`, `premium`, `unauthenticated`, and their mobile
+counterparts (iPhone 14 viewport). Saved auth state lives in `e2e/.auth/` (gitignored); if a
+run fails with auth errors, delete those files and re-run so global setup recreates them.
 
-Auth state is saved to `e2e/.auth/` (gitignored). If tests fail with auth errors,
-delete the `.auth` files and re-run — global setup will recreate them.
+Before pushing, it is also worth running the static checks:
+
+```bash
+npm run lint
+npm run typecheck
+npm run build
+```
+
+---
+
+## Deployment
+
+Roost deploys to [Vercel](https://vercel.com), with schema changes applied to Neon via
+`npm run db:push` and eight scheduled jobs defined in [`vercel.json`](vercel.json). For the
+full, ordered production runbook (environment setup, Stripe and Azure wiring, cron
+verification, smoke tests, and rollback), see [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md).
 
 ---
 
@@ -153,93 +286,49 @@ delete the `.auth` files and re-run — global setup will recreate them.
 ```
 src/
   app/
-    (auth)/           Login, signup, child login pages
-    (app)/            All authenticated app pages
-    (admin)/          Internal admin panel (/admin)
-    api/              API route handlers
+    (auth)/          Login, signup, child login
+    (app)/           Authenticated app pages (today, chores, lists, calendar,
+                     money, meals, notes, reminders, tasks, household, stats, settings)
+    (admin)/         Internal admin panel (/admin)
+    api/             API route handlers (includes api/cron/* scheduled jobs)
+    invite/          Public invite landing page
   components/
-    layout/           Shell, sidebar, top bar, bottom nav
-    shared/           Reused components (SlabCard, EmptyState, etc.)
-    ui/               shadcn primitives
-    [feature]/        Feature-specific components
+    layout/          Shell, sidebar, top bar, bottom nav
+    shared/          Reused components (SlabCard, EmptyState, DraggableSheet, etc.)
+    ui/              shadcn primitives
+    <feature>/       Feature-specific components (chores, money, meals, ...)
   db/
-    schema/           Drizzle schema files (one per domain)
+    schema/          Drizzle schema files, split by domain
   lib/
-    auth/             better-auth config + helpers
-    constants/        Colors, themes, limits, premium gate config
-    db/               Neon + Drizzle instance
-    hooks/            Shared React hooks
-    store/            Zustand stores
-    utils/            Pure utilities (no DOM dependencies)
-  types/              TypeScript types
+    auth/            better-auth config and helpers
+    constants/       Colors, plan limits, premium gate config
+    db/              Neon + Drizzle instance
+    hooks/           Shared React hooks
+    store/           Zustand stores
+    utils/           Pure utilities (no DOM dependencies)
+  proxy.ts           Route protection and onboarding guard (Next.js 16 middleware)
 
-drizzle/              Hand-written schema notes (not a migration chain)
-e2e/                  Playwright tests
-public/               Static assets
-vercel.json           Cron job schedules
+apps/mobile          Future Expo app (workspace)
+packages/            Shared workspace packages (api-types, constants, utils)
+e2e/                 Playwright tests
+docs/                Deployment runbook and design reference
+vercel.json          Cron job schedules
 ```
 
 ---
 
-## Environment variables
+## Contributing
 
-See [`.env.example`](.env.example) for the full annotated list with required/optional
-classification.
-
-**Required for the app to work:**
-`DATABASE_URL`, `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL`, `NEXT_PUBLIC_APP_URL`, `CRON_SECRET`,
-`ADMIN_EMAIL`, `ADMIN_PASSWORD`, `ADMIN_SESSION_SECRET`
-
-**Required for billing:**
-`STRIPE_SECRET_KEY`, `STRIPE_PRICE_ID`, `STRIPE_WEBHOOK_SECRET`
-
-**Required for receipt scanning:**
-`AZURE_DOCUMENT_INTELLIGENCE_ENDPOINT`, `AZURE_DOCUMENT_INTELLIGENCE_KEY`
-
-**Optional for observability forwarding:**
-`OBSERVABILITY_WEBHOOK_URL`, `NEXT_PUBLIC_OBSERVABILITY_ENABLED`
+- Issues and pull requests are tracked on the
+  [GitHub repository](https://github.com/Cremacious/roost).
+- [`docs/design-reference.html`](docs/design-reference.html) is the design source of truth
+  (component gallery, colors, and layout rules). Open it in a browser when building UI.
+- [`CHANGELOG.md`](CHANGELOG.md) records release history and the versioning process.
+- Project conventions and architecture notes live in `CLAUDE.md` at the repository root.
 
 ---
 
-## Production deploy
+## License
 
-See [`RUNBOOK.md`](RUNBOOK.md) for the full production deployment guide including:
-- First deploy checklist
-- Vercel environment variable setup
-- Database migration procedure
-- Stripe webhook registration
-- Cron job verification
-- Post-deploy smoke tests
-- Rollback procedure
-- Incident checklist
-
----
-
-## Admin panel
-
-The internal admin panel is at `/admin`. It is protected by `ADMIN_EMAIL` and
-`ADMIN_PASSWORD` env vars (separate from user accounts). Features:
-- User list with search and filters
-- Household list with subscription status
-- Manual premium override
-- Signup and conversion charts
-
----
-
-## Key design decisions
-
-**Schema migrations:** `db:push` only. Drizzle's push command diffs the live schema and
-applies changes. No migration chain exists. See `RUNBOOK.md` for the safe deploy order.
-
-**Cron auth:** All 7 cron routes authenticate via `Authorization: Bearer <CRON_SECRET>`.
-Vercel injects this header automatically. Do not pass the secret in query strings.
-
-**Premium gating:** `households.subscription_status` is the single source of truth.
-Check `useHousehold().isPremium` on the client, `requirePremium()` on the server.
-Never gate features by checking individual API response fields.
-
-**Child accounts:** Stored in both the better-auth `user` table and the app `users` table.
-Child accounts have no email (placeholder `child_<id>@roost.internal`). PIN is hashed.
-
-**Theme system:** 2 themes (default, midnight), both free. Per-user, stored in `users.theme`.
-Unknown theme keys resolve to default. Theme is server-rendered on initial load.
+Private and proprietary. All rights reserved. This repository is not open source and is not
+licensed for redistribution or reuse.

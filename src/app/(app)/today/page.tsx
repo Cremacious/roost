@@ -4,8 +4,10 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { motion } from 'framer-motion'
 import { format } from 'date-fns'
 import { useState } from 'react'
+import { toast } from 'sonner'
 import { HeroCard } from '@/components/today/HeroCard'
 import { ChoreRow } from '@/components/today/ChoreRow'
+import { ReminderRow } from '@/components/today/ReminderRow'
 import { SnapshotStrip } from '@/components/today/SnapshotStrip'
 import { SkeletonCard, Skeleton } from '@/components/ui/skeleton'
 import WelcomeModal from '@/components/shared/WelcomeModal'
@@ -14,10 +16,13 @@ import RewardsWidget from '@/components/shared/RewardsWidget'
 
 interface ChoreItem { id: string; title: string; nextDueAt: string | null; frequency?: string; overdue: boolean }
 interface HeroReminderItem { id: string; title: string; nextRemindAt: string; ownedByUser?: boolean }
+interface ReminderItem { id: string; title: string; nextRemindAt: string; frequency: string; notifyType: string; ownedByUser: boolean }
 type HeroType = 'overdue_chore' | 'due_chore' | 'reminder' | 'all_clear'
 interface TodayData {
   hero: { type: HeroType; item: ChoreItem | HeroReminderItem | null }
   chores: ChoreItem[]
+  reminders: ReminderItem[]
+  attentionCount: number
   snapshot: {
     meal: { name: string; slotDate: string; slotType: 'breakfast' | 'lunch' | 'dinner' | 'snack' } | null
     money: { balance: number; label: 'owed' | 'owing' | 'clear' }
@@ -78,6 +83,9 @@ export default function TodayPage() {
         next.delete(choreId)
         return next
       })
+      toast.error('Could not complete chore', {
+        description: 'Something went wrong. Please try again.',
+      })
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ['today'] })
@@ -103,6 +111,9 @@ export default function TodayPage() {
         next.delete(id)
         return next
       })
+      toast.error('Could not complete reminder', {
+        description: 'Something went wrong. Please try again.',
+      })
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ['today'] })
@@ -122,6 +133,9 @@ export default function TodayPage() {
         const next = new Set(prev)
         next.delete(id)
         return next
+      })
+      toast.error('Could not snooze reminder', {
+        description: 'Something went wrong. Please try again.',
       })
     },
     onSettled: () => {
@@ -175,18 +189,19 @@ export default function TodayPage() {
   }
 
   const visibleChores = data.chores.filter(c => !completedIds.has(c.id))
+  const visibleReminders = (data.reminders ?? []).filter(r => !dismissedReminderIds.has(r.id))
 
   // Compute the hero client-side from the same optimistic state that drives the
-  // chore list, so completing/dismissing the hero item advances it instantly
-  // (to the next chore, the reminder, or all-clear) instead of waiting on the
-  // 30s refetch. This also closes the double-submit window: once the hero chore
-  // is optimistically completed it is no longer the hero, so its button is gone.
+  // unified list, so completing/dismissing the hero item advances it instantly
+  // (to the next chore, the next reminder, or all-clear) instead of waiting on
+  // the 30s refetch. This also closes the double-submit window: once the hero
+  // chore is optimistically completed it is no longer the hero, so its button
+  // is gone. The reminder source is the full visible-reminder set (not just the
+  // single server hero item), so a reminder still promotes to the hero after all
+  // chores are cleared.
   const overdueVisible = visibleChores.filter(c => c.overdue)
   const dueVisible = visibleChores.filter(c => !c.overdue)
-  const serverReminder =
-    data.hero.type === 'reminder' ? (data.hero.item as HeroReminderItem | null) : null
-  const reminderStillActive =
-    serverReminder !== null && !dismissedReminderIds.has(serverReminder.id)
+  const primaryReminder = visibleReminders[0] ?? null
 
   let heroType: HeroType
   let heroItem: ChoreItem | HeroReminderItem | null
@@ -196,13 +211,23 @@ export default function TodayPage() {
   } else if (dueVisible.length > 0) {
     heroType = 'due_chore'
     heroItem = dueVisible[0]
-  } else if (reminderStillActive) {
+  } else if (primaryReminder) {
     heroType = 'reminder'
-    heroItem = serverReminder
+    heroItem = {
+      id: primaryReminder.id,
+      title: primaryReminder.title,
+      nextRemindAt: primaryReminder.nextRemindAt,
+      ownedByUser: primaryReminder.ownedByUser,
+    }
   } else {
     heroType = 'all_clear'
     heroItem = null
   }
+
+  // Total still needing attention (chores + reminders), recomputed from the
+  // optimistic sets so the count drops the instant an item is actioned.
+  const attentionCount = visibleChores.length + visibleReminders.length
+  const moreCount = attentionCount > 1 ? attentionCount - 1 : 0
 
   const heroActionPending =
     completeMutation.isPending ||
@@ -231,26 +256,37 @@ export default function TodayPage() {
           onReminderDone={id => reminderDoneMutation.mutate(id)}
           onReminderSnooze={id => reminderSnoozeMutation.mutate(id)}
           actionDisabled={heroActionPending}
+          moreCount={moreCount}
         />
 
-        {visibleChores.length > 0 && (
+        {/* Unified "Needs attention" list: overdue + due-today chores and due
+            reminders together, each with its own inline action. The hero item
+            is also shown here (same include-the-primary convention the chore
+            list used before), so completing it from either place works. */}
+        {attentionCount > 0 && (
           <div style={{
             backgroundColor: 'var(--roost-surface)',
             border: '1.5px solid var(--roost-border)',
-            borderBottom: `4px solid ${visibleChores.some(c => c.overdue) ? '#B91C1C' : '#F59E0B'}`,
+            borderBottom: `4px solid ${
+              visibleChores.some(c => c.overdue)
+                ? '#B91C1C'
+                : visibleChores.length > 0
+                  ? '#F59E0B'
+                  : '#06B6D4'
+            }`,
             borderRadius: 16,
             overflow: 'hidden',
           }}>
             {/* Slab header */}
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px 0' }}>
-              <span style={{ fontSize: 13, fontWeight: 800, color: 'var(--roost-text-primary)' }}>Your chores</span>
-              <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--roost-text-muted)' }}>{visibleChores.length} to do</span>
+              <span style={{ fontSize: 13, fontWeight: 800, color: 'var(--roost-text-primary)' }}>Needs attention</span>
+              <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--roost-text-muted)' }}>{attentionCount} to do</span>
             </div>
-            {/* Rows */}
+            {/* Rows: chores first (overdue then due today), then reminders */}
             <div style={{ padding: '6px 16px 14px' }}>
               {visibleChores.map((chore, i) => (
                 <motion.div
-                  key={chore.id}
+                  key={`chore-${chore.id}`}
                   initial={{ opacity: 0, y: 6 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: Math.min(i * 0.04, 0.2), duration: 0.15 }}
@@ -262,8 +298,26 @@ export default function TodayPage() {
                     frequency={chore.frequency}
                     nextDueAt={chore.nextDueAt}
                     completed={completedIds.has(chore.id)}
-                    isLast={i === visibleChores.length - 1}
+                    isLast={i === visibleChores.length - 1 && visibleReminders.length === 0}
                     onComplete={id => completeMutation.mutate(id)}
+                  />
+                </motion.div>
+              ))}
+              {visibleReminders.map((reminder, i) => (
+                <motion.div
+                  key={`reminder-${reminder.id}`}
+                  initial={{ opacity: 0, y: 6 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: Math.min((visibleChores.length + i) * 0.04, 0.2), duration: 0.15 }}
+                >
+                  <ReminderRow
+                    id={reminder.id}
+                    title={reminder.title}
+                    frequency={reminder.frequency}
+                    ownedByUser={reminder.ownedByUser}
+                    completed={dismissedReminderIds.has(reminder.id)}
+                    isLast={i === visibleReminders.length - 1}
+                    onComplete={id => reminderDoneMutation.mutate(id)}
                   />
                 </motion.div>
               ))}

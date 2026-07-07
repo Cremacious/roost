@@ -173,6 +173,7 @@ export async function GET() {
         id: reminders.id,
         title: reminders.title,
         nextRemindAt: reminders.nextRemindAt,
+        frequency: reminders.frequency,
         notifyType: reminders.notifyType,
         notifyUserIds: reminders.notifyUserIds,
         createdBy: reminders.createdBy,
@@ -280,9 +281,11 @@ export async function GET() {
   let heroType: HeroType = 'all_clear'
   let heroItem: object | null = null
 
-  // Resolve the soonest reminder actually relevant to this user, mirroring the
-  // canonical filter in GET /api/reminders (self / specific / household).
-  const relevantReminder = dueReminders.find(r => {
+  // Every due reminder actually relevant to this user, mirroring the canonical
+  // filter in GET /api/reminders (self / specific / household). We keep the whole
+  // set (not just the first) so due reminders can appear in the unified
+  // "needs attention" list and are never buried behind a chore.
+  const relevantReminders = dueReminders.filter(r => {
     if (r.notifyType === 'household') return true
     if (r.notifyType === 'self') return r.createdBy === userId
     if (r.notifyType === 'specific') {
@@ -290,7 +293,26 @@ export async function GET() {
       return r.createdBy === userId || ids.includes(userId)
     }
     return r.createdBy === userId
-  }) ?? null
+  })
+
+  // Shape the reminders the UI needs (id + title for display, nextRemindAt for
+  // sorting, frequency so the row knows one-time vs recurring, notifyType +
+  // ownedByUser for the "set by you / a housemate" caption).
+  const reminderItems = relevantReminders.map(r => ({
+    id: r.id,
+    title: r.title,
+    nextRemindAt: r.nextRemindAt.toISOString(),
+    frequency: r.frequency ?? 'once',
+    notifyType: r.notifyType,
+    ownedByUser: r.createdBy === userId,
+  }))
+
+  const relevantReminder = relevantReminders[0] ?? null
+
+  // Total number of things needing attention: overdue + due-today chores plus
+  // every relevant due reminder. Drives the "+N more need attention" count and
+  // gates the all-clear state.
+  const attentionCount = allChores.length + reminderItems.length
 
   if (overdueChores.length > 0) {
     heroType = 'overdue_chore'
@@ -341,6 +363,8 @@ export async function GET() {
   return NextResponse.json({
     hero: { type: heroType, item: heroItem },
     chores: allChores,
+    reminders: reminderItems,
+    attentionCount,
     snapshot: {
       meal: nextMeal
         ? { name: nextMeal.mealName, slotDate: nextMeal.slotDate, slotType: nextMeal.slotType }

@@ -16,6 +16,9 @@ interface HeroCardProps {
   /** Disables the primary action while a mutation for this hero is in flight,
    *  preventing a rapid double-submit before the refetch advances the hero. */
   actionDisabled?: boolean
+  /** Number of OTHER items still needing attention beyond this hero item.
+   *  When > 0 the hero shows a subtle "+N more need attention" line. */
+  moreCount?: number
 }
 
 function formatFreq(f?: string | null): string {
@@ -34,7 +37,7 @@ const BG: Record<string, string> = {
   all_clear:     '#22C55E',
 }
 
-export function HeroCard({ type, item, onCompleteChore, onReminderDone, onReminderSnooze, actionDisabled = false }: HeroCardProps) {
+export function HeroCard({ type, item, onCompleteChore, onReminderDone, onReminderSnooze, actionDisabled = false, moreCount = 0 }: HeroCardProps) {
   const choreItem  = (type === 'overdue_chore' || type === 'due_chore') ? item as ChoreItem | null : null
   const reminderItem = type === 'reminder' ? item as ReminderItem | null : null
   const bg = BG[type]
@@ -148,6 +151,13 @@ export function HeroCard({ type, item, onCompleteChore, onReminderDone, onRemind
           </Link>
         )}
       </div>
+
+      {/* More-to-do count: only when other items still need attention */}
+      {type !== 'all_clear' && moreCount > 0 && (
+        <p style={{ fontSize: 11, fontWeight: 800, color: 'rgba(255,255,255,0.85)', margin: '13px 0 0', position: 'relative', zIndex: 1 }}>
+          +{moreCount} more need attention
+        </p>
+      )}
     </div>
   )
 }

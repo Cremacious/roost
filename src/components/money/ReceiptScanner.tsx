@@ -5,7 +5,7 @@ import { Camera, Upload, AlertCircle, Loader2, PackageOpen, ArrowLeft } from 'lu
 import { toast } from 'sonner'
 import type { ParsedReceipt } from '@/lib/utils/azureReceipts'
 
-const COLOR = '#22C55E'
+const COLOR = '#159143'
 const COLOR_DARK = '#15803D'
 const AMBER = '#F59E0B'
 const AMBER_DARK = '#C87D00'

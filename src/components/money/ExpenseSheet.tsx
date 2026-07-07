@@ -10,7 +10,7 @@ import { LineItemReview, type LineItem } from './LineItemReview'
 import { LineItemGrid, type AssignedSplit } from './LineItemGrid'
 import type { ParsedReceipt } from '@/lib/utils/azureReceipts'
 
-const COLOR = '#22C55E'
+const COLOR = '#159143'
 const COLOR_DARK = '#15803D'
 
 // ── Types ──────────────────────────────────────────────────────────────────

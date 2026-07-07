@@ -49,7 +49,7 @@ function EmptyState({ color, icon, title, body, buttonLabel, onButtonClick }: {
   )
 }
 
-const COLOR = '#22C55E'
+const COLOR = '#159143'
 const COLOR_DARK = '#15803D'
 const SPEND_COLORS = ['#22C55E', '#3B82F6', '#F59E0B', '#A855F7', '#F97316']
 
@@ -264,7 +264,7 @@ function DashboardTab({ currentUserId, members, isPremium, onOpenExpense, onOpen
         <div className="relative z-10 flex flex-col gap-5 lg:grid lg:items-center lg:gap-x-10" style={{ gridTemplateColumns: 'auto 1fr auto' }}>
           {/* Net balance */}
           <div>
-            <div style={{ fontSize: 11, fontWeight: 800, color: 'rgba(255,255,255,0.7)', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 6 }}>Net balance</div>
+            <div style={{ fontSize: 11, fontWeight: 800, color: '#fff', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 6 }}>Net balance</div>
             <div style={{ fontSize: 48, fontWeight: 900, color: 'white', letterSpacing: -2, lineHeight: 1 }}>
               {netPositive ? '+' : ''}{netBalance < 0 ? '-' : ''}${Math.abs(netBalance).toFixed(2)}
             </div>
@@ -273,21 +273,21 @@ function DashboardTab({ currentUserId, members, isPremium, onOpenExpense, onOpen
           {/* Stat chips */}
           <div className="grid grid-cols-2 gap-3 lg:flex lg:flex-wrap lg:gap-3">
             <div style={{ background: 'rgba(255,255,255,0.15)', backdropFilter: 'blur(8px)', borderRadius: 14, padding: '14px 18px' }}>
-              <div style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.7)', marginBottom: 4 }}>You&apos;re owed</div>
-              <div style={{ fontSize: 20, fontWeight: 900, color: '#BBF7D0' }}>${(balances?.totalOwed ?? 0).toFixed(2)}</div>
+              <div style={{ fontSize: 10, fontWeight: 700, color: '#fff', marginBottom: 4 }}>You&apos;re owed</div>
+              <div style={{ fontSize: 20, fontWeight: 900, color: '#fff' }}>${(balances?.totalOwed ?? 0).toFixed(2)}</div>
             </div>
             <div style={{ background: 'rgba(255,255,255,0.15)', backdropFilter: 'blur(8px)', borderRadius: 14, padding: '14px 18px' }}>
-              <div style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.7)', marginBottom: 4 }}>You owe</div>
+              <div style={{ fontSize: 10, fontWeight: 700, color: '#fff', marginBottom: 4 }}>You owe</div>
               <div style={{ fontSize: 20, fontWeight: 900, color: '#FECACA' }}>${(balances?.totalOwe ?? 0).toFixed(2)}</div>
             </div>
             <div style={{ background: 'rgba(255,255,255,0.15)', backdropFilter: 'blur(8px)', borderRadius: 14, padding: '14px 18px' }}>
-              <div style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.7)', marginBottom: 4 }}>Spent this month</div>
+              <div style={{ fontSize: 10, fontWeight: 700, color: '#fff', marginBottom: 4 }}>Spent this month</div>
               <div style={{ fontSize: 20, fontWeight: 900, color: 'white' }}>${(balances?.totalSpentThisMonth ?? 0).toFixed(2)}</div>
             </div>
             {isPremium && budgetSummary && (
               <div style={{ background: 'rgba(255,255,255,0.15)', backdropFilter: 'blur(8px)', borderRadius: 14, padding: '14px 18px' }}>
-                <div style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.7)', marginBottom: 4 }}>Budget remaining</div>
-                <div style={{ fontSize: 20, fontWeight: 900, color: '#BBF7D0' }}>${Math.max(0, (budgetSummary.totalCap ?? 0) - (budgetSummary.totalSpent ?? 0)).toFixed(2)}</div>
+                <div style={{ fontSize: 10, fontWeight: 700, color: '#fff', marginBottom: 4 }}>Budget remaining</div>
+                <div style={{ fontSize: 20, fontWeight: 900, color: '#fff' }}>${Math.max(0, (budgetSummary.totalCap ?? 0) - (budgetSummary.totalSpent ?? 0)).toFixed(2)}</div>
               </div>
             )}
           </div>

@@ -9,7 +9,7 @@ import {
 } from 'date-fns'
 import { DraggableSheet } from '@/components/shared/DraggableSheet'
 
-const COLOR = '#22C55E'
+const COLOR = '#159143'
 const COLOR_DARK = '#15803D'
 const LABEL = '#374151'
 

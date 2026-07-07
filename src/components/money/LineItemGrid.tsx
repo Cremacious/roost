@@ -3,7 +3,7 @@
 import { useState, useCallback, useRef } from 'react'
 import { AlertTriangle, ArrowLeft, Check, Minus } from 'lucide-react'
 
-const COLOR = '#22C55E'
+const COLOR = '#159143'
 const COLOR_DARK = '#15803D'
 const AMBER = '#F59E0B'
 const AMBER_DARK = '#C87D00'

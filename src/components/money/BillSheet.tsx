@@ -11,7 +11,7 @@ interface Category {
   color: string
 }
 
-const COLOR = '#22C55E'
+const COLOR = '#159143'
 const COLOR_DARK = '#15803D'
 
 type Frequency = 'monthly' | 'weekly' | 'yearly'

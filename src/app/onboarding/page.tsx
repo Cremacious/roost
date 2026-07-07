@@ -560,7 +560,7 @@ export default function OnboardingPage() {
                   display: 'block',
                 }}
               >
-                Go to dashboard
+                Go to Roost
               </button>
             </div>
           )}

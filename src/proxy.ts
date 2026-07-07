@@ -3,7 +3,7 @@ import type { NextRequest } from 'next/server'
 import { auth } from '@/lib/auth'
 
 // Routes anyone can visit without a session
-const PUBLIC_ROUTES = ['/', '/login', '/signup', '/child-login', '/privacy', '/terms', '/forgot-password', '/reset-password']
+const PUBLIC_ROUTES = ['/', '/login', '/signup', '/child-login', '/privacy', '/terms', '/forgot-password', '/reset-password', '/sitemap.xml', '/robots.txt']
 
 // ── In-memory rate limiter ────────────────────────────────────────────────────
 // Per-Vercel-instance sliding window. Resets on cold start — acceptable for a
@@ -15,7 +15,7 @@ const RATE_LIMIT_MAX = 10 // requests per window per IP
 const RATE_LIMITED_PATHS = [
   '/api/auth/sign-in/email',
   '/api/auth/sign-up/email',
-  '/api/auth/forget-password',
+  '/api/auth/request-password-reset',
   '/api/auth/child-login',
 ]
 

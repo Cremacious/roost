@@ -3,7 +3,6 @@ import { db } from "../../src/lib/db";
 import {
   account,
   calendarEvents,
-  choreCategories,
   choreCompletions,
   chores,
   eventAttendees,
@@ -208,7 +207,6 @@ export async function cleanupPlaywrightTestData(): Promise<void> {
     await db.delete(householdInvites).where(inArray(householdInvites.householdId, householdIds));
     await db.delete(reminders).where(inArray(reminders.householdId, householdIds));
     await db.delete(chores).where(inArray(chores.householdId, householdIds));
-    await db.delete(choreCategories).where(inArray(choreCategories.householdId, householdIds));
     await db.delete(groceryItems).where(inArray(groceryItems.householdId, householdIds));
     await db.delete(groceryLists).where(inArray(groceryLists.householdId, householdIds));
     await db.delete(calendarEvents).where(inArray(calendarEvents.householdId, householdIds));

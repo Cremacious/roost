@@ -21,27 +21,21 @@ export const metadata: Metadata = {
   },
   description: 'Home, sorted. The household OS for families, roommates, and college students.',
   metadataBase: new URL(APP_URL),
+  alternates: {
+    canonical: './',
+  },
   openGraph: {
     title: 'Roost',
     description: 'Home, sorted. The household OS for families, roommates, and college students.',
     url: APP_URL,
     siteName: 'Roost',
-    images: [
-      {
-        url: '/og-image.png',
-        width: 1200,
-        height: 630,
-        alt: 'Roost — Home, sorted.',
-      },
-    ],
     locale: 'en_US',
     type: 'website',
   },
   twitter: {
-    card: 'summary_large_image',
+    card: 'summary',
     title: 'Roost',
     description: 'Home, sorted. The household OS for families, roommates, and college students.',
-    images: ['/og-image.png'],
   },
   robots: {
     index: true,

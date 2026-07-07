@@ -393,7 +393,7 @@ export default function BillingPage() {
                           opacity: isCheckingOut ? 0.7 : 1,
                         }}
                       >
-                        {isCheckingOut ? 'Redirecting...' : 'Upgrade to Premium — $4/mo'}
+                        {isCheckingOut ? 'Redirecting...' : 'Upgrade to Premium, $4/mo'}
                       </motion.button>
                     )}
 

@@ -2,22 +2,6 @@ import { pgTable, text, timestamp, integer, index } from 'drizzle-orm/pg-core'
 import { households } from './households'
 import { users } from './users'
 
-export const choreCategories = pgTable('chore_categories', {
-  id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
-  householdId: text('household_id')
-    .notNull()
-    .references(() => households.id, { onDelete: 'cascade' }),
-  name: text('name').notNull(),
-  icon: text('icon').notNull().default('Home'),
-  color: text('color').notNull().default('#EF4444'),
-  isDefault: text('is_default').notNull().default('false'),
-  isCustom: text('is_custom').notNull().default('false'),
-  suggestedBy: text('suggested_by').references(() => users.id),
-  status: text('status').notNull().default('active').$type<'active' | 'pending' | 'rejected'>(),
-  createdAt: timestamp('created_at').notNull().defaultNow(),
-  deletedAt: timestamp('deleted_at'),
-})
-
 export const chores = pgTable('chores', {
   id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
   householdId: text('household_id')
@@ -26,7 +10,6 @@ export const chores = pgTable('chores', {
   title: text('title').notNull(),
   description: text('description'),
   assignedTo: text('assigned_to').references(() => users.id),
-  categoryId: text('category_id').references(() => choreCategories.id),
   frequency: text('frequency').notNull().default('weekly').$type<
     'daily' | 'weekly' | 'biweekly' | 'monthly' | 'custom'
   >(),

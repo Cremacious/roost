@@ -1,7 +1,7 @@
 import type { LucideIcon } from 'lucide-react'
 import {
   CheckSquare, ShoppingBag, DollarSign, CalendarDays,
-  FileText, Bell, UtensilsCrossed, Users, Star, BarChart2, Tag, UserPlus, Home,
+  FileText, Bell, UtensilsCrossed, Users, Star, BarChart2, UserPlus, Home,
   Download,
 } from 'lucide-react'
 
@@ -136,16 +136,6 @@ export const PREMIUM_GATE_CONFIG: Record<string, PremiumGateConfig> = {
     featureColor: 'expenses',
     featureHex: '#22C55E',
     featureDarkHex: '#159040',
-  },
-  'chore-categories': {
-    icon: Tag,
-    title: 'Unlock custom categories',
-    subtitle: 'Organize chores the way your household actually works.',
-    perks: ['Create unlimited custom categories', 'Members can suggest new ones', 'Custom icons and colors'],
-    valueProp: 'Your household, your categories.',
-    featureColor: 'chores',
-    featureHex: '#EF4444',
-    featureDarkHex: '#C93B3B',
   },
   members: {
     icon: Users,

@@ -76,6 +76,12 @@ jobs:
     name: Playwright E2E
     runs-on: ubuntu-latest
     needs: verify
+    # E2E is PAUSED. This job only runs when the repo variable RUN_E2E == "true".
+    # It is currently "false" so Playwright is skipped on all pushes and PRs, keeping
+    # CI fast while the e2e suite triage is on hold (parked in PR #100).
+    # To resume: set RUN_E2E=true in repo Settings > Secrets and variables > Actions >
+    # Variables, or run: gh variable set RUN_E2E --repo Cremacious/roost --body true
+    if: ${{ vars.RUN_E2E == 'true' }}
   
     env:
       CI: true

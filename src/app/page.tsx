@@ -1059,7 +1059,7 @@ export default async function HomePage() {
                   </div>
                   <div className="cal-event" style={{ background: 'var(--blue-light)' }}>
                     <div className="cal-event-dot" style={{ background: 'var(--blue)' }}></div>
-                    <span className="cal-event-text">Emma — Soccer practice</span>
+                    <span className="cal-event-text">Emma: Soccer practice</span>
                     <span className="cal-event-time">4:00 PM</span>
                   </div>
                   <div className="cal-event" style={{ background: 'var(--orange-light)' }}>
@@ -1069,7 +1069,7 @@ export default async function HomePage() {
                   </div>
                   <div className="cal-event" style={{ background: 'var(--purple-light)' }}>
                     <div className="cal-event-dot" style={{ background: 'var(--purple)' }}></div>
-                    <span className="cal-event-text">Jake — Piano lesson</span>
+                    <span className="cal-event-text">Jake: Piano lesson</span>
                     <span className="cal-event-time">Thu 5 PM</span>
                   </div>
                 </div>
@@ -1089,7 +1089,7 @@ export default async function HomePage() {
                 </svg>
               </div>
               <h3 style={{ color: 'var(--gray-900)' }}>Shared notes</h3>
-              <p style={{ color: 'var(--gray-600)' }}>Wi-Fi password, vet number, house rules, landlord&apos;s email — everything the household needs in one searchable place.</p>
+              <p style={{ color: 'var(--gray-600)' }}>Wi-Fi password, vet number, house rules, landlord&apos;s email. Everything the household needs in one searchable place.</p>
             </div>
             <div className="bento-card reveal-pop stagger-2" style={{ background: 'var(--cyan-light)', color: 'var(--cyan)' }}>
               <div className="bento-icon" style={{ background: 'rgba(6,182,212,0.15)' }}>
@@ -1109,7 +1109,7 @@ export default async function HomePage() {
                 </svg>
               </div>
               <h3 style={{ color: 'var(--gray-900)' }}>Child accounts</h3>
-              <p style={{ color: 'var(--gray-600)' }}>Kids log in with a simple PIN. They see chores and rewards — you control the rest.</p>
+              <p style={{ color: 'var(--gray-600)' }}>Kids log in with a simple PIN. They see chores and rewards, and you control the rest.</p>
             </div>
           </div>
         </div>

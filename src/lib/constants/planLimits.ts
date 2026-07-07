@@ -61,7 +61,6 @@ export const FEATURE_ACCESS = {
   choreLeaderboard: { free: false, premium: true },
   choreHistory: { free: false, premium: true }, // page: /chores/history, api: /api/chores/history
   rewards: { free: false, premium: true },
-  customChoreCategories: { free: false, premium: true },
   // Tasks
   recurringTasks: { free: false, premium: true }, // stored-but-inert today; regeneration engine is a follow-up
   // Calendar

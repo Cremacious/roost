@@ -1,6 +1,11 @@
 import { test, expect } from '@playwright/test'
 
-// Runs under the "free" project (storageState = free admin).
+// Runs under the "free" project, but uses the premium-admin session: the free
+// household is capped at one child by the seed (Test Child), so creating a
+// throwaway child there would hit the CHILDREN_LIMIT gate. The premium house has
+// no child cap. The upgrade flag flow itself is not premium gated.
+test.use({ storageState: 'e2e/.auth/premium-admin.json' })
+
 test('admin can enable child upgrade and the flag flows through the API', async ({ request }) => {
   const suffix = Date.now()
   // 1. Create a throwaway child as the admin.

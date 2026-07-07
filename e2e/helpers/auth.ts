@@ -105,7 +105,8 @@ export async function createHousehold(page: Page, name = HOUSEHOLD_NAME) {
   const householdInput = page.locator('input[placeholder*="Johnson" i]').first();
   await householdInput.fill(name);
   await page.click("text=Create household");
-  await page.click("text=Go to dashboard");
+  // Step 3 is a success screen; the CTA reads "Go to Roost" and routes to /today.
+  await page.click("text=Go to Roost");
   await page.waitForLoadState("networkidle", { timeout: 15000 }).catch(() => {});
   await page.waitForURL("**/today", { timeout: 15000 });
 }

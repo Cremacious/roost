@@ -50,13 +50,14 @@ test.describe("Invite — valid token renders for unauthenticated visitor", () =
     page,
     context,
   }) => {
-    // Create the invite as premium admin
+    // Create the invite as premium admin. The route expects camelCase
+    // expiresInDays and returns the token at the top level.
     const res = await page.request.post("/api/household/invite", {
-      data: { expires_in_days: 1 },
+      data: { expiresInDays: 1 },
     });
     expect(res.ok()).toBeTruthy();
     const body = await res.json();
-    const token: string = body.invite?.token;
+    const token: string = body.token;
     expect(token).toBeTruthy();
 
     // Open invite page in a fresh unauthenticated context

@@ -24,8 +24,8 @@ test.describe("Onboarding", () => {
     const householdInput = page.locator('input[placeholder*="Johnson" i]').first();
     await householdInput.fill("My Test House");
     await page.click("text=Create household");
-    // Step 3 is a confirmation screen — click "Go to dashboard" to navigate
-    await page.click("text=Go to dashboard");
+    // Step 3 is a confirmation screen; the CTA reads "Go to Roost" and routes to /today
+    await page.click("text=Go to Roost");
     await expect(page).toHaveURL(/\/today/);
   });
 });

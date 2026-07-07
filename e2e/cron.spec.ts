@@ -95,7 +95,7 @@ test.describe("Cron routes — authorized execution", () => {
     expect(typeof body.processed).toBe("number");
   });
 
-  test("GET /api/cron/rewards → 200 with numeric processed count and payouts array", async ({
+  test("GET /api/cron/rewards → 200 with numeric payout counts", async ({
     page,
   }) => {
     const res = await page.request.get("/api/cron/rewards", {
@@ -103,11 +103,11 @@ test.describe("Cron routes — authorized execution", () => {
     });
     expect(res.ok()).toBeTruthy();
     const body = (await res.json()) as {
-      processed: unknown;
-      payouts: unknown;
+      payoutsCreated: unknown;
+      expensesCreated: unknown;
     };
-    expect(typeof body.processed).toBe("number");
-    expect(Array.isArray(body.payouts)).toBe(true);
+    expect(typeof body.payoutsCreated).toBe("number");
+    expect(typeof body.expensesCreated).toBe("number");
   });
 
   test("GET /api/cron/subscription → 200 with numeric expired count", async ({
@@ -121,18 +121,18 @@ test.describe("Cron routes — authorized execution", () => {
     expect(typeof body.expired).toBe("number");
   });
 
-  test("GET /api/cron/settlement-reminders → 200 with numeric reminded count", async ({
+  test("GET /api/cron/settlement-reminders → 200 with numeric notified count", async ({
     page,
   }) => {
     const res = await page.request.get("/api/cron/settlement-reminders", {
       headers: cronHeaders,
     });
     expect(res.ok()).toBeTruthy();
-    const body = (await res.json()) as { reminded: unknown };
-    expect(typeof body.reminded).toBe("number");
+    const body = (await res.json()) as { notified: unknown };
+    expect(typeof body.notified).toBe("number");
   });
 
-  test("GET /api/cron/recurring-expenses → 200 with created/skipped/reminded counts", async ({
+  test("GET /api/cron/recurring-expenses → 200 with created/skipped counts", async ({
     page,
   }) => {
     const res = await page.request.get("/api/cron/recurring-expenses", {
@@ -142,11 +142,9 @@ test.describe("Cron routes — authorized execution", () => {
     const body = (await res.json()) as {
       created: unknown;
       skipped: unknown;
-      reminded: unknown;
     };
     expect(typeof body.created).toBe("number");
     expect(typeof body.skipped).toBe("number");
-    expect(typeof body.reminded).toBe("number");
   });
 
   test("GET /api/cron/budget-reset → 200 with numeric reset count", async ({
@@ -160,15 +158,14 @@ test.describe("Cron routes — authorized execution", () => {
     expect(typeof body.reset).toBe("number");
   });
 
-  test("GET /api/cron/guest-expiry → 200 with numeric expired count and timestamp", async ({
+  test("GET /api/cron/guest-expiry → 200 with numeric removed count", async ({
     page,
   }) => {
     const res = await page.request.get("/api/cron/guest-expiry", {
       headers: cronHeaders,
     });
     expect(res.ok()).toBeTruthy();
-    const body = (await res.json()) as { expired: unknown; timestamp: unknown };
-    expect(typeof body.expired).toBe("number");
-    expect(typeof body.timestamp).toBe("string");
+    const body = (await res.json()) as { removed: unknown };
+    expect(typeof body.removed).toBe("number");
   });
 });

@@ -3,6 +3,11 @@ import { getSession, getUserHousehold, isHouseholdPremium } from '@/lib/auth/hel
 import { parseReceiptImage } from '@/lib/utils/azureReceipts'
 import { createRateLimiter } from '@/lib/utils/rateLimit'
 
+// The Azure Document Intelligence SDK (@azure/ai-form-recognizer) relies on
+// Node APIs (Buffer, long-poll HTTP), so pin this route to the Node.js runtime
+// rather than letting it be bundled for Edge.
+export const runtime = 'nodejs'
+
 const MAX_BASE64_LENGTH = 14_000_000 // ~10MB
 
 // Per-user burst limit: 10 scans per 5 minutes.

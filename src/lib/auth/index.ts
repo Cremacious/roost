@@ -26,14 +26,25 @@ const appleProvider =
       }
     : {}
 
+// Google is only registered when both env vars are present, so a deploy without
+// Google credentials keeps email/password login working instead of wiring
+// undefined values into the provider config.
+// Add GOOGLE_AUTH_CLIENT_ID, GOOGLE_AUTH_CLIENT_SECRET to enable it.
+const googleProvider =
+  process.env.GOOGLE_AUTH_CLIENT_ID && process.env.GOOGLE_AUTH_CLIENT_SECRET
+    ? {
+        google: {
+          clientId: process.env.GOOGLE_AUTH_CLIENT_ID,
+          clientSecret: process.env.GOOGLE_AUTH_CLIENT_SECRET,
+        },
+      }
+    : {}
+
 export const auth = betterAuth({
   secret: process.env.BETTER_AUTH_SECRET!,
   baseURL: process.env.BETTER_AUTH_URL ?? process.env.NEXT_PUBLIC_APP_URL!,
   socialProviders: {
-    google: {
-      clientId: process.env.GOOGLE_AUTH_CLIENT_ID!,
-      clientSecret: process.env.GOOGLE_AUTH_CLIENT_SECRET!,
-    },
+    ...googleProvider,
     ...appleProvider,
   },
   database: drizzleAdapter(db, {

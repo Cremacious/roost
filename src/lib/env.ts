@@ -65,6 +65,11 @@ const ENV_SPEC: EnvSpec[] = [
     required: true,
     description: 'Stripe publishable key (safe to expose client-side)',
   },
+  {
+    name: 'STRIPE_PRICE_ID',
+    required: true,
+    description: 'Stripe price ID for the $4/month subscription (price_...)',
+  },
 
   // ── Cron ────────────────────────────────────────────────────────────────────
   {

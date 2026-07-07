@@ -37,6 +37,8 @@ import { getCategoryColor } from '@/lib/constants/calendarCategories'
 import EventSheet, { type CalendarEventFull, type Member } from '@/components/calendar/EventSheet'
 import DaySheet from '@/components/calendar/DaySheet'
 import PremiumGate from '@/components/shared/PremiumGate'
+import PageIntroModal from '@/components/shared/PageIntroModal'
+import { PAGE_INTROS } from '@/lib/constants/pageIntros'
 
 const COLOR = SECTION_COLORS.calendar.base
 const COLOR_DARK = SECTION_COLORS.calendar.dark
@@ -212,6 +214,7 @@ export default function CalendarPage() {
   // ─── Render ────────────────────────────────────────────────────────────────
   return (
     <div className="roost-page-wide" style={{ padding: '16px 0' }}>
+      <PageIntroModal {...PAGE_INTROS.calendar} />
       {/* Header */}
       <div
         className="px-4"

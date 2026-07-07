@@ -12,6 +12,8 @@ import { SlabCard } from '@/components/ui/SlabCard'
 import NoteSheet, { type NoteData } from '@/components/notes/NoteSheet'
 import ViewNoteSheet from '@/components/notes/ViewNoteSheet'
 import PremiumGate from '@/components/shared/PremiumGate'
+import PageIntroModal from '@/components/shared/PageIntroModal'
+import { PAGE_INTROS } from '@/lib/constants/pageIntros'
 
 const COLOR = SECTION_COLORS.notes.base
 const COLOR_DARK = SECTION_COLORS.notes.dark
@@ -210,6 +212,7 @@ export default function NotesPage() {
 
   return (
     <>
+      <PageIntroModal {...PAGE_INTROS.notes} />
       <motion.div
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}

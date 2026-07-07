@@ -18,6 +18,7 @@ export async function GET() {
       language: users.language,
       has_seen_welcome: users.hasSeenWelcome,
       is_child_account: users.isChildAccount,
+      seen_intros: users.seenIntros,
       venmo_handle: users.venmoHandle,
       cashapp_handle: users.cashappHandle,
     })
@@ -27,11 +28,23 @@ export async function GET() {
 
   if (!row) return NextResponse.json({ error: 'User not found' }, { status: 404 })
 
+  // Parse the seen_intros JSON-array text column into a string[]; fall back to
+  // an empty array if it is null or malformed.
+  let seenIntros: string[] = []
+  try {
+    const parsed = JSON.parse(row.seen_intros ?? '[]')
+    if (Array.isArray(parsed)) seenIntros = parsed.filter((k): k is string => typeof k === 'string')
+  } catch {
+    seenIntros = []
+  }
+
   return NextResponse.json({
     user: row,
-    // Flat convenience fields used by today/page.tsx WelcomeModal check
+    // Flat convenience fields used by today/page.tsx WelcomeModal check and the
+    // PageIntroModal per-page intro check.
     hasSeenWelcome: row.has_seen_welcome,
     isChildAccount: row.is_child_account,
+    seenIntros,
   })
 }
 

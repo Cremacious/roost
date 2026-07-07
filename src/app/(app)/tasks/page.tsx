@@ -21,6 +21,8 @@ import ProjectSettingsSheet from '@/components/tasks/ProjectSettingsSheet'
 import { type ParsedTask } from '@/lib/utils/parseTaskInput'
 import { usePermissionGate } from '@/lib/hooks/usePermissionGate'
 import PremiumGate from '@/components/shared/PremiumGate'
+import PageIntroModal from '@/components/shared/PageIntroModal'
+import { PAGE_INTROS } from '@/lib/constants/pageIntros'
 import { PLAN_LIMITS } from '@/lib/constants/planLimits'
 
 const COLOR = SECTION_COLORS.tasks.base
@@ -603,6 +605,7 @@ export default function TasksPage() {
 
   return (
     <>
+      <PageIntroModal {...PAGE_INTROS.tasks} />
       <motion.div
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}

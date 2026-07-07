@@ -14,6 +14,8 @@ import { SECTION_COLORS } from '@/lib/constants/colors'
 import { usePermissionGate } from '@/lib/hooks/usePermissionGate'
 import { SlabCard } from '@/components/ui/SlabCard'
 import { DraggableSheet } from '@/components/shared/DraggableSheet'
+import PageIntroModal from '@/components/shared/PageIntroModal'
+import { PAGE_INTROS } from '@/lib/constants/pageIntros'
 
 const COLOR = SECTION_COLORS.meals.base
 const COLOR_DARK = SECTION_COLORS.meals.dark
@@ -1303,6 +1305,7 @@ export default function MealsPage() {
 
   return (
     <>
+      <PageIntroModal {...PAGE_INTROS.meals} />
       <motion.div
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}

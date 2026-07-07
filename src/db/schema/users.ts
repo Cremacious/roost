@@ -20,6 +20,9 @@ export const users = pgTable('users', {
   isChildAccount: boolean('is_child_account').default(false),
   childOfHouseholdId: text('child_of_household_id'),
   hasSeenWelcome: boolean('has_seen_welcome').default(false),
+  // JSON array (stored as text) of page-intro keys the user has dismissed.
+  // Generalizes has_seen_welcome to per-page one-time intro popups.
+  seenIntros: text('seen_intros').default('[]'),
   createdAt: timestamp('created_at').defaultNow(),
   updatedAt: timestamp('updated_at').defaultNow(),
   deletedAt: timestamp('deleted_at'),

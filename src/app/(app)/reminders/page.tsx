@@ -11,6 +11,8 @@ import { SECTION_COLORS } from '@/lib/constants/colors'
 import { PLAN_LIMITS } from '@/lib/constants/planLimits'
 import { useHousehold } from '@/lib/hooks/useHousehold'
 import PremiumGate from '@/components/shared/PremiumGate'
+import PageIntroModal from '@/components/shared/PageIntroModal'
+import { PAGE_INTROS } from '@/lib/constants/pageIntros'
 import { SlabCard } from '@/components/ui/SlabCard'
 import { ReminderSheet, type ReminderData, type Member } from '@/components/reminders/ReminderSheet'
 
@@ -265,6 +267,7 @@ export default function RemindersPage() {
 
   return (
     <>
+      <PageIntroModal {...PAGE_INTROS.reminders} />
       <motion.div
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}

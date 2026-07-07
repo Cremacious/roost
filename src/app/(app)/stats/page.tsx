@@ -30,6 +30,8 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { PageContainer } from "@/components/layout/PageContainer";
 import PremiumGate from "@/components/shared/PremiumGate";
+import PageIntroModal from "@/components/shared/PageIntroModal";
+import { PAGE_INTROS } from "@/lib/constants/pageIntros";
 
 function MemberAvatar({ name, size = 'md' }: { name: string; avatarColor?: string | null; size?: string }) {
   const initials = name.split(' ').map(p => p[0]).filter(Boolean).join('').slice(0, 2).toUpperCase();
@@ -299,6 +301,7 @@ export default function StatsPage() {
 
   return (
     <PageContainer>
+      <PageIntroModal {...PAGE_INTROS.stats} />
       <motion.div
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}

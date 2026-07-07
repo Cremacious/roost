@@ -13,6 +13,8 @@ import ChoreSheet, { type ChoreData } from '@/components/chores/ChoreSheet'
 import LeaderboardSheet from '@/components/chores/LeaderboardSheet'
 import { SectionGroup } from '@/components/shared/SectionGroup'
 import PremiumGate from '@/components/shared/PremiumGate'
+import PageIntroModal from '@/components/shared/PageIntroModal'
+import { PAGE_INTROS } from '@/lib/constants/pageIntros'
 import { useHousehold } from '@/lib/hooks/useHousehold'
 import { PLAN_LIMITS } from '@/lib/constants/planLimits'
 
@@ -978,6 +980,7 @@ export default function ChoresPage() {
       className="roost-page"
       style={{ padding: '0 0 80px' }}
     >
+      <PageIntroModal {...PAGE_INTROS.chores} />
       {/* ── Header ── */}
       <div
         style={{

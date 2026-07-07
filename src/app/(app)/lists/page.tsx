@@ -24,6 +24,8 @@ import { CommonItemsSheet } from '@/components/grocery/CommonItemsSheet';
 import { usePermissionGate } from '@/lib/hooks/usePermissionGate';
 import { useHousehold } from '@/lib/hooks/useHousehold';
 import PremiumGate from '@/components/shared/PremiumGate';
+import PageIntroModal from '@/components/shared/PageIntroModal';
+import { PAGE_INTROS } from '@/lib/constants/pageIntros';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -1414,6 +1416,7 @@ export default function FoodPage() {
         backgroundColor: '#F9FAFB',
       }}
     >
+      <PageIntroModal {...PAGE_INTROS.lists} />
       {/* ── Page header ── */}
       <div style={{ backgroundColor: '#F9FAFB', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 16px 12px' }}>
         <div>

@@ -29,6 +29,8 @@ import { usePermissionGate } from '@/lib/hooks/usePermissionGate'
 import { usePlatformCapabilities } from '@/lib/hooks/usePlatformCapabilities'
 import { useSession } from '@/lib/auth/client'
 import PremiumGate from '@/components/shared/PremiumGate'
+import PageIntroModal from '@/components/shared/PageIntroModal'
+import { PAGE_INTROS } from '@/lib/constants/pageIntros'
 
 const CLAIM_BANNER_KEY = 'roost-pending-claim-banner-dismissed'
 
@@ -248,6 +250,7 @@ function DashboardTab({ currentUserId, members, isPremium, onOpenExpense, onOpen
 
   return (
     <div>
+      <PageIntroModal {...PAGE_INTROS.money} />
       {/* ── Balance Hero ── */}
       <div style={{
         background: 'linear-gradient(135deg, #16A34A 0%, #15803D 100%)',

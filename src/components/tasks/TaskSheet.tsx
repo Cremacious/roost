@@ -469,7 +469,7 @@ export default function TaskSheet({
             opacity: saveMutation.isPending ? 0.7 : 1,
           }}
         >
-          {saveMutation.isPending ? 'Saving...' : isEditing ? 'Save changes' : 'Add task'}
+          {saveMutation.isPending ? 'Saving...' : isEditing ? 'Save Changes' : 'Add Task'}
         </button>
       </div>
     </DraggableSheet>

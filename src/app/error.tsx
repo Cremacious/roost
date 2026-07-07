@@ -47,7 +47,7 @@ export default function Error({
             cursor: 'pointer',
           }}
         >
-          Try again
+          Try Again
         </button>
         <Link
           href="/today"

@@ -583,15 +583,15 @@ Tasks: one-off to-dos
   - Slides: AnimatePresence mode="wait", x: 20 in / x: -20 out
 
 ## Empty State Copy (exact wording, section by section)
-- Chores (no chores at all): title "Suspiciously clean." / body "No chores yet. Either you are very on top of things, or someone is avoiding this screen." / button "Add the first chore"
+- Chores (no chores at all): title "Suspiciously clean." / body "No chores yet. Either you are very on top of things, or someone is avoiding this screen." / button "Add the First Chore"
 - Chores (filtered, none match): title "All clear." / body "Nothing here. Enjoy it while it lasts." (no button)
-- Grocery: title "The fridge is on its own." / body "No items on the list. Add something before someone eats a condiment for dinner." / button "Add an item"
-- Tasks: title "Nothing to do." / body "Either you are incredibly productive, or you just found this screen. Either way, good job." / button "Add a task"
-- Calendar: title "Wide open." / body "No events this week. Either things are calm, or nobody told the app." / button "Add an event"
-- Notes: title "Blank slate." / body "No notes yet. Write something down before you forget it." / button "New note"
-- Expenses: title "All square." / body "No expenses tracked. Either everyone is being weirdly generous, or nobody has added anything yet." / button "Add expense"
-- Meals: title "Dinner TBD." / body "No meals planned. The household is winging it tonight." / button "Plan a meal"
-- Reminders: title "Nothing pending." / body "No reminders set. Bold move." / button "Add a reminder"
+- Grocery: title "The fridge is on its own." / body "No items on the list. Add something before someone eats a condiment for dinner." / button "Add an Item"
+- Tasks: title "Nothing to do." / body "Either you are incredibly productive, or you just found this screen. Either way, good job." / button "Add a Task"
+- Calendar: title "Wide open." / body "No events this week. Either things are calm, or nobody told the app." / button "Add an Event"
+- Notes: title "Blank slate." / body "No notes yet. Write something down before you forget it." / button "New Note"
+- Expenses: title "All square." / body "No expenses tracked. Either everyone is being weirdly generous, or nobody has added anything yet." / button "Add Expense"
+- Meals: title "Dinner TBD." / body "No meals planned. The household is winging it tonight." / button "Plan a Meal"
+- Reminders: title "Nothing pending." / body "No reminders set. Bold move." / button "Add a Reminder"
 - Leaderboard (no activity): title "No activity this week yet." / body "Complete chores to earn points and claim your spot."
 
 ## Placeholder Copy (exact wording)
@@ -1147,6 +1147,13 @@ src/lib/constants/colors.ts                   Added "stats": "#6366F1" (indigo) 
 - No emojis anywhere, Lucide icons only
 - No em dashes and no double hyphens in any UI-facing text, placeholders, copy, or JSX string content.
   Use commas, colons, periods, or reword instead. This applies to ALL files forever.
+- Button + CTA labels use Title Case (issue #109). Capitalize the first letter of each principal word;
+  keep these short joining words lowercase UNLESS they are the first word: a, an, the, to, of, and, or,
+  for, in, on, with, at, by. Acronyms stay uppercase (PIN, CSV, PDF, RSVP); proper nouns preserved
+  (Roost, Stripe, Venmo). Examples: "Sign In", "Add an Item", "Add to Planner", "Save Changes",
+  "Mark Complete", "New Note", "Remove From Household". This is buttons/CTAs ONLY (primary/save/submit
+  buttons, FAB labels, empty-state action buttons, sheet action buttons, link-style CTAs like "See All").
+  Headings, body copy, form labels, placeholders, toasts, and single-word nav labels are NOT title-cased.
 - Text opacity: never use opacity below /70 for text. Use --roost-text-muted instead of text-primary/50.
 - Child accounts require a row in BOTH the better-auth "user" table AND the Drizzle "users" table.
   The add-child route inserts into "user" first (FK requirement for session creation), then "users".
@@ -1450,7 +1457,7 @@ Update this file after every major decision or completed phase.
 - Use `**/path` glob patterns for `waitForURL`, not bare `/path` strings, to handle baseURL prefixes
 - Add `waitForLoadState("networkidle")` after submit clicks before `waitForURL` (catch silently)
 - Onboarding creates a 3-step flow: step 1 picks create/join, step 2 fills name, step 3 is confirmation
-  - After "Create household" submit: lands on step 3, NOT /dashboard
+  - After "Create Household" submit: lands on step 3, NOT /dashboard
   - Must click "Go to dashboard" button on step 3 to navigate to /dashboard
 - Household name input placeholder: "e.g. The Johnson House" (CSS `placeholder*="house"` fails — case-sensitive; use `placeholder*="Johnson" i` or `input[type="text"]`)
 - Signup submit button uses `data-testid="signup-submit"`, text "Create account"
@@ -1465,7 +1472,7 @@ Update this file after every major decision or completed phase.
   - `chore-save-btn` on ChoreSheet save/add button (src/components/chores/ChoreSheet.tsx)
   - `dashboard-tiles` on dashboard tiles grid container (src/app/(app)/dashboard/page.tsx)
   - `premium-toggle` on DevTools Switch (src/components/dev/DevTools.tsx) — was already present
-- ChoreSheet save button text: "Add chore" (create) or "Save changes" (edit) — not "Save"
+- ChoreSheet save button text: "Add Chore" (create) or "Save Changes" (edit) — not "Save"
 - Grocery quick-add placeholder rotates: "Add milk...", "Add eggs...", "Add anything..." — never "Add an item"
 - Expenses free-tier shows PremiumGate feature="expenses" trigger="inline" (no blurred preview)
 - Use `.or()` chaining for multi-text locators; comma-separated `text=` is not valid Playwright CSS
@@ -1493,7 +1500,7 @@ Update this file after every major decision or completed phase.
 - playwright.config.ts projects: free (navigation/chores/grocery, storageState free-admin), premium (premium.spec, storageState premium-admin), unauthenticated (auth/onboarding, no storageState), mobile + mobile-premium counterparts.
 - e2e/.auth/*.json files contain session tokens — always in .gitignore, never commit. e2e/.auth/.gitkeep tracks the empty directory.
 - Empty-state tests (chores/grocery) only reliable on first run against a clean DB. Test data accumulates with shared accounts — this is an accepted tradeoff.
-- V2 selectors/flows (issue #99, E2E restore). Onboarding is a 3-step flow; the step 3 success CTA reads "Go to Roost" (NOT "Go to dashboard") and routes to /today. The createHousehold() helper clicks "Create a household" then "Create household" then "Go to Roost".
+- V2 selectors/flows (issue #99, E2E restore). Onboarding is a 3-step flow; the step 3 success CTA reads "Go to Roost" (NOT "Go to dashboard") and routes to /today. The createHousehold() helper clicks "Create a Household" then "Create Household" then "Go to Roost".
 - The money module lives at /money (the old /expenses page route is gone, returns 404). API routes stay under /api/expenses/*. Creating a plain expense (bill splitting) is FREE in V2: POST /api/expenses has no requirePremium (only session + membership + non-child + expenses.add permission + body validation). Premium money surfaces are Bills, Budget, Insights, Goals, receipt scan, and export. On /money all tab pills render for everyone; a free user clicking the Bills tab sees an inline "Premium feature" EmptyState with "Upgrade to unlock"; premium sees real bill management.
 - Household API response shapes: POST /api/household/create -> { householdId, code, name }. POST /api/household/join -> { householdId, name } on immediate join, or { status: 'pending', householdName } when the household needs approval. households.join_approval_required DEFAULTS TO true, so a fresh join-by-code is a pending request, not an instant membership. Joining a household you already belong to -> 409 (not 400). DELETE /api/household/members/[id] -> { ok: true }. PATCH /api/household/[id] (rename) -> { household }.
 - Auth-gate contract: the create/join/add-child routes gate on requireSession(), which redirect('/login') (a 307) for unauthenticated callers rather than returning 401 JSON. Assert the redirect with { maxRedirects: 0 } + Location contains /login. The GET list routes (chores, grocery, tasks, etc.) DO return 401. There is no /api/household/activity route; GET there hits /api/household/[id] with id="activity" and returns 405.

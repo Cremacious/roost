@@ -326,7 +326,7 @@ export function BillSheet({ open, onClose, bill }: Props) {
             opacity: saving ? 0.7 : 1,
           }}
         >
-          {saving ? 'Saving...' : isEditing ? 'Save changes' : 'Add bill'}
+          {saving ? 'Saving...' : isEditing ? 'Save Changes' : 'Add Bill'}
         </button>
       </div>
     </DraggableSheet>

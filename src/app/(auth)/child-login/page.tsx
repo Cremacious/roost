@@ -160,12 +160,12 @@ function Step1({
           opacity: loading ? 0.8 : 1,
         }}
       >
-        {loading ? <Loader2 size={18} style={{ animation: 'spin 1s linear infinite' }} /> : 'Find my household'}
+        {loading ? <Loader2 size={18} style={{ animation: 'spin 1s linear infinite' }} /> : 'Find My Household'}
       </button>
 
       <p style={{ textAlign: 'center', marginTop: 20 }}>
         <Link href="/login" style={{ fontSize: 12, fontWeight: 700, color: '#9B6060', textDecoration: 'none' }}>
-          Back to sign in
+          Back to Sign In
         </Link>
       </p>
     </motion.div>

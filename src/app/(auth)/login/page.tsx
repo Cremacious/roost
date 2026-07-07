@@ -291,7 +291,7 @@ function LoginForm() {
             )}
 
             <Button type="submit" data-testid="login-submit" loading={loading} color="#B91C1C" darkColor="#991B1B" size="lg">
-              Sign in
+              Sign In
             </Button>
 
             <p style={{ textAlign: 'right', margin: 0 }}>
@@ -304,7 +304,7 @@ function LoginForm() {
           <p style={{ marginTop: 20, textAlign: 'center', fontSize: 13, fontWeight: 700, color: '#7A3F3F' }}>
             New here?{' '}
             <Link href="/signup" style={{ color: '#EF4444' }}>
-              Create an account
+              Create an Account
             </Link>
           </p>
 
@@ -330,7 +330,7 @@ function LoginForm() {
               textDecoration: 'none',
             }}
           >
-            Sign in as a child
+            Sign In as a Child
           </Link>
         </div>
       </div>

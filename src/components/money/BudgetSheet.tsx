@@ -255,7 +255,7 @@ export function BudgetSheet({ open, onClose, budget }: Props) {
             opacity: saving ? 0.7 : 1,
           }}
         >
-          {saving ? 'Saving...' : isEditing ? 'Save changes' : 'Add budget'}
+          {saving ? 'Saving...' : isEditing ? 'Save Changes' : 'Add Budget'}
         </button>
       </div>
     </DraggableSheet>

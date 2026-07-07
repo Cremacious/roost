@@ -209,7 +209,7 @@ export function SettleSheet({ open, onClose, debt, currentUserId, members, payee
             )}
 
             <button onClick={handleClaim} disabled={loading} style={{ ...btnBase, backgroundColor: COLOR, color: '#fff', borderBottom: `3px solid ${COLOR_DARK}` }}>
-              I paid {creditorName}
+              I Paid {creditorName}
             </button>
           </div>
         )}
@@ -252,10 +252,10 @@ export function SettleSheet({ open, onClose, debt, currentUserId, members, payee
               </p>
             </div>
             <button onClick={handleConfirm} disabled={loading} style={{ ...btnBase, backgroundColor: COLOR, color: '#fff', borderBottom: `3px solid ${COLOR_DARK}` }}>
-              Confirm I received it
+              Confirm I Received It
             </button>
             <button onClick={handleDispute} disabled={loading} style={{ ...btnBase, backgroundColor: 'var(--roost-surface)', color: '#EF4444', border: '1.5px solid #FECACA', borderBottom: '3px solid #FCA5A5' }}>
-              Dispute, I did not receive it
+              Dispute, I Did Not Receive It
             </button>
           </div>
         )}

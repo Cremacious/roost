@@ -745,7 +745,7 @@ export function LineItemGrid({ items: initialItems, taxAndTip, members, onConfir
             opacity: canConfirm ? 1 : 0.7,
           }}
         >
-          Confirm assignment
+          Confirm Assignment
         </button>
       </div>
     </div>

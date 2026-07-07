@@ -30,7 +30,7 @@ function ResetPasswordForm() {
           This reset link is missing or has expired. Request a new one.
         </p>
         <Link href="/forgot-password" style={{ color: '#EF4444', fontWeight: 700, fontSize: 14 }}>
-          Request new link
+          Request New Link
         </Link>
       </div>
     )
@@ -170,7 +170,7 @@ function ResetPasswordForm() {
         )}
 
         <Button type="submit" loading={loading} color="#B91C1C" darkColor="#991B1B" size="lg">
-          Update password
+          Update Password
         </Button>
       </form>
     </>
@@ -198,7 +198,7 @@ export default function ResetPasswordPage() {
         </Suspense>
         <p style={{ marginTop: 24, textAlign: 'center', fontSize: 13, fontWeight: 700, color: '#7A3F3F' }}>
           <Link href="/login" style={{ color: '#EF4444' }}>
-            Back to sign in
+            Back to Sign In
           </Link>
         </p>
       </div>

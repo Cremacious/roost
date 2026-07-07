@@ -259,7 +259,7 @@ export default function NoteSheet({
             opacity: saveMutation.isPending ? 0.7 : 1,
           }}
         >
-          {saveMutation.isPending ? 'Saving...' : isEditing ? 'Save changes' : 'Save note'}
+          {saveMutation.isPending ? 'Saving...' : isEditing ? 'Save Changes' : 'Save Note'}
         </button>
       </div>
     </DraggableSheet>

@@ -104,7 +104,7 @@ function GateContent({
           cursor: 'pointer',
         }}
       >
-        Maybe later
+        Maybe Later
       </button>
     </div>
   )

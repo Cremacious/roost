@@ -224,7 +224,7 @@ export default function TermsPage() {
 
         <div style={{ borderTop: '1px solid #E5E7EB', paddingTop: 24, marginTop: 8, display: 'flex', gap: 24 }}>
           <Link href="/" style={{ fontSize: 14, fontWeight: 700, color: '#EF4444', textDecoration: 'none' }}>
-            Back to home
+            Back to Home
           </Link>
           <Link href="/privacy" style={{ fontSize: 14, fontWeight: 700, color: '#6B7280', textDecoration: 'none' }}>
             Privacy Policy

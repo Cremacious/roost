@@ -300,7 +300,7 @@ function DashboardTab({ currentUserId, members, isPremium, onOpenExpense, onOpen
                   fontFamily: 'inherit', fontSize: 13, fontWeight: 800, color: 'white', cursor: 'pointer', whiteSpace: 'nowrap',
                 }}
               >
-                <CheckCircle size={15} color="white" /> Settle up
+                <CheckCircle size={15} color="white" /> Settle Up
               </button>
             )}
             <button
@@ -313,7 +313,7 @@ function DashboardTab({ currentUserId, members, isPremium, onOpenExpense, onOpen
               }}
             >
               {isPremium ? <TrendingUp size={15} color="white" /> : <Lock size={15} color="white" />}
-              View insights
+              View Insights
             </button>
           </div>
         </div>
@@ -410,7 +410,7 @@ function DashboardTab({ currentUserId, members, isPremium, onOpenExpense, onOpen
           <div style={{ background: 'var(--roost-surface)', border: '1.5px solid var(--roost-border)', borderBottom: `4px solid ${COLOR_DARK}`, borderRadius: 16, overflow: 'hidden' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 18px 0' }}>
               <span style={{ fontSize: 14, fontWeight: 800, color: 'var(--roost-text-primary)' }}>Recent expenses</span>
-              <button onClick={() => onTabChange('expenses')} style={{ fontSize: 12, fontWeight: 700, color: COLOR, background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}>See all</button>
+              <button onClick={() => onTabChange('expenses')} style={{ fontSize: 12, fontWeight: 700, color: COLOR, background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}>See All</button>
             </div>
             <div style={{ padding: '4px 18px 16px' }}>
               {recentExpenses?.length > 0 ? recentExpenses.map((e: RecentExpense, i: number) => (
@@ -439,7 +439,7 @@ function DashboardTab({ currentUserId, members, isPremium, onOpenExpense, onOpen
           <div style={{ background: 'var(--roost-surface)', border: '1.5px solid var(--roost-border)', borderBottom: `4px solid ${COLOR_DARK}`, borderRadius: 16, marginBottom: 16, overflow: 'hidden' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 18px 0' }}>
               <span style={{ fontSize: 14, fontWeight: 800, color: 'var(--roost-text-primary)' }}>Who owes who</span>
-              <button onClick={() => onTabChange('expenses')} style={{ fontSize: 12, fontWeight: 700, color: COLOR, background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}>See all</button>
+              <button onClick={() => onTabChange('expenses')} style={{ fontSize: 12, fontWeight: 700, color: COLOR, background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}>See All</button>
             </div>
             <div style={{ padding: '2px 18px 12px' }}>
               {myDebts.length === 0 ? (
@@ -492,7 +492,7 @@ function DashboardTab({ currentUserId, members, isPremium, onOpenExpense, onOpen
                           }}
                         >
                           {iClaimed && <Clock size={12} />}
-                          {iClaimed ? 'Awaiting confirmation' : iOwe ? 'Settle up' : 'Remind'}
+                          {iClaimed ? 'Awaiting confirmation' : iOwe ? 'Settle Up' : 'Remind'}
                         </button>
                       </div>
                     )}
@@ -507,7 +507,7 @@ function DashboardTab({ currentUserId, members, isPremium, onOpenExpense, onOpen
             <div style={{ background: 'var(--roost-surface)', border: '1.5px solid var(--roost-border)', borderBottom: '4px solid #7C3AED', borderRadius: 16, marginBottom: 16, overflow: 'hidden' }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 18px 0' }}>
                 <span style={{ fontSize: 14, fontWeight: 800, color: 'var(--roost-text-primary)' }}>Active goal</span>
-                <button onClick={() => onTabChange('goals')} style={{ fontSize: 12, fontWeight: 700, color: '#A855F7', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}>All goals</button>
+                <button onClick={() => onTabChange('goals')} style={{ fontSize: 12, fontWeight: 700, color: '#A855F7', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}>All Goals</button>
               </div>
               <div style={{ padding: '14px 18px 16px', display: 'flex', alignItems: 'center', gap: 16 }}>
                 <div style={{ position: 'relative', width: 60, height: 60, flexShrink: 0 }}>
@@ -941,7 +941,7 @@ function ExpensesTab({ currentUserId, members, isAdmin, onOpenExpense, onOpenSet
           icon={<Receipt size={28} />}
           title="All square."
           body="No expenses tracked. Either everyone is being weirdly generous, or nobody has added anything yet."
-          buttonLabel="Add expense"
+          buttonLabel="Add Expense"
           onButtonClick={onOpenExpense}
         />
       )}
@@ -1044,7 +1044,7 @@ function BillRow({ bill, isAdmin = false, onMarkPaid, marking = false, onEdit, o
               disabled={marking}
               style={{ padding: '5px 10px', borderRadius: 8, fontWeight: 700, fontSize: 12, backgroundColor: COLOR, color: '#fff', border: 'none', borderBottom: `2px solid ${COLOR_DARK}`, cursor: marking ? 'not-allowed' : 'pointer', opacity: marking ? 0.6 : 1 }}
             >
-              {marking ? 'Saving...' : 'Mark paid'}
+              {marking ? 'Saving...' : 'Mark Paid'}
             </button>
           )}
         </div>
@@ -1175,7 +1175,7 @@ function BillsTab({ isPremium, isAdmin, currentUserId, onAddBill, onEditBill }: 
             onClick={onAddBill}
             style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 14px', borderRadius: 10, fontWeight: 700, fontSize: 13, backgroundColor: COLOR, color: '#fff', border: 'none', borderBottom: `3px solid ${COLOR_DARK}`, cursor: 'pointer' }}
           >
-            <Plus size={14} /> Add bill
+            <Plus size={14} /> Add Bill
           </button>
         </div>
       )}
@@ -1183,7 +1183,7 @@ function BillsTab({ isPremium, isAdmin, currentUserId, onAddBill, onEditBill }: 
       {!bills.length ? (
         <EmptyState color={COLOR} icon={<FileText size={28} />} title="No bills tracked."
           body="Add a recurring bill to track what is due each month."
-          buttonLabel={isAdmin ? 'Add bill' : undefined}
+          buttonLabel={isAdmin ? 'Add Bill' : undefined}
           onButtonClick={isAdmin ? onAddBill : undefined}
         />
       ) : (
@@ -1290,7 +1290,7 @@ function BudgetTab({ isPremium, isAdmin, onAddBudget, onEditBudget }: {
             {budgets.length} budget{budgets.length !== 1 ? 's' : ''} set
           </p>
           <button onClick={onAddBudget} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 14px', borderRadius: 10, fontWeight: 700, fontSize: 13, backgroundColor: COLOR, color: '#fff', border: 'none', borderBottom: `3px solid ${COLOR_DARK}`, cursor: 'pointer' }}>
-            <Plus size={14} /> Add budget
+            <Plus size={14} /> Add Budget
           </button>
         </div>
       )}
@@ -1298,7 +1298,7 @@ function BudgetTab({ isPremium, isAdmin, onAddBudget, onEditBudget }: {
       {!budgets.length ? (
         <EmptyState color={COLOR} icon={<BarChart3 size={28} />} title="No budgets set."
           body="Set a monthly spending limit per category to track where your money goes."
-          buttonLabel={isAdmin ? 'Add budget' : undefined}
+          buttonLabel={isAdmin ? 'Add Budget' : undefined}
           onButtonClick={isAdmin ? onAddBudget : undefined}
         />
       ) : (
@@ -1487,7 +1487,7 @@ function GoalsTab({ isPremium, isAdmin, onNewGoal, onEditGoal, onContribute }: {
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
       {isAdmin && (
         <button onClick={onNewGoal} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '12px', borderRadius: 14, fontWeight: 800, fontSize: 14, backgroundColor: COLOR, color: '#fff', border: 'none', borderBottom: `3px solid ${COLOR_DARK}`, cursor: 'pointer' }}>
-          <Plus size={16} /> New goal
+          <Plus size={16} /> New Goal
         </button>
       )}
 
@@ -1521,12 +1521,12 @@ function GoalsTab({ isPremium, isAdmin, onNewGoal, onEditGoal, onContribute }: {
                 <div style={{ height: '100%', borderRadius: 99, width: `${goal.progressPercent}%`, backgroundColor: COLOR, transition: 'width 0.4s' }} />
               </div>
               <div style={{ display: 'flex', gap: 8 }}>
-                <button onClick={() => onContribute(goal)} style={{ flex: 1, padding: '10px', borderRadius: 10, fontWeight: 700, fontSize: 13, backgroundColor: COLOR, color: '#fff', border: 'none', borderBottom: `3px solid ${COLOR_DARK}`, cursor: 'pointer' }}>Log contribution</button>
+                <button onClick={() => onContribute(goal)} style={{ flex: 1, padding: '10px', borderRadius: 10, fontWeight: 700, fontSize: 13, backgroundColor: COLOR, color: '#fff', border: 'none', borderBottom: `3px solid ${COLOR_DARK}`, cursor: 'pointer' }}>Log Contribution</button>
                 <button onClick={() => setExpandedGoalId(isExpanded ? null : goal.id)} style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '10px 14px', borderRadius: 10, fontWeight: 700, fontSize: 13, backgroundColor: 'var(--roost-surface)', color: 'var(--roost-text-secondary)', border: '1.5px solid var(--roost-border)', borderBottom: '3px solid var(--roost-border-bottom)', cursor: 'pointer' }}>
                   {isExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />} History
                 </button>
                 {isAdmin && goal.progressPercent >= 100 && (
-                  <button onClick={() => markComplete(goal.id)} style={{ padding: '10px 14px', borderRadius: 10, fontWeight: 700, fontSize: 13, backgroundColor: 'var(--roost-surface)', color: COLOR, border: `1.5px solid ${COLOR}`, borderBottom: `3px solid ${COLOR_DARK}`, cursor: 'pointer' }}>Mark done</button>
+                  <button onClick={() => markComplete(goal.id)} style={{ padding: '10px 14px', borderRadius: 10, fontWeight: 700, fontSize: 13, backgroundColor: 'var(--roost-surface)', color: COLOR, border: `1.5px solid ${COLOR}`, borderBottom: `3px solid ${COLOR_DARK}`, cursor: 'pointer' }}>Mark Done</button>
                 )}
               </div>
               {isExpanded && <GoalHistory goalId={goal.id} />}
@@ -1877,7 +1877,7 @@ export default function MoneyPage() {
             opacity: canAddExpense ? 1 : 0.55,
           }}
         >
-          {canAddExpense ? <Plus size={15} /> : <Lock size={15} />} Add expense
+          {canAddExpense ? <Plus size={15} /> : <Lock size={15} />} Add Expense
         </button>
       </div>
 

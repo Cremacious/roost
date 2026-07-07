@@ -312,7 +312,7 @@ export default function SubtaskList({
               }}
             >
               <Plus size={12} color={COLOR} />
-              <span style={{ fontSize: 12, fontWeight: 700, color: COLOR }}>Add subtask</span>
+              <span style={{ fontSize: 12, fontWeight: 700, color: COLOR }}>Add Subtask</span>
             </button>
           )}
         </AnimatePresence>

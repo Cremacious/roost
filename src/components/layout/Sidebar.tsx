@@ -250,7 +250,7 @@ export function Sidebar() {
             onClick={async () => { await signOut(); router.push('/login') }}
             style={{ padding: '9px 18px', borderRadius: 10, border: 'none', borderBottom: '3px solid #C93B3B', backgroundColor: '#EF4444', fontFamily: 'inherit', fontSize: 13, fontWeight: 800, color: '#fff', cursor: 'pointer' }}
           >
-            Sign out
+            Sign Out
           </button>
         </AlertDialogFooter>
       </AlertDialogContent>
@@ -402,7 +402,7 @@ function HouseholdSwitcherInline() {
             }}
           >
             <span style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.45)' }}>
-              + Join or create another
+              + Join or Create Another
             </span>
           </button>
         </div>

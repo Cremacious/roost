@@ -662,7 +662,7 @@ export default function SignupPage() {
               darkColor="#991B1B"
               size="lg"
             >
-              Create account
+              Create Account
             </Button>
           </form>
 
@@ -677,7 +677,7 @@ export default function SignupPage() {
           >
             Already have an account?{' '}
             <Link href="/login" style={{ color: '#EF4444' }}>
-              Sign in
+              Sign In
             </Link>
           </p>
         </div>

@@ -135,7 +135,7 @@ export default function DelegationSheet({
             opacity: delegateMutation.isPending ? 0.7 : 1,
           }}
         >
-          {delegateMutation.isPending ? 'Delegating...' : 'Delegate task'}
+          {delegateMutation.isPending ? 'Delegating...' : 'Delegate Task'}
         </button>
       </div>
     </DraggableSheet>

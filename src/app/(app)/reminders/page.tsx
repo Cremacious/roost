@@ -293,7 +293,7 @@ export default function RemindersPage() {
               <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: 'var(--roost-text-secondary)' }}>No reminders set. Bold move.</p>
               <motion.button whileTap={{ y: 2 }} type="button" onClick={handleAdd}
                 style={{ marginTop: 8, padding: '11px 20px', borderRadius: 12, border: 'none', borderBottom: `3px solid ${COLOR_DARK}`, backgroundColor: COLOR, color: '#fff', fontWeight: 800, fontSize: 14, cursor: 'pointer' }}>
-                Add a reminder
+                Add a Reminder
               </motion.button>
             </div>
           )}

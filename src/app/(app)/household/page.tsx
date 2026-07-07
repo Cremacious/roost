@@ -455,7 +455,7 @@ export default function HouseholdPage() {
             }}
           >
             <UserPlus size={11} color="#fff" />
-            Invite member
+            Invite Member
           </button>
         )}
       </div>
@@ -498,7 +498,7 @@ export default function HouseholdPage() {
             }}
           >
             <Baby size={11} color="#6D28D9" />
-            Add child
+            Add Child
           </button>
         </div>
       )}
@@ -630,7 +630,7 @@ export default function HouseholdPage() {
           }}
         >
           <UserPlus size={13} color="#fff" />
-          Invite member
+          Invite Member
         </button>
       )}
     </div>
@@ -684,7 +684,7 @@ export default function HouseholdPage() {
                 }}
               >
                 <UserPlus size={13} color="#fff" />
-                Invite member
+                Invite Member
               </button>
             )}
           </div>
@@ -781,7 +781,7 @@ export default function HouseholdPage() {
                 width: '100%',
               }}
             >
-              {removing ? 'Removing...' : 'Remove from household'}
+              {removing ? 'Removing...' : 'Remove from Household'}
             </AlertDialogAction>
             <AlertDialogCancel
               style={{
@@ -796,7 +796,7 @@ export default function HouseholdPage() {
                 width: '100%',
               }}
             >
-              Keep them
+              Keep Them
             </AlertDialogCancel>
           </AlertDialogFooter>
         </AlertDialogContent>

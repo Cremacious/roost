@@ -319,7 +319,7 @@ export default function RewardsPage() {
           }}
         >
           <ChevronLeft size={16} />
-          Back to chores
+          Back to Chores
         </button>
 
         <div style={{
@@ -389,7 +389,7 @@ export default function RewardsPage() {
           }}
         >
           <ChevronLeft size={16} />
-          Back to chores
+          Back to Chores
         </button>
 
         <div style={{ marginBottom: 20 }}>
@@ -425,7 +425,7 @@ export default function RewardsPage() {
         }}
       >
         <ChevronLeft size={16} />
-        Back to chores
+        Back to Chores
       </button>
 
       {/* Page header */}
@@ -455,7 +455,7 @@ export default function RewardsPage() {
           }}
         >
           <Plus size={16} />
-          Add rule
+          Add Rule
         </motion.button>
       </div>
 
@@ -505,7 +505,7 @@ export default function RewardsPage() {
             }}
           >
             <Plus size={16} />
-            Add the first rule
+            Add the First Rule
           </motion.button>
         </div>
       ) : (

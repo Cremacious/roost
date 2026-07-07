@@ -189,7 +189,7 @@ function IngredientEditor({
           display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
         }}
       >
-        <Plus size={13} /> Add ingredient
+        <Plus size={13} /> Add Ingredient
       </button>
     </div>
   )
@@ -262,7 +262,7 @@ function GroceryPushSheet({
             <button type="button" onClick={() => setChecked(checked.size === ingredients.length ? new Set() : new Set(ingredients.map((_, i) => i)))} style={{
               fontSize: 12, fontWeight: 700, color: COLOR, background: 'none', border: 'none', cursor: 'pointer', padding: '0 0 12px', display: 'block',
             }}>
-              {checked.size === ingredients.length ? 'Deselect all' : 'Select all'}
+              {checked.size === ingredients.length ? 'Deselect All' : 'Select All'}
             </button>
             <button type="button" onClick={handleAdd} disabled={busy || checked.size === 0} style={{
               width: '100%', padding: '14px 0', borderRadius: 14, border: 'none', borderBottom: `3px solid ${COLOR_DARK}`,
@@ -367,7 +367,7 @@ function MealSheet({
           width: '100%', padding: '14px 0', borderRadius: 14, border: 'none', borderBottom: `3px solid ${COLOR_DARK}`,
           backgroundColor: COLOR, color: '#fff', fontWeight: 800, fontSize: 15, cursor: saving ? 'not-allowed' : 'pointer', opacity: saving ? 0.7 : 1,
         }}>
-          {saving ? 'Saving...' : meal ? 'Save changes' : 'Add to bank'}
+          {saving ? 'Saving...' : meal ? 'Save Changes' : 'Add to Bank'}
         </button>
       </div>
     </DraggableSheet>
@@ -467,7 +467,7 @@ function MealPreviewSheet({
               display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
             }}>
             {!canPlanMeal && <Lock size={14} />}
-            Add to planner
+            Add to Planner
           </button>
           {ingredients.length > 0 && (
             <button type="button" onClick={() => { onClose(); onAddToGrocery() }} style={{
@@ -633,12 +633,12 @@ function SlotPickerSheet({
             <button type="button" onClick={() => setMode('bank')} style={{
               width: '100%', padding: '14px 0', borderRadius: 14, border: '1.5px solid var(--roost-border)',
               borderBottom: `3px solid ${COLOR_DARK}`, backgroundColor: COLOR, color: '#fff', fontWeight: 800, fontSize: 15, cursor: 'pointer',
-            }}>Pick from meal bank</button>
+            }}>Pick from Meal Bank</button>
             <button type="button" onClick={() => setMode('quick')} style={{
               width: '100%', padding: '14px 0', borderRadius: 14, border: '1.5px solid var(--roost-border)',
               borderBottom: '3px solid var(--roost-border-bottom)', backgroundColor: 'var(--roost-surface)',
               color: 'var(--roost-text-primary)', fontWeight: 800, fontSize: 15, cursor: 'pointer',
-            }}>Quick add by name</button>
+            }}>Quick Add by Name</button>
             {existingSlot && canRemove && (
               confirmRemove ? (
                 <div style={{ display: 'flex', gap: 8 }}>
@@ -648,7 +648,7 @@ function SlotPickerSheet({
                     cursor: busy ? 'not-allowed' : 'pointer', opacity: busy ? 0.7 : 1,
                     display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
                   }}>
-                    <Trash2 size={14} /> {busy ? 'Removing...' : 'Confirm remove'}
+                    <Trash2 size={14} /> {busy ? 'Removing...' : 'Confirm Remove'}
                   </button>
                   <button type="button" onClick={() => setConfirmRemove(false)} disabled={busy} style={{
                     padding: '12px 18px', borderRadius: 14, border: '1.5px solid var(--roost-border)', borderBottom: '3px solid var(--roost-border-bottom)',
@@ -664,7 +664,7 @@ function SlotPickerSheet({
                   color: '#EF4444', fontWeight: 700, fontSize: 14, cursor: 'pointer',
                   display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
                 }}>
-                  <Trash2 size={14} /> Remove from plan
+                  <Trash2 size={14} /> Remove from Plan
                 </button>
               )
             )}
@@ -720,7 +720,7 @@ function SlotPickerSheet({
               width: '100%', padding: '14px 0', borderRadius: 14, border: 'none', borderBottom: `3px solid ${COLOR_DARK}`,
               backgroundColor: COLOR, color: '#fff', fontWeight: 800, fontSize: 15,
               cursor: busy ? 'not-allowed' : 'pointer', opacity: busy ? 0.7 : 1,
-            }}>{busy ? 'Adding...' : 'Add to plan'}</button>
+            }}>{busy ? 'Adding...' : 'Add to Plan'}</button>
           </>
         )}
 
@@ -882,7 +882,7 @@ function SuggestionFormSheet({
           width: '100%', padding: '14px 0', borderRadius: 14, border: 'none', borderBottom: `3px solid ${COLOR_DARK}`,
           backgroundColor: COLOR, color: '#fff', fontWeight: 800, fontSize: 15,
           cursor: saving ? 'not-allowed' : 'pointer', opacity: saving ? 0.7 : 1,
-        }}>{saving ? 'Submitting...' : 'Submit suggestion'}</button>
+        }}>{saving ? 'Submitting...' : 'Submit Suggestion'}</button>
       </div>
     </DraggableSheet>
   )
@@ -1249,7 +1249,7 @@ export default function MealsPage() {
                         color: '#fff', cursor: s.status === 'in_bank' ? 'not-allowed' : 'pointer',
                         opacity: s.status === 'in_bank' ? 0.6 : approveMutation.isPending ? 0.7 : 1,
                       }}>
-                      {s.status === 'in_bank' ? 'In bank' : 'Add to bank'}
+                      {s.status === 'in_bank' ? 'In Bank' : 'Add to Bank'}
                     </button>
                     <button type="button"
                       onClick={() => hasTarget && approveMutation.mutate({ id: s.id, action: 'planner' })}
@@ -1262,7 +1262,7 @@ export default function MealsPage() {
                         cursor: !hasTarget ? 'not-allowed' : 'pointer',
                         opacity: !hasTarget || approveMutation.isPending ? 0.5 : 1,
                       }}>
-                      Add to day
+                      Add to Day
                     </button>
                     <button type="button"
                       onClick={() => approveMutation.mutate({ id: s.id, action: 'rejected' })}
@@ -1378,7 +1378,7 @@ export default function MealsPage() {
               {!isThisWeek && (
                 <button type="button" onClick={() => setWeekStart(getMonday(new Date()))}
                   style={{ padding: '6px 12px', borderRadius: 10, fontSize: 12, fontWeight: 800, border: '1.5px solid var(--roost-border)', borderBottom: '3px solid var(--roost-border-bottom)', backgroundColor: 'var(--roost-surface)', color: 'var(--roost-text-secondary)', cursor: 'pointer', flexShrink: 0 }}>
-                  This week
+                  This Week
                 </button>
               )}
               <motion.button
@@ -1397,7 +1397,7 @@ export default function MealsPage() {
                 }}
               >
                 {canPlanMeal ? <Plus size={15} /> : <Lock size={15} />}
-                <span className="hidden sm:inline">Add Meal To Planner</span>
+                <span className="hidden sm:inline">Add Meal to Planner</span>
               </motion.button>
             </div>
 
@@ -1638,7 +1638,7 @@ export default function MealsPage() {
                 aria-disabled={!canAddMeal}
                 onClick={openAddMeal}
                 style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '10px 20px', borderRadius: 12, backgroundColor: COLOR, border: 'none', borderBottom: `3px solid ${COLOR_DARK}`, fontSize: 14, fontWeight: 800, color: '#fff', cursor: canAddMeal ? 'pointer' : 'not-allowed', opacity: canAddMeal ? 1 : 0.55, whiteSpace: 'nowrap' }}>
-                {canAddMeal ? <Plus size={14} /> : <Lock size={14} />} Add meal
+                {canAddMeal ? <Plus size={14} /> : <Lock size={14} />} Add Meal
               </motion.button>
             </div>
 
@@ -1669,7 +1669,7 @@ export default function MealsPage() {
                 {!bankSearch && bankCategory === 'all' && canAddMeal && (
                   <motion.button whileTap={{ y: 2 }} type="button" onClick={openAddMeal}
                     style={{ marginTop: 8, padding: '11px 20px', borderRadius: 12, border: 'none', borderBottom: `3px solid ${COLOR_DARK}`, backgroundColor: COLOR, color: '#fff', fontWeight: 800, fontSize: 14, cursor: 'pointer' }}>
-                    Add first meal
+                    Add First Meal
                   </motion.button>
                 )}
               </div>
@@ -1766,7 +1766,7 @@ export default function MealsPage() {
                     <div style={{ width: 50, height: 50, borderRadius: 14, backgroundColor: COLOR, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                       {canAddMeal ? <Plus size={24} color="#fff" /> : <Lock size={24} color="#fff" />}
                     </div>
-                    <div style={{ fontSize: 15, fontWeight: 800, color: COLOR_DARK }}>Add new meal</div>
+                    <div style={{ fontSize: 15, fontWeight: 800, color: COLOR_DARK }}>Add New Meal</div>
                     <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--roost-text-muted)' }}>Save a recipe to reuse in your planner</div>
                   </motion.button>
 
@@ -1876,7 +1876,7 @@ export default function MealsPage() {
                 aria-disabled={!canSuggestMeal}
                 onClick={canSuggestMeal ? () => setSuggestOpen(true) : onBlockedSuggestMeal}
                 style={{ padding: '12px 24px', borderRadius: 12, backgroundColor: '#fff', border: 'none', borderBottom: '3px solid #E5E7EB', fontSize: 14, fontWeight: 800, color: COLOR, flexShrink: 0, whiteSpace: 'nowrap', position: 'relative', zIndex: 1, display: 'flex', alignItems: 'center', gap: 6, cursor: canSuggestMeal ? 'pointer' : 'not-allowed', opacity: canSuggestMeal ? 1 : 0.55 }}>
-                {canSuggestMeal ? '+ Suggest a meal' : <><Lock size={14} /> Suggest a meal</>}
+                {canSuggestMeal ? '+ Suggest a Meal' : <><Lock size={14} /> Suggest a Meal</>}
               </button>
             </div>
 

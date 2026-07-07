@@ -164,7 +164,7 @@ export default function MorePage() {
           <LogOut size={18} color="#EF4444" />
         </div>
         <span style={{ flex: 1, color: '#EF4444', fontWeight: 700, fontSize: 15 }}>
-          Sign out
+          Sign Out
         </span>
       </button>
 
@@ -187,7 +187,7 @@ export default function MorePage() {
               onClick={handleSignOut}
               style={{ padding: '9px 18px', borderRadius: 10, border: 'none', borderBottom: '3px solid #C93B3B', backgroundColor: '#EF4444', fontFamily: 'inherit', fontSize: 13, fontWeight: 800, color: '#fff', cursor: 'pointer' }}
             >
-              Sign out
+              Sign Out
             </button>
           </AlertDialogFooter>
         </AlertDialogContent>

@@ -220,7 +220,7 @@ export function LineItemReview({ receipt, members, currentUserId, onConfirm, onM
         }}
       >
         <Plus size={16} />
-        Add item
+        Add Item
       </button>
 
       {/* Tax + tip locked row (shown only when > 0) */}
@@ -301,7 +301,7 @@ export function LineItemReview({ receipt, members, currentUserId, onConfirm, onM
           opacity: isValid ? 1 : 0.7,
         }}
       >
-        {canSplit && splitEnabled ? 'Assign items' : 'Use receipt total'}
+        {canSplit && splitEnabled ? 'Assign Items' : 'Use Receipt Total'}
       </button>
 
       {/* Enter manually link */}
@@ -315,7 +315,7 @@ export function LineItemReview({ receipt, members, currentUserId, onConfirm, onM
           borderRadius: 10,
         }}
       >
-        Enter items manually instead
+        Enter Items Manually Instead
       </button>
     </div>
   )

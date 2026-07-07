@@ -1635,7 +1635,7 @@ export default function SettingsPage() {
                       fontWeight: 800,
                     }}
                   >
-                    Change password
+                    Change Password
                   </motion.button>
                 </div>
               </div>
@@ -1973,7 +1973,7 @@ export default function SettingsPage() {
                       fontWeight: 600,
                     }}
                   >
-                    Generate new code
+                    Generate New Code
                   </button>
                 )}
               </div>
@@ -2143,7 +2143,7 @@ export default function SettingsPage() {
                       textDecoration: 'underline',
                     }}
                   >
-                    Transfer admin
+                    Transfer Admin
                   </button>
                 </div>
               )}
@@ -2221,7 +2221,7 @@ export default function SettingsPage() {
                       cursor: 'pointer',
                     }}
                   >
-                    Add child account
+                    Add Child Account
                   </button>
                 </div>
               </div>
@@ -2732,7 +2732,7 @@ export default function SettingsPage() {
                       fontWeight: 700,
                     }}
                   >
-                    Manage billing
+                    Manage Billing
                   </motion.button>
                 )}
               </div>
@@ -2772,7 +2772,7 @@ export default function SettingsPage() {
                     textDecoration: 'none',
                   }}
                 >
-                  Download my data
+                  Download My Data
                 </a>
               </div>
             </div>
@@ -2835,7 +2835,7 @@ export default function SettingsPage() {
                       fontWeight: 700,
                     }}
                   >
-                    {deletingAccount ? 'Deleting...' : 'Delete my account'}
+                    {deletingAccount ? 'Deleting...' : 'Delete My Account'}
                   </button>
                 </div>
 
@@ -2864,7 +2864,7 @@ export default function SettingsPage() {
                         fontWeight: 700,
                       }}
                     >
-                      Delete all data
+                      Delete All Data
                     </button>
                   </div>
                 )}
@@ -2894,7 +2894,7 @@ export default function SettingsPage() {
                         fontWeight: 700,
                       }}
                     >
-                      Delete household
+                      Delete Household
                     </button>
                   </div>
                 )}
@@ -3186,7 +3186,7 @@ export default function SettingsPage() {
                   fontWeight: 800,
                 }}
               >
-                Delete everything
+                Delete Everything
               </motion.button>
             </AlertDialogFooter>
           </AlertDialogContent>
@@ -3242,7 +3242,7 @@ export default function SettingsPage() {
                   fontWeight: 800,
                 }}
               >
-                Yes, delete everything
+                Yes, Delete Everything
               </motion.button>
             </AlertDialogFooter>
           </AlertDialogContent>
@@ -3311,7 +3311,7 @@ export default function SettingsPage() {
                   fontWeight: 800,
                 }}
               >
-                Delete everything
+                Delete Everything
               </motion.button>
             </AlertDialogFooter>
           </AlertDialogContent>
@@ -3367,7 +3367,7 @@ export default function SettingsPage() {
                   fontWeight: 800,
                 }}
               >
-                Yes, delete household
+                Yes, Delete Household
               </motion.button>
             </AlertDialogFooter>
           </AlertDialogContent>

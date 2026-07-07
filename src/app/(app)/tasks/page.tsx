@@ -668,7 +668,7 @@ export default function TasksPage() {
                 }}
               >
                 {canAddTask ? <Plus size={16} /> : <Lock size={16} />}
-                <span className="hidden md:inline">Add task</span>
+                <span className="hidden md:inline">Add Task</span>
               </motion.button>
             )}
           </div>

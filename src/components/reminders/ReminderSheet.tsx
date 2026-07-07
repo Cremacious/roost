@@ -369,7 +369,7 @@ export function ReminderSheet({ open, onClose, reminder, members, isPremium = fa
             opacity: saveMutation.isPending ? 0.7 : 1,
           }}
         >
-          {saveMutation.isPending ? 'Saving...' : reminder ? 'Save changes' : 'Set reminder'}
+          {saveMutation.isPending ? 'Saving...' : reminder ? 'Save Changes' : 'Set Reminder'}
         </button>
       </div>
     </DraggableSheet>

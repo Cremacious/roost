@@ -936,7 +936,7 @@ function LeftColumn({
           display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
         }}>
         {editLocked && <Lock size={15} style={{ marginRight: 2 }} />}
-        {saveMutation.isPending ? 'Saving...' : isEdit ? 'Save changes' : 'Save event'}
+        {saveMutation.isPending ? 'Saving...' : isEdit ? 'Save Changes' : 'Save Event'}
       </motion.button>
 
       {canDelete && (
@@ -949,7 +949,7 @@ function LeftColumn({
             display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
           }}>
           <Trash2 size={15} />
-          Delete event
+          Delete Event
         </motion.button>
       )}
     </>

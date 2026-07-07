@@ -350,7 +350,7 @@ export default function RewardRuleSheet({ open, onClose, rule, members }: Reward
               opacity: saveMutation.isPending ? 0.7 : 1,
             }}
           >
-            {saveMutation.isPending ? 'Saving...' : isEditing ? 'Save changes' : 'Add reward rule'}
+            {saveMutation.isPending ? 'Saving...' : isEditing ? 'Save Changes' : 'Add Reward Rule'}
           </motion.button>
 
           {/* Delete */}
@@ -377,7 +377,7 @@ export default function RewardRuleSheet({ open, onClose, rule, members }: Reward
               }}
             >
               <Trash2 size={15} />
-              {deleteMutation.isPending ? 'Removing...' : 'Remove reward rule'}
+              {deleteMutation.isPending ? 'Removing...' : 'Remove Reward Rule'}
             </button>
           )}
         </div>

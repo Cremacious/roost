@@ -147,7 +147,7 @@ export default function ProjectSettingsSheet({
             marginBottom: 16,
           }}
         >
-          {saveMutation.isPending ? 'Saving...' : 'Save changes'}
+          {saveMutation.isPending ? 'Saving...' : 'Save Changes'}
         </button>
 
         {/* Delete (admin only) */}
@@ -174,7 +174,7 @@ export default function ProjectSettingsSheet({
                       color: '#fff', fontWeight: 800, fontSize: 13, cursor: 'pointer',
                     }}
                   >
-                    {deleteMutation.isPending ? 'Deleting...' : 'Yes, delete'}
+                    {deleteMutation.isPending ? 'Deleting...' : 'Yes, Delete'}
                   </button>
                   <button
                     type="button"
@@ -205,7 +205,7 @@ export default function ProjectSettingsSheet({
                 }}
               >
                 <Trash2 size={15} />
-                Delete project
+                Delete Project
               </motion.button>
             )}
           </div>

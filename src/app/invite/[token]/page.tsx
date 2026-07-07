@@ -225,7 +225,7 @@ export default function InviteLandingPage() {
                   }}
                 >
                   {joining ? <Loader2 size={16} className="animate-spin" /> : <Check size={16} />}
-                  {joining ? 'Joining...' : 'Join as guest'}
+                  {joining ? 'Joining...' : 'Join as Guest'}
                 </button>
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -247,7 +247,7 @@ export default function InviteLandingPage() {
                       textDecoration: 'none',
                     }}
                   >
-                    Sign up to join
+                    Sign Up to Join
                   </Link>
                   <Link
                     href={`/login?callbackUrl=/invite/${token}`}

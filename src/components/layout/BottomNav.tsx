@@ -206,7 +206,7 @@ export function BottomNav() {
               <LogOut size={18} color="#EF4444" strokeWidth={2} />
             </div>
             <span style={{ fontSize: 13, fontWeight: 800, color: '#EF4444' }}>
-              Sign out
+              Sign Out
             </span>
           </button>
         </div>
@@ -231,7 +231,7 @@ export function BottomNav() {
               onClick={handleSignOut}
               style={{ padding: '9px 18px', borderRadius: 10, border: 'none', borderBottom: '3px solid #C93B3B', backgroundColor: '#EF4444', fontFamily: 'inherit', fontSize: 13, fontWeight: 800, color: '#fff', cursor: 'pointer' }}
             >
-              Sign out
+              Sign Out
             </button>
           </AlertDialogFooter>
         </AlertDialogContent>

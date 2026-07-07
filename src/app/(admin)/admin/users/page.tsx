@@ -228,7 +228,7 @@ export default function AdminUsersPage() {
                     }}
                   >
                     <Trash2 size={13} />
-                    Delete user
+                    Delete User
                   </button>
                 </div>
               )}
@@ -338,7 +338,7 @@ export default function AdminUsersPage() {
                   color: '#fff', fontSize: 13, fontWeight: 700, cursor: deleting ? 'not-allowed' : 'pointer', fontFamily: 'inherit',
                 }}
               >
-                {deleting ? 'Deleting...' : deleteHousehold ? 'Delete user + household' : 'Delete user'}
+                {deleting ? 'Deleting...' : deleteHousehold ? 'Delete User + Household' : 'Delete User'}
               </button>
             </div>
           </div>

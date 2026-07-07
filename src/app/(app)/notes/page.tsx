@@ -274,7 +274,7 @@ export default function NotesPage() {
               style={{ marginTop: 8, padding: '11px 20px', borderRadius: 12, border: 'none', borderBottom: `3px solid ${COLOR_DARK}`, backgroundColor: COLOR, color: '#fff', fontWeight: 800, fontSize: 14, cursor: canAddNote ? 'pointer' : 'not-allowed', opacity: canAddNote ? 1 : 0.55, display: 'flex', alignItems: 'center', gap: 6 }}
             >
               {canAddNote ? null : <Lock size={14} color="#fff" />}
-              New note
+              New Note
             </motion.button>
           </div>
         ) : (

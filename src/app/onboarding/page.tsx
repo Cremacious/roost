@@ -312,7 +312,7 @@ export default function OnboardingPage() {
                 }}
               >
                 <p style={{ fontWeight: 800, fontSize: 14, color: '#111827', margin: 0 }}>
-                  Create a household
+                  Create a Household
                 </p>
                 <p style={{ fontWeight: 700, fontSize: 11, color: '#6B7280', margin: '2px 0 0' }}>
                   Start fresh and invite others to join
@@ -333,7 +333,7 @@ export default function OnboardingPage() {
                 }}
               >
                 <p style={{ fontWeight: 800, fontSize: 14, color: '#111827', margin: 0 }}>
-                  Join a household
+                  Join a Household
                 </p>
                 <p style={{ fontWeight: 700, fontSize: 11, color: '#6B7280', margin: '2px 0 0' }}>
                   Enter the code from your housemate
@@ -382,7 +382,7 @@ export default function OnboardingPage() {
                   </p>
                 )}
                 <button type="submit" disabled={loading} style={ctaButtonStyle}>
-                  {loading ? 'Creating...' : 'Create household'}
+                  {loading ? 'Creating...' : 'Create Household'}
                 </button>
               </form>
             </>
@@ -435,7 +435,7 @@ export default function OnboardingPage() {
                   </p>
                 )}
                 <button type="submit" disabled={loading} style={ctaButtonStyle}>
-                  {loading ? 'Joining...' : 'Join household'}
+                  {loading ? 'Joining...' : 'Join Household'}
                 </button>
               </form>
             </>

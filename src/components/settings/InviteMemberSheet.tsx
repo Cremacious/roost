@@ -98,7 +98,7 @@ export default function InviteMemberSheet({
             }}
           >
             {codeCopied ? <Check size={13} /> : hasNativeShare ? <Share2 size={13} /> : <Copy size={13} />}
-            {codeCopied ? 'Copied!' : hasNativeShare ? 'Share code' : 'Copy code'}
+            {codeCopied ? 'Copied!' : hasNativeShare ? 'Share Code' : 'Copy Code'}
           </button>
         </div>
 

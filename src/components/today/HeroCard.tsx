@@ -115,7 +115,7 @@ export function HeroCard({ type, item, onCompleteChore, onReminderDone, onRemind
             }}
           >
             <Check size={14} strokeWidth={2.5} />
-            Mark complete
+            Mark Complete
           </button>
         )}
 
@@ -144,7 +144,7 @@ export function HeroCard({ type, item, onCompleteChore, onReminderDone, onRemind
             href="/household"
             style={{ display: 'inline-flex', alignItems: 'center', padding: '10px 18px', borderRadius: 11, background: 'rgba(255,255,255,0.15)', border: '1.5px solid rgba(255,255,255,0.25)', fontFamily: 'inherit', fontSize: 13, fontWeight: 900, color: 'white', textDecoration: 'none' }}
           >
-            View household
+            View Household
           </Link>
         )}
       </div>

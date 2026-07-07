@@ -113,7 +113,7 @@ export function ContributeSheet({ open, onClose, goal }: Props) {
             opacity: saving ? 0.7 : 1,
           }}
         >
-          {saving ? 'Saving...' : 'Log contribution'}
+          {saving ? 'Saving...' : 'Log Contribution'}
         </button>
       </div>
     </DraggableSheet>

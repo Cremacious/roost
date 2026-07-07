@@ -130,7 +130,7 @@ export function ReceiptScanner({ onResult, onManual, onCancel }: ReceiptScannerP
             }}
           >
             <Camera size={20} />
-            Take photo
+            Take Photo
           </button>
 
           {/* File picker button (desktop) */}
@@ -145,7 +145,7 @@ export function ReceiptScanner({ onResult, onManual, onCancel }: ReceiptScannerP
             }}
           >
             <Upload size={20} />
-            Upload image
+            Upload Image
           </button>
 
           <button
@@ -156,7 +156,7 @@ export function ReceiptScanner({ onResult, onManual, onCancel }: ReceiptScannerP
               border: 'none', cursor: 'pointer',
             }}
           >
-            Enter items manually
+            Enter Items Manually
           </button>
         </div>
       )}
@@ -211,7 +211,7 @@ export function ReceiptScanner({ onResult, onManual, onCancel }: ReceiptScannerP
               borderBottom: `3px solid ${COLOR_DARK}`,
             }}
           >
-            Try again
+            Try Again
           </button>
 
           <button
@@ -224,7 +224,7 @@ export function ReceiptScanner({ onResult, onManual, onCancel }: ReceiptScannerP
               borderBottom: '3px solid var(--roost-border-bottom)',
             }}
           >
-            Enter manually
+            Enter Manually
           </button>
         </div>
       )}
@@ -263,7 +263,7 @@ export function ReceiptScanner({ onResult, onManual, onCancel }: ReceiptScannerP
               borderBottom: `3px solid ${AMBER_DARK}`,
             }}
           >
-            Add items manually
+            Add Items Manually
           </button>
 
           <button
@@ -274,7 +274,7 @@ export function ReceiptScanner({ onResult, onManual, onCancel }: ReceiptScannerP
               border: 'none', cursor: 'pointer', width: '100%',
             }}
           >
-            Try another photo
+            Try Another Photo
           </button>
         </div>
       )}

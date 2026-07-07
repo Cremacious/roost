@@ -756,8 +756,8 @@ export default async function HomePage() {
         <p className="hero-sub">Chores, groceries, meals, bills, calendar, reminders. Your entire household in one place.</p>
 
         <div className="hero-btns">
-          <Link href="/signup" className="btn-white">Get started free</Link>
-          <Link href="/login" className="btn-outline">Sign in</Link>
+          <Link href="/signup" className="btn-white">Get Started Free</Link>
+          <Link href="/login" className="btn-outline">Sign In</Link>
         </div>
 
 
@@ -1157,7 +1157,7 @@ export default async function HomePage() {
       <section className="bottom-cta">
         <h2 className="reveal">Households run better with Roost.</h2>
    
-        <Link href="/signup" className="btn-white reveal stagger-2">Create your account</Link>
+        <Link href="/signup" className="btn-white reveal stagger-2">Create Your Account</Link>
       </section>
 
       {/* 6. FOOTER */}

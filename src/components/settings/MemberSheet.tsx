@@ -503,7 +503,7 @@ export default function MemberSheet({
                 }}
               >
                 <Trash2 size={16} />
-                Remove from household
+                Remove From Household
               </motion.button>
             </div>
           )}

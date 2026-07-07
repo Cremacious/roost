@@ -95,7 +95,7 @@ export function UpgradeAccountSheet({ open, onClose }: { open: boolean; onClose:
         <motion.button whileTap={{ y: 1 }} type="button" onClick={handleSubmit} disabled={loading}
           style={{ width: '100%', height: 50, borderRadius: 14, border: 'none', borderBottom: `4px solid ${COLOR_DARK}`,
             background: COLOR, color: '#fff', fontSize: 14, fontWeight: 800, cursor: loading ? 'not-allowed' : 'pointer', opacity: loading ? 0.7 : 1 }}>
-          {loading ? 'Setting up...' : 'Create my account'}
+          {loading ? 'Setting up...' : 'Create My Account'}
         </motion.button>
       </div>
     </DraggableSheet>

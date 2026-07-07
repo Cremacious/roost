@@ -256,7 +256,7 @@ export default function WelcomeModal({ open, onDismiss }: WelcomeModalProps) {
                 justifyContent: 'center',
               }}
             >
-              Got it!
+              Got It!
             </motion.button>
           </div>
         </DialogPrimitive.Content>

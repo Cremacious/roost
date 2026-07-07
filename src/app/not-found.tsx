@@ -37,7 +37,7 @@ export default function NotFound() {
           display: 'inline-block',
         }}
       >
-        Back to home
+        Back to Home
       </Link>
     </div>
   )

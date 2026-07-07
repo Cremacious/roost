@@ -381,7 +381,7 @@ export default function ChoreSheet({ open, onClose, chore, members, isAdmin, isP
               opacity: saveMutation.isPending ? 0.7 : 1,
             }}
           >
-            {saveMutation.isPending ? 'Saving...' : isEditing ? 'Save changes' : 'Add chore'}
+            {saveMutation.isPending ? 'Saving...' : isEditing ? 'Save Changes' : 'Add Chore'}
           </motion.button>
 
           {/* Delete */}
@@ -408,7 +408,7 @@ export default function ChoreSheet({ open, onClose, chore, members, isAdmin, isP
               }}
             >
               <Trash2 size={15} />
-              {deleteMutation.isPending ? 'Deleting...' : 'Delete chore'}
+              {deleteMutation.isPending ? 'Deleting...' : 'Delete Chore'}
             </button>
           )}
         </div>

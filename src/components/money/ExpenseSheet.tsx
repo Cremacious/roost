@@ -1120,7 +1120,7 @@ export function ExpenseSheet({ open, onClose, members, currentUserId, isPremium,
               opacity: saving ? 0.7 : 1,
             }}
           >
-            {saving ? 'Saving...' : editing ? 'Save changes' : 'Add expense'}
+            {saving ? 'Saving...' : editing ? 'Save Changes' : 'Add Expense'}
           </button>
         </div>
       )}

@@ -140,7 +140,7 @@ export function GoalSheet({ open, onClose, goal }: Props) {
             opacity: saving ? 0.7 : 1,
           }}
         >
-          {saving ? 'Saving...' : isEdit ? 'Save changes' : 'Create goal'}
+          {saving ? 'Saving...' : isEdit ? 'Save Changes' : 'Create Goal'}
         </button>
       </div>
     </DraggableSheet>

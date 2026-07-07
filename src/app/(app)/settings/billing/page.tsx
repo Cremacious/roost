@@ -413,7 +413,7 @@ export default function BillingPage() {
                           opacity: isReactivating ? 0.7 : 1,
                         }}
                       >
-                        {isReactivating ? 'Reactivating...' : 'Reactivate plan'}
+                        {isReactivating ? 'Reactivating...' : 'Reactivate Plan'}
                       </motion.button>
                     )}
 
@@ -435,7 +435,7 @@ export default function BillingPage() {
                           }}
                         >
                           <ExternalLink size={14} />
-                          {isPortaling ? 'Opening...' : 'Manage billing'}
+                          {isPortaling ? 'Opening...' : 'Manage Billing'}
                         </motion.button>
                         <motion.button
                           type="button"
@@ -452,7 +452,7 @@ export default function BillingPage() {
                             opacity: isCanceling ? 0.7 : 1,
                           }}
                         >
-                          {isCanceling ? 'Canceling...' : 'Cancel plan'}
+                          {isCanceling ? 'Canceling...' : 'Cancel Plan'}
                         </motion.button>
                       </div>
                     )}
@@ -474,7 +474,7 @@ export default function BillingPage() {
                         }}
                       >
                         <ExternalLink size={14} />
-                        {isPortaling ? 'Opening...' : 'Manage billing'}
+                        {isPortaling ? 'Opening...' : 'Manage Billing'}
                       </motion.button>
                     )}
                   </div>
@@ -615,7 +615,7 @@ export default function BillingPage() {
                     fontWeight: 700,
                   }}
                 >
-                  Cancel plan
+                  Cancel Plan
                 </motion.button>
               </div>
             </motion.div>

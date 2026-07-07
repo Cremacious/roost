@@ -137,7 +137,7 @@ export default function AdminPromoCodesPage() {
             color: '#fff', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
           }}
         >
-          {showCreate ? 'Cancel' : '+ New code'}
+          {showCreate ? 'Cancel' : '+ New Code'}
         </button>
       </div>
 
@@ -219,7 +219,7 @@ export default function AdminPromoCodesPage() {
                 color: '#fff', fontSize: 13, fontWeight: 700, cursor: creating ? 'not-allowed' : 'pointer', fontFamily: 'inherit',
               }}
             >
-              {creating ? 'Creating...' : 'Create code'}
+              {creating ? 'Creating...' : 'Create Code'}
             </button>
           </div>
         </form>

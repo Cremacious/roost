@@ -170,7 +170,7 @@ export default function AdminDevPage() {
                 ) : (
                   <>
                     <Trash2 size={14} />
-                    Yes, wipe everything
+                    Yes, Wipe Everything
                   </>
                 )}
               </button>

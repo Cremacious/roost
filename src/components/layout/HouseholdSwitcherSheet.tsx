@@ -136,7 +136,7 @@ export function HouseholdSwitcherSheet({ open, onClose }: Props) {
         >
           <Plus size={14} color={COLOR} />
           <span style={{ fontSize: 13, fontWeight: 700, color: COLOR }}>
-            Join or create another household
+            Join or Create Another Household
           </span>
         </button>
       </div>

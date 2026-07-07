@@ -303,7 +303,7 @@ export default function ChoreHistoryPage() {
           }}
         >
           <ChevronLeft size={16} />
-          Back to chores
+          Back to Chores
         </button>
 
         {/* Header */}
@@ -603,7 +603,7 @@ export default function ChoreHistoryPage() {
                   fontFamily: 'inherit',
                 }}
               >
-                Load more ({completions.length - visible.length} left)
+                Load More ({completions.length - visible.length} left)
               </button>
             )}
           </div>

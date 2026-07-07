@@ -182,7 +182,7 @@ export default function InviteGuestSheet({ open, onClose }: InviteGuestSheetProp
               }}
             >
               {generating ? <Loader2 size={16} className="animate-spin" /> : <Link2 size={16} />}
-              {generating ? 'Creating link...' : 'Create invite link'}
+              {generating ? 'Creating link...' : 'Create Invite Link'}
             </button>
           </>
         ) : (
@@ -233,7 +233,7 @@ export default function InviteGuestSheet({ open, onClose }: InviteGuestSheetProp
               }}
             >
               {copied ? <Check size={16} /> : hasNativeShare ? <Share2 size={16} /> : <Copy size={16} />}
-              {copied ? 'Copied!' : hasNativeShare ? 'Share link' : 'Copy link'}
+              {copied ? 'Copied!' : hasNativeShare ? 'Share Link' : 'Copy Link'}
             </button>
 
             <button
@@ -251,7 +251,7 @@ export default function InviteGuestSheet({ open, onClose }: InviteGuestSheetProp
                 cursor: 'pointer',
               }}
             >
-              Create another link
+              Create Another Link
             </button>
           </>
         )}

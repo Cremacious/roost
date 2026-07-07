@@ -175,7 +175,7 @@ export function HouseholdSwitcher() {
           >
             <Plus size={11} color="rgba(255,255,255,0.45)" />
             <span style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.45)' }}>
-              Join or create another
+              Join or Create Another
             </span>
           </button>
         </div>

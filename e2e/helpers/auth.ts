@@ -87,7 +87,7 @@ export async function signIn(
   await passwordInput.click();
   await passwordInput.fill("");
   await passwordInput.pressSequentially(user.password, { delay: 20 });
-  await page.getByRole("button", { name: /^Sign in$/ }).click();
+  await page.getByRole("button", { name: /^Sign In$/ }).click();
   await page.waitForLoadState("networkidle", { timeout: 30000 }).catch(() => {});
   await page.waitForURL("**/today", { timeout: 30000 });
 }

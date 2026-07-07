@@ -161,7 +161,7 @@ export default function AdminLoginPage() {
               fontFamily: 'inherit',
             }}
           >
-            {loading ? 'Signing in...' : 'Sign in'}
+            {loading ? 'Signing In...' : 'Sign In'}
           </button>
         </form>
       </div>

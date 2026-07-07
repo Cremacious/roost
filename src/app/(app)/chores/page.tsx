@@ -1105,7 +1105,7 @@ export default function ChoresPage() {
             }}
           >
             {canAddChore ? <Plus size={16} /> : <Lock size={16} />}
-            <span className="hidden md:inline">Add chore</span>
+            <span className="hidden md:inline">Add Chore</span>
           </motion.button>
         </div>
       </div>
@@ -1290,7 +1290,7 @@ export default function ChoresPage() {
                   fontFamily: 'inherit',
                 }}
               >
-                Add the first chore
+                Add the First Chore
               </motion.button>
             </>
           )}

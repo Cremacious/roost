@@ -688,7 +688,7 @@ function MealCard({
             padding: 0,
           }}
         >
-          Add all
+          Add All
         </button>
       </div>
       <div
@@ -1559,7 +1559,7 @@ export default function FoodPage() {
             ) : (
               <Plus size={11} color="var(--roost-text-muted)" />
             )}
-            New list
+            New List
           </button>
         )}
       </div>
@@ -2386,7 +2386,7 @@ export default function FoodPage() {
                 ) : (
                   <Plus size={11} color="var(--roost-text-muted)" />
                 )}
-                New list
+                New List
               </button>
             </div>
           </div>
@@ -2613,7 +2613,7 @@ export default function FoodPage() {
                 fontWeight: 800,
               }}
             >
-              Increase quantity
+              Increase Quantity
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

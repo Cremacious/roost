@@ -6,7 +6,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import {
   signUp,
   signInWithGoogle,
-  signInWithApple,
+  // signInWithApple: re-enable when Apple auth ships (see disabled button below)
 } from '@/lib/auth/client';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -164,10 +164,11 @@ export default function SignupPage() {
     await signInWithGoogle(callbackUrl ?? '/today');
   }
 
-  async function handleApple() {
-    setOauthLoading('apple');
-    await signInWithApple(callbackUrl ?? '/today');
-  }
+  // Apple sign-in is not wired up yet. Re-enable when Apple auth ships.
+  // async function handleApple() {
+  //   setOauthLoading('apple');
+  //   await signInWithApple(callbackUrl ?? '/today');
+  // }
 
   const confirmMismatch = confirm.length > 0 && confirm !== password;
 
@@ -405,46 +406,53 @@ export default function SignupPage() {
               Continue with Google
             </button>
 
-            <button
-              type="button"
-              onClick={handleApple}
-              disabled={!!oauthLoading}
-              style={{
-                width: '100%',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: 10,
-                padding: '11px 16px',
-                backgroundColor: '#111827',
-                border: '1.5px solid #111827',
-                borderBottom: '3px solid #000',
-                borderRadius: 12,
-                cursor: oauthLoading ? 'not-allowed' : 'pointer',
-                opacity: oauthLoading && oauthLoading !== 'apple' ? 0.5 : 1,
-                fontFamily: 'inherit',
-                fontWeight: 700,
-                fontSize: 14,
-                color: '#fff',
-              }}
-            >
-              {oauthLoading === 'apple' ? (
-                <span
-                  style={{
-                    width: 20,
-                    height: 20,
-                    border: '2px solid rgba(255,255,255,0.3)',
-                    borderTop: '2px solid #fff',
-                    borderRadius: '50%',
-                    display: 'inline-block',
-                    animation: 'spin 0.7s linear infinite',
-                  }}
-                />
-              ) : (
+            {/* Apple sign-in is not wired up yet. Disabled with a Coming soon badge until Apple auth ships. */}
+            <div style={{ position: 'relative' }}>
+              <button
+                type="button"
+                aria-disabled="true"
+                style={{
+                  width: '100%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 10,
+                  padding: '11px 16px',
+                  backgroundColor: '#111827',
+                  border: '1.5px solid #111827',
+                  borderBottom: '3px solid #000',
+                  borderRadius: 12,
+                  cursor: 'not-allowed',
+                  opacity: 0.55,
+                  fontFamily: 'inherit',
+                  fontWeight: 700,
+                  fontSize: 14,
+                  color: '#fff',
+                }}
+              >
                 <AppleIcon />
-              )}
-              Continue with Apple
-            </button>
+                Continue with Apple
+              </button>
+              <span
+                style={{
+                  position: 'absolute',
+                  top: '50%',
+                  right: 12,
+                  transform: 'translateY(-50%)',
+                  backgroundColor: 'rgba(255,255,255,0.22)',
+                  color: '#fff',
+                  fontSize: 10,
+                  fontWeight: 800,
+                  letterSpacing: '0.04em',
+                  textTransform: 'uppercase',
+                  padding: '3px 8px',
+                  borderRadius: 999,
+                  pointerEvents: 'none',
+                }}
+              >
+                Coming soon
+              </span>
+            </div>
           </div>
 
           {/* Divider */}

@@ -1665,7 +1665,6 @@ export default function FoodPage() {
             <div style={{ display: 'flex', alignItems: 'center' }}>
               <input
                 ref={inputRef}
-                data-testid="grocery-quick-add"
                 type="text"
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
@@ -1773,6 +1772,7 @@ export default function FoodPage() {
           >
             <div style={{ display: 'flex', alignItems: 'center' }}>
               <input
+                data-testid="grocery-quick-add"
                 type="text"
                 value={input}
                 onChange={(e) => setInput(e.target.value)}

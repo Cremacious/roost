@@ -36,7 +36,7 @@ test.describe("Email change and re-login", () => {
       password: user.password,
     });
     await createHousehold(page, `${user.name}'s House`);
-    await expect(page).toHaveURL(/\/dashboard/);
+    await expect(page).toHaveURL(/\/today/);
 
     // 2. Change email via API — page.request shares the session cookie
     const res = await page.request.patch("/api/user/profile", {
@@ -50,7 +50,7 @@ test.describe("Email change and re-login", () => {
 
     // 4. Sign in with the NEW email — this verifies the auth "user" table was updated
     await signIn(page, { email: user.newEmail, password: user.password });
-    await expect(page).toHaveURL(/\/dashboard/);
+    await expect(page).toHaveURL(/\/today/);
   });
 
   test("old email no longer works after email change", async ({ page }) => {

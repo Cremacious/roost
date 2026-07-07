@@ -3,12 +3,12 @@
  *
  * Prerequisites:
  * - Seed must have run: npm run db:seed
- * - Seed creates "Test Child" (PIN 1234) in "Roost Free House" (code RSTFRE)
+ * - Seed creates "Test Child" (PIN 1234) in "Roost Free House" (code FREEHS)
  * - The seed now inserts the child into BOTH the better-auth "user" table AND
  *   the app "users" table — required for internalAdapter.createSession() FK constraint.
  *
  * Flow:
- *   Step 1 — enter 6-char household code → "Let me in"
+ *   Step 1 — enter 6-char household code → "Find my household"
  *   Step 2 — child picker (skipped automatically when only 1 child)
  *   Step 3 — PIN pad (auto-submits on 4th digit)
  */
@@ -38,18 +38,18 @@ test.describe("Child PIN login", () => {
     // Step 1: enter household code
     const codeInput = page.locator('input[placeholder="XXXXXX"]');
     await codeInput.fill(FREE_HOUSEHOLD_CODE);
-    await page.getByRole("button", { name: "Let me in" }).click();
+    await page.getByRole("button", { name: "Find my household" }).click();
 
-    // Step 2 is skipped automatically (only 1 child in the free household)
-    // — page advances directly to the PIN pad (step 3)
+    // Step 2: pick the child (v2 shows the picker even for a single child)
+    await page.getByRole("button", { name: /Test Child/ }).click();
 
     // Step 3: enter correct PIN (4 digits auto-submit)
     await page.waitForTimeout(500); // allow state transition animation
     await enterPin(page, "1234");
 
-    // Should reach dashboard
-    await page.waitForURL("**/dashboard", { timeout: 20000 });
-    await expect(page).toHaveURL(/\/dashboard/);
+    // Should reach the app home
+    await page.waitForURL("**/today", { timeout: 20000 });
+    await expect(page).toHaveURL(/\/today/);
   });
 
   test("wrong PIN shows error and stays on PIN step", async ({ page }) => {
@@ -58,8 +58,10 @@ test.describe("Child PIN login", () => {
 
     const codeInput = page.locator('input[placeholder="XXXXXX"]');
     await codeInput.fill(FREE_HOUSEHOLD_CODE);
-    await page.getByRole("button", { name: "Let me in" }).click();
+    await page.getByRole("button", { name: "Find my household" }).click();
 
+    // Pick the child, then enter a wrong PIN
+    await page.getByRole("button", { name: /Test Child/ }).click();
     await page.waitForTimeout(500);
 
     // Enter wrong PIN
@@ -84,7 +86,7 @@ test.describe("Child PIN login", () => {
 
     const codeInput = page.locator('input[placeholder="XXXXXX"]');
     await codeInput.fill("ZZZBAD");
-    await page.getByRole("button", { name: "Let me in" }).click();
+    await page.getByRole("button", { name: "Find my household" }).click();
 
     // Should remain on the code-entry step
     await page.waitForTimeout(1500);

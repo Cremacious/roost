@@ -29,8 +29,8 @@ export const TEST_CHILD = {
 };
 
 export const HOUSEHOLD_NAME = "Roost Free House";
-export const FREE_HOUSEHOLD_CODE = "RSTFRE";
-export const PREMIUM_HOUSEHOLD_CODE = "RSTPRM";
+export const FREE_HOUSEHOLD_CODE = "FREEHS";
+export const PREMIUM_HOUSEHOLD_CODE = "PREMHS";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -47,19 +47,25 @@ export async function signUp(
 ) {
   await page.goto("/signup");
   await page.waitForLoadState("domcontentloaded");
-  const nameInput = page.locator('input[placeholder="What should we call you?"]');
+  // pressSequentially throughout: mobile WebKit's fill/insertText does not fire
+  // React onChange, so the controlled inputs stay empty and submit no-ops.
+  const nameInput = page.locator('input[placeholder="Your name"]');
   await nameInput.click();
   await nameInput.pressSequentially(user.name, { delay: 30 });
-  await page.fill('input[type="email"]', user.email);
+  const emailInput = page.locator('input[type="email"]');
+  await emailInput.click();
+  await emailInput.pressSequentially(user.email, { delay: 20 });
   const passwordInputs = await page.locator('input[type="password"]').all();
-  await passwordInputs[0].fill(user.password);
-  await passwordInputs[1].fill(user.password);
+  await passwordInputs[0].click();
+  await passwordInputs[0].pressSequentially(user.password, { delay: 20 });
+  await passwordInputs[1].click();
+  await passwordInputs[1].pressSequentially(user.password, { delay: 20 });
   await page.click('[data-testid="signup-submit"]');
   await page.waitForLoadState("networkidle", { timeout: 30000 }).catch(() => {});
-  // Accept either /onboarding (new account) or /dashboard (account with household)
+  // Accept either /onboarding (new account) or /today (account with household)
   await page.waitForURL(
     (url) =>
-      url.pathname.includes("/onboarding") || url.pathname.includes("/dashboard"),
+      url.pathname.includes("/onboarding") || url.pathname.includes("/today"),
     { timeout: 45000 }
   );
 }
@@ -83,7 +89,7 @@ export async function signIn(
   await passwordInput.pressSequentially(user.password, { delay: 20 });
   await page.getByRole("button", { name: /^Sign in$/ }).click();
   await page.waitForLoadState("networkidle", { timeout: 30000 }).catch(() => {});
-  await page.waitForURL("**/dashboard", { timeout: 30000 });
+  await page.waitForURL("**/today", { timeout: 30000 });
 }
 
 /**
@@ -91,7 +97,7 @@ export async function signIn(
  * Only needed after a fresh signUp() that lands on /onboarding.
  */
 export async function createHousehold(page: Page, name = HOUSEHOLD_NAME) {
-  if (page.url().includes("/dashboard")) return;
+  if (page.url().includes("/today")) return;
 
   await page.waitForURL("**/onboarding", { timeout: 10000 });
 
@@ -99,9 +105,10 @@ export async function createHousehold(page: Page, name = HOUSEHOLD_NAME) {
   const householdInput = page.locator('input[placeholder*="Johnson" i]').first();
   await householdInput.fill(name);
   await page.click("text=Create household");
-  await page.click("text=Go to dashboard");
+  // Step 3 is a success screen; the CTA reads "Go to Roost" and routes to /today.
+  await page.click("text=Go to Roost");
   await page.waitForLoadState("networkidle", { timeout: 15000 }).catch(() => {});
-  await page.waitForURL("**/dashboard", { timeout: 15000 });
+  await page.waitForURL("**/today", { timeout: 15000 });
 }
 
 export async function signOut(page: Page) {

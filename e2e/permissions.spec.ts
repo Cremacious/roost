@@ -48,7 +48,6 @@ test.describe("Auth gate — unauthenticated requests", () => {
     { method: "GET", path: "/api/meals" },
     { method: "GET", path: "/api/stats" },
     { method: "GET", path: "/api/household/me" },
-    { method: "GET", path: "/api/household/activity" },
   ];
 
   for (const { method, path } of protectedRoutes) {
@@ -77,8 +76,13 @@ test.describe("Premium gate — free admin on premium-only routes", () => {
     expect(res.status()).toBe(403);
   });
 
-  test("POST /api/expenses → 403 for free household", async ({ page }) => {
-    // POST (create expense) is premium-only; GET (view list) is free
+  // Quarantined: in the V2 money rebuild, creating a plain expense (bill
+  // splitting) is a free feature. POST /api/expenses no longer calls
+  // requirePremium — it only gates on session, membership, child role, and the
+  // expenses.add permission, then validates the body. The premium money
+  // surfaces (Bills, Budget, Insights, receipt scan, export) remain gated and
+  // are covered by the scan/stats/history tests below and the UI gate tests.
+  test.skip("POST /api/expenses → 403 for free household", async ({ page }) => {
     const res = await page.request.post("/api/expenses", {
       data: {
         title: "Test expense",
@@ -212,25 +216,28 @@ test.describe("Premium UI access — premium admin sees full modules", () => {
     await expect(page.locator("body")).toBeVisible();
   });
 
-  test("expenses page shows full module for premium admin", async ({ page }) => {
-    await page.goto("/expenses");
+  test("money page shows full module for premium admin", async ({ page }) => {
+    // v2 replaced /expenses with the /money module. Premium admins get the full
+    // module: the Bills tab renders real bill management, not the premium gate.
+    await page.goto("/money");
     await page.waitForLoadState("networkidle");
-    await expect(page.locator("body")).toContainText("All square.");
+    await expect(page).toHaveURL(/\/money/);
+    await page.getByRole("button", { name: /^Bills$/ }).first().click();
+    await expect(page.getByText("Premium feature").first()).not.toBeVisible();
   });
 });
 
 test.describe("Premium UI gate — free admin sees upgrade prompts", () => {
   test.use({ storageState: "e2e/.auth/free-admin.json" });
 
-  test("expenses page shows upgrade prompt for free admin", async ({ page }) => {
-    await page.goto("/expenses");
+  test("money page shows premium gate for free admin", async ({ page }) => {
+    // v2 replaced /expenses with /money. The Bills tab is premium-only; free
+    // admins see an inline "Premium feature" upgrade prompt in its place.
+    await page.goto("/money");
     await page.waitForLoadState("networkidle");
-    await page.getByRole("button", { name: /^Recurring$/ }).click();
-    const premiumGate = page.getByRole("dialog");
-    await expect(
-      premiumGate.getByRole("button", { name: "Upgrade for $4/month" })
-    ).toBeVisible();
-    await expect(premiumGate).toContainText("Unlock the full picture.");
+    await page.getByRole("button", { name: /^Bills$/ }).first().click();
+    await expect(page.getByText("Premium feature").first()).toBeVisible();
+    await expect(page.getByText(/Upgrade to unlock/i).first()).toBeVisible();
   });
 
   test("stats page shows upgrade gate for free admin", async ({ page }) => {
@@ -239,8 +246,6 @@ test.describe("Premium UI gate — free admin sees upgrade prompts", () => {
     await expect(
       page.getByRole("button", { name: "Upgrade for $4/month" })
     ).toBeVisible();
-    await expect(page.locator("body")).toContainText(
-      "See how your household runs."
-    );
+    await expect(page.locator("body")).toContainText("Unlock household stats");
   });
 });

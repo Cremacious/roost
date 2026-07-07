@@ -41,7 +41,7 @@ async function globalSetup() {
     await page.fill('input[type="email"]', "admin.free@roost.test");
     await page.fill('input[type="password"]', "RoostTest123!");
     await page.click('[data-testid="login-submit"]');
-    await page.waitForURL("**/dashboard", { timeout: 30000 });
+    await page.waitForURL("**/today", { timeout: 30000 });
     await ctx.storageState({ path: FREE_ADMIN_STATE });
     await ctx.close();
     console.log("  ✓ Saved auth state: free-admin");
@@ -55,7 +55,7 @@ async function globalSetup() {
     await page.fill('input[type="email"]', "admin.premium@roost.test");
     await page.fill('input[type="password"]', "RoostTest123!");
     await page.click('[data-testid="login-submit"]');
-    await page.waitForURL("**/dashboard", { timeout: 30000 });
+    await page.waitForURL("**/today", { timeout: 30000 });
     await ctx.storageState({ path: PREMIUM_ADMIN_STATE });
     await ctx.close();
     console.log("  ✓ Saved auth state: premium-admin");
@@ -69,7 +69,7 @@ async function globalSetup() {
     await page.fill('input[type="email"]', "member@roost.test");
     await page.fill('input[type="password"]', "RoostTest123!");
     await page.click('[data-testid="login-submit"]');
-    await page.waitForURL("**/dashboard", { timeout: 30000 });
+    await page.waitForURL("**/today", { timeout: 30000 });
     await ctx.storageState({ path: MEMBER_STATE });
     await ctx.close();
     console.log("  ✓ Saved auth state: member");
@@ -85,16 +85,16 @@ async function globalSetup() {
 
     // Step 1: discover the child's ID from the household code
     const childrenRes = await page.request.get(
-      `${BASE}/api/auth/child-login?householdCode=RSTFRE`
+      `${BASE}/api/auth/child-login?householdCode=FREEHS`
     );
     const { children } = await childrenRes.json() as { children: { id: string; name: string }[] };
     const child = children.find((c) => c.name === "Test Child");
     if (!child) {
-      console.error("  ✗ Test Child not found in RSTFRE household — run npm run db:seed first");
+      console.error("  ✗ Test Child not found in FREEHS household — run npm run db:seed first");
     } else {
       // Step 2: authenticate as the child — response sets the session cookie
       await page.request.post(`${BASE}/api/auth/child-login`, {
-        data: { householdCode: "RSTFRE", childId: child.id, pin: "1234" },
+        data: { householdCode: "FREEHS", childId: child.id, pin: "1234" },
       });
       await ctx.storageState({ path: CHILD_STATE });
       console.log("  ✓ Saved auth state: child");

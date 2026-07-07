@@ -4,15 +4,15 @@ import { test, expect } from "@playwright/test";
 // No account creation needed — the seeded free-admin session is reused.
 
 const APP_ROUTES = [
-  "/dashboard",
+  "/today",
   "/chores",
-  "/grocery",
+  "/lists",
   "/calendar",
   "/tasks",
   "/notes",
   "/meals",
   "/reminders",
-  "/expenses",
+  "/money",
 ];
 
 test.describe("Navigation", () => {

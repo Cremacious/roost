@@ -24,7 +24,7 @@ test.describe("Auth flows — public", () => {
   test("unauthenticated user is redirected from dashboard to login", async ({
     page,
   }) => {
-    await page.goto("/dashboard");
+    await page.goto("/today");
     await expect(page).toHaveURL(/\/login/);
   });
 
@@ -64,7 +64,7 @@ test.describe("Auth flows — public", () => {
     page,
   }) => {
     await signIn(page, FREE_ADMIN);
-    await expect(page).toHaveURL(/\/dashboard/);
+    await expect(page).toHaveURL(/\/today/);
     // Verify the app shell rendered (not just a redirect)
     await expect(page.locator("body")).toBeVisible();
   });
@@ -133,22 +133,22 @@ test.describe("Password change — happy path", () => {
     // Sign up and create household so dashboard is reachable after re-login
     await signUp(page, user);
     await createHousehold(page, "PW Test House");
-    await expect(page).toHaveURL(/\/dashboard/);
+    await expect(page).toHaveURL(/\/today/);
 
     // Change password while authenticated
     const changeRes = await page.request.post("/api/user/change-password", {
       data: { currentPassword: user.password, newPassword },
     });
     expect(changeRes.ok()).toBeTruthy();
-    const body = (await changeRes.json()) as { success: boolean };
-    expect(body.success).toBe(true);
+    const body = (await changeRes.json()) as { ok: boolean };
+    expect(body.ok).toBe(true);
 
     // Sign out and sign in with the new password
     await signOut(page);
     await expect(page).toHaveURL(/\/login/);
 
     await signIn(page, { email: user.email, password: newPassword });
-    await expect(page).toHaveURL(/\/dashboard/);
+    await expect(page).toHaveURL(/\/today/);
   });
 });
 
@@ -166,19 +166,19 @@ test.describe("Auth flows — signed in", () => {
     page,
   }) => {
     await page.goto("/login");
-    await page.waitForURL((url) => url.pathname.includes("/dashboard"), {
+    await page.waitForURL((url) => url.pathname.includes("/today"), {
       timeout: 15000,
     });
-    await expect(page).toHaveURL(/\/dashboard/);
+    await expect(page).toHaveURL(/\/today/);
   });
 
   test("sign out clears session and returns to login", async ({ page }) => {
-    await page.goto("/dashboard");
-    await page.waitForURL(/\/dashboard/, { timeout: 15000 });
+    await page.goto("/today");
+    await page.waitForURL(/\/today/, { timeout: 15000 });
     await signOut(page);
     await expect(page).toHaveURL(/\/login/);
     // Verify protected route is no longer accessible
-    await page.goto("/dashboard");
+    await page.goto("/today");
     await expect(page).toHaveURL(/\/login/);
   });
 });

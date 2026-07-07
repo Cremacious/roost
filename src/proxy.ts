@@ -65,7 +65,7 @@ function isPublic(pathname: string) {
  * once a monitoring service (Sentry or similar) is configured.
  */
 function buildCsp(nonce: string): string {
-  return [
+  const directives = [
     "default-src 'self'",
     // strict-dynamic propagates trust to child scripts; Stripe.js is also whitelisted
     // explicitly so it can be loaded via a plain <script src="..."> tag.
@@ -81,8 +81,14 @@ function buildCsp(nonce: string): string {
     "form-action 'self'",
     "object-src 'none'",
     "base-uri 'self'",
-    "upgrade-insecure-requests",
-  ].join('; ')
+  ]
+  // Only enforce HTTPS upgrade in production. Over local http (dev, Playwright
+  // WebKit) this directive makes WebKit upgrade localhost navigations to https,
+  // which fails with an SSL connect error.
+  if (process.env.NODE_ENV === 'production') {
+    directives.push('upgrade-insecure-requests')
+  }
+  return directives.join('; ')
 }
 
 /**

@@ -2568,7 +2568,7 @@ export default function SettingsPage() {
                           style={{
                             backgroundColor: 'var(--roost-bg)',
                             border: '1.5px solid var(--roost-border)',
-                            borderBottom: '3px solid #4338CA',
+                            borderBottom: '3px solid #4F46E5',
                           }}
                         >
                           <div

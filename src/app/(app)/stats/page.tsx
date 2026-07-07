@@ -42,7 +42,7 @@ function MemberAvatar({ name, size = 'md' }: { name: string; avatarColor?: strin
 }
 
 const COLOR = "#6366F1";
-const COLOR_DARK = "#4338CA";
+const COLOR_DARK = "#4F46E5";
 
 // ResponsiveContainer renders at -1 x -1 before its ResizeObserver reports the
 // real size, which makes Recharts log a "width/height should be greater than 0"

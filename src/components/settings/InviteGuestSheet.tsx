@@ -121,7 +121,7 @@ export default function InviteGuestSheet({ open, onClose }: InviteGuestSheetProp
                 color: 'var(--roost-text-primary)',
                 backgroundColor: 'var(--roost-surface)',
                 border: '1.5px solid var(--roost-border)',
-                borderBottom: '3px solid var(--roost-border)',
+                borderBottom: '3px solid var(--roost-border-bottom)',
                 borderRadius: 12,
                 outline: 'none',
                 boxSizing: 'border-box',
@@ -150,7 +150,7 @@ export default function InviteGuestSheet({ open, onClose }: InviteGuestSheetProp
                       background: active ? COLOR : 'var(--roost-surface)',
                       color: active ? '#fff' : 'var(--roost-text-secondary)',
                       border: `1.5px solid ${active ? COLOR : 'var(--roost-border)'}`,
-                      borderBottom: `3px solid ${active ? COLOR_DARK : 'var(--roost-border)'}`,
+                      borderBottom: `3px solid ${active ? COLOR_DARK : 'var(--roost-border-bottom)'}`,
                     }}
                   >
                     {p.label}

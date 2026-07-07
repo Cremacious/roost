@@ -170,7 +170,7 @@ export default function AddChildSheet({ open, onClose }: AddChildSheetProps) {
                     : `1.5px solid var(--roost-border)`,
                   borderBottom: nameError
                     ? '3px solid #C93B3B'
-                    : `3px solid var(--roost-border)`,
+                    : `3px solid var(--roost-border-bottom)`,
                   borderRadius: 12,
                   outline: 'none',
                   boxSizing: 'border-box',
@@ -182,7 +182,7 @@ export default function AddChildSheet({ open, onClose }: AddChildSheetProps) {
                 onBlur={(e) => {
                   if (!nameError) {
                     e.currentTarget.style.border = '1.5px solid var(--roost-border)'
-                    e.currentTarget.style.borderBottom = '3px solid var(--roost-border)'
+                    e.currentTarget.style.borderBottom = '3px solid var(--roost-border-bottom)'
                   }
                 }}
               />
@@ -235,7 +235,7 @@ export default function AddChildSheet({ open, onClose }: AddChildSheetProps) {
                       : '1.5px solid var(--roost-border)',
                     borderBottom: pinError
                       ? '3px solid #C93B3B'
-                      : '3px solid var(--roost-border)',
+                      : '3px solid var(--roost-border-bottom)',
                     borderRadius: 12,
                     outline: 'none',
                     boxSizing: 'border-box',
@@ -247,7 +247,7 @@ export default function AddChildSheet({ open, onClose }: AddChildSheetProps) {
                   onBlur={(e) => {
                     if (!pinError) {
                       e.currentTarget.style.border = '1.5px solid var(--roost-border)'
-                      e.currentTarget.style.borderBottom = '3px solid var(--roost-border)'
+                      e.currentTarget.style.borderBottom = '3px solid var(--roost-border-bottom)'
                     }
                   }}
                 />

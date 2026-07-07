@@ -362,7 +362,7 @@ export default function RewardRuleSheet({ open, onClose, rule, members }: Reward
               style={{
                 height: 44,
                 borderRadius: 12,
-                border: '1.5px solid #FCA5A5',
+                border: '1.5px solid #FECACA',
                 borderBottom: '3px solid #FCA5A5',
                 backgroundColor: 'transparent',
                 color: '#EF4444',

@@ -412,13 +412,13 @@ export default function ChoreHistoryPage() {
             <StatTile
               icon={Trophy}
               label="Most active"
-              value={stats.mostActiveMember ? stats.mostActiveMember.name.split(' ')[0] : '—'}
+              value={stats.mostActiveMember ? stats.mostActiveMember.name.split(' ')[0] : 'None'}
               sub={stats.mostActiveMember ? `${stats.mostActiveMember.count} done` : undefined}
             />
             <StatTile
               icon={ListChecks}
               label="Top chore"
-              value={stats.mostCompletedChore ? stats.mostCompletedChore.title : '—'}
+              value={stats.mostCompletedChore ? stats.mostCompletedChore.title : 'None'}
               sub={stats.mostCompletedChore ? `${stats.mostCompletedChore.count}x` : undefined}
             />
           </div>

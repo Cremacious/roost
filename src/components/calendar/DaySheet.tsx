@@ -152,8 +152,7 @@ export default function DaySheet({
                     padding: '12px 14px',
                     borderRadius: 14,
                     border: '1.5px solid var(--roost-border)',
-                    borderLeft: `4px solid ${catColor}`,
-                    borderBottom: '3px solid var(--roost-border-bottom)',
+                    borderBottom: `4px solid ${catColor}`,
                     backgroundColor: 'var(--roost-surface)',
                     cursor: 'pointer',
                   }}

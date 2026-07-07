@@ -321,18 +321,6 @@ export default function HouseholdPage() {
       position: 'relative',
       overflow: 'hidden',
     }}>
-      {/* Decorative circle */}
-      <div style={{
-        position: 'absolute',
-        top: -30,
-        right: -30,
-        width: 120,
-        height: 120,
-        borderRadius: '50%',
-        background: 'rgba(255,255,255,0.08)',
-        pointerEvents: 'none',
-      }} />
-
       <div style={{ fontSize: 10, fontWeight: 800, color: 'rgba(255,255,255,0.7)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 8, position: 'relative' }}>
         Your household
       </div>
@@ -402,7 +390,6 @@ export default function HouseholdPage() {
       position: 'relative',
       overflow: 'hidden',
     }}>
-      <div style={{ position: 'absolute', top: -40, right: -40, width: 180, height: 180, borderRadius: '50%', background: 'rgba(255,255,255,0.06)', pointerEvents: 'none' }} />
 
       {/* Left: name + meta */}
       <div style={{ flex: 1, position: 'relative', zIndex: 1 }}>

@@ -465,7 +465,7 @@ export default function MemberSheet({
                     borderRadius: 12,
                     background: '#6366F1',
                     border: 'none',
-                    borderBottom: '3px solid #4338CA',
+                    borderBottom: '3px solid #4F46E5',
                     color: '#fff',
                     fontSize: 14,
                     fontWeight: 700,

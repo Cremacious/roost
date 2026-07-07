@@ -3,7 +3,7 @@
 import { useState, useMemo } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Settings2, MessageSquare, UserPlus, CheckCircle2, Circle, Pencil, Trash2, ChevronDown, ChevronUp, Plus, Lock } from 'lucide-react'
+import { Settings2, MessageSquare, UserPlus, CheckCircle2, Circle, Pencil, Trash2, ChevronDown, ChevronUp, Plus, Lock, RefreshCw } from 'lucide-react'
 import { SectionGroup } from '@/components/shared/SectionGroup'
 import { toast } from 'sonner'
 import { useSession } from '@/lib/auth/client'
@@ -170,9 +170,7 @@ function TaskRow({
                 }} />
               )}
               {task.recurring && !task.completed && (
-                <span style={{ fontSize: 10, color: 'var(--roost-text-muted)', flexShrink: 0 }}>
-                  ↻
-                </span>
+                <RefreshCw size={11} color="var(--roost-text-muted)" style={{ flexShrink: 0 }} />
               )}
               <p style={{
                 margin: 0, fontSize: 15, fontWeight: 700,

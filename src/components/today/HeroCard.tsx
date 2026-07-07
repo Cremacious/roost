@@ -75,9 +75,6 @@ export function HeroCard({ type, item, onCompleteChore, onReminderDone, onRemind
 
   return (
     <div style={{ background: bg, borderRadius: 18, padding: '20px 18px 18px', position: 'relative', overflow: 'hidden' }}>
-      {/* Decorative blobs */}
-      <div style={{ position: 'absolute', top: -40, right: -40, width: 160, height: 160, borderRadius: '50%', background: 'rgba(255,255,255,0.06)', pointerEvents: 'none' }} />
-      <div style={{ position: 'absolute', bottom: -30, left: -20, width: 100, height: 100, borderRadius: '50%', background: 'rgba(255,255,255,0.04)', pointerEvents: 'none' }} />
 
       {/* All-clear check circle */}
       {type === 'all_clear' && (

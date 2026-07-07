@@ -511,19 +511,6 @@ function ProgressBanner({
         overflow: 'hidden',
       }}
     >
-      {/* Blob */}
-      <div
-        style={{
-          position: 'absolute',
-          top: -40,
-          right: -40,
-          width: 140,
-          height: 140,
-          borderRadius: '50%',
-          background: 'rgba(255,255,255,0.07)',
-          pointerEvents: 'none',
-        }}
-      />
       <div
         style={{
           display: 'flex',

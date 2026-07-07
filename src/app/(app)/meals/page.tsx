@@ -127,7 +127,7 @@ const LABEL_STYLE: React.CSSProperties = {
 }
 const INPUT_STYLE: React.CSSProperties = {
   width: '100%', border: '1.5px solid var(--roost-border)',
-  borderBottom: '3px solid var(--roost-border)', borderRadius: 12,
+  borderBottom: '3px solid var(--roost-border-bottom)', borderRadius: 12,
   padding: '12px 14px', fontSize: 15, fontWeight: 600,
   backgroundColor: 'var(--roost-surface)', color: 'var(--roost-text-primary)',
   outline: 'none', boxSizing: 'border-box',
@@ -173,7 +173,7 @@ function IngredientEditor({
           <button
             type="button"
             onClick={() => remove(i)}
-            style={{ width: 36, height: 44, borderRadius: 10, border: '1.5px solid var(--roost-border)', borderBottom: '3px solid var(--roost-border)', backgroundColor: 'var(--roost-surface)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}
+            style={{ width: 36, height: 44, borderRadius: 10, border: '1.5px solid var(--roost-border)', borderBottom: '3px solid var(--roost-border-bottom)', backgroundColor: 'var(--roost-surface)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}
           >
             <X size={13} color="var(--roost-text-muted)" />
           </button>
@@ -636,7 +636,7 @@ function SlotPickerSheet({
             }}>Pick from meal bank</button>
             <button type="button" onClick={() => setMode('quick')} style={{
               width: '100%', padding: '14px 0', borderRadius: 14, border: '1.5px solid var(--roost-border)',
-              borderBottom: '3px solid var(--roost-border)', backgroundColor: 'var(--roost-surface)',
+              borderBottom: '3px solid var(--roost-border-bottom)', backgroundColor: 'var(--roost-surface)',
               color: 'var(--roost-text-primary)', fontWeight: 800, fontSize: 15, cursor: 'pointer',
             }}>Quick add by name</button>
             {existingSlot && canRemove && (
@@ -651,7 +651,7 @@ function SlotPickerSheet({
                     <Trash2 size={14} /> {busy ? 'Removing...' : 'Confirm remove'}
                   </button>
                   <button type="button" onClick={() => setConfirmRemove(false)} disabled={busy} style={{
-                    padding: '12px 18px', borderRadius: 14, border: '1.5px solid var(--roost-border)', borderBottom: '3px solid var(--roost-border)',
+                    padding: '12px 18px', borderRadius: 14, border: '1.5px solid var(--roost-border)', borderBottom: '3px solid var(--roost-border-bottom)',
                     backgroundColor: 'var(--roost-surface)', color: 'var(--roost-text-secondary)', fontWeight: 700, fontSize: 14,
                     cursor: busy ? 'not-allowed' : 'pointer',
                   }}>
@@ -684,7 +684,7 @@ function SlotPickerSheet({
               ) : filtered.map(m => (
                 <button key={m.id} type="button" onClick={() => pickMeal(m.id)} disabled={busy} style={{
                   width: '100%', padding: '12px 14px', borderRadius: 12, textAlign: 'left',
-                  border: '1.5px solid var(--roost-border)', borderBottom: '3px solid var(--roost-border)',
+                  border: '1.5px solid var(--roost-border)', borderBottom: '3px solid var(--roost-border-bottom)',
                   backgroundColor: 'var(--roost-surface)', cursor: 'pointer',
                 }}>
                   <p style={{ margin: 0, fontWeight: 800, fontSize: 14, color: 'var(--roost-text-primary)' }}>{m.name}</p>
@@ -1412,7 +1412,6 @@ export default function MealsPage() {
                   borderRadius: 16, padding: '18px 16px', marginBottom: 14,
                   position: 'relative', overflow: 'hidden',
                 }}>
-                  <div style={{ position: 'absolute', top: -30, right: -30, width: 120, height: 120, borderRadius: '50%', background: 'rgba(255,255,255,0.08)' }} />
                   <div style={{ fontSize: 11, fontWeight: 800, color: 'rgba(255,255,255,0.7)', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 6 }}>
                     Today, {todayDate.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
                   </div>
@@ -1866,7 +1865,6 @@ export default function MealsPage() {
               borderRadius: 18, padding: '24px 28px', marginBottom: 20,
               alignItems: 'center', gap: 20, position: 'relative', overflow: 'hidden',
             }}>
-              <div style={{ position: 'absolute', top: -40, right: -40, width: 160, height: 160, borderRadius: '50%', background: 'rgba(255,255,255,0.08)' }} />
               <div style={{ width: 52, height: 52, borderRadius: 14, backgroundColor: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                 <Send size={22} color="#fff" />
               </div>

@@ -36,7 +36,7 @@ function EmptyState({ color, icon, title, body, buttonLabel, onButtonClick }: {
   color: string; icon: React.ReactNode; title: string; body: string; buttonLabel?: string; onButtonClick?: () => void
 }) {
   return (
-    <div style={{ backgroundColor: 'var(--roost-surface)', border: '2px dashed var(--roost-border)', borderRadius: 16, padding: '32px 24px', textAlign: 'center' }}>
+    <div style={{ backgroundColor: 'var(--roost-surface)', border: '2px dashed var(--roost-border)', borderBottom: '4px dashed var(--roost-border-bottom)', borderRadius: 16, padding: '32px 24px', textAlign: 'center' }}>
       <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 52, height: 52, borderRadius: 12, backgroundColor: 'var(--roost-surface)', border: '1.5px solid var(--roost-border)', borderBottom: `4px solid ${color}`, marginBottom: 12, color }}>{icon}</div>
       <p style={{ margin: 0, fontWeight: 800, fontSize: 15, color: 'var(--roost-text-primary)' }}>{title}</p>
       <p style={{ margin: '6px 0 0', fontSize: 13, fontWeight: 600, color: 'var(--roost-text-secondary)' }}>{body}</p>
@@ -250,16 +250,13 @@ function DashboardTab({ currentUserId, members, isPremium, onOpenExpense, onOpen
     <div>
       {/* ── Balance Hero ── */}
       <div style={{
-        background: 'linear-gradient(135deg, #22C55E 0%, #16A34A 100%)',
+        background: 'linear-gradient(135deg, #16A34A 0%, #15803D 100%)',
         borderRadius: 20,
         padding: '28px',
         marginBottom: 32,
         position: 'relative',
         overflow: 'hidden',
       }}>
-        <div style={{ position: 'absolute', top: -50, right: -50, width: 220, height: 220, borderRadius: '50%', background: 'rgba(255,255,255,0.07)', pointerEvents: 'none' }} />
-        <div style={{ position: 'absolute', bottom: -40, left: -30, width: 140, height: 140, borderRadius: '50%', background: 'rgba(255,255,255,0.05)', pointerEvents: 'none' }} />
-
         {/* Three-column desktop / stacked mobile */}
         <div className="relative z-10 flex flex-col gap-5 lg:grid lg:items-center lg:gap-x-10" style={{ gridTemplateColumns: 'auto 1fr auto' }}>
           {/* Net balance */}
@@ -439,12 +436,12 @@ function DashboardTab({ currentUserId, members, isPremium, onOpenExpense, onOpen
         {/* ── Sidebar column ── */}
         <div>
           {/* Who owes who */}
-          <div style={{ background: 'var(--roost-surface)', border: '1.5px solid var(--roost-border)', borderBottom: '4px solid #B91C1C', borderRadius: 16, marginBottom: 16, overflow: 'hidden' }}>
+          <div style={{ background: 'var(--roost-surface)', border: '1.5px solid var(--roost-border)', borderBottom: `4px solid ${COLOR_DARK}`, borderRadius: 16, marginBottom: 16, overflow: 'hidden' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 18px 0' }}>
               <span style={{ fontSize: 14, fontWeight: 800, color: 'var(--roost-text-primary)' }}>Who owes who</span>
               <button onClick={() => onTabChange('expenses')} style={{ fontSize: 12, fontWeight: 700, color: COLOR, background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}>See all</button>
             </div>
-            <div style={{ padding: '14px 18px 16px' }}>
+            <div style={{ padding: '2px 18px 12px' }}>
               {myDebts.length === 0 ? (
                 <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: 'var(--roost-text-muted)', textAlign: 'center', padding: '8px 0' }}>All settled up.</p>
               ) : myDebts.slice(0, 3).map((debt: DebtItem, i: number) => {
@@ -463,9 +460,8 @@ function DashboardTab({ currentUserId, members, isPremium, onOpenExpense, onOpen
                     key={i}
                     onClick={handleOpen}
                     style={{
-                      background: 'var(--roost-surface)', border: '1.5px solid var(--roost-border)',
-                      borderBottom: `4px solid ${iClaimed ? '#F59E0B' : iOwe ? '#EF4444' : COLOR}`,
-                      borderRadius: 14, padding: '14px 16px', cursor: 'pointer', marginBottom: i < Math.min(myDebts.length, 3) - 1 ? 10 : 0,
+                      padding: '13px 0', cursor: 'pointer',
+                      borderTop: i > 0 ? '1px solid var(--roost-border)' : 'none',
                     }}
                   >
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>

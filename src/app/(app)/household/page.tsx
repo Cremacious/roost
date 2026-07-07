@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { motion } from 'framer-motion'
-import { Baby, Check, Copy, Settings2, Share2, UserPlus, X } from 'lucide-react'
+import { Baby, Settings2, UserPlus, X } from 'lucide-react'
 import { toast } from 'sonner'
 import { useSession } from '@/lib/auth/client'
 import {
@@ -21,8 +21,6 @@ import InviteMemberSheet from '@/components/settings/InviteMemberSheet'
 import AddChildSheet from '@/components/settings/AddChildSheet'
 import MemberAvatar from '@/components/shared/MemberAvatar'
 import { PageContainer } from '@/components/layout/PageContainer'
-import { usePlatformCapabilities } from '@/lib/hooks/usePlatformCapabilities'
-import { shareOrCopy } from '@/lib/utils/share'
 
 // ─── Design tokens ────────────────────────────────────────────────────────────
 
@@ -223,7 +221,6 @@ export default function HouseholdPage() {
   const [removing, setRemoving]         = useState(false)
   const [gearMember, setGearMember]     = useState<SheetMember | null>(null)
   const [codeCopied, setCodeCopied]     = useState(false)
-  const { hasNativeShare } = usePlatformCapabilities()
 
   const { data, isLoading, isError, refetch } = useQuery<HouseholdData>({
     queryKey: ['household-members'],
@@ -251,21 +248,15 @@ export default function HouseholdPage() {
     { admins: 0, members: 0, children: 0, guests: 0 }
   )
 
-  async function handleShareCode() {
+  async function handleCopyCode() {
     if (!household?.code) return
-    const shareText = household.name
-      ? `Join ${household.name} on Roost. Use household code ${household.code} when you sign up.`
-      : `Join my household on Roost. Use household code ${household.code} when you sign up.`
-    const result = await shareOrCopy(
-      { title: 'Join my household on Roost', text: shareText },
-      household.code,
-    )
-    if (result === 'copied') {
+    try {
+      await navigator.clipboard.writeText(household.code)
       setCodeCopied(true)
       setTimeout(() => setCodeCopied(false), 2000)
       toast.success('Code copied')
-    } else if (result === 'failed') {
-      toast.error('Could not share code', { description: 'Try copying it manually.' })
+    } catch {
+      toast.error('Could not copy code', { description: 'Try copying it manually.' })
     }
   }
 
@@ -321,7 +312,7 @@ export default function HouseholdPage() {
       position: 'relative',
       overflow: 'hidden',
     }}>
-      <div style={{ fontSize: 10, fontWeight: 800, color: 'rgba(255,255,255,0.7)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 8, position: 'relative' }}>
+      <div style={{ fontSize: 10, fontWeight: 800, color: 'rgba(255,255,255,0.9)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 8, position: 'relative' }}>
         Your household
       </div>
       <div style={{ fontSize: 22, fontWeight: 900, color: '#fff', letterSpacing: '-0.5px', marginBottom: 10, position: 'relative' }}>
@@ -329,47 +320,31 @@ export default function HouseholdPage() {
       </div>
       {/* Code row */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, position: 'relative' }}>
-        <div style={{
-          fontFamily: "ui-monospace,'JetBrains Mono',monospace",
-          fontSize: 20,
-          fontWeight: 900,
-          color: '#fff',
-          letterSpacing: '0.18em',
-          background: 'rgba(255,255,255,0.15)',
-          border: '1.5px solid rgba(255,255,255,0.25)',
-          borderRadius: 10,
-          padding: '8px 14px',
-          flex: 1,
-          textAlign: 'center',
-        }}>
-          {household?.code}
-        </div>
         <button
-          onClick={handleShareCode}
+          type="button"
+          onClick={handleCopyCode}
+          aria-label="Copy household code"
           style={{
-            width: 38,
-            height: 38,
-            borderRadius: 10,
+            fontFamily: "ui-monospace,'JetBrains Mono',monospace",
+            fontSize: 20,
+            fontWeight: 900,
+            color: '#fff',
+            letterSpacing: '0.18em',
             background: codeCopied ? 'rgba(255,255,255,0.3)' : 'rgba(255,255,255,0.15)',
             border: '1.5px solid rgba(255,255,255,0.25)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
+            borderRadius: 10,
+            padding: '8px 14px',
+            flex: 1,
+            textAlign: 'center',
             cursor: 'pointer',
-            flexShrink: 0,
             transition: 'background 0.15s',
           }}
-          aria-label={hasNativeShare ? 'Share invite code' : 'Copy invite code'}
         >
-          {codeCopied
-            ? <Check size={15} color="white" />
-            : hasNativeShare
-              ? <Share2 size={15} color="rgba(255,255,255,0.85)" />
-              : <Copy size={15} color="rgba(255,255,255,0.85)" />}
+          {household?.code}
         </button>
       </div>
-      <div style={{ fontSize: 10, fontWeight: 600, color: 'rgba(255,255,255,0.6)', marginTop: 8, position: 'relative' }}>
-        Share this code to invite someone to join
+      <div style={{ fontSize: 10, fontWeight: 600, color: '#fff', marginTop: 8, position: 'relative' }}>
+        {codeCopied ? 'Copied to clipboard' : 'Tap the code to copy, then share it to invite someone'}
       </div>
     </div>
   )
@@ -393,61 +368,46 @@ export default function HouseholdPage() {
 
       {/* Left: name + meta */}
       <div style={{ flex: 1, position: 'relative', zIndex: 1 }}>
-        <div style={{ fontSize: 10, fontWeight: 800, color: 'rgba(255,255,255,0.6)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 4 }}>
+        <div style={{ fontSize: 10, fontWeight: 800, color: 'rgba(255,255,255,0.9)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 4 }}>
           Your household
         </div>
         <div style={{ fontSize: 22, fontWeight: 900, color: '#fff', letterSpacing: '-0.5px', marginBottom: 2 }}>
           {household?.name}
         </div>
-        <div style={{ fontSize: 12, fontWeight: 600, color: 'rgba(255,255,255,0.6)' }}>
+        <div style={{ fontSize: 12, fontWeight: 600, color: 'rgba(255,255,255,0.9)' }}>
           {members.length} {members.length === 1 ? 'member' : 'members'}
         </div>
       </div>
 
       {/* Right: code */}
       <div style={{ position: 'relative', zIndex: 1, textAlign: 'right' }}>
-        <div style={{ fontSize: 10, fontWeight: 800, color: 'rgba(255,255,255,0.6)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 6 }}>
+        <div style={{ fontSize: 10, fontWeight: 800, color: 'rgba(255,255,255,0.9)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 6 }}>
           House code
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <div style={{
-            fontFamily: "ui-monospace,'JetBrains Mono',monospace",
-            fontSize: 24,
-            fontWeight: 900,
-            color: '#fff',
-            letterSpacing: '0.18em',
-            background: 'rgba(255,255,255,0.15)',
-            border: '1.5px solid rgba(255,255,255,0.25)',
-            borderRadius: 10,
-            padding: '9px 16px',
-          }}>
-            {household?.code}
-          </div>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 8 }}>
           <button
-            onClick={handleShareCode}
+            type="button"
+            onClick={handleCopyCode}
+            aria-label="Copy household code"
             style={{
-              width: 40,
-              height: 40,
-              borderRadius: 10,
-              background: codeCopied ? 'rgba(255,255,255,0.3)' : 'rgba(255,255,255,0.12)',
+              fontFamily: "ui-monospace,'JetBrains Mono',monospace",
+              fontSize: 24,
+              fontWeight: 900,
+              color: '#fff',
+              letterSpacing: '0.18em',
+              background: codeCopied ? 'rgba(255,255,255,0.3)' : 'rgba(255,255,255,0.15)',
               border: '1.5px solid rgba(255,255,255,0.25)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
+              borderRadius: 10,
+              padding: '9px 16px',
               cursor: 'pointer',
               transition: 'background 0.15s',
             }}
-            aria-label={hasNativeShare ? 'Share invite code' : 'Copy invite code'}
           >
-            {codeCopied
-              ? <Check size={16} color="white" />
-              : hasNativeShare
-                ? <Share2 size={16} color="rgba(255,255,255,0.8)" />
-                : <Copy size={16} color="rgba(255,255,255,0.8)" />}
+            {household?.code}
           </button>
         </div>
-        <div style={{ fontSize: 10, fontWeight: 600, color: 'rgba(255,255,255,0.55)', marginTop: 6 }}>
-          Share to let someone join this household
+        <div style={{ fontSize: 10, fontWeight: 600, color: '#fff', marginTop: 6 }}>
+          {codeCopied ? 'Copied to clipboard' : 'Tap the code to copy, then share to let someone join'}
         </div>
       </div>
     </div>

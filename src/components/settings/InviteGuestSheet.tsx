@@ -52,7 +52,7 @@ export default function InviteGuestSheet({ open, onClose }: InviteGuestSheetProp
       const res = await fetch('/api/household/invite', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: email.trim() || undefined, expiresInDays: days }),
+        body: JSON.stringify({ role: 'guest', email: email.trim() || undefined, expiresInDays: days }),
       })
       const data = await res.json().catch(() => ({}))
       if (!res.ok) {

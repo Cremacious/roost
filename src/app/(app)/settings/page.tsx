@@ -3384,6 +3384,8 @@ export default function SettingsPage() {
         <InviteMemberSheet
           open={inviteMemberOpen}
           onClose={() => setInviteMemberOpen(false)}
+          householdName={household?.name ?? ''}
+          householdCode={household?.code ?? ''}
         />
 
         {/* Invite guest sheet */}

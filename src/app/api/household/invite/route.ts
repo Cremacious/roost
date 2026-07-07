@@ -6,8 +6,12 @@ import { generateInviteToken, getInviteUrl } from "@/lib/utils/inviteToken";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
-// POST: admin + premium — create a guest invite link.
-// Body: { email?: string, expiresInDays: number (1-365) }
+// POST: admin — create an invite link.
+// Body:
+//   { role: "member" }  -> free, standard member invite (link valid 7 days,
+//                          membership does not expire)
+//   { role: "guest", email?, expiresInDays }  -> premium, temporary guest invite
+// Omitting role defaults to a member invite.
 export async function POST(request: NextRequest): Promise<Response> {
   const session = await requireSession();
   const householdData = await getUserHousehold(session.user.id);
@@ -19,39 +23,62 @@ export async function POST(request: NextRequest): Promise<Response> {
     return Response.json({ error: "Admin only" }, { status: 403 });
   }
 
-  // Guest members are a premium feature.
-  try {
-    await requirePremium(householdData.householdId);
-  } catch (r) {
-    return r as Response;
-  }
-
   const body = await request.json().catch(() => null);
-  const expiresInDays = Number(body?.expiresInDays);
+  const role = body?.role === "guest" ? "guest" : "member";
   const email: string | null =
     typeof body?.email === "string" && body.email.trim() ? body.email.trim().toLowerCase() : null;
 
-  if (!Number.isFinite(expiresInDays) || expiresInDays < 1 || expiresInDays > 365) {
-    return Response.json(
-      { error: "expiresInDays must be a number between 1 and 365" },
-      { status: 400 },
-    );
+  const now = new Date();
+  const token = generateInviteToken();
+
+  if (role === "guest") {
+    // Guest members are a premium feature.
+    try {
+      await requirePremium(householdData.householdId);
+    } catch (r) {
+      return r as Response;
+    }
+
+    const expiresInDays = Number(body?.expiresInDays);
+    if (!Number.isFinite(expiresInDays) || expiresInDays < 1 || expiresInDays > 365) {
+      return Response.json(
+        { error: "expiresInDays must be a number between 1 and 365" },
+        { status: 400 },
+      );
+    }
+
+    // When the guest membership itself expires.
+    const expiresAt = new Date(now.getTime() + expiresInDays * DAY_MS);
+    // The link is usable for at most 7 days, but never longer than the access window.
+    const linkExpiresAt = new Date(Math.min(now.getTime() + 7 * DAY_MS, expiresAt.getTime()));
+
+    await db.insert(householdInvites).values({
+      householdId: householdData.householdId,
+      token,
+      email,
+      isGuest: "true",
+      expiresAt,
+      linkExpiresAt,
+      createdBy: session.user.id,
+    });
+
+    return Response.json({
+      token,
+      url: getInviteUrl(token),
+      expiresAt: expiresAt.toISOString(),
+      linkExpiresAt: linkExpiresAt.toISOString(),
+    });
   }
 
-  const now = new Date();
-  // When the guest membership itself expires.
-  const expiresAt = new Date(now.getTime() + expiresInDays * DAY_MS);
-  // The link is usable for at most 7 days, but never longer than the access window.
-  const linkExpiresAt = new Date(Math.min(now.getTime() + 7 * DAY_MS, expiresAt.getTime()));
-
-  const token = generateInviteToken();
+  // Member invite (free): the link works for 7 days, the membership never expires.
+  const linkExpiresAt = new Date(now.getTime() + 7 * DAY_MS);
 
   await db.insert(householdInvites).values({
     householdId: householdData.householdId,
     token,
     email,
-    isGuest: "true",
-    expiresAt,
+    isGuest: "false",
+    expiresAt: null,
     linkExpiresAt,
     createdBy: session.user.id,
   });
@@ -59,7 +86,7 @@ export async function POST(request: NextRequest): Promise<Response> {
   return Response.json({
     token,
     url: getInviteUrl(token),
-    expiresAt: expiresAt.toISOString(),
+    expiresAt: null,
     linkExpiresAt: linkExpiresAt.toISOString(),
   });
 }

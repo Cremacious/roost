@@ -5,6 +5,7 @@ import { households, householdMembers, memberPermissions, householdInvites, user
 import { and, eq, isNull } from "drizzle-orm";
 import { logActivity } from "@/lib/utils/activity";
 import { GUEST_PERMISSIONS } from "@/lib/constants/memberPermissions";
+import { checkMemberLimit } from "@/lib/utils/memberLimits";
 
 async function loadInvite(token: string) {
   const [invite] = await db
@@ -12,6 +13,7 @@ async function loadInvite(token: string) {
       id: householdInvites.id,
       householdId: householdInvites.householdId,
       email: householdInvites.email,
+      isGuest: householdInvites.isGuest,
       expiresAt: householdInvites.expiresAt,
       linkExpiresAt: householdInvites.linkExpiresAt,
       acceptedAt: householdInvites.acceptedAt,
@@ -49,12 +51,15 @@ export async function GET(
   return Response.json({
     status: "valid",
     householdName: invite.householdName,
+    isGuest: invite.isGuest === "true",
     email: invite.email,
     expiresAt: invite.expiresAt?.toISOString() ?? null,
   });
 }
 
-// POST (auth): accept the invite, joining as a guest.
+// POST (auth): accept the invite, joining the household.
+//   Guest invites -> guest role with the reduced guest permission set.
+//   Member invites -> standard member role and permissions (free, 5-member cap).
 export async function POST(
   _request: NextRequest,
   { params }: { params: Promise<{ token: string }> }
@@ -78,6 +83,8 @@ export async function POST(
     return Response.json({ status: "expired", error: "This invite link has expired" }, { status: 410 });
   }
 
+  const isGuest = invite.isGuest === "true";
+
   // Already an active member of this household?
   const [existing] = await db
     .select({ id: householdMembers.id })
@@ -98,19 +105,40 @@ export async function POST(
     );
   }
 
-  // Create the guest membership with the invite's access window.
-  await db.insert(householdMembers).values({
-    householdId: invite.householdId,
-    userId,
-    role: "guest",
-    expiresAt: invite.expiresAt,
-  });
+  if (isGuest) {
+    // Create the guest membership with the invite's access window.
+    await db.insert(householdMembers).values({
+      householdId: invite.householdId,
+      userId,
+      role: "guest",
+      expiresAt: invite.expiresAt,
+    });
 
-  await db.insert(memberPermissions).values({
-    householdId: invite.householdId,
-    userId,
-    ...GUEST_PERMISSIONS,
-  });
+    await db.insert(memberPermissions).values({
+      householdId: invite.householdId,
+      userId,
+      ...GUEST_PERMISSIONS,
+    });
+  } else {
+    // Free-tier 5-member cap. Must be enforced here so a member link cannot be
+    // used to slip past the cap that join-by-code already enforces.
+    const memberLimitError = await checkMemberLimit(invite.householdId);
+    if (memberLimitError) {
+      return Response.json(memberLimitError, { status: 403 });
+    }
+
+    // Standard member: role 'member', default (member) permissions, no expiry.
+    await db.insert(householdMembers).values({
+      householdId: invite.householdId,
+      userId,
+      role: "member",
+    });
+
+    await db.insert(memberPermissions).values({
+      householdId: invite.householdId,
+      userId,
+    });
+  }
 
   // Mark the invite consumed.
   await db
@@ -118,7 +146,7 @@ export async function POST(
     .set({ acceptedAt: new Date(), acceptedByUserId: userId })
     .where(eq(householdInvites.id, invite.id));
 
-  // A guest has joined a household — clear the onboarding gate so the proxy
+  // The user has joined a household — clear the onboarding gate so the proxy
   // does not redirect them to /onboarding.
   await db
     .update(user)
@@ -131,7 +159,7 @@ export async function POST(
     type: "member_joined",
     entityId: userId,
     entityType: "member",
-    description: "Guest joined the household",
+    description: isGuest ? "Guest joined the household" : "Member joined the household",
   });
 
   return Response.json({ householdId: invite.householdId, householdName: invite.householdName });

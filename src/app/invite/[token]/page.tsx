@@ -1,16 +1,18 @@
 'use client'
 
-import { useEffect, useState } from 'react'
-import { useParams, useRouter } from 'next/navigation'
+import { useEffect, useRef, useState } from 'react'
+import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { toast } from 'sonner'
 import {
   CalendarDays,
   Check,
+  CheckSquare,
   Clock,
   DollarSign,
   Loader2,
   ShoppingCart,
+  StickyNote,
   UtensilsCrossed,
 } from 'lucide-react'
 import { useSession } from '@/lib/auth/client'
@@ -18,7 +20,7 @@ import RoostLogo from '@/components/shared/RoostLogo'
 
 type InviteState =
   | { status: 'loading' }
-  | { status: 'valid'; householdName: string; expiresAt: string | null }
+  | { status: 'valid'; householdName: string; isGuest: boolean; expiresAt: string | null }
   | { status: 'not_found' }
   | { status: 'expired' }
   | { status: 'used' }
@@ -38,6 +40,14 @@ const GUEST_CAPABILITIES: Array<{ icon: React.ReactNode; text: string }> = [
   { icon: <Clock size={14} />, text: 'Access ends automatically when the invite expires' },
 ]
 
+const MEMBER_CAPABILITIES: Array<{ icon: React.ReactNode; text: string }> = [
+  { icon: <CheckSquare size={14} />, text: 'Complete and track shared chores' },
+  { icon: <ShoppingCart size={14} />, text: 'Add and check off grocery items' },
+  { icon: <CalendarDays size={14} />, text: 'Add events to the shared calendar' },
+  { icon: <StickyNote size={14} />, text: 'Create household notes and tasks' },
+  { icon: <UtensilsCrossed size={14} />, text: 'Plan and suggest meals' },
+]
+
 function daysUntil(iso: string | null): number | null {
   if (!iso) return null
   const diff = new Date(iso).getTime() - Date.now()
@@ -48,10 +58,15 @@ function daysUntil(iso: string | null): number | null {
 export default function InviteLandingPage() {
   const params = useParams<{ token: string }>()
   const token = params?.token ?? ''
+  const search = useSearchParams()
+  // When a freshly signed-up user is routed back here, the signup link carries
+  // ?join=1 so we auto-accept the invite without a second tap.
+  const autoJoin = search.get('join') === '1'
   const router = useRouter()
   const { data: session, isPending: sessionLoading } = useSession()
   const [state, setState] = useState<InviteState>({ status: 'loading' })
   const [joining, setJoining] = useState(false)
+  const joinFiredRef = useRef(false)
 
   useEffect(() => {
     if (!token) return
@@ -62,7 +77,12 @@ export default function InviteLandingPage() {
         const data = await res.json().catch(() => ({}))
         if (!active) return
         if (res.ok && data.status === 'valid') {
-          setState({ status: 'valid', householdName: data.householdName, expiresAt: data.expiresAt ?? null })
+          setState({
+            status: 'valid',
+            householdName: data.householdName,
+            isGuest: Boolean(data.isGuest),
+            expiresAt: data.expiresAt ?? null,
+          })
         } else if (data.status === 'expired') {
           setState({ status: 'expired' })
         } else if (data.status === 'used') {
@@ -100,10 +120,25 @@ export default function InviteLandingPage() {
       toast.error('Could not join household', {
         description: err instanceof Error ? err.message : 'Please try again.',
       })
-    } finally {
       setJoining(false)
     }
   }
+
+  // Auto-join once the session is ready, when we were sent here to auto-accept.
+  useEffect(() => {
+    if (!autoJoin) return
+    if (joinFiredRef.current) return
+    if (state.status !== 'valid') return
+    if (sessionLoading || !session) return
+    joinFiredRef.current = true
+    handleJoin()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoJoin, state.status, sessionLoading, session])
+
+  const valid = state.status === 'valid' ? state : null
+  const isGuest = valid?.isGuest ?? false
+  const capabilities = isGuest ? GUEST_CAPABILITIES : MEMBER_CAPABILITIES
+  const signupCallback = `/invite/${token}?join=1`
 
   return (
     <div
@@ -138,16 +173,16 @@ export default function InviteLandingPage() {
             </div>
           )}
 
-          {state.status === 'valid' && (
+          {valid && (
             <>
-              {/* Guest badge */}
+              {/* Type badge */}
               <div
                 style={{
                   display: 'inline-flex',
                   alignItems: 'center',
                   gap: 6,
-                  background: AMBER_BG,
-                  color: AMBER_TEXT,
+                  background: isGuest ? AMBER_BG : '#FEE2E2',
+                  color: isGuest ? AMBER_TEXT : '#B91C1C',
                   fontSize: 11,
                   fontWeight: 800,
                   letterSpacing: '0.05em',
@@ -157,25 +192,26 @@ export default function InviteLandingPage() {
                   marginBottom: 14,
                 }}
               >
-                <Clock size={12} />
-                Guest invite
+                {isGuest ? <Clock size={12} /> : <Check size={12} />}
+                {isGuest ? 'Guest invite' : 'Member invite'}
               </div>
 
               <h1 style={{ fontSize: 24, fontWeight: 900, color: '#1A0505', letterSpacing: '-0.4px', margin: '0 0 6px' }}>
-                Join {state.householdName}
+                Join {valid.householdName}
               </h1>
               <p style={{ fontSize: 13, fontWeight: 600, color: '#7A3F3F', margin: '0 0 18px', lineHeight: 1.5 }}>
-                {(() => {
-                  const d = daysUntil(state.expiresAt)
-                  if (d === null) return 'You have been invited as a temporary guest.'
-                  if (d <= 0) return 'You have been invited as a temporary guest.'
-                  return `You have been invited as a guest for ${d} ${d === 1 ? 'day' : 'days'}.`
-                })()}
+                {isGuest
+                  ? (() => {
+                      const d = daysUntil(valid.expiresAt)
+                      if (d === null || d <= 0) return 'You have been invited as a temporary guest.'
+                      return `You have been invited as a guest for ${d} ${d === 1 ? 'day' : 'days'}.`
+                    })()
+                  : 'You have been invited to join as a full household member.'}
               </p>
 
               {/* Capability list */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 22 }}>
-                {GUEST_CAPABILITIES.map((cap, i) => (
+                {capabilities.map((cap, i) => (
                   <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                     <div
                       style={{
@@ -225,12 +261,12 @@ export default function InviteLandingPage() {
                   }}
                 >
                   {joining ? <Loader2 size={16} className="animate-spin" /> : <Check size={16} />}
-                  {joining ? 'Joining...' : 'Join as Guest'}
+                  {joining ? 'Joining...' : isGuest ? 'Join as Guest' : 'Join Household'}
                 </button>
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                   <Link
-                    href={`/signup?callbackUrl=/invite/${token}`}
+                    href={`/signup?callbackUrl=${encodeURIComponent(signupCallback)}`}
                     style={{
                       width: '100%',
                       height: 52,
@@ -250,7 +286,7 @@ export default function InviteLandingPage() {
                     Sign Up to Join
                   </Link>
                   <Link
-                    href={`/login?callbackUrl=/invite/${token}`}
+                    href={`/login?callbackUrl=${encodeURIComponent(signupCallback)}`}
                     style={{
                       width: '100%',
                       height: 48,
@@ -267,7 +303,7 @@ export default function InviteLandingPage() {
                       textDecoration: 'none',
                     }}
                   >
-                    I already have an account
+                    I Already Have an Account
                   </Link>
                 </div>
               )}
@@ -283,8 +319,8 @@ export default function InviteLandingPage() {
                 {state.status === 'error' && 'Something went wrong'}
               </h1>
               <p style={{ fontSize: 13, fontWeight: 600, color: '#7A3F3F', margin: '0 0 20px', lineHeight: 1.5 }}>
-                {state.status === 'expired' && 'Ask whoever invited you to send a fresh guest link.'}
-                {state.status === 'used' && 'Each guest link works once. Ask for a new one if you still need access.'}
+                {state.status === 'expired' && 'Ask whoever invited you to send a fresh link.'}
+                {state.status === 'used' && 'Each invite link works once. Ask for a new one if you still need access.'}
                 {state.status === 'not_found' && 'This link is not valid. Double check it, or ask for a new invite.'}
                 {state.status === 'error' && 'Please check your connection and try again.'}
               </p>

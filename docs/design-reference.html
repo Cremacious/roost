@@ -1,0 +1,333 @@
+<title>Roost Component Reference</title>
+<style>
+  :root {
+    /* Theme neutrals (globals.css :root) */
+    --roost-bg: #f9fafb;
+    --roost-surface: #ffffff;
+    --roost-border: #e5e7eb;
+    --roost-border-bottom: #d1d5db;
+    --roost-text-primary: #111827;
+    --roost-text-secondary: #374151;
+    --roost-text-muted: #6b7280;
+    /* Section colors */
+    --chores: #ef4444;      --chores-d: #c93b3b;
+    --grocery: #f59e0b;     --grocery-d: #c87d00;
+    --calendar: #3b82f6;    --calendar-d: #1a5cb5;
+    --money: #22c55e;       --money-d: #159040;
+    --meals: #f97316;       --meals-d: #c4581a;
+    --notes: #a855f7;       --notes-d: #7c28c8;
+    --reminders: #06b6d4;   --reminders-d: #0891b2;
+    --tasks: #ec4899;       --tasks-d: #b02878;
+    --stats: #6366f1;       --stats-d: #4f46e5;
+    --good: #15803d;        --bad: #b91c1c;
+  }
+  * { box-sizing: border-box; }
+  body, .ref { margin: 0; }
+  .ref {
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+    background: var(--roost-bg);
+    color: var(--roost-text-primary);
+    font-weight: 600;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    padding: 40px clamp(16px, 5vw, 56px) 80px;
+  }
+  .wrap { max-width: 1120px; margin: 0 auto; }
+
+  /* ── Type scale ── */
+  .kicker { font-size: 11px; font-weight: 800; letter-spacing: 0.09em; text-transform: uppercase; color: var(--roost-text-muted); }
+  h1.title { font-size: 34px; font-weight: 900; letter-spacing: -0.6px; margin: 6px 0 8px; text-wrap: balance; }
+  .lede { font-size: 15px; font-weight: 600; color: var(--roost-text-secondary); max-width: 62ch; margin: 0; }
+  h2.sec { font-size: 20px; font-weight: 900; letter-spacing: -0.3px; margin: 0 0 4px; }
+  .sec-note { font-size: 13px; font-weight: 600; color: var(--roost-text-muted); margin: 0 0 20px; max-width: 66ch; }
+  section.block { margin-top: 56px; }
+  .divider-rule { height: 1px; background: var(--roost-border); border: 0; margin: 0; }
+
+  .grid { display: grid; gap: 16px; }
+  .cols-2 { grid-template-columns: repeat(2, 1fr); }
+  .cols-3 { grid-template-columns: repeat(3, 1fr); }
+  .cols-4 { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
+  @media (max-width: 720px) { .cols-2, .cols-3 { grid-template-columns: 1fr; } }
+
+  .card-note { font-size: 12px; font-weight: 700; color: var(--roost-text-muted); }
+  .mono { font-variant-numeric: tabular-nums; font-family: ui-monospace, "SF Mono", Menlo, monospace; }
+
+  /* ── SlabCard ── */
+  .slab {
+    background: var(--roost-surface);
+    border: 1.5px solid var(--roost-border);
+    border-bottom: 4px solid var(--roost-border-bottom);
+    border-radius: 16px;
+    padding: 16px 18px;
+  }
+
+  /* ── Color tokens ── */
+  .swatch { border-radius: 14px; border: 1.5px solid var(--roost-border); background: var(--roost-surface); overflow: hidden; }
+  .swatch .chip { height: 60px; }
+  .swatch .chip .darkbar { height: 100%; width: 34%; float: right; }
+  .swatch .meta { padding: 9px 11px; }
+  .swatch .name { font-size: 12.5px; font-weight: 800; }
+  .swatch .hex { font-size: 11px; font-weight: 700; color: var(--roost-text-muted); }
+  .neutral-row { display: flex; align-items: center; gap: 12px; padding: 9px 0; }
+  .neutral-row .dot { width: 30px; height: 30px; border-radius: 8px; border: 1.5px solid var(--roost-border); flex: none; }
+  .neutral-row .nm { font-size: 13px; font-weight: 800; }
+  .neutral-row .vr { font-size: 12px; font-weight: 700; color: var(--roost-text-muted); margin-left: auto; }
+
+  /* ── Buttons ── */
+  .btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 7px;
+    height: 48px; padding: 0 20px; border-radius: 14px; border: none;
+    font-family: inherit; font-size: 15px; font-weight: 800; color: #fff; cursor: pointer;
+    transition: transform .05s ease;
+  }
+  .btn:active { transform: translateY(2px); }
+  .btn.sm { height: 38px; padding: 0 14px; font-size: 13px; border-radius: 11px; }
+  .btn.sm:active { transform: translateY(1px); }
+  .btn.chores { background: var(--chores); border-bottom: 3px solid var(--chores-d); }
+  .btn.grocery { background: var(--grocery); border-bottom: 3px solid var(--grocery-d); }
+  .btn.money { background: var(--money); border-bottom: 3px solid var(--money-d); }
+  .btn.calendar { background: var(--calendar); border-bottom: 3px solid var(--calendar-d); }
+  .btn.notes { background: var(--notes); border-bottom: 3px solid var(--notes-d); }
+  .btn:active { border-bottom-width: 2px; }
+  .btn.ghost { background: var(--roost-surface); color: var(--roost-text-secondary); border: 1.5px solid var(--roost-border); border-bottom: 3px solid var(--roost-border-bottom); }
+  .btn.locked { background: var(--chores); border-bottom: 3px solid var(--chores-d); opacity: .55; cursor: not-allowed; }
+  .btn.locked:active { transform: none; }
+  .fab {
+    width: 56px; height: 56px; border-radius: 18px; border: none; background: var(--grocery);
+    border-bottom: 4px solid var(--grocery-d); color: #fff; cursor: pointer; display: inline-flex;
+    align-items: center; justify-content: center;
+  }
+  .fab:active { transform: translateY(2px); border-bottom-width: 2px; }
+  .btn-row { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+
+  svg.ic { width: 18px; height: 18px; stroke: currentColor; stroke-width: 2.4; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+
+  /* ── Badges ── */
+  .badge { display: inline-flex; align-items: center; gap: 5px; height: 24px; padding: 0 10px; border-radius: 999px; font-size: 12px; font-weight: 800; }
+  .badge.chores { color: var(--chores-d); background: color-mix(in srgb, var(--chores) 14%, transparent); border: 1px solid color-mix(in srgb, var(--chores) 32%, transparent); }
+  .badge.money { color: var(--money-d); background: color-mix(in srgb, var(--money) 14%, transparent); border: 1px solid color-mix(in srgb, var(--money) 32%, transparent); }
+  .badge.calendar { color: var(--calendar-d); background: color-mix(in srgb, var(--calendar) 14%, transparent); border: 1px solid color-mix(in srgb, var(--calendar) 32%, transparent); }
+  .count { display: inline-flex; align-items: center; justify-content: center; min-width: 22px; height: 22px; padding: 0 7px; border-radius: 999px; background: var(--chores); color: #fff; font-size: 12px; font-weight: 800; }
+
+  /* ── Inputs ── */
+  .field { display: flex; flex-direction: column; gap: 6px; }
+  label.lbl { font-size: 13px; font-weight: 700; color: #374151; }
+  .inp {
+    height: 48px; border-radius: 12px; border: 1.5px solid var(--roost-border);
+    border-bottom: 3px solid var(--roost-border-bottom); background: var(--roost-surface);
+    padding: 0 14px; font-family: inherit; font-size: 16px; font-weight: 600; color: var(--roost-text-primary);
+    outline: none; width: 100%;
+  }
+  .inp::placeholder { color: var(--roost-text-muted); font-weight: 600; }
+  .inp.focus { border-color: var(--chores); border-bottom-color: var(--chores); box-shadow: 0 0 0 3px color-mix(in srgb, var(--chores) 16%, transparent); }
+
+  /* ── Empty state ── */
+  .empty {
+    background: var(--roost-surface); border: 2px dashed var(--roost-border);
+    border-bottom: 4px dashed var(--roost-border-bottom); border-radius: 18px;
+    padding: 34px 24px; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 4px;
+  }
+  .empty .iconbox {
+    width: 60px; height: 60px; border-radius: 16px; background: var(--roost-surface);
+    border: 1.5px solid var(--roost-border); border-bottom: 4px solid var(--chores);
+    display: flex; align-items: center; justify-content: center; margin-bottom: 12px; color: var(--chores);
+  }
+  .empty h3 { font-size: 18px; font-weight: 900; margin: 0; }
+  .empty p { font-size: 13.5px; font-weight: 600; color: var(--roost-text-muted); margin: 2px 0 16px; max-width: 42ch; }
+
+  /* ── Who-owes-who comparison (the fix) ── */
+  .compare { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+  @media (max-width: 720px) { .compare { grid-template-columns: 1fr; } }
+  .verdict { display: inline-flex; align-items: center; gap: 7px; font-size: 12px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 10px; }
+  .verdict.dont { color: var(--bad); }
+  .verdict.do { color: var(--good); }
+  .oweCard { background: var(--roost-surface); border: 1.5px solid var(--roost-border); border-bottom: 4px solid var(--bad); border-radius: 16px; overflow: hidden; }
+  .oweCard .head { display: flex; align-items: center; justify-content: space-between; padding: 13px 16px 10px; }
+  .oweCard .head .t { font-size: 14px; font-weight: 800; }
+  .oweCard .head .link { font-size: 12px; font-weight: 700; color: var(--money); }
+  .oweCard .body { padding: 0 16px 14px; display: flex; flex-direction: column; }
+
+  /* DON'T: every row carries its own 4px slab bottom border → stacked lines */
+  .oweRow-bad { display: flex; align-items: center; gap: 11px; padding: 12px 14px; margin-top: 10px;
+    background: var(--roost-surface); border: 1.5px solid var(--roost-border);
+    border-bottom: 4px solid var(--money); border-radius: 12px; }
+  /* DO: rows are separated by a light 1px divider; only the card carries the slab bottom */
+  .oweRow-good { display: flex; align-items: center; gap: 11px; padding: 13px 2px; }
+  .oweRow-good + .oweRow-good { border-top: 1px solid var(--roost-border); }
+
+  .avatar { width: 34px; height: 34px; border-radius: 999px; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 13px; font-weight: 800; flex: none; }
+  .oweRow-name { font-size: 14px; font-weight: 700; }
+  .oweRow-amt { margin-left: auto; font-size: 15px; font-weight: 900; font-variant-numeric: tabular-nums; }
+  .redtext { color: var(--chores); } .greentext { color: var(--money-d); }
+
+  .callout { background: color-mix(in srgb, var(--money) 8%, var(--roost-surface)); border: 1.5px solid color-mix(in srgb, var(--money) 30%, transparent); border-radius: 14px; padding: 14px 16px; font-size: 13.5px; font-weight: 600; color: var(--roost-text-secondary); }
+  .callout b { color: var(--roost-text-primary); font-weight: 800; }
+
+  .rules { display: grid; gap: 10px; }
+  .rule { display: flex; gap: 10px; align-items: flex-start; font-size: 13.5px; font-weight: 600; color: var(--roost-text-secondary); }
+  .rule .mk { color: var(--money-d); font-weight: 900; flex: none; }
+</style>
+
+<div class="ref">
+<div class="wrap">
+
+  <header>
+    <div class="kicker">Roost · Design system reference</div>
+    <h1 class="title">Component reference gallery</h1>
+    <p class="lede">The canonical look for every shared UI element, rendered in Roost's real tokens. This is the source of truth for the polish pass (issue #107): the app should match these states, not the other way around. Type shown in a system fallback; the app uses Nunito (weights 600 to 900, never below 600).</p>
+  </header>
+
+  <!-- COLOR -->
+  <section class="block">
+    <h2 class="sec">Color</h2>
+    <p class="sec-note">Theme neutrals carry surfaces, borders, and text. Each of the eight features owns a section color plus a darker shade for the slab bottom-border. Neutrals are picked, not defaulted: a cool grey scale on an off-white ground.</p>
+    <div class="grid cols-2">
+      <div class="slab" style="border-bottom-color: var(--roost-border-bottom)">
+        <div class="card-note" style="margin-bottom:8px">THEME NEUTRALS</div>
+        <div class="neutral-row"><span class="dot" style="background:var(--roost-bg)"></span><span class="nm">bg</span><span class="vr mono">#F9FAFB</span></div>
+        <hr class="divider-rule">
+        <div class="neutral-row"><span class="dot" style="background:var(--roost-surface)"></span><span class="nm">surface</span><span class="vr mono">#FFFFFF</span></div>
+        <hr class="divider-rule">
+        <div class="neutral-row"><span class="dot" style="background:var(--roost-border)"></span><span class="nm">border</span><span class="vr mono">#E5E7EB</span></div>
+        <hr class="divider-rule">
+        <div class="neutral-row"><span class="dot" style="background:var(--roost-border-bottom)"></span><span class="nm">border-bottom</span><span class="vr mono">#D1D5DB</span></div>
+        <hr class="divider-rule">
+        <div class="neutral-row"><span class="dot" style="background:var(--roost-text-primary)"></span><span class="nm">text primary</span><span class="vr mono">#111827</span></div>
+        <hr class="divider-rule">
+        <div class="neutral-row"><span class="dot" style="background:var(--roost-text-secondary)"></span><span class="nm">text secondary</span><span class="vr mono">#374151</span></div>
+        <hr class="divider-rule">
+        <div class="neutral-row"><span class="dot" style="background:var(--roost-text-muted)"></span><span class="nm">text muted</span><span class="vr mono">#6B7280</span></div>
+      </div>
+      <div>
+        <div class="card-note" style="margin-bottom:10px">SECTION COLORS · base with darker slab shade</div>
+        <div class="grid cols-4">
+          <div class="swatch"><div class="chip" style="background:var(--chores)"><span class="darkbar" style="background:var(--chores-d)"></span></div><div class="meta"><div class="name">Chores</div><div class="hex mono">EF4444 / C93B3B</div></div></div>
+          <div class="swatch"><div class="chip" style="background:var(--grocery)"><span class="darkbar" style="background:var(--grocery-d)"></span></div><div class="meta"><div class="name">Grocery</div><div class="hex mono">F59E0B / C87D00</div></div></div>
+          <div class="swatch"><div class="chip" style="background:var(--calendar)"><span class="darkbar" style="background:var(--calendar-d)"></span></div><div class="meta"><div class="name">Calendar</div><div class="hex mono">3B82F6 / 1A5CB5</div></div></div>
+          <div class="swatch"><div class="chip" style="background:var(--money)"><span class="darkbar" style="background:var(--money-d)"></span></div><div class="meta"><div class="name">Money</div><div class="hex mono">22C55E / 159040</div></div></div>
+          <div class="swatch"><div class="chip" style="background:var(--meals)"><span class="darkbar" style="background:var(--meals-d)"></span></div><div class="meta"><div class="name">Meals</div><div class="hex mono">F97316 / C4581A</div></div></div>
+          <div class="swatch"><div class="chip" style="background:var(--notes)"><span class="darkbar" style="background:var(--notes-d)"></span></div><div class="meta"><div class="name">Notes</div><div class="hex mono">A855F7 / 7C28C8</div></div></div>
+          <div class="swatch"><div class="chip" style="background:var(--reminders)"><span class="darkbar" style="background:var(--reminders-d)"></span></div><div class="meta"><div class="name">Reminders</div><div class="hex mono">06B6D4 / 0891B2</div></div></div>
+          <div class="swatch"><div class="chip" style="background:var(--tasks)"><span class="darkbar" style="background:var(--tasks-d)"></span></div><div class="meta"><div class="name">Tasks</div><div class="hex mono">EC4899 / B02878</div></div></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- THE FIX -->
+  <section class="block">
+    <h2 class="sec">Border rule · the one-slab principle</h2>
+    <p class="sec-note">The flagship fix for #107. The 4px slab bottom-border is what gives a card its lift, so it belongs to <b>one</b> element: the card. When a bordered card also gives every child row its own 4px slab, the horizontal lines stack and the surface looks unfinished. This is exactly what the /money "Who owes who" card does today.</p>
+    <div class="compare">
+      <div>
+        <div class="verdict dont"><svg class="ic" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></svg>Don't · stacked slabs</div>
+        <div class="oweCard">
+          <div class="head"><span class="t">Who owes who</span><span class="link">See all</span></div>
+          <div class="body">
+            <div class="oweRow-bad"><span class="avatar" style="background:#3b82f6">J</span><span class="oweRow-name">You owe Jordan</span><span class="oweRow-amt redtext">$10.00</span></div>
+            <div class="oweRow-bad"><span class="avatar" style="background:#ec4899">T</span><span class="oweRow-name">Taylor owes you</span><span class="oweRow-amt greentext">$40.00</span></div>
+            <div class="oweRow-bad"><span class="avatar" style="background:#f59e0b">A</span><span class="oweRow-name">You owe Alex</span><span class="oweRow-amt redtext">$27.00</span></div>
+          </div>
+        </div>
+        <p class="card-note" style="margin-top:10px">Container has a 4px slab bottom, and so does every row: four heavy lines stacked in one small card.</p>
+      </div>
+      <div>
+        <div class="verdict do"><svg class="ic" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg>Do · one slab, light dividers</div>
+        <div class="oweCard" style="border-bottom-color: var(--money-d)">
+          <div class="head"><span class="t">Who owes who</span><span class="link">See all</span></div>
+          <div class="body" style="padding-top:2px">
+            <div class="oweRow-good"><span class="avatar" style="background:#3b82f6">J</span><span class="oweRow-name">You owe Jordan</span><span class="oweRow-amt redtext">$10.00</span></div>
+            <div class="oweRow-good"><span class="avatar" style="background:#ec4899">T</span><span class="oweRow-name">Taylor owes you</span><span class="oweRow-amt greentext">$40.00</span></div>
+            <div class="oweRow-good"><span class="avatar" style="background:#f59e0b">A</span><span class="oweRow-name">You owe Alex</span><span class="oweRow-amt redtext">$27.00</span></div>
+          </div>
+        </div>
+        <p class="card-note" style="margin-top:10px">Only the card carries the slab bottom. Rows are separated by a single 1px divider (border). Calmer, and the card still reads as one object.</p>
+      </div>
+    </div>
+    <div class="callout" style="margin-top:18px">
+      <b>The rule:</b> a container that already has a border/slab must not give its children a second heavy border. Inside a card, separate rows with a <b>1px divider</b> (var(--roost-border)). Use the 4px slab bottom only on standalone SlabCards and feature tiles, never on a card and its rows at the same time.
+    </div>
+  </section>
+
+  <!-- SLABCARD -->
+  <section class="block">
+    <h2 class="sec">SlabCard</h2>
+    <p class="sec-note">The base card for the whole app: rounded-2xl, a 1.5px border on all sides, and a 4px bottom border that is the only source of the clay lift. Feature cards tint the bottom with their section color; neutral cards use border-bottom. On press: translateY(2px) and the bottom border drops to 2px.</p>
+    <div class="grid cols-3">
+      <div class="slab" style="border-bottom-color: var(--chores)"><div class="card-note" style="color:var(--chores-d)">CHORES</div><div style="font-size:15px;font-weight:800;margin-top:4px">Vacuum the living room</div><div style="font-size:12.5px;font-weight:600;color:var(--roost-text-muted);margin-top:3px">Weekly on Mon · Jordan</div></div>
+      <div class="slab" style="border-bottom-color: var(--calendar)"><div class="card-note" style="color:var(--calendar-d)">CALENDAR</div><div style="font-size:15px;font-weight:800;margin-top:4px">Family dinner</div><div style="font-size:12.5px;font-weight:600;color:var(--roost-text-muted);margin-top:3px">Tomorrow · 6:00 to 7:30 PM</div></div>
+      <div class="slab"><div class="card-note">NEUTRAL CARD</div><div style="font-size:15px;font-weight:800;margin-top:4px">Household settings</div><div style="font-size:12.5px;font-weight:600;color:var(--roost-text-muted);margin-top:3px">Uses border-bottom, not a section color</div></div>
+    </div>
+  </section>
+
+  <!-- BUTTONS -->
+  <section class="block">
+    <h2 class="sec">Buttons</h2>
+    <p class="sec-note">Every primary button is a slab: the section color with a 3px darker bottom-border, radius 14 (11 when small). Press drops it 2px (1px small) and thins the bottom border. The page you are on owns the color. Secondary actions use the ghost style; a permission-locked control keeps its color but drops to 55% opacity with a Lock icon.</p>
+    <div class="slab" style="border-bottom-color: var(--roost-border-bottom)">
+      <div class="btn-row">
+        <button class="btn chores"><svg class="ic" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>Add chore</button>
+        <button class="btn grocery"><svg class="ic" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>Add an item</button>
+        <button class="btn money">Add expense</button>
+        <button class="btn calendar">Add an event</button>
+        <button class="btn notes">New note</button>
+      </div>
+      <div class="btn-row" style="margin-top:16px">
+        <button class="btn chores sm">Save changes</button>
+        <button class="btn ghost sm">Cancel</button>
+        <button class="btn locked"><svg class="ic" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>Add expense</button>
+        <button class="fab" aria-label="Add"><svg class="ic" viewBox="0 0 24 24" style="width:24px;height:24px"><path d="M12 5v14M5 12h14"/></svg></button>
+      </div>
+      <p class="card-note" style="margin-top:14px">Left to right: section primaries · small save + ghost cancel · locked (permission gate, 55% opacity + Lock) · FAB.</p>
+    </div>
+  </section>
+
+  <!-- BADGES + INPUTS -->
+  <section class="block">
+    <h2 class="sec">Badges, counts &amp; inputs</h2>
+    <p class="sec-note">Badges are section-tinted pills (color at 14% fill, 32% border). Count pills are solid section color on white. Inputs are 16px (no iOS zoom), labels are a fixed dark grey #374151 at weight 700, and focus turns the border and bottom-border the section color.</p>
+    <div class="grid cols-2">
+      <div class="slab" style="border-bottom-color: var(--roost-border-bottom); display:flex; flex-wrap:wrap; gap:10px; align-items:center; align-content:flex-start">
+        <span class="badge chores">3 active</span>
+        <span class="badge money">Premium</span>
+        <span class="badge calendar">Recurring</span>
+        <span style="display:inline-flex;align-items:center;gap:8px;font-size:13px;font-weight:800">Overdue <span class="count">4</span></span>
+      </div>
+      <div class="slab" style="border-bottom-color: var(--roost-border-bottom); display:flex; flex-direction:column; gap:14px">
+        <div class="field"><label class="lbl">Chore title</label><input class="inp" placeholder="e.g. Vacuum the living room" readonly></div>
+        <div class="field"><label class="lbl">Chore title · focused</label><input class="inp focus" value="Take out the trash" readonly></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- EMPTY STATE -->
+  <section class="block">
+    <h2 class="sec">Empty state</h2>
+    <p class="sec-note">A dashed slab card (2px dashed all sides, 4px dashed bottom, both neutral). The section color appears only on the icon box bottom-border and the button. Copy stays in Roost's dry voice.</p>
+    <div class="empty">
+      <div class="iconbox"><svg class="ic" viewBox="0 0 24 24" style="width:26px;height:26px"><path d="M20 6 9 17l-5-5"/></svg></div>
+      <h3>Suspiciously clean.</h3>
+      <p>No chores yet. Either you are very on top of things, or someone is avoiding this screen.</p>
+      <button class="btn chores"><svg class="ic" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>Add the first chore</button>
+    </div>
+  </section>
+
+  <!-- RULES SUMMARY -->
+  <section class="block">
+    <h2 class="sec">Consistency rules to enforce</h2>
+    <p class="sec-note">What the #107 pass should hold every surface to.</p>
+    <div class="slab" style="border-bottom-color: var(--roost-border-bottom)">
+      <div class="rules">
+        <div class="rule"><span class="mk">1</span><span>One slab bottom-border per card. A bordered container never also slabs its child rows: use a 1px divider inside.</span></div>
+        <div class="rule"><span class="mk">2</span><span>Slab bottom-border is the only 3D device. No left, right, or top border used as a color accent.</span></div>
+        <div class="rule"><span class="mk">3</span><span>Buttons share one system: section color face, 3px darker bottom, radius 14/11, press translateY. No one-off button styles.</span></div>
+        <div class="rule"><span class="mk">4</span><span>The page's section color owns its buttons, toggles, focus, badges, completion states. Brand red only on chores, sidebar, and destructive actions.</span></div>
+        <div class="rule"><span class="mk">5</span><span>Text never below weight 600. Labels #374151/700. Muted text only for captions and timestamps.</span></div>
+        <div class="rule"><span class="mk">6</span><span>Touch targets 48px minimum, 64px for list rows. Inputs 16px.</span></div>
+        <div class="rule"><span class="mk">7</span><span>No emojis (Lucide icons only). No em dashes or double hyphens in any copy.</span></div>
+      </div>
+    </div>
+  </section>
+
+</div>
+</div>

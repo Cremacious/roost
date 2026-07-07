@@ -102,6 +102,18 @@ should already be pushed to your Neon database. If you are pointing at a fresh
 database, run `npm run db:push` locally against that `DATABASE_URL` once before
 going live.
 
+TWO DATABASES: there is a dev database (the `DATABASE_URL` in `.env.local` locally)
+and a separate PRODUCTION database (the `DATABASE_URL` set in Vercel). `db:push` only
+touches whichever `DATABASE_URL` is currently set, which locally is the dev db. So EVERY
+future schema change must be pushed to production too, not just dev:
+
+```bash
+DATABASE_URL="<production Neon url>" npm run db:push
+```
+
+Always read the data-loss preview before confirming, on both dev and prod (see RUNBOOK.md
+section 3 for the ongoing-change procedure).
+
 
 ## 4. Stripe (TEST mode)
 

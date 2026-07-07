@@ -435,6 +435,13 @@ Tasks: one-off to-dos
   useHousehold().isPremium is the client-side gate.
 - Always run npm run db:push after any schema change to sync Neon.
   No migration files used; db:push is the only migration path.
+- TWO databases exist: a DEV database (DATABASE_URL in .env.local locally / VSCode) and a
+  separate PRODUCTION database (DATABASE_URL set in the Vercel deployment). `npm run db:push`
+  applies to whatever DATABASE_URL is currently set, which locally is the DEV db. So after ANY
+  schema change you must ALSO push it to the PRODUCTION database, not just dev, or prod will drift
+  and break. The user runs the prod push (they hold the prod DATABASE_URL). Any prompt that changes
+  the schema must remind the user to run db:push against the production database after the change is
+  merged/deployed. Always read the data-loss preview before confirming, on both dev and prod.
 
 ## Design System
 - Theme system provides all background, surface, border, and text colors
@@ -1296,7 +1303,7 @@ Phase 5: Allowance System (COMPLETE)
       Parent can mark as paid (cash/Venmo)
 
 ## Environment Variables
-DATABASE_URL
+DATABASE_URL   (DEV Neon db in .env.local locally; a SEPARATE PRODUCTION Neon db is set in Vercel. Schema changes via db:push must be applied to BOTH the dev and the prod database.)
 BETTER_AUTH_SECRET
 BETTER_AUTH_URL
 NEXT_PUBLIC_APP_URL

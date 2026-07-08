@@ -63,7 +63,12 @@ export function BottomNav() {
 
   async function handleSignOut() {
     await signOut()
-    router.push('/login')
+    // Close both Radix overlays (AlertDialog + More sheet) before navigating so
+    // their body pointer-events / scroll lock is released. Then hard-load /login
+    // to guarantee the lock is fully cleared (client nav can leave it stuck).
+    setSignOutConfirmOpen(false)
+    setMoreOpen(false)
+    window.location.href = '/login'
   }
 
   return (
@@ -175,7 +180,7 @@ export function BottomNav() {
 
           {/* Sign out */}
           <button
-            onClick={() => setSignOutConfirmOpen(true)}
+            onClick={() => { setMoreOpen(false); setSignOutConfirmOpen(true) }}
             style={{
               width: '100%',
               display: 'flex',

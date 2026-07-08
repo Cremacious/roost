@@ -191,7 +191,7 @@ export default function ResetPasswordPage() {
     >
       <div style={{ width: '100%', maxWidth: 400 }}>
         <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 32 }}>
-          <RoostLogo size="md" />
+          <RoostLogo size="md" variant="onLight" />
         </div>
         <Suspense>
           <ResetPasswordForm />

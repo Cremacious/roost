@@ -45,7 +45,7 @@ export default function ForgotPasswordPage() {
       <div style={{ width: '100%', maxWidth: 400 }}>
         {/* Mobile logo */}
         <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 32 }}>
-          <RoostLogo size="md" />
+          <RoostLogo size="md" variant="onLight" />
         </div>
 
         {sent ? (

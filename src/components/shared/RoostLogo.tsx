@@ -8,17 +8,37 @@ const SIZES = {
   xl: 72,
 }
 
+/**
+ * Which background the logo will sit on.
+ * - 'onLight' (default): the self-contained red app-icon (white rooster on a red
+ *   rounded square). It carries its own background, so it reads clearly on any
+ *   light, neutral, or unknown surface. Pair with a dark wordmark.
+ * - 'onDark': the transparent white line-art icon. Use ONLY on red or dark
+ *   surfaces (sidebar, auth red panels, homepage hero) where it integrates
+ *   cleanly. Pair with a white wordmark. Never use this on a light background,
+ *   the white icon would vanish.
+ */
+type LogoVariant = 'onLight' | 'onDark'
+
+const ICON_SRC: Record<LogoVariant, string> = {
+  onLight: '/brand/roost-icon-original.png',
+  onDark: '/brand/roost-icon.png',
+}
+
 interface RoostLogoProps {
   size?: keyof typeof SIZES
+  /** Which background the logo sits on. Defaults to 'onLight'. */
+  variant?: LogoVariant
   /** Show the "Roost" wordmark next to the icon. Defaults to true. */
   wordmark?: boolean
-  /** Color of the wordmark text. Defaults to '#111827'. */
+  /** Color of the wordmark text. Defaults to '#111827' (matches 'onLight'). Pass white on dark surfaces. */
   wordmarkColor?: string
   className?: string
 }
 
 export default function RoostLogo({
   size = 'md',
+  variant = 'onLight',
   wordmark = true,
   wordmarkColor = '#111827',
   className,
@@ -39,7 +59,7 @@ export default function RoostLogo({
       style={{ display: 'flex', alignItems: 'center', gap: Math.round(px * 0.28) }}
     >
       <Image
-        src="/brand/roost-icon.png"
+        src={ICON_SRC[variant]}
         alt="Roost"
         width={px}
         height={px}

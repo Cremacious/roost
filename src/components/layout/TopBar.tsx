@@ -14,6 +14,7 @@ import {
 import { useHousehold } from '@/lib/hooks/useHousehold'
 import { useUserPreferences } from '@/lib/hooks/useUserPreferences'
 import { HouseholdSwitcherSheet } from './HouseholdSwitcherSheet'
+import RoostLogo from '@/components/shared/RoostLogo'
 
 interface WeatherResponse {
   current_weather: { temperature: number; weathercode: number }
@@ -127,15 +128,7 @@ export function TopBar() {
       <div className="flex items-center gap-2 min-w-0">
         {/* Mobile logo + household name */}
         <div className="flex items-center gap-2 md:hidden">
-          <div
-            style={{
-              width: 26,
-              height: 26,
-              borderRadius: 7,
-              backgroundColor: 'rgba(255,255,255,0.22)',
-              flexShrink: 0,
-            }}
-          />
+          <RoostLogo size="xs" variant="onDark" wordmark={false} />
           <button
             onClick={() => hasMultiple && setSwitcherOpen(true)}
             style={{

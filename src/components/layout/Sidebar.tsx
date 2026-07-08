@@ -117,7 +117,7 @@ export function Sidebar() {
     >
       {/* ── Logo ──────────────────────────────────────────────────────────── */}
       <div style={{ padding: '12px 16px', display: 'flex', alignItems: 'center' }}>
-        <RoostLogo size="sm" wordmark={true} wordmarkColor="#ffffff" />
+        <RoostLogo size="sm" variant="onDark" wordmark={true} wordmarkColor="#ffffff" />
       </div>
 
       {/* ── Household switcher ─────────────────────────────────────────────── */}

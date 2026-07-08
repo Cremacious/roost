@@ -406,7 +406,7 @@ Tasks: one-off to-dos
 - Section colors unchanged (chores, grocery, calendar, expenses, meals, notes, reminders, tasks)
 - Date subheading on dashboard always uses #9B9590 hardcoded — never tinted by theme
 - TopBar: household name + weather chip + time only. No user avatars.
-  Mobile (<md): background #C0160C (red), RoostLogo variant="white", weather chip rgba(255,255,255,0.18) bg + white text, time white.
+  Mobile (<md): background #C0160C (red), RoostLogo size="xs" variant="onDark" wordmark={false} (white transparent icon on red), weather chip rgba(255,255,255,0.18) bg + white text, time white.
   Desktop (md+): background var(--roost-topbar-bg), household name, weather chip and time use CSS variable colors.
   Weather chip and time are split into mobile/desktop JSX variants (md:hidden / hidden md:block) because inline styles cannot be overridden by Tailwind responsive classes.
   Header bg uses Tailwind responsive classes: bg-[#C0160C] md:bg-(--roost-topbar-bg) (Tailwind v4 CSS variable syntax).
@@ -415,13 +415,34 @@ Tasks: one-off to-dos
 - BottomNav: Home active = #EF4444, Chores active = #EF4444, Grocery = #F59E0B, Calendar = #3B82F6
 
 ## Logo
-- Placeholder logo lives in src/components/shared/RoostLogo.tsx
+- The logo lives in src/components/shared/RoostLogo.tsx
 - This is the ONLY place the logo is defined
 - All pages import RoostLogo from there, never inline SVG
 - To swap: update RoostLogo.tsx only, everything updates
 - Final assets go in public/brand/ when ready
 - See public/brand/README.md for swap instructions
 - App Store icon: 1024x1024, red bg #EF4444, no rounded corners
+- RoostLogo is BACKGROUND-AWARE via a `variant` prop (issue #116). It renders one of two
+  real assets in public/brand/; there is NO "dark/light/red" variant string and no
+  variant="white" (that was old doc drift, never a real prop):
+  - variant="onLight" (DEFAULT): renders /brand/roost-icon-original.png, the self-contained
+    red rounded-square app-icon (white rooster on red). It carries its own background so it
+    reads on ANY light, neutral, or unknown surface. Pair with a dark wordmark (default
+    wordmarkColor #111827). Used on: invite landing, child-login, forgot/reset-password,
+    the signup mobile logo block, and any other light-surface call site.
+  - variant="onDark": renders /brand/roost-icon.png, the transparent WHITE line-art icon.
+    Use ONLY on red/dark surfaces where it integrates cleanly (the red square would show a
+    seam). Pair with a white wordmark. Used on: Sidebar (red), login/signup red desktop
+    panels, TopBar mobile red strip, WelcomeModal red header. Never use onDark on a light
+    background, the white icon would vanish.
+- Props: size (xs 24 / sm 32 / md 42 / lg 56 / xl 72), variant ('onLight' | 'onDark',
+  default 'onLight'), wordmark (bool, default true), wordmarkColor (default '#111827'),
+  className. There is no showWordmark prop.
+- Homepage hero renders /brand/roost-icon.png directly (not via RoostLogo) on the red hero.
+- ASSET GAP TO FLAG: public/brand only has roost-icon.png (transparent white) and
+  roost-icon-original.png (red square). A dedicated designer-made light-background mark and a
+  true flat red-square SVG would be ideal replacements; roost-icon-uncropped.png is a
+  white-on-dark-gradient render and is NOT used anywhere (unusable on light).
 
 ## Data Rules
 - Soft deletes: deleted_at timestamp on all major tables
@@ -720,7 +741,7 @@ src/lib/utils/deleteHouseholdData.ts           deleteAllHouseholdData(householdI
 src/app/api/household/[id]/delete-data/route.ts  POST (admin only): hard delete all household content in FK order, household row + members remain
 src/app/api/household/[id]/regenerate-code/route.ts  POST (admin only): generates new unique 6-char invite code
 src/app/api/household/[id]/transfer-admin/route.ts  POST (admin only): demotes self to member, promotes target to admin (not child)
-src/components/shared/RoostLogo.tsx            Centralized logo: sizes xs/sm/md/lg/xl, variants dark/light/red
+src/components/shared/RoostLogo.tsx            Centralized, background-aware logo: sizes xs/sm/md/lg/xl, variant onLight (red self-contained square, default) / onDark (transparent white icon), wordmark bool, wordmarkColor. See ## Logo.
 src/components/shared/SlabCard.tsx             Base card: rounded-2xl, border + 4px slab bottom, press effect
 src/components/shared/EmptyState.tsx           Sassy empty state: dashed slab card, icon, title, body, optional button
 src/components/shared/ErrorState.tsx           Network error state: WifiOff icon, "Something went wrong.", optional "Try again" button (onRetry)
@@ -1406,7 +1427,9 @@ Designer brief (send this when hiring):
   no toast on success. No theme reset needed (single light theme).
 - Onboarding page background: #FFC8C8 (light pink). Content card: #C41E1E (dark red), borderRadius 24px.
   All text on the card uses white/rgba-white (never CSS variables). Option cards are white (#ffffff) with
-  red-tinted icon boxes. Inputs use rgba-white border/background. Logo: icon-only (wordmark={false}).
+  red-tinted icon boxes. Inputs use rgba-white border/background. (The onboarding page currently
+  renders NO RoostLogo, just a DotProgress step indicator; if a logo is added on the red card use
+  variant="onDark" wordmark={false}.)
 - Onboarding CTA buttons (Create/Join): #EF4444 bg, white text — unchanged from before.
   "Go to dashboard" button: #ffffff bg, #C41E1E text (matches card-on-card white treatment).
 - RoostLogo wordmark prop: boolean, defaults to undefined (treated as true). Pass wordmark={false} to

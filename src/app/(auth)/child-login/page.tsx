@@ -98,7 +98,7 @@ function Step1({
     >
       {/* Logo block */}
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, marginBottom: 28 }}>
-        <RoostLogo size="lg" wordmark={false} />
+        <RoostLogo size="lg" variant="onLight" wordmark={false} />
         <p style={{ fontSize: 22, fontWeight: 900, color: '#1A0505', margin: 0 }}>Roost</p>
       </div>
 
@@ -205,7 +205,7 @@ function Step2({
     >
       {/* Logo block */}
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, marginBottom: 28 }}>
-        <RoostLogo size="lg" wordmark={false} />
+        <RoostLogo size="lg" variant="onLight" wordmark={false} />
         <p style={{ fontSize: 22, fontWeight: 900, color: '#1A0505', margin: 0 }}>Roost</p>
       </div>
 
@@ -375,7 +375,7 @@ function Step3({
     >
       {/* Logo block */}
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, marginBottom: 28 }}>
-        <RoostLogo size="lg" wordmark={false} />
+        <RoostLogo size="lg" variant="onLight" wordmark={false} />
         <p style={{ fontSize: 22, fontWeight: 900, color: '#1A0505', margin: 0 }}>Roost</p>
       </div>
 

@@ -154,7 +154,7 @@ export default function InviteLandingPage() {
       <div style={{ width: '100%', maxWidth: 400 }}>
         {/* Logo */}
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, marginBottom: 24 }}>
-          <RoostLogo size="lg" wordmark={true} />
+          <RoostLogo size="lg" variant="onLight" wordmark={true} />
         </div>
 
         <div

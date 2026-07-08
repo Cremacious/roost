@@ -224,7 +224,7 @@ export default function SignupPage() {
       >
         {/* Brand block */}
         <div style={{ textAlign: 'center' }}>
-          <RoostLogo size="lg" wordmarkColor="#fff" />
+          <RoostLogo size="lg" variant="onDark" wordmarkColor="#fff" />
           <p
             style={{
               color: 'rgba(255,255,255,0.75)',
@@ -321,7 +321,7 @@ export default function SignupPage() {
               marginBottom: 28,
             }}
           >
-            <RoostLogo size="xl" wordmark={false} />
+            <RoostLogo size="xl" variant="onLight" wordmark={false} />
             <p
               style={{
                 fontWeight: 900,

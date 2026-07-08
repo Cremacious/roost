@@ -9,8 +9,8 @@ import {
   CheckSquare,
   DollarSign,
   LayoutGrid,
-  Home,
 } from 'lucide-react'
+import RoostLogo from '@/components/shared/RoostLogo'
 import * as DialogPrimitive from '@radix-ui/react-dialog'
 import { useQueryClient } from '@tanstack/react-query'
 
@@ -143,20 +143,7 @@ export default function WelcomeModal({ open, onDismiss }: WelcomeModalProps) {
               gap: 10,
             }}
           >
-            {/* Inline logo placeholder until RoostLogo component is available */}
-            <div
-              style={{
-                width: 48,
-                height: 48,
-                borderRadius: 12,
-                backgroundColor: 'rgba(255,255,255,0.25)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}
-            >
-              <Home size={28} style={{ color: '#fff' }} />
-            </div>
+            <RoostLogo size="lg" variant="onDark" wordmark={false} />
             <p style={{ fontSize: 20, fontWeight: 900, color: '#fff', margin: 0 }}>
               Welcome to Roost
             </p>

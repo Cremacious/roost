@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { useQuery } from '@tanstack/react-query'
 import Link from 'next/link'
 import { Settings, LogOut, ChevronRight } from 'lucide-react'
@@ -15,6 +16,7 @@ import {
 } from '@/components/ui/alert-dialog'
 
 export default function MorePage() {
+  const router = useRouter()
   const { data: session } = useSession()
   const [confirmOpen, setConfirmOpen] = useState(false)
 
@@ -44,11 +46,7 @@ export default function MorePage() {
 
   async function handleSignOut() {
     await signOut()
-    // Close the Radix dialog before navigating so its body-level
-    // pointer-events / scroll lock is released, then do a hard load to
-    // guarantee the lock is cleared (client nav alone can leave it stuck).
-    setConfirmOpen(false)
-    window.location.href = '/login'
+    router.push('/login')
   }
 
   return (

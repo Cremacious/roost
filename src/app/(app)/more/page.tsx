@@ -1,7 +1,6 @@
 'use client'
 
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
 import { useQuery } from '@tanstack/react-query'
 import Link from 'next/link'
 import { Settings, LogOut, ChevronRight } from 'lucide-react'
@@ -16,7 +15,6 @@ import {
 } from '@/components/ui/alert-dialog'
 
 export default function MorePage() {
-  const router = useRouter()
   const { data: session } = useSession()
   const [confirmOpen, setConfirmOpen] = useState(false)
 
@@ -46,7 +44,10 @@ export default function MorePage() {
 
   async function handleSignOut() {
     await signOut()
-    router.push('/login')
+    // Close the confirm dialog before navigating so Radix releases the body
+    // pointer-events / scroll lock, then hard-load /login to guarantee it clears.
+    setConfirmOpen(false)
+    window.location.href = '/login'
   }
 
   return (

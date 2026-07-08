@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { usePathname, useRouter } from 'next/navigation'
+import { usePathname } from 'next/navigation'
 import RoostLogo from '@/components/shared/RoostLogo'
 import {
   Home,
@@ -70,7 +70,6 @@ const NAV_GROUPS = [
 
 export function Sidebar() {
   const pathname  = usePathname()
-  const router    = useRouter()
   const { data: session } = useSession()
   const { role } = useHousehold()
   const [signOutConfirmOpen, setSignOutConfirmOpen] = useState(false)
@@ -102,6 +101,15 @@ export function Sidebar() {
     .join('')
     .slice(0, 2)
     .toUpperCase()
+
+  async function handleSignOut() {
+    await signOut()
+    // Close the Radix dialog before navigating so its body-level
+    // pointer-events / scroll lock is released, then do a hard load to
+    // guarantee the lock is cleared (client nav alone can leave it stuck).
+    setSignOutConfirmOpen(false)
+    window.location.href = '/login'
+  }
 
   return (
     <>
@@ -247,7 +255,7 @@ export function Sidebar() {
             Cancel
           </button>
           <button
-            onClick={async () => { await signOut(); router.push('/login') }}
+            onClick={handleSignOut}
             style={{ padding: '9px 18px', borderRadius: 10, border: 'none', borderBottom: '3px solid #C93B3B', backgroundColor: '#EF4444', fontFamily: 'inherit', fontSize: 13, fontWeight: 800, color: '#fff', cursor: 'pointer' }}
           >
             Sign Out

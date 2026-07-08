@@ -63,7 +63,12 @@ export function BottomNav() {
 
   async function handleSignOut() {
     await signOut()
-    router.push('/login')
+    // Close both Radix overlays before navigating so their body-level
+    // pointer-events / scroll lock is released, then do a hard load to
+    // guarantee the lock is cleared (client nav alone can leave it stuck).
+    setSignOutConfirmOpen(false)
+    setMoreOpen(false)
+    window.location.href = '/login'
   }
 
   return (

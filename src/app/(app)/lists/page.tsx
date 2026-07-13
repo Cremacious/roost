@@ -144,7 +144,7 @@ function ItemRow({
 }: {
   item: GroceryItem;
   onCheck: (id: string, checked: boolean) => void;
-  onDelete: (id: string) => void;
+  onDelete: (id: string, name: string) => void;
   onEdit: (id: string, name: string, quantity: string) => void;
   index: number;
 }) {
@@ -400,7 +400,7 @@ function ItemRow({
           <button
             type="button"
             aria-label="Delete item"
-            onClick={() => onDelete(item.id)}
+            onClick={() => onDelete(item.id, item.name)}
             style={{
               width: 36,
               height: 36,
@@ -787,6 +787,10 @@ export default function FoodPage() {
   const [sortMode, setSortMode] = useState<'smart' | 'newest'>('newest');
   const [addingList, setAddingList] = useState(false);
   const [clearConfirmOpen, setClearConfirmOpen] = useState(false);
+  const [pendingDelete, setPendingDelete] = useState<{
+    id: string;
+    name: string;
+  } | null>(null);
   const [commonItemsSheetOpen, setCommonItemsSheetOpen] = useState(false);
   const [dupDialog, setDupDialog] = useState<{
     item: GroceryItem;
@@ -2069,7 +2073,7 @@ export default function FoodPage() {
                           onCheck={(id, val) =>
                             checkMutation.mutate({ id, isChecked: val })
                           }
-                          onDelete={(id) => deleteMutation.mutate(id)}
+                          onDelete={(id, name) => setPendingDelete({ id, name })}
                           onEdit={(id, name, qty) =>
                             editMutation.mutate({ id, name, quantity: qty })
                           }
@@ -2089,7 +2093,7 @@ export default function FoodPage() {
                     onCheck={(id, val) =>
                       checkMutation.mutate({ id, isChecked: val })
                     }
-                    onDelete={(id) => deleteMutation.mutate(id)}
+                    onDelete={(id, name) => setPendingDelete({ id, name })}
                     onEdit={(id, name, qty) =>
                       editMutation.mutate({ id, name, quantity: qty })
                     }
@@ -2208,7 +2212,7 @@ export default function FoodPage() {
                         onCheck={(id, val) =>
                           checkMutation.mutate({ id, isChecked: val })
                         }
-                        onDelete={(id) => deleteMutation.mutate(id)}
+                        onDelete={(id, name) => setPendingDelete({ id, name })}
                         onEdit={(id, name, qty) =>
                           editMutation.mutate({ id, name, quantity: qty })
                         }
@@ -2617,6 +2621,40 @@ export default function FoodPage() {
               }}
             >
               Clear
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog
+        open={!!pendingDelete}
+        onOpenChange={(open) => {
+          if (!open) setPendingDelete(null);
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete item?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Remove &quot;{pendingDelete?.name}&quot; from the list?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (pendingDelete) deleteMutation.mutate(pendingDelete.id);
+                setPendingDelete(null);
+              }}
+              style={{
+                backgroundColor: COLOR,
+                borderBottom: `3px solid ${COLOR_DARK}`,
+                border: 'none',
+                color: '#fff',
+                fontWeight: 800,
+              }}
+            >
+              Delete
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

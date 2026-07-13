@@ -32,13 +32,13 @@ import {
 
 const TABS = [
   { href: '/today',     label: 'Today',     icon: Home,           activeColor: '#EF4444' },
-  { href: '/household', label: 'Household', icon: Users,          activeColor: '#3B82F6' },
+  { href: '/lists',     label: 'Lists',     icon: ShoppingCart,   activeColor: '#F59E0B' },
   { href: '/meals',     label: 'Meals',     icon: UtensilsCrossed, activeColor: '#F97316' },
   { href: '/money',     label: 'Money',     icon: Wallet,         activeColor: '#22C55E' },
 ]
 
 const MORE_ITEMS = [
-  { href: '/lists',      label: 'Lists',     icon: ShoppingCart,  color: '#F59E0B' },
+  { href: '/household',  label: 'Household', icon: Users,         color: '#3B82F6' },
   { href: '/chores',     label: 'Chores',    icon: CheckSquare,   color: '#EF4444' },
   { href: '/calendar',   label: 'Calendar',  icon: Calendar,      color: '#3B82F6' },
   { href: '/tasks',      label: 'Tasks',     icon: CheckCircle2,  color: '#EC4899' },

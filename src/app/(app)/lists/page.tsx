@@ -15,6 +15,7 @@ import {
   UtensilsCrossed,
   ArrowUpDown,
   Pencil,
+  User,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { startOfWeek, format } from 'date-fns';
@@ -23,6 +24,7 @@ import { groupItemsBySection } from '@/lib/utils/grocerySort';
 import { CommonItemsSheet } from '@/components/grocery/CommonItemsSheet';
 import { usePermissionGate } from '@/lib/hooks/usePermissionGate';
 import { useHousehold } from '@/lib/hooks/useHousehold';
+import { useSession } from '@/lib/auth/client';
 import PremiumGate from '@/components/shared/PremiumGate';
 import PageIntroModal from '@/components/shared/PageIntroModal';
 import { PAGE_INTROS } from '@/lib/constants/pageIntros';
@@ -171,8 +173,15 @@ function ItemRow({
     setEditQty(item.quantity ?? '');
   }
 
-  const initials = item.addedBy ? item.addedBy.charAt(0).toUpperCase() : '?';
-  const avatarBg = item.addedByAvatar ?? '#9CA3AF';
+  // The added-by name resolves after the items query loads. Until then (and for
+  // genuinely unresolved adders the server returns as "Unknown") treat the row
+  // as having an unknown adder and show a person icon instead of a bare "?".
+  const adderKnown = !!item.addedBy && item.addedBy !== 'Unknown';
+  const initials = adderKnown ? item.addedBy.charAt(0).toUpperCase() : '';
+  const avatarBg = adderKnown ? (item.addedByAvatar ?? '#9CA3AF') : '#9CA3AF';
+  const adderLabel = adderKnown
+    ? `Added by ${item.addedBy}`
+    : 'Added by someone';
 
   return (
     <motion.div
@@ -362,12 +371,15 @@ function ItemRow({
                 margin: 0,
               }}
             >
-              {item.quantity || 'Add quantity'}
+              {item.quantity ? `Quantity: ${item.quantity}` : 'Add quantity'}
             </p>
           </button>
 
           {/* Added-by avatar */}
           <div
+            role="img"
+            aria-label={adderLabel}
+            title={adderLabel}
             style={{
               width: 20,
               height: 20,
@@ -382,7 +394,7 @@ function ItemRow({
               flexShrink: 0,
             }}
           >
-            {initials}
+            {adderKnown ? initials : <User size={11} color="white" />}
           </div>
 
           <button
@@ -745,6 +757,24 @@ export default function FoodPage() {
   const { allowed: canAddItem, onBlocked: onBlockedAddItem } = usePermissionGate('grocery.add')
   const { allowed: canCreateList, onBlocked: onBlockedCreateList } = usePermissionGate('grocery.create_list')
   const { isPremium } = useHousehold();
+  const { data: session } = useSession();
+  // Current user's name + avatar color, so an optimistic add can label the row
+  // with the real adder immediately instead of a mystery "?" until refetch.
+  // Shares the ['user-profile'] cache key with the Sidebar (single fetch).
+  const { data: profileData } = useQuery<{
+    user: { avatar_color: string | null; name?: string };
+  }>({
+    queryKey: ['user-profile'],
+    queryFn: async () => {
+      const r = await fetch('/api/user/profile');
+      if (!r.ok) throw new Error('Failed to load profile');
+      return r.json();
+    },
+    staleTime: 60_000,
+  });
+  const currentUserName =
+    profileData?.user?.name ?? session?.user?.name ?? '';
+  const currentUserAvatar = profileData?.user?.avatar_color ?? null;
   // "New list" is blocked when the member lacks the permission OR the household
   // is on the free plan (free = one list only). Permission is checked first so
   // upgrading never grants a permission an admin disabled.
@@ -954,8 +984,10 @@ export default function FoodPage() {
           quantity: quantity?.trim() ? quantity.trim() : null,
           isChecked: false,
           checkedAt: null,
-          addedBy: '',
-          addedByAvatar: null,
+          // Label the optimistic row with the current user right away so it
+          // shows their initial, never a mystery "?", before the refetch.
+          addedBy: currentUserName,
+          addedByAvatar: currentUserAvatar,
           createdAt: new Date().toISOString(),
         };
         queryClient.setQueryData<GroceryData>(['grocery-items', listId], {

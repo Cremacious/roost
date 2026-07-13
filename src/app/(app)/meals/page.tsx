@@ -7,6 +7,7 @@ import {
   Plus, ChevronLeft, ChevronRight, UtensilsCrossed, Search,
   ThumbsUp, ThumbsDown, Trophy, ShoppingCart, Pencil, Trash2,
   Clock, BookmarkCheck, X, Eye, CalendarCheck, ShieldCheck, Users, CheckCircle, Send, Lock,
+  ArrowRightLeft,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { useSession } from '@/lib/auth/client'
@@ -505,7 +506,7 @@ function SlotPickerSheet({
   existingSlot: PlannerSlot | null; bankMeals: Meal[]; onSaved: () => void; onRemoved: () => void
   preSelectedMeal?: Meal | null; canRemove: boolean
 }) {
-  const [mode, setMode] = useState<'menu' | 'bank' | 'quick' | 'datePickerForMeal'>('menu')
+  const [mode, setMode] = useState<'menu' | 'bank' | 'quick' | 'datePickerForMeal' | 'move'>('menu')
   const [search, setSearch] = useState('')
   const [quickName, setQuickName] = useState('')
   const [saveToBankToggle, setSaveToBankToggle] = useState(false)
@@ -529,8 +530,10 @@ function SlotPickerSheet({
 
   const filtered = bankMeals.filter(m => m.name.toLowerCase().includes(search.toLowerCase()))
 
-  const effectiveDay = preSelectedMeal ? pickerDay : day
-  const effectiveSlotType = preSelectedMeal ? pickerSlotType : slotType
+  // In "move" mode we also drive the day/slot from the picker, not the origin slot.
+  const usePicker = !!preSelectedMeal || mode === 'move'
+  const effectiveDay = usePicker ? pickerDay : day
+  const effectiveSlotType = usePicker ? pickerSlotType : slotType
 
   async function pickMeal(mealId: string) {
     if (!effectiveDay || !effectiveSlotType) return
@@ -576,9 +579,36 @@ function SlotPickerSheet({
     finally { setBusy(false) }
   }
 
-  const title = preSelectedMeal
-    ? `Plan: ${preSelectedMeal.name}`
-    : existingSlot ? 'Change meal' : `Plan ${slotType ? SLOT_LABELS[slotType] : 'meal'}`
+  async function handleMove() {
+    if (!existingSlot || !effectiveDay || !effectiveSlotType) return
+    const targetDate = fmtDate(effectiveDay)
+    // No-op if the chosen day and slot are the meal's current spot.
+    if (targetDate === existingSlot.slotDate && effectiveSlotType === existingSlot.slotType) {
+      toast.info('Already there', { description: 'Pick a different day or meal to move it.' })
+      return
+    }
+    setBusy(true)
+    try {
+      // Place the meal in the new slot (upsert replaces anything already there).
+      const r = await fetch('/api/meals/planner', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ mealId: existingSlot.mealId, slotDate: targetDate, slotType: effectiveSlotType }),
+      })
+      if (!r.ok) throw new Error((await r.json()).error ?? 'Failed')
+      // Clear the original slot so the meal only lives in one place.
+      const del = await fetch(`/api/meals/planner/${existingSlot.id}`, { method: 'DELETE' })
+      if (!del.ok) throw new Error('Could not clear the original slot')
+      toast.success(`Moved ${existingSlot.mealName} to ${getDayLabel(effectiveDay)} ${SLOT_LABELS[effectiveSlotType]}`)
+      onSaved(); onClose()
+    } catch (e) { toast.error('Could not move', { description: (e as Error).message }) }
+    finally { setBusy(false) }
+  }
+
+  const title = mode === 'move' && existingSlot
+    ? `Move: ${existingSlot.mealName}`
+    : preSelectedMeal
+      ? `Plan: ${preSelectedMeal.name}`
+      : existingSlot ? 'Change meal' : `Plan ${slotType ? SLOT_LABELS[slotType] : 'meal'}`
 
   // 7-day picker for bank card "add to planner"
   const pickerDays = Array.from({ length: 7 }, (_, i) => {
@@ -591,15 +621,15 @@ function SlotPickerSheet({
     <DraggableSheet open={open} onOpenChange={(v: boolean) => !v && onClose()} featureColor={COLOR}>
       <div className="px-4 pb-8">
         <p className="mb-1 text-lg" style={{ color: 'var(--roost-text-primary)', fontWeight: 800 }}>{title}</p>
-        {existingSlot && !preSelectedMeal && (
+        {existingSlot && !preSelectedMeal && mode !== 'move' && (
           <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--roost-text-muted)', marginBottom: 16 }}>
             Currently: {existingSlot.mealName}
           </p>
         )}
         {!existingSlot && !preSelectedMeal && <div style={{ marginBottom: 16 }} />}
 
-        {/* Date picker mode (from bank card + button) */}
-        {mode === 'datePickerForMeal' && preSelectedMeal && (
+        {/* Date picker mode: adding a bank meal (datePickerForMeal) or moving an existing slot (move) */}
+        {(mode === 'datePickerForMeal' && preSelectedMeal) || mode === 'move' ? (
           <>
             <div style={{ marginBottom: 14 }}>
               <label style={LABEL_STYLE}>Which day</label>
@@ -631,13 +661,21 @@ function SlotPickerSheet({
                 ))}
               </div>
             </div>
-            <button type="button" onClick={() => pickMeal(preSelectedMeal.id)} disabled={busy} style={{
-              width: '100%', padding: '14px 0', borderRadius: 14, border: 'none', borderBottom: `3px solid ${COLOR_DARK}`,
-              backgroundColor: COLOR, color: '#fff', fontWeight: 800, fontSize: 15,
-              cursor: busy ? 'not-allowed' : 'pointer', opacity: busy ? 0.7 : 1,
-            }}>{busy ? 'Adding...' : `Add to ${getDayLabel(pickerDay)} ${SLOT_LABELS[pickerSlotType]}`}</button>
+            {mode === 'move' ? (
+              <button type="button" onClick={handleMove} disabled={busy} style={{
+                width: '100%', padding: '14px 0', borderRadius: 14, border: 'none', borderBottom: `3px solid ${COLOR_DARK}`,
+                backgroundColor: COLOR, color: '#fff', fontWeight: 800, fontSize: 15,
+                cursor: busy ? 'not-allowed' : 'pointer', opacity: busy ? 0.7 : 1,
+              }}>{busy ? 'Moving...' : `Move to ${getDayLabel(pickerDay)} ${SLOT_LABELS[pickerSlotType]}`}</button>
+            ) : (
+              <button type="button" onClick={() => preSelectedMeal && pickMeal(preSelectedMeal.id)} disabled={busy} style={{
+                width: '100%', padding: '14px 0', borderRadius: 14, border: 'none', borderBottom: `3px solid ${COLOR_DARK}`,
+                backgroundColor: COLOR, color: '#fff', fontWeight: 800, fontSize: 15,
+                cursor: busy ? 'not-allowed' : 'pointer', opacity: busy ? 0.7 : 1,
+              }}>{busy ? 'Adding...' : `Add to ${getDayLabel(pickerDay)} ${SLOT_LABELS[pickerSlotType]}`}</button>
+            )}
           </>
-        )}
+        ) : null}
 
         {/* Normal menu mode */}
         {mode === 'menu' && !preSelectedMeal && (
@@ -651,6 +689,20 @@ function SlotPickerSheet({
               borderBottom: '3px solid var(--roost-border-bottom)', backgroundColor: 'var(--roost-surface)',
               color: 'var(--roost-text-primary)', fontWeight: 800, fontSize: 15, cursor: 'pointer',
             }}>Quick Add by Name</button>
+            {existingSlot && canRemove && (
+              <button type="button" onClick={() => {
+                setPickerDay(new Date(existingSlot.slotDate + 'T00:00:00'))
+                setPickerSlotType(existingSlot.slotType)
+                setMode('move')
+              }} style={{
+                width: '100%', padding: '14px 0', borderRadius: 14, border: '1.5px solid var(--roost-border)',
+                borderBottom: '3px solid var(--roost-border-bottom)', backgroundColor: 'var(--roost-surface)',
+                color: 'var(--roost-text-primary)', fontWeight: 800, fontSize: 15, cursor: 'pointer',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+              }}>
+                <ArrowRightLeft size={15} /> Move to Another Day
+              </button>
+            )}
             {existingSlot && canRemove && (
               confirmRemove ? (
                 <div style={{ display: 'flex', gap: 8 }}>

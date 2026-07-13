@@ -6,7 +6,7 @@ import { motion } from 'framer-motion'
 import {
   Plus, ChevronLeft, ChevronRight, UtensilsCrossed, Search,
   ThumbsUp, ThumbsDown, Trophy, ShoppingCart, Pencil, Trash2,
-  Clock, BookmarkCheck, X, Eye, CalendarCheck, ShieldCheck, Users, CheckCircle, Send, Lock,
+  Clock, BookmarkCheck, X, CalendarCheck, ShieldCheck, Users, CheckCircle, Send, Lock,
   ArrowRightLeft,
 } from 'lucide-react'
 import { toast } from 'sonner'
@@ -1762,17 +1762,26 @@ export default function MealsPage() {
                     return (
                       <motion.div key={m.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: Math.min(i * 0.04, 0.2), duration: 0.15 }}>
                         <SlabCard color={COLOR_DARK}>
-                          <div style={{ padding: 14, display: 'flex', alignItems: 'flex-start', gap: 12 }}>
-                            <div style={{ flex: 1, minWidth: 0 }}>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-                                <p style={{ margin: 0, fontWeight: 800, fontSize: 15, color: 'var(--roost-text-primary)' }}>{m.name}</p>
-                                {m.category && (
-                                  <span style={{ fontSize: 10, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em', color: COLOR, backgroundColor: `${COLOR}18`, padding: '2px 7px', borderRadius: 6 }}>
-                                    {SLOT_LABELS[m.category]}
-                                  </span>
-                                )}
-                              </div>
-                              <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: ing.length > 0 ? 6 : 0 }}>
+                          <div
+                            role="button"
+                            tabIndex={0}
+                            onClick={() => setPreviewMeal(m)}
+                            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setPreviewMeal(m) } }}
+                            style={{ padding: 14, display: 'flex', flexDirection: 'column', gap: 10, cursor: 'pointer' }}
+                          >
+                            {/* Header: name + category badge */}
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                              <p style={{ margin: 0, fontWeight: 800, fontSize: 15, color: 'var(--roost-text-primary)', flex: 1, minWidth: 0 }}>{m.name}</p>
+                              {m.category && (
+                                <span style={{ fontSize: 10, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em', color: COLOR, backgroundColor: `${COLOR}18`, padding: '2px 7px', borderRadius: 6, flexShrink: 0 }}>
+                                  {SLOT_LABELS[m.category]}
+                                </span>
+                              )}
+                            </div>
+
+                            {/* Meta row */}
+                            {(m.prepTime || ing.length > 0) && (
+                              <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
                                 {m.prepTime && (
                                   <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, fontWeight: 700, color: 'var(--roost-text-muted)' }}>
                                     <Clock size={11} /> {m.prepTime} min
@@ -1784,42 +1793,45 @@ export default function MealsPage() {
                                   </span>
                                 )}
                               </div>
-                              {ing.length > 0 && (
-                                <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
-                                  {ing.slice(0, 3).map((item, idx) => (
-                                    <span key={idx} style={{ fontSize: 11, fontWeight: 700, color: 'var(--roost-text-secondary)', backgroundColor: 'var(--roost-bg)', border: '1px solid var(--roost-border)', padding: '2px 8px', borderRadius: 6 }}>
-                                      {[item.quantity, item.unit, item.name].filter(Boolean).join(' ')}
-                                    </span>
-                                  ))}
-                                  {ing.length > 3 && <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--roost-text-muted)', alignSelf: 'center' }}>+{ing.length - 3}</span>}
-                                </div>
-                              )}
-                            </div>
-                            <div style={{ display: 'flex', gap: 4, flexShrink: 0 }}>
-                              <button type="button" title="View details" onClick={() => setPreviewMeal(m)}
-                                style={{ width: 34, height: 34, borderRadius: 9, border: 'none', backgroundColor: 'var(--roost-bg)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                <Eye size={14} color="var(--roost-text-secondary)" />
-                              </button>
+                            )}
+
+                            {/* Ingredient chips (full width) */}
+                            {ing.length > 0 && (
+                              <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
+                                {ing.slice(0, 4).map((item, idx) => (
+                                  <span key={idx} style={{ fontSize: 11, fontWeight: 700, color: 'var(--roost-text-secondary)', backgroundColor: 'var(--roost-bg)', border: '1px solid var(--roost-border)', padding: '3px 9px', borderRadius: 7 }}>
+                                    {[item.quantity, item.unit, item.name].filter(Boolean).join(' ')}
+                                  </span>
+                                ))}
+                                {ing.length > 4 && <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--roost-text-muted)', alignSelf: 'center' }}>+{ing.length - 4}</span>}
+                              </div>
+                            )}
+
+                            {/* Divider */}
+                            <div style={{ height: 1, backgroundColor: 'var(--roost-border)' }} />
+
+                            {/* Action bar */}
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                               <button type="button" title="Add to planner"
                                 aria-disabled={!canPlanMeal}
-                                onClick={canPlanMeal ? () => { setBankAddMeal(m); setSlotOpen(true) } : onBlockedPlanMeal}
-                                style={{ width: 34, height: 34, borderRadius: 9, border: 'none', backgroundColor: 'var(--roost-bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: canPlanMeal ? 'pointer' : 'not-allowed', opacity: canPlanMeal ? 1 : 0.55 }}>
-                                {canPlanMeal ? <Plus size={14} color={COLOR} /> : <Lock size={14} color={COLOR} />}
+                                onClick={(e) => { e.stopPropagation(); if (canPlanMeal) { setBankAddMeal(m); setSlotOpen(true) } else { onBlockedPlanMeal() } }}
+                                style={{ flex: 1, height: 44, borderRadius: 12, border: 'none', borderBottom: `3px solid ${COLOR_DARK}`, backgroundColor: COLOR, color: '#fff', fontWeight: 800, fontSize: 14, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, cursor: canPlanMeal ? 'pointer' : 'not-allowed', opacity: canPlanMeal ? 1 : 0.55 }}>
+                                {canPlanMeal ? <Plus size={16} /> : <Lock size={16} />} Add to Plan
                               </button>
                               {ing.length > 0 && (
-                                <button type="button" title="Add ingredients to grocery list" onClick={() => setGroceryPushMeal(m)}
-                                  style={{ width: 34, height: 34, borderRadius: 9, border: 'none', backgroundColor: 'var(--roost-bg)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                  <ShoppingCart size={13} color="var(--roost-text-secondary)" />
+                                <button type="button" title="Add ingredients to grocery list" onClick={(e) => { e.stopPropagation(); setGroceryPushMeal(m) }}
+                                  style={{ width: 44, height: 44, borderRadius: 12, border: '1.5px solid var(--roost-border)', borderBottom: '3px solid var(--roost-border-bottom)', backgroundColor: 'var(--roost-surface)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                                  <ShoppingCart size={16} color="var(--roost-text-secondary)" />
                                 </button>
                               )}
-                              <button type="button" onClick={() => { setEditMeal(m); setMealSheetOpen(true) }}
-                                style={{ width: 34, height: 34, borderRadius: 9, border: 'none', backgroundColor: 'var(--roost-bg)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                <Pencil size={13} color="var(--roost-text-secondary)" />
+                              <button type="button" title="Edit meal" onClick={(e) => { e.stopPropagation(); setEditMeal(m); setMealSheetOpen(true) }}
+                                style={{ width: 44, height: 44, borderRadius: 12, border: '1.5px solid var(--roost-border)', borderBottom: '3px solid var(--roost-border-bottom)', backgroundColor: 'var(--roost-surface)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                                <Pencil size={15} color="var(--roost-text-secondary)" />
                               </button>
                               {m.createdBy === currentUserId && (
-                                <button type="button" onClick={() => setPendingDeleteMeal(m)}
-                                  style={{ width: 34, height: 34, borderRadius: 9, border: 'none', backgroundColor: 'var(--roost-bg)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                  <Trash2 size={13} color="#EF4444" />
+                                <button type="button" title="Delete meal" onClick={(e) => { e.stopPropagation(); setPendingDeleteMeal(m) }}
+                                  style={{ width: 44, height: 44, borderRadius: 12, border: '1.5px solid var(--roost-border)', borderBottom: '3px solid var(--roost-border-bottom)', backgroundColor: 'var(--roost-surface)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                                  <Trash2 size={15} color="#EF4444" />
                                 </button>
                               )}
                             </div>

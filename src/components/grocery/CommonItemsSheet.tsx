@@ -7,10 +7,6 @@ import { toast } from 'sonner'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { DraggableSheet } from '@/components/shared/DraggableSheet'
 import { usePermissionGate } from '@/lib/hooks/usePermissionGate'
-import {
-  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
-  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
-} from '@/components/ui/alert-dialog'
 
 const COLOR = '#F59E0B'
 const COLOR_DARK = '#C87D00'
@@ -51,7 +47,7 @@ export function CommonItemsSheet({ open, onClose }: { open: boolean; onClose: ()
   const [newName, setNewName] = useState('')
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editName, setEditName] = useState('')
-  const [removeTarget, setRemoveTarget] = useState<CommonItem | null>(null)
+  const [confirmingId, setConfirmingId] = useState<string | null>(null)
 
   const addMut = useMutation({
     mutationFn: async (name: string) => {
@@ -89,13 +85,19 @@ export function CommonItemsSheet({ open, onClose }: { open: boolean; onClose: ()
       const body = await res.json().catch(() => ({}))
       if (!res.ok) throw new Error(body.error ?? 'Failed to delete')
     },
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['common-items'] }); setRemoveTarget(null); toast.success('Removed') },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['common-items'] }); setConfirmingId(null); toast.success('Removed') },
     onError: (err) => toast.error('Could not remove', { description: err instanceof Error ? err.message : 'Please try again.' }),
   })
 
   function startEdit(item: CommonItem) {
+    setConfirmingId(null)
     setEditingId(item.id)
     setEditName(item.name)
+  }
+
+  function startRemove(item: CommonItem) {
+    setEditingId(null)
+    setConfirmingId(item.id)
   }
 
   function submitAdd() {
@@ -113,8 +115,7 @@ export function CommonItemsSheet({ open, onClose }: { open: boolean; onClose: ()
   }
 
   return (
-    <>
-      <DraggableSheet open={open} onOpenChange={(v: boolean) => { if (!v) onClose() }} featureColor={COLOR}>
+    <DraggableSheet open={open} onOpenChange={(v: boolean) => { if (!v) onClose() }} featureColor={COLOR}>
         <div className="px-4 pb-8">
           <p className="mb-1 text-lg" style={{ color: 'var(--roost-text-primary)', fontWeight: 800 }}>
             Common items
@@ -166,6 +167,7 @@ export function CommonItemsSheet({ open, onClose }: { open: boolean; onClose: ()
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               {items.map((item) => {
                 const editing = editingId === item.id
+                const confirming = confirmingId === item.id
                 return (
                   <div
                     key={item.id}
@@ -209,6 +211,29 @@ export function CommonItemsSheet({ open, onClose }: { open: boolean; onClose: ()
                           <X size={16} color="var(--roost-text-muted)" />
                         </button>
                       </>
+                    ) : confirming ? (
+                      <>
+                        <span style={{ flex: 1, fontSize: 14, fontWeight: 700, color: 'var(--roost-text-primary)' }}>
+                          Remove this?
+                        </span>
+                        <motion.button
+                          type="button"
+                          whileTap={{ y: 1 }}
+                          onClick={() => deleteMut.mutate(item.id)}
+                          disabled={deleteMut.isPending}
+                          style={{ height: 40, paddingLeft: 14, paddingRight: 14, borderRadius: 10, border: 'none', borderBottom: '3px solid #C93B3B', background: '#EF4444', color: '#fff', fontSize: 13, fontWeight: 800, cursor: 'pointer', opacity: deleteMut.isPending ? 0.5 : 1 }}
+                        >
+                          {deleteMut.isPending ? 'Removing...' : 'Remove'}
+                        </motion.button>
+                        <button
+                          type="button"
+                          onClick={() => setConfirmingId(null)}
+                          disabled={deleteMut.isPending}
+                          style={{ height: 40, paddingLeft: 14, paddingRight: 14, borderRadius: 10, border: '1.5px solid var(--roost-border)', background: 'var(--roost-surface)', color: 'var(--roost-text-secondary)', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}
+                        >
+                          Cancel
+                        </button>
+                      </>
                     ) : (
                       <>
                         <span style={{ flex: 1, fontSize: 14, fontWeight: 700, color: 'var(--roost-text-primary)' }}>
@@ -225,7 +250,7 @@ export function CommonItemsSheet({ open, onClose }: { open: boolean; onClose: ()
                         <button
                           type="button"
                           aria-label={`Remove ${item.name}`}
-                          onClick={() => setRemoveTarget(item)}
+                          onClick={() => startRemove(item)}
                           style={{ width: 40, height: 40, borderRadius: 10, border: 'none', background: 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                         >
                           <Trash2 size={16} color="#EF4444" />
@@ -238,28 +263,6 @@ export function CommonItemsSheet({ open, onClose }: { open: boolean; onClose: ()
             </div>
           )}
         </div>
-      </DraggableSheet>
-
-      <AlertDialog open={!!removeTarget} onOpenChange={(v) => { if (!v) setRemoveTarget(null) }}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Remove {removeTarget?.name}?</AlertDialogTitle>
-            <AlertDialogDescription>
-              It will no longer appear as a quick-add chip. Items already added to your lists are unaffected.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={deleteMut.isPending}>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={() => removeTarget && deleteMut.mutate(removeTarget.id)}
-              disabled={deleteMut.isPending}
-              style={{ background: '#EF4444', borderBottom: '3px solid #C93B3B', color: '#fff', fontWeight: 700 }}
-            >
-              {deleteMut.isPending ? 'Removing...' : 'Remove'}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-    </>
+    </DraggableSheet>
   )
 }

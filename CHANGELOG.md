@@ -24,6 +24,29 @@ with pre-release tags during beta.
 
 Changes on the current release branch that have not yet been merged + released go here.
 
+## [1.0.0-beta.3] - 2026-07-13
+
+A bug-fix sweep focused on mobile: sign-out, the grocery Lists surface, and the
+meals module.
+
+### Changed
+- The mobile bottom nav now links to Lists; Household moved into the mobile More sheet (#126).
+- Grocery item rows read more clearly: quantities show as "Quantity: N" and the mystery "?"
+  avatar is gone (#121).
+- Deleting a grocery item now asks for confirmation first (#122).
+- A planned meal can be moved to a different day and slot without re-creating it (#124).
+- Redesigned the mobile meal bank cards: a full-width action bar with larger touch targets,
+  and tapping a card opens the full ingredient list so nothing hidden behind a "+N" chip is
+  lost (#125).
+- Vercel now builds and deploys only the main branch; other branches no longer trigger
+  preview builds.
+
+### Fixed
+- Signing out on mobile no longer freezes the app; it reliably redirects to the login page (#119).
+- The Common Items sheet no longer freezes the page when deleting an item (#127).
+- On mobile you can add meals to the meal bank when one or more already exist; the bank
+  auto-refreshes and meal deletion confirms first (#123).
+
 ## [1.0.0-beta.2] - 2026-07-08
 
 First update after the beta deployment: UI polish, an easier invite flow, and a
@@ -76,6 +99,7 @@ planning, notes, reminders, tasks, and rewards, with per-household premium prici
 - This is a beta: expect small issues. Fixes are tracked as GitHub issues and land on the
   `dev` branch between releases.
 
-[Unreleased]: https://github.com/Cremacious/roost/compare/v1.0.0-beta.2...HEAD
+[Unreleased]: https://github.com/Cremacious/roost/compare/v1.0.0-beta.3...HEAD
+[1.0.0-beta.3]: https://github.com/Cremacious/roost/compare/v1.0.0-beta.2...v1.0.0-beta.3
 [1.0.0-beta.2]: https://github.com/Cremacious/roost/compare/v1.0.0-beta.1...v1.0.0-beta.2
 [1.0.0-beta.1]: https://github.com/Cremacious/roost/releases/tag/v1.0.0-beta.1

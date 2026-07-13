@@ -16,6 +16,16 @@ import { SlabCard } from '@/components/ui/SlabCard'
 import { DraggableSheet } from '@/components/shared/DraggableSheet'
 import PageIntroModal from '@/components/shared/PageIntroModal'
 import { PAGE_INTROS } from '@/lib/constants/pageIntros'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 
 const COLOR = SECTION_COLORS.meals.base
 const COLOR_DARK = SECTION_COLORS.meals.dark
@@ -929,6 +939,9 @@ export default function MealsPage() {
   // Bank card preview
   const [previewMeal, setPreviewMeal] = useState<Meal | null>(null)
 
+  // Bank card delete confirmation
+  const [pendingDeleteMeal, setPendingDeleteMeal] = useState<Meal | null>(null)
+
   // Suggestion sheet state
   const [suggestOpen, setSuggestOpen] = useState(false)
 
@@ -1616,6 +1629,18 @@ export default function MealsPage() {
                   </button>
                 ))}
               </div>
+              {/* Mobile add-to-bank button (desktop uses the header button above the grid) */}
+              <motion.button whileTap={{ y: 2 }} type="button"
+                aria-disabled={!canAddMeal}
+                onClick={openAddMeal}
+                style={{
+                  width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                  padding: '13px 0', borderRadius: 12, backgroundColor: COLOR, border: 'none',
+                  borderBottom: `3px solid ${COLOR_DARK}`, fontSize: 14, fontWeight: 800, color: '#fff',
+                  cursor: canAddMeal ? 'pointer' : 'not-allowed', opacity: canAddMeal ? 1 : 0.55, marginBottom: 14,
+                }}>
+                {canAddMeal ? <Plus size={15} /> : <Lock size={15} />} Add Meal
+              </motion.button>
             </div>
 
             {/* Desktop toolbar: cat pills left | search + add right */}
@@ -1740,7 +1765,7 @@ export default function MealsPage() {
                                 <Pencil size={13} color="var(--roost-text-secondary)" />
                               </button>
                               {m.createdBy === currentUserId && (
-                                <button type="button" onClick={() => deleteMealMutation.mutate(m.id)}
+                                <button type="button" onClick={() => setPendingDeleteMeal(m)}
                                   style={{ width: 34, height: 34, borderRadius: 9, border: 'none', backgroundColor: 'var(--roost-bg)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                                   <Trash2 size={13} color="#EF4444" />
                                 </button>
@@ -1844,7 +1869,7 @@ export default function MealsPage() {
                             <Pencil size={13} />
                           </button>
                           {m.createdBy === currentUserId && (
-                            <button type="button" onClick={() => deleteMealMutation.mutate(m.id)}
+                            <button type="button" onClick={() => setPendingDeleteMeal(m)}
                               style={{ width: 34, height: 34, borderRadius: 9, border: '1px solid var(--roost-border)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: 'var(--roost-bg)', color: '#EF4444' }}>
                               <Trash2 size={13} />
                             </button>
@@ -1965,7 +1990,11 @@ export default function MealsPage() {
         canRemove={!bankAddMeal && !!existingSlot && (isAdmin || existingSlot.createdBy === currentUserId)}
         bankMeals={bankMeals}
         preSelectedMeal={bankAddMeal}
-        onSaved={() => qc.invalidateQueries({ queryKey: ['planner', weekStartStr] })}
+        onSaved={() => {
+          qc.invalidateQueries({ queryKey: ['planner', weekStartStr] })
+          // Quick add can create a new meal-bank entry, so refresh the bank too.
+          qc.invalidateQueries({ queryKey: ['meals'] })
+        }}
         onRemoved={() => qc.invalidateQueries({ queryKey: ['planner', weekStartStr] })}
       />
 
@@ -1992,6 +2021,35 @@ export default function MealsPage() {
         canPlanMeal={canPlanMeal}
         onBlockedPlanMeal={onBlockedPlanMeal}
       />
+
+      <AlertDialog open={!!pendingDeleteMeal} onOpenChange={(open) => { if (!open) setPendingDeleteMeal(null) }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete meal?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Remove &quot;{pendingDeleteMeal?.name}&quot; from your meal bank? This cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (pendingDeleteMeal) deleteMealMutation.mutate(pendingDeleteMeal.id)
+                setPendingDeleteMeal(null)
+              }}
+              style={{
+                backgroundColor: COLOR,
+                borderBottom: `3px solid ${COLOR_DARK}`,
+                border: 'none',
+                color: '#fff',
+                fontWeight: 800,
+              }}
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   )
 }

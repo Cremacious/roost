@@ -4,7 +4,7 @@
 
 **Goal:** Stand up a new `roost-mobile` Expo Router (iOS) app with working auth, household onboarding, and the five core daily-use modules (Today, Chores, Grocery, Calendar, Tasks), talking to Roost's existing production API/database, buildable via EAS into a TestFlight-installable app with no dev server required at runtime.
 
-**Architecture:** `roost-mobile` is a pure client — a standalone Expo Router repo with no shared package/monorepo relationship to `roost`. It authenticates against `roost`'s existing better-auth server (extended with the official Expo plugin) and consumes the exact same `/api/*` JSON contracts the web app already uses. Business logic with zero DOM dependencies (colors, plan limits, grocery sort, recurrence expansion, chore due-date math) is copied verbatim from `roost`'s `src/lib/` into `roost-mobile`'s `src/lib/`. Screens are built with plain, functional React Native styling — no design system yet; a later sub-project applies the Claude Design handoff on top of this working foundation.
+**Architecture:** `roost-mobile` is a pure client — a standalone Expo Router repo with no shared package/monorepo relationship to `roost`. It authenticates against `roost`'s existing better-auth server (extended with the official Expo plugin) and consumes the exact same `/api/*` JSON contracts the web app already uses. The two pieces of zero-DOM-dependency business logic that this sub-project's screens actually use (section colors, grocery smart-sort classification) are copied verbatim from `roost`'s `src/lib/` into `roost-mobile`'s `src/lib/`; logic with no consumer in this plan (plan limits display, client-side recurrence expansion, client-side chore due-date math) is left unported until a real screen needs it. Screens are built with plain, functional React Native styling — no design system yet; a later sub-project applies the Claude Design handoff on top of this working foundation.
 
 **Tech Stack:** Expo (SDK, scaffolded via `create-expo-app@latest` to always get current), Expo Router, TypeScript, `@better-auth/expo` + `expo-secure-store`, `@tanstack/react-query`, `lucide-react-native`, `date-fns`, Jest (`jest-expo` preset) for pure-logic unit tests only — no automated UI/E2E tests in this sub-project (screens are verified by manually running the app, per the spec).
 
@@ -496,212 +496,26 @@ git commit -m "feat(auth): add better-auth Expo client, manual session store, an
 
 **Files:**
 - Create: `roost-mobile/src/lib/constants/colors.ts`
-- Create: `roost-mobile/src/lib/constants/planLimits.ts`
 - Create: `roost-mobile/src/lib/utils/grocerySort.ts`
-- Create: `roost-mobile/src/lib/utils/recurrence.ts`
-- Create: `roost-mobile/src/lib/utils/choreSchedule.ts`
-- Test: `roost-mobile/src/lib/utils/choreSchedule.test.ts`
 - Test: `roost-mobile/src/lib/utils/grocerySort.test.ts`
-- Test: `roost-mobile/src/lib/utils/recurrence.test.ts`
 
 **Interfaces:**
-- Produces: `SECTION_COLORS`, `SectionKey` (colors.ts); `PLAN_LIMITS`, `FEATURE_ACCESS`, `tierFor`, `planLimit`, `hasFeature` (planLimits.ts); `classifyItem`, `groupItemsBySection`, `STORE_SECTIONS` (grocerySort.ts); `expandRecurring` (recurrence.ts); `calcNextDueAt`, `advanceNextDueAt`, `parseDateInput` (choreSchedule.ts). Later tasks (Chores, Grocery, Calendar) import from these files.
+- Produces: `SECTION_COLORS`, `SectionKey` (colors.ts); `classifyItem`, `groupItemsBySection`, `STORE_SECTIONS` (grocerySort.ts). `groupItemsBySection` is imported directly by Task 12 (Grocery). `SECTION_COLORS` is imported by Tasks 11, 12, 13, 14 to replace the section-color hex literals in their styles (this is called out explicitly in each of those tasks' dispatch context, not left implicit).
 - Consumes: nothing.
 
-All four source files were confirmed during spec research to have zero DOM/window dependencies, so they port with only import-path changes.
+Both source files were confirmed during spec research to have zero DOM/window dependencies, so they port with only import-path changes.
+
+**Scope note (pre-flight ruling):** the original draft of this task also ported `planLimits.ts`, `recurrence.ts`, and a `choreSchedule.ts` extracted from `roost`'s chores route. None of those are imported by any task's actual screen code in this plan: client-side due-date preview and client-side recurrence expansion aren't part of any screen built here (the server always computes and returns the values the mobile screens display), and no screen shows a client-side "X of Y used" limit counter. Porting them anyway would add dead code a task reviewer would flag under this codebase's YAGNI convention. They were cut. If a future task in a later sub-project needs them, port them then, when there's a real consumer.
 
 - [ ] **Step 1: Copy `colors.ts` verbatim**
 
 Copy the full contents of `/home/chris/Code/roost/src/lib/constants/colors.ts` into `roost-mobile/src/lib/constants/colors.ts` unchanged (it's a standalone `as const` object with no imports).
 
-- [ ] **Step 2: Copy `planLimits.ts` verbatim**
-
-Copy the full contents of `/home/chris/Code/roost/src/lib/constants/planLimits.ts` into `roost-mobile/src/lib/constants/planLimits.ts` unchanged (standalone, no imports).
-
-- [ ] **Step 3: Copy `grocerySort.ts` verbatim**
+- [ ] **Step 2: Copy `grocerySort.ts` verbatim**
 
 Copy the full contents of `/home/chris/Code/roost/src/lib/utils/grocerySort.ts` into `roost-mobile/src/lib/utils/grocerySort.ts` unchanged (standalone, no imports, pure string/array logic over the `STORE_SECTIONS`/`SECTION_KEYWORDS` keyword tables).
 
-- [ ] **Step 4: Copy `recurrence.ts` verbatim**
-
-Copy the full contents of `/home/chris/Code/roost/src/lib/utils/recurrence.ts` into `roost-mobile/src/lib/utils/recurrence.ts` unchanged (standalone, pure `Date` arithmetic):
-
-```ts
-export interface RecurrenceFields {
-  startTime: Date
-  endTime: Date
-  frequency: string | null
-  repeatEndType: string | null
-  repeatUntil: Date | null
-  repeatOccurrences: number | null
-}
-
-export function expandRecurring<T extends RecurrenceFields>(
-  event: T,
-  rangeStart: Date,
-  rangeEnd: Date,
-): Array<T & { isRecurring: boolean; templateStartTime: string }> {
-  const results: Array<T & { isRecurring: boolean; templateStartTime: string }> = []
-  if (!event.frequency) return results
-
-  const templateStartTime = event.startTime.toISOString()
-  const durationMs = event.endTime.getTime() - event.startTime.getTime()
-  let current = new Date(event.startTime)
-  let count = 0
-  const MAX = 3660
-
-  while (count < MAX) {
-    if (event.repeatEndType === 'until_date' && event.repeatUntil && current > event.repeatUntil) break
-    if (event.repeatEndType === 'after_occurrences' && event.repeatOccurrences && count >= event.repeatOccurrences) break
-
-    if (current >= rangeStart && current < rangeEnd) {
-      results.push({
-        ...event,
-        startTime: new Date(current),
-        endTime: new Date(current.getTime() + durationMs),
-        isRecurring: true,
-        templateStartTime,
-      })
-    }
-
-    const next = new Date(current)
-    switch (event.frequency) {
-      case 'daily':    next.setDate(next.getDate() + 1); break
-      case 'weekly':   next.setDate(next.getDate() + 7); break
-      case 'biweekly': next.setDate(next.getDate() + 14); break
-      case 'monthly':  next.setMonth(next.getMonth() + 1); break
-      case 'yearly':   next.setFullYear(next.getFullYear() + 1); break
-      default:         next.setDate(next.getDate() + 7)
-    }
-
-    if (next <= current) break
-    current = next
-    count++
-
-    if (current > rangeEnd && results.length > 0) break
-  }
-
-  return results
-}
-```
-
-- [ ] **Step 5: Write `choreSchedule.ts`** (extracted from `roost`'s `src/app/api/chores/route.ts`, which exports these as server-route helpers; the mobile app needs the same date math client-side to preview a due date while building the create/edit form)
-
-Create `roost-mobile/src/lib/utils/choreSchedule.ts`:
-
-```ts
-function daysInMonth(year: number, monthIndex: number): number {
-  return new Date(year, monthIndex + 1, 0).getDate()
-}
-
-export function parseDateInput(value: string): Date {
-  const [y, m, d] = value.split('-').map(Number)
-  return new Date(y, (m || 1) - 1, d || 1, 12, 0, 0, 0)
-}
-
-export function calcNextDueAt(frequency: string, customDays: string | null, from = new Date()): Date {
-  const next = new Date(from)
-  next.setHours(12, 0, 0, 0)
-  const hasDay = customDays != null && customDays !== ''
-
-  switch (frequency) {
-    case 'daily':
-      break
-    case 'weekly':
-    case 'biweekly': {
-      const target = hasDay ? Number(customDays) : next.getDay()
-      const daysUntil = (((target - next.getDay()) % 7) + 7) % 7
-      next.setDate(next.getDate() + daysUntil)
-      break
-    }
-    case 'monthly': {
-      const dom = hasDay ? Number(customDays) : next.getDate()
-      const thisMonth = new Date(next)
-      thisMonth.setDate(daysInMonth(thisMonth.getFullYear(), thisMonth.getMonth()) >= dom ? dom : daysInMonth(thisMonth.getFullYear(), thisMonth.getMonth()))
-      if (thisMonth >= next) return thisMonth
-      const nextMonth = new Date(next.getFullYear(), next.getMonth() + 1, 1, 12, 0, 0, 0)
-      nextMonth.setDate(Math.min(dom, daysInMonth(nextMonth.getFullYear(), nextMonth.getMonth())))
-      return nextMonth
-    }
-    case 'custom': {
-      if (customDays) {
-        const days = customDays.split(' ').map(Number).sort((a, b) => a - b)
-        const todayDow = next.getDay()
-        const nextDay = days.find(d => d >= todayDow) ?? days[0]
-        const daysUntil = nextDay >= todayDow ? nextDay - todayDow : 7 - todayDow + nextDay
-        next.setDate(next.getDate() + daysUntil)
-      } else {
-        next.setDate(next.getDate() + 7)
-      }
-      break
-    }
-    default: {
-      const target = hasDay ? Number(customDays) : next.getDay()
-      const daysUntil = (((target - next.getDay()) % 7) + 7) % 7
-      next.setDate(next.getDate() + daysUntil)
-    }
-  }
-  return next
-}
-
-export function advanceNextDueAt(
-  frequency: string,
-  customDays: string | null,
-  lastDue: Date,
-  now = new Date(),
-): Date {
-  const hasDay = customDays != null && customDays !== ''
-
-  const advanceOne = (d: Date): Date => {
-    const r = new Date(d)
-    switch (frequency) {
-      case 'daily':    r.setDate(r.getDate() + 1); break
-      case 'weekly':   r.setDate(r.getDate() + 7); break
-      case 'biweekly': r.setDate(r.getDate() + 14); break
-      case 'monthly': {
-        const dom = hasDay ? Number(customDays) : r.getDate()
-        const m = new Date(r.getFullYear(), r.getMonth() + 1, 1, 12, 0, 0, 0)
-        m.setDate(Math.min(dom, daysInMonth(m.getFullYear(), m.getMonth())))
-        return m
-      }
-      case 'custom': return calcNextDueAt('custom', customDays, r)
-      default: r.setDate(r.getDate() + 7)
-    }
-    return r
-  }
-
-  let next = advanceOne(lastDue)
-  let guard = 0
-  while (next <= now && guard < 600) {
-    next = advanceOne(next)
-    guard++
-  }
-  return next
-}
-```
-
-- [ ] **Step 6: Write smoke tests for the ported logic**
-
-Create `roost-mobile/src/lib/utils/choreSchedule.test.ts`:
-
-```ts
-import { calcNextDueAt } from './choreSchedule'
-
-describe('calcNextDueAt', () => {
-  it('returns the same day for a daily chore', () => {
-    const from = new Date(2026, 0, 15, 9, 0, 0)
-    const result = calcNextDueAt('daily', null, from)
-    expect(result.getDate()).toBe(15)
-    expect(result.getMonth()).toBe(0)
-  })
-
-  it('advances to the target weekday for a weekly chore', () => {
-    const from = new Date(2026, 0, 15) // Thursday
-    const result = calcNextDueAt('weekly', '1', from) // target Monday
-    expect(result.getDay()).toBe(1)
-  })
-})
-```
+- [ ] **Step 3: Write a smoke test for the ported grocery-sort logic**
 
 Create `roost-mobile/src/lib/utils/grocerySort.test.ts`:
 
@@ -721,51 +535,16 @@ describe('classifyItem', () => {
 
 (Adjust the expected section name in the first assertion to whatever `STORE_SECTIONS`/`SECTION_KEYWORDS` in the copied file actually name the dairy section — read the copied file's exact section names before writing this assertion.)
 
-Create `roost-mobile/src/lib/utils/recurrence.test.ts`:
+- [ ] **Step 4: Run the test**
 
-```ts
-import { expandRecurring } from './recurrence'
+Run: `npx jest src/lib/utils/grocerySort.test.ts`
+Expected: PASS (adjust the section-name assertion per the actual copied file before this passes).
 
-describe('expandRecurring', () => {
-  it('expands a weekly event into every occurrence within the range', () => {
-    const event = {
-      startTime: new Date(2026, 0, 5), // Monday
-      endTime: new Date(2026, 0, 5, 1),
-      frequency: 'weekly',
-      repeatEndType: 'forever',
-      repeatUntil: null,
-      repeatOccurrences: null,
-    }
-    const results = expandRecurring(event, new Date(2026, 0, 1), new Date(2026, 0, 31))
-    expect(results.length).toBe(4)
-    expect(results[0].startTime.getDate()).toBe(5)
-    expect(results[1].startTime.getDate()).toBe(12)
-  })
-
-  it('returns an empty array when frequency is null', () => {
-    const event = {
-      startTime: new Date(2026, 0, 5),
-      endTime: new Date(2026, 0, 5, 1),
-      frequency: null,
-      repeatEndType: null,
-      repeatUntil: null,
-      repeatOccurrences: null,
-    }
-    expect(expandRecurring(event, new Date(2026, 0, 1), new Date(2026, 0, 31))).toEqual([])
-  })
-})
-```
-
-- [ ] **Step 7: Run all the new tests**
-
-Run: `npx jest src/lib/utils src/lib/constants`
-Expected: all tests PASS (adjust the grocery section-name assertion per the actual copied file before this passes).
-
-- [ ] **Step 8: Commit**
+- [ ] **Step 5: Commit**
 
 ```bash
 git add src/lib/constants src/lib/utils
-git commit -m "feat: port colors, plan limits, grocery sort, recurrence, and chore schedule logic from roost"
+git commit -m "feat: port colors and grocery sort logic from roost"
 ```
 
 ---
@@ -1870,8 +1649,8 @@ git commit -m "feat: build out Today screen"
 - Create: `roost-mobile/src/lib/hooks/usePermissionGate.ts`
 
 **Interfaces:**
-- Consumes: `apiFetch` (Task 4), `calcNextDueAt`/`parseDateInput` (Task 5).
-- Produces: `useHousehold()` returning `{ household, role, permissions, isPremium, isLoading }` and `usePermissionGate(permission)` returning `{ allowed, onBlocked }` — reused by Tasks 12, 13, 14 for their own permission/premium gates.
+- Consumes: `apiFetch` (Task 4), `SECTION_COLORS` (Task 5) — import it and use `SECTION_COLORS.chores.base` / `SECTION_COLORS.chores.dark` in place of the hardcoded `'#EF4444'` / section-color hex literals in this screen's `StyleSheet` (the add button, completion circle, active frequency pill, save button). Leave genuinely neutral colors (`'#111827'`, `'#9B9590'`, `'#E5E7EB'`, `'#F9FAFB'`, `'#fff'`) as they are — only the section-color values move to the constant.
+- Produces: `useHousehold()` returning `{ household, role, permissions, isPremium, isLoading }` and `usePermissionGate(permission)` returning `{ allowed, onBlocked }` — reused by Tasks 12, 13, 14, and 15 for their own permission/premium gates and household display.
 
 - [ ] **Step 1: Write `useHousehold`**
 
@@ -2208,7 +1987,7 @@ git commit -m "feat: build out Chores screen with premium and permission gates"
 - Create: `roost-mobile/src/lib/api/grocery.ts`
 
 **Interfaces:**
-- Consumes: `apiFetch` (Task 4), `useHousehold`/`usePermissionGate` (Task 11), `groupItemsBySection` (Task 5).
+- Consumes: `apiFetch` (Task 4), `useHousehold`/`usePermissionGate` (Task 11), `groupItemsBySection` (Task 5), `SECTION_COLORS` (Task 5) — import it and use `SECTION_COLORS.grocery.base` / `SECTION_COLORS.grocery.dark` in place of the hardcoded `'#F59E0B'` grocery-color hex literals in this screen's `StyleSheet` (quick-add button, checkbox-checked state).
 
 - [ ] **Step 1: Write the grocery API helpers**
 
@@ -2398,7 +2177,7 @@ git commit -m "feat: build out Grocery screen with smart sort grouping"
 - Create: `roost-mobile/src/lib/api/calendar.ts`
 
 **Interfaces:**
-- Consumes: `apiFetch` (Task 4), `useHousehold`/`usePermissionGate` (Task 11).
+- Consumes: `apiFetch` (Task 4), `useHousehold`/`usePermissionGate` (Task 11), `SECTION_COLORS` (Task 5) — import it and use `SECTION_COLORS.calendar.base` / `SECTION_COLORS.calendar.dark` in place of the hardcoded `'#3B82F6'` calendar-color hex literals in this screen's `StyleSheet` (the add button and section header text; leave the `'#BAD3F7'` neutral-blue border as-is, it isn't in `SECTION_COLORS`).
 
 **Scope note:** this sub-project ships an agenda-style list (upcoming events, grouped by date) rather than the web app's month grid. A month-grid calendar view is a meaningfully larger native-UI build and isn't needed to validate the daily-use loop; it's a good candidate to add during the sub-project 5 redesign pass, or as its own follow-up task, rather than blocking this plan. Recurring events still expand correctly since the API already does that server-side.
 
@@ -2615,7 +2394,7 @@ git commit -m "feat: build out Calendar screen (agenda view)"
 - Create: `roost-mobile/src/lib/api/tasks.ts`
 
 **Interfaces:**
-- Consumes: `apiFetch` (Task 4), `usePermissionGate` (Task 11).
+- Consumes: `apiFetch` (Task 4), `usePermissionGate` (Task 11), `SECTION_COLORS` (Task 5) — import it and use `SECTION_COLORS.tasks.base` / `SECTION_COLORS.tasks.dark` in place of the hardcoded `'#EC4899'` tasks-color hex literals in this screen's `StyleSheet` (the add button and completion circle; leave the `PRIORITY_COLORS` map as-is, priority colors are not section colors).
 
 - [ ] **Step 1: Write the tasks API helpers**
 
@@ -3015,3 +2794,4 @@ git commit -m "chore: add EAS build profiles for development and preview (TestFl
 - **Placeholder scan:** no TBD/TODO markers; every step has real code or an exact command. The two spots that narrow scope (Calendar ships agenda-only in Task 13; onboarding's pending-approval step doesn't poll live in Task 9) are called out explicitly as deliberate, bounded scope notes with a stated reason, not vague deferrals.
 - **Type consistency:** `Chore`, `GroceryItem`, `CalendarEvent`, and `Task` types are each defined once (in their respective `src/lib/api/*.ts` file) and reused as-is by their screen component, not redefined. `ApiError` (Task 4) is the single error type thrown by `apiFetch` and is what every mutation's `onError` handler and every screen's try/catch checks against.
 - **Known integration risk flagged rather than glossed over:** the child-login cookie capture (Task 7) is the one piece of this plan resting on a from-scratch design rather than official documentation, since better-auth's Expo plugin only auto-captures cookies from its own built-in actions. The chosen design (server returns the `name=value` cookie pair in the JSON body, client stores it in its own dedicated slot, `apiFetch` checks it first) avoids needing to reverse-engineer the plugin's internal SecureStore format, and Task 8 Step 7 plus Task 15 Step 2 both include explicit manual verification of that exact path.
+- **Pre-flight correction (SDD cross-task scan, 2026-08-19):** the original Task 5 also ported `planLimits.ts`, `recurrence.ts`, and a `choreSchedule.ts`, none of which any task's actual screen code imports (due-date and recurrence expansion happen server-side; no screen shows a client-side limit counter). Cut to keep only `colors.ts` and `grocerySort.ts`, the two files this plan's screens genuinely use. `colors.ts` itself was also originally ported but never referenced (every screen hardcoded its section-color hex values inline) — Tasks 11-14 now explicitly import `SECTION_COLORS` and use it for their section-color styles instead of the hardcoded hex, matching this codebase's own "always import section colors from constants, never hardcode" convention.

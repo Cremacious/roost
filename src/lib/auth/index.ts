@@ -1,5 +1,6 @@
 import { betterAuth } from 'better-auth'
 import { drizzleAdapter } from 'better-auth/adapters/drizzle'
+import { expo } from '@better-auth/expo'
 import { Resend } from 'resend'
 import { db } from '@/lib/db'
 import * as schema from '@/db/schema'
@@ -43,6 +44,13 @@ const googleProvider =
 export const auth = betterAuth({
   secret: process.env.BETTER_AUTH_SECRET!,
   baseURL: process.env.BETTER_AUTH_URL ?? process.env.NEXT_PUBLIC_APP_URL!,
+  plugins: [expo()],
+  trustedOrigins: [
+    'roost://',
+    ...(process.env.NODE_ENV === 'development'
+      ? ['exp://', 'exp://**', 'exp://192.168.*.*:*/**']
+      : []),
+  ],
   socialProviders: {
     ...googleProvider,
     ...appleProvider,

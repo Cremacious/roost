@@ -157,7 +157,7 @@ export async function POST(request: NextRequest): Promise<Response> {
     cookieHeader += '; Secure'
   }
 
-  const response = Response.json({ success: true })
+  const response = Response.json({ success: true, cookie: `${cookieName}=${signedValue}` })
   response.headers.set('Set-Cookie', cookieHeader)
   return response
 }

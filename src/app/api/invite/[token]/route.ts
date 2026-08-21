@@ -20,9 +20,11 @@ async function loadInvite(token: string) {
       deletedAt: householdInvites.deletedAt,
       householdName: households.name,
       householdDeletedAt: households.deleted_at,
+      inviterName: user.name,
     })
     .from(householdInvites)
     .innerJoin(households, eq(householdInvites.householdId, households.id))
+    .innerJoin(user, eq(householdInvites.createdBy, user.id))
     .where(eq(householdInvites.token, token))
     .limit(1);
   return invite ?? null;
@@ -54,6 +56,7 @@ export async function GET(
     isGuest: invite.isGuest === "true",
     email: invite.email,
     expiresAt: invite.expiresAt?.toISOString() ?? null,
+    inviterName: invite.inviterName,
   });
 }
 

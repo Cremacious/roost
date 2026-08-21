@@ -1,7 +1,7 @@
 import { type NextRequest } from 'next/server'
 import { requireSession, getUserHousehold } from '@/lib/auth/helpers'
 import { db } from '@/lib/db'
-import { householdMembers } from '@/db/schema'
+import { householdMembers, session as sessionTable } from '@/db/schema'
 import { eq, and, isNull } from 'drizzle-orm'
 import { hashPassword } from 'better-auth/crypto'
 
@@ -31,7 +31,7 @@ export async function PATCH(
 
   // Find the child member
   const [target] = await db
-    .select({ role: householdMembers.role })
+    .select({ role: householdMembers.role, userId: householdMembers.userId })
     .from(householdMembers)
     .where(
       and(
@@ -55,6 +55,8 @@ export async function PATCH(
     .update(householdMembers)
     .set({ pin: hashedPin })
     .where(eq(householdMembers.id, id))
+
+  await db.delete(sessionTable).where(eq(sessionTable.userId, target.userId))
 
   return Response.json({ ok: true })
 }
